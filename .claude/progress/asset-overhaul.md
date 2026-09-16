@@ -84,7 +84,13 @@ Last verified commit: see `git log` (each checkpoint below is one commit).
       breakers; battery, roboRIO, radio, main breaker, Bezier cable runs; two-stage elevator,
       pocketed carriage with compliant-wheel rollers. 21.8k tris, 970 KB. `robot_carriage` and
       `robot_rsl` exported separately (animated). Layout matches the old in-code robot.
-- [ ] electronics / bins — Tier 2
+- [x] **Tier 2 (performance/Tier 2 pass)** — Blender, from scratch, deliberately light:
+      chair (6.6k tris: contoured seat/back, 5-star base, casters), parts bin (296), tote
+      (1.2k, also the parts-crate project object), organiser (1.1k), mug (1.5k, lathed with
+      wall thickness), screwdriver (524, fluted), USB cable coil (1.8k), USB hub with LED meshes
+      (384), loose dev board (1.2k, retinted per solder mask). Scripts: build_chair.py,
+      build_bins.py, build_desk_items.py.
+- [ ] materials/textures pass (ambientCG CC0) — floor, walls, chair fabric
 
 ## Preserved and must not regress
 

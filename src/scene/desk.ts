@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Materials } from './materials';
 import type { Assets } from './assets';
 import { DESK, DESKTOP, LAMP } from './layout';
-import { at, rbox, rboxGeo, shadowed, rand } from './build';
+import { at, rbox, shadowed, rand } from './build';
 
 /**
  * The desk and everything standing on it.
@@ -306,22 +306,16 @@ function buildCube(root: THREE.Group, assets: Assets) {
 }
 
 /** A mug, left-front: the one object on the desk with no technical purpose. */
-function buildMug(root: THREE.Group, m: Materials) {
+function buildMug(root: THREE.Group, m: Materials, assets: Assets) {
   const { x, z, rotationY } = DESKTOP.mug;
   const g = at(new THREE.Group(), x, DESK.top, z, root);
   g.rotation.y = rotationY;
-  const wall = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.038, 0.098, 26, 1, true), m.plasticWhite));
-  const wallMat = (wall.material as THREE.MeshStandardMaterial).clone();
-  wallMat.side = THREE.DoubleSide;
-  wall.material = wallMat;
-  at(wall, 0, 0.049, 0, g);
-  at(shadowed(new THREE.Mesh(new THREE.CircleGeometry(0.038, 26), m.plasticWhite)), 0, 0.004, 0, g).rotation.x = -Math.PI / 2;
-  // Coffee: a dark disc a little below the rim.
-  const brew = at(new THREE.Mesh(new THREE.CircleGeometry(0.0395, 26), new THREE.MeshStandardMaterial({ color: '#241509', roughness: 0.22 })), 0, 0.072, 0, g);
-  brew.rotation.x = -Math.PI / 2;
-  const handle = shadowed(new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.0058, 8, 18, Math.PI * 1.1), m.plasticWhite));
-  handle.rotation.z = -Math.PI / 2 - 0.15;
-  at(handle, 0.044, 0.05, 0, g);
+  // Lathed ceramic with real wall thickness and a rounded lip (build_desk_items.py). The glaze
+  // stays glossier than the room's white plastics; that difference is most of what says ceramic.
+  const mug = assets.instance('mug');
+  assets.retint(mug, { mug_ceramic: m.ceramic });
+  castShadows(mug);
+  g.add(mug);
 }
 
 /**
@@ -362,47 +356,40 @@ function buildWorkClutter(root: THREE.Group, m: Materials, assets: Assets) {
   assets.retint(upper, { bin_plastic: m.binBlue, bin_label: m.paper });
   castShadows(binStack);
 
-  // Boards lying around: one flat, one leaning, one half-off a bin.
-  const board = (x: number, y: number, z: number, w: number, d: number, mat: THREE.Material, rot: [number, number, number]) => {
-    const b = at(shadowed(new THREE.Mesh(rboxGeo(w, 0.0016, d, 0.001, 1), mat)), x, y, z, root);
+  // Boards lying around: one flat, one leaning — the same small dev board in three solder masks.
+  const board = (x: number, y: number, z: number, mask: THREE.Material, rot: [number, number, number]) => {
+    const b = at(assets.instance('board'), x, y, z, root);
     b.rotation.set(...rot);
-    // Header pins along one edge, and a couple of chips.
-    const pins = new THREE.InstancedMesh(new THREE.BoxGeometry(0.0014, 0.006, 0.0014), m.aluminum, 20);
-    const dm = new THREE.Object3D();
-    for (let i = 0; i < 20; i++) {
-      dm.position.set(-w / 2 + 0.006 + (i % 10) * 0.0026, 0.0035, d / 2 - 0.004 - (i < 10 ? 0 : 0.0026));
-      dm.updateMatrix();
-      pins.setMatrixAt(i, dm.matrix);
-    }
-    pins.castShadow = true;
-    b.add(pins);
-    at(rbox(0.016, 0.0022, 0.016, m.plasticBlack, 0.0006), -w * 0.12, 0.0019, 0, b);
-    at(rbox(0.009, 0.0035, 0.007, m.aluminum, 0.0008), w * 0.28, 0.0026, -d * 0.2, b);
+    assets.retint(b, { board_pcb: mask, board_chip: m.plasticBlack, board_metal: m.aluminum });
+    castShadows(b);
     return b;
   };
-  board(0.44, Y + 0.001, -0.64, 0.07, 0.052, m.pcbBlue, [0, 0.42, 0]);
-  board(0.97, Y + 0.001, -0.74, 0.062, 0.046, m.pcbGreen, [0, -0.7, 0]);
-  const leaning = board(0.7, Y + 0.03, -1.07, 0.075, 0.055, m.pcbBlack, [-1.18, 0.2, 0]);
-  leaning.position.y = Y + 0.028;
+  board(0.44, Y, -0.64, m.pcbBlue, [0, 0.42, 0]);
+  board(0.97, Y, -0.74, m.pcbGreen, [0, -0.7, 0]);
+  board(0.7, Y + 0.026, -1.07, m.pcbBlack, [-1.18, 0.2, 0]);
 
   // A small powered hub with two LEDs — the reason anything on this side glows at night.
-  const hub = at(new THREE.Group(), 0.3, Y, -0.96, root);
+  const hub = at(assets.instance('hub'), 0.3, Y, -0.96, root);
   hub.rotation.y = 0.24;
-  at(rbox(0.088, 0.016, 0.042, m.aluminumDark, 0.004), 0, 0.008, 0, hub);
-  for (const px of [-0.028, -0.006, 0.016]) at(rbox(0.014, 0.008, 0.005, m.plasticBlack, 0.001), px, 0.009, 0.0205, hub);
-  const l1 = at(new THREE.Mesh(new THREE.CircleGeometry(0.0016, 8), m.ledBlue), 0.036, 0.0165, 0.006, hub);
-  l1.rotation.x = -Math.PI / 2;
-  const l2 = at(new THREE.Mesh(new THREE.CircleGeometry(0.0013, 8), m.ledGreen), 0.036, 0.0165, -0.006, hub);
-  l2.rotation.x = -Math.PI / 2;
-  leds.push(l1, l2);
+  assets.retint(hub, { hub_body: m.aluminumDark, hub_black: m.plasticBlack, hub_led_blue: m.ledBlue, hub_led_green: m.ledGreen });
+  castShadows(hub);
+  for (const name of ['hub_led_blue', 'hub_led_green']) {
+    const led = assets.part(hub, name);
+    if (led) {
+      led.castShadow = false;
+      leds.push(led);
+    }
+  }
 
-  // Coiled wire and a screwdriver, front right.
-  const coil = at(shadowed(new THREE.Mesh(new THREE.TorusGeometry(0.036, 0.0055, 7, 26), m.rubber)), 0.86, Y + 0.006, -0.62, root);
-  coil.rotation.set(Math.PI / 2, 0, 0.3);
-  const driver = at(new THREE.Group(), 0.58, Y + 0.008, -0.56, root);
-  driver.rotation.set(0, 0.9, Math.PI / 2 + 0.03);
-  at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.0095, 0.0085, 0.072, 12), m.safetyOrange)), 0, 0, 0, driver);
-  at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.0022, 0.0022, 0.075, 8), m.steel)), 0, 0.07, 0, driver);
+  // A coiled USB cable and a screwdriver, front right.
+  const coil = at(assets.instance('cable'), 0.86, Y, -0.62, root);
+  coil.rotation.y = 0.3;
+  assets.retint(coil, { cable_jacket: m.rubber, cable_plug: m.aluminum });
+  castShadows(coil);
+  const driver = at(assets.instance('screwdriver'), 0.58, Y, -0.56, root);
+  driver.rotation.y = 0.9;
+  assets.retint(driver, { driver_handle: m.safetyOrange, driver_grip: m.rubber, driver_steel: m.steel });
+  castShadows(driver);
   // A few loose components scattered with restraint.
   for (let i = 0; i < 5; i++) {
     at(
@@ -447,7 +434,7 @@ export function buildDeskSet(root: THREE.Group, m: Materials, assets: Assets): D
   buildMouse(root, m, assets);
   const lamp = buildLamp(root, m, assets);
   buildCube(root, assets);
-  buildMug(root, m);
+  buildMug(root, m, assets);
   const clutterLeds = buildWorkClutter(root, m, assets);
   buildFloorBins(root, m, assets);
   return { ...monitor, ...lamp, leds: [...kbLeds, ...clutterLeds] };

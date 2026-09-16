@@ -215,6 +215,8 @@ export function createMaterials() {
     fabric: standard({ color: '#24272c', roughness: 0.95 }),
     rubber: standard({ color: '#0e0f11', roughness: 0.9 }),
     paper: standard({ color: '#e8e6e0', roughness: 0.88 }),
+    /** Glazed ceramic: whiter and far glossier than the room's plastics. */
+    ceramic: standard({ color: '#f1f0ec', roughness: 0.18, envMapIntensity: 0.7 }),
     cardboard: standard({ color: '#a98a64', roughness: 0.9 }),
     wall,
     floor,
