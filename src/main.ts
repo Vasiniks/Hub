@@ -17,6 +17,7 @@ import { createLoader } from './ui/loading';
 import { createMusicWidget } from './ui/music';
 import { CAMERA, INTERACTION, SHELF } from './scene/layout';
 import { FramePerf } from './debug/perf';
+import { buildPickingTrees } from './interaction/bvh';
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const params = new URLSearchParams(location.search);
@@ -773,6 +774,8 @@ async function start() {
   capturedSignature = lightSignature(lighting.state);
   sinceCapture = 0;
   await loader.hide();
+  // Picking acceleration builds in idle time once the room is on screen (see interaction/bvh.ts).
+  const pickingTrees = buildPickingTrees(scene);
 
   last = performance.now();
   requestAnimationFrame(frame);
@@ -797,6 +800,7 @@ async function start() {
         calibration: () => calibration,
         pixelRatio: () => view.pixelRatio(),
         aoComputed: () => view.ao.computedThisFrame,
+        pickingTrees: () => pickingTrees,
         programs: () => (view.renderer.info.programs ?? []).map((p) => p.name),
         programKeys: () => (view.renderer.info.programs ?? []).map((p) => `${p.name}::${p.cacheKey}`),
         shadowRequests: () => ({ ...lighting.shadowRequests }),

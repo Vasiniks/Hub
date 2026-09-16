@@ -79,3 +79,13 @@ Rejected on measurement: energy-above-threshold extraction (fidelity 0.20–0.27
 night look), lower thresholds (made the monitor-lit MacBook lid bloom).
 Scored with `scripts/bloom-score.mjs` + `.py`: cube saturation 0.17 → 0.47 (0.70 with no bloom);
 night frame difference 2.16 — the same as grain/dust noise (bloom-off vs old is 2.26).
+
+### Picking: BVH per geometry
+What: `three-mesh-bvh` trees for every pickable geometry, built in idle callbacks after the
+reveal (library dynamically imported then — a 48 kB lazy chunk; main bundle +22 kB for shared
+three.js classes); raycasters use `firstHitOnly`.
+Why: stock raycasting walks every triangle of the room's merged meshes, whose bounding spheres
+span the room — 1.5–2 ms per ray, and a pick casts one ray plus one per nearby attention dot.
+Measured: per ray 1.46 → 0.08 ms with identical nearest hits and distances. Interaction stage:
+seated look 1.52 avg / 5.0 max → 0.13 / 1.1 ms; hover 1.20 / 4.1 → 0.06 / 0.4 ms. Tree build
+109 geometries in idle time; startup trace shows no frame over 16.8 ms after the reveal.

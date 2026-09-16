@@ -3,6 +3,7 @@ import type { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
 import type { FocusTarget } from '../camera/rig';
 import { INTERACTION } from '../scene/layout';
 import { OVERLAY_LAYER } from '../scene/layers';
+import type {} from 'three-mesh-bvh';
 
 export { OVERLAY_LAYER };
 
@@ -121,8 +122,11 @@ export function createInteraction(opts: {
 
   const raycaster = new THREE.Raycaster();
   raycaster.layers.enableAll();
+  // Only the nearest hit on each mesh matters for picking; with a BVH this ends the search early.
+  raycaster.firstHitOnly = true;
   const occluder = new THREE.Raycaster();
   occluder.layers.enableAll();
+  occluder.firstHitOnly = true;
   // Sprites can only be raycast with a camera attached; without it Sprite.raycast throws.
   occluder.camera = camera;
   const toDot = new THREE.Vector3();
