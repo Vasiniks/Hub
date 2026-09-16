@@ -246,7 +246,12 @@ async function start() {
   // announces itself rather than leaving focus stranded on the nav button that opened it.
   const shelfFocus = document.getElementById('shelf-mode') as HTMLElement;
   let shelfReturnFocus: HTMLElement | null = null;
-  const music = createMusicWidget({ title: 'Fortress of Lies', artist: 'Keiichi Okabe · NieR:Automata' });
+  const music = createMusicWidget({
+    title: 'Fortress of Lies',
+    artist: 'Keiichi Okabe · NieR:Automata',
+    // Official Spotify embed; swap the id, or hand createMusicWidget a TrackSource, to change it.
+    spotifyId: '1WA80p54KvFTWDxOGC2jNI',
+  });
 
   function openProject(id: string) {
     if (id === 'bookshelf') return openShelf();

@@ -287,6 +287,7 @@ kbd {
   bottom: 20px;
   z-index: 20;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   padding: 7px 12px 7px 8px;
@@ -336,6 +337,21 @@ kbd {
 }
 .music-progress i { display: block; height: 100%; background: var(--ink-soft); transform: scaleX(0); transform-origin: left center; }
 .music-note { font: 400 10px/1 var(--font); color: var(--ink-faint); }
+/* The official embed, revealed only when asked for. Sits on its own row so the widget's
+   resting state stays a single quiet bar. */
+.music-embed {
+  flex-basis: 100%;
+  margin-top: 2px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+/* Open, the embed is the player, so the widget drops its own title row rather than
+   printing the same track twice. */
+.music.is-playing { width: 312px; padding: 8px; }
+.music.is-playing .music-meta,
+.music.is-playing .music-progress { display: none; }
+.music.is-playing .music-toggle { margin-left: auto; }
+.music-embed iframe { display: block; border: 0; }
 
 /* ---- Bookshelf browsing --------------------------------------------------
    The shelf explains itself through the objects; this is the one line of text. */
