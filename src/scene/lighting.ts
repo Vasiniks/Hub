@@ -28,6 +28,8 @@ interface LightKey {
   window: number;
   windowColor: string;
   haze: number;
+  /** Air density for the lamp's cone specifically. */
+  lampHaze: number;
   hemi: number;
   hemiSky: string;
   hemiGround: string;
@@ -43,20 +45,22 @@ interface LightKey {
 
 // prettier-ignore
 const KEYS: LightKey[] = [
-  { hour: 0,    zenith: '#04070c', horizon: '#0c121c', ground: '#06080a', skyBright: 0.55, voidColor: '#080b10', sun: 0,    sunColor: '#8aa0c8', sunElevation: 20, sunAzimuth: 0.9,   window: 0.3,  windowColor: '#3a4f7c', haze: 0,    hemi: 0.075, hemiSky: '#22304d', hemiGround: '#0b0d10', lamp: 3.0, monitor: 2.9, led: 1.3,  glass: 0.36, exposure: 1.0,  env: 0.5,  bloom: 0.2, fog: 0.085 },
-  { hour: 5,    zenith: '#0b1220', horizon: '#232c3e', ground: '#0a0c0f', skyBright: 0.75, voidColor: '#10161f', sun: 0,    sunColor: '#8aa0c8', sunElevation: 0,  sunAzimuth: -1.1,  window: 0.55, windowColor: '#5d6c88', haze: 0,    hemi: 0.09,  hemiSky: '#33445e', hemiGround: '#0d0e10', lamp: 2.4, monitor: 2.8, led: 1.2,  glass: 0.3,  exposure: 0.99, env: 0.55, bloom: 0.19, fog: 0.08 },
-  { hour: 6.5,  zenith: '#5d7596', horizon: '#e6a47a', ground: '#3a3430', skyBright: 1.3,  voidColor: '#7b7f85', sun: 6.5,  sunColor: '#ffb27a', sunElevation: 5,  sunAzimuth: -1.0,  window: 1.5,  windowColor: '#e8c2a0', haze: 0.5,  hemi: 0.10,  hemiSky: '#b8a795', hemiGround: '#3a322c', lamp: 1.0, monitor: 2.2, led: 0.8,  glass: 0.14, exposure: 0.78, env: 0.7,  bloom: 0.16, fog: 0.05 },
-  { hour: 9,    zenith: '#376cb4', horizon: '#a1bfda', ground: '#5a5a55', skyBright: 1.12, voidColor: '#a7aeb5', sun: 13.0, sunColor: '#ffe9cf', sunElevation: 18, sunAzimuth: -0.75, window: 2.5,  windowColor: '#c3d6ea', haze: 0.06, hemi: 0.10,  hemiSky: '#c6d6e6', hemiGround: '#4e4a45', lamp: 0,   monitor: 2.0, led: 0.4,  glass: 0.07, exposure: 0.55, env: 0.62, bloom: 0.07, fog: 0.03 },
-  { hour: 13,   zenith: '#2f66b4', horizon: '#9dbcda', ground: '#6a6a64', skyBright: 1.12, voidColor: '#b0b7bd', sun: 13.2, sunColor: '#ffefd6', sunElevation: 31, sunAzimuth: -0.42, window: 2.7,  windowColor: '#bcd3ea', haze: 0.04, hemi: 0.105, hemiSky: '#d2e0ee', hemiGround: '#575249', lamp: 0,   monitor: 2.0, led: 0.35, glass: 0.06, exposure: 0.52, env: 0.6,  bloom: 0.06, fog: 0.027 },
-  { hour: 16,   zenith: '#3b6eb2', horizon: '#b3c0cc', ground: '#6d665c', skyBright: 1.12, voidColor: '#b1b1ae', sun: 13.0, sunColor: '#ffe2bd', sunElevation: 18, sunAzimuth: 0.1,   window: 2.5,  windowColor: '#c9d5e0', haze: 0.07, hemi: 0.10,  hemiSky: '#ccd4da', hemiGround: '#5a544c', lamp: 0,   monitor: 2.0, led: 0.4,  glass: 0.07, exposure: 0.55, env: 0.62, bloom: 0.07, fog: 0.031 },
-  { hour: 18.5, zenith: '#58709a', horizon: '#f3a86c', ground: '#4d4038', skyBright: 1.85, voidColor: '#9c8778', sun: 11.0, sunColor: '#ff9552', sunElevation: 7,  sunAzimuth: 0.62,  window: 2.0,  windowColor: '#f2bf93', haze: 0.4,  hemi: 0.095, hemiSky: '#c9a88c', hemiGround: '#3c322c', lamp: 1.5, monitor: 2.1, led: 0.6,  glass: 0.1,  exposure: 0.66, env: 0.76, bloom: 0.15, fog: 0.044 },
-  { hour: 20,   zenith: '#161f30', horizon: '#5c464f', ground: '#141313', skyBright: 0.95, voidColor: '#252d3a', sun: 0.25, sunColor: '#ff6a3a', sunElevation: 0,  sunAzimuth: 0.9,   window: 0.7,  windowColor: '#6b7694', haze: 0.05, hemi: 0.095, hemiSky: '#44526f', hemiGround: '#121214', lamp: 2.5, monitor: 2.6, led: 1.05, glass: 0.22, exposure: 0.97, env: 0.56, bloom: 0.19, fog: 0.07 },
-  { hour: 21.5, zenith: '#080d16', horizon: '#161e2c', ground: '#090a0c', skyBright: 0.7,  voidColor: '#0d1119', sun: 0,    sunColor: '#8aa0c8', sunElevation: 20, sunAzimuth: 0.9,   window: 0.4,  windowColor: '#42588a', haze: 0,    hemi: 0.08,  hemiSky: '#263654', hemiGround: '#0b0d10', lamp: 2.9, monitor: 2.9, led: 1.3,  glass: 0.32, exposure: 1.0,  env: 0.52, bloom: 0.2, fog: 0.082 },
-  { hour: 24,   zenith: '#04070c', horizon: '#0c121c', ground: '#06080a', skyBright: 0.55, voidColor: '#080b10', sun: 0,    sunColor: '#8aa0c8', sunElevation: 20, sunAzimuth: 0.9,   window: 0.3,  windowColor: '#3a4f7c', haze: 0,    hemi: 0.075, hemiSky: '#22304d', hemiGround: '#0b0d10', lamp: 3.0, monitor: 2.9, led: 1.3,  glass: 0.36, exposure: 1.0,  env: 0.5,  bloom: 0.2, fog: 0.085 },
+  { hour: 0,    zenith: '#04070c', horizon: '#0c121c', ground: '#06080a', skyBright: 0.55, voidColor: '#080b10', sun: 0,    sunColor: '#8aa0c8', sunElevation: 20, sunAzimuth: 0.9,   window: 0.3,  windowColor: '#3a4f7c', lampHaze: 0.108, haze: 0,    hemi: 0.075, hemiSky: '#22304d', hemiGround: '#0b0d10', lamp: 3.0, monitor: 2.9, led: 1.3,  glass: 0.36, exposure: 1.0,  env: 0.86,  bloom: 0.2, fog: 0.085 },
+  { hour: 5,    zenith: '#0b1220', horizon: '#232c3e', ground: '#0a0c0f', skyBright: 0.75, voidColor: '#10161f', sun: 0,    sunColor: '#8aa0c8', sunElevation: 0,  sunAzimuth: -1.1,  window: 0.55, windowColor: '#5d6c88', lampHaze: 0.092, haze: 0,    hemi: 0.09,  hemiSky: '#33445e', hemiGround: '#0d0e10', lamp: 2.4, monitor: 2.8, led: 1.2,  glass: 0.3,  exposure: 0.99, env: 0.86, bloom: 0.19, fog: 0.08 },
+  { hour: 6.5,  zenith: '#5d7596', horizon: '#e6a47a', ground: '#3a3430', skyBright: 1.3,  voidColor: '#7b7f85', sun: 6.5,  sunColor: '#ffb27a', sunElevation: 5,  sunAzimuth: -1.0,  window: 1.5,  windowColor: '#e8c2a0', lampHaze: 0.056, haze: 0.42,  hemi: 0.10,  hemiSky: '#b8a795', hemiGround: '#3a322c', lamp: 1.0, monitor: 2.2, led: 0.8,  glass: 0.14, exposure: 0.78, env: 0.7,  bloom: 0.16, fog: 0.05 },
+  { hour: 9,    zenith: '#376cb4', horizon: '#a1bfda', ground: '#5a5a55', skyBright: 1.12, voidColor: '#a7aeb5', sun: 13.0, sunColor: '#ffe9cf', sunElevation: 18, sunAzimuth: -0.75, window: 2.5,  windowColor: '#c3d6ea', lampHaze: 0.0, haze: 0.09, hemi: 0.10,  hemiSky: '#c6d6e6', hemiGround: '#4e4a45', lamp: 0,   monitor: 2.0, led: 0.4,  glass: 0.07, exposure: 0.5,  env: 0.62, bloom: 0.07, fog: 0.03 },
+  { hour: 13,   zenith: '#2f66b4', horizon: '#9dbcda', ground: '#6a6a64', skyBright: 1.12, voidColor: '#b0b7bd', sun: 13.2, sunColor: '#ffefd6', sunElevation: 31, sunAzimuth: -0.42, window: 2.7,  windowColor: '#bcd3ea', lampHaze: 0.0, haze: 0.055, hemi: 0.105, hemiSky: '#d2e0ee', hemiGround: '#575249', lamp: 0,   monitor: 2.0, led: 0.35, glass: 0.06, exposure: 0.47, env: 0.6,  bloom: 0.06, fog: 0.027 },
+  { hour: 16,   zenith: '#3b6eb2', horizon: '#b3c0cc', ground: '#6d665c', skyBright: 1.12, voidColor: '#b1b1ae', sun: 13.0, sunColor: '#ffe2bd', sunElevation: 18, sunAzimuth: 0.1,   window: 2.5,  windowColor: '#c9d5e0', lampHaze: 0.0, haze: 0.10, hemi: 0.10,  hemiSky: '#ccd4da', hemiGround: '#5a544c', lamp: 0,   monitor: 2.0, led: 0.4,  glass: 0.07, exposure: 0.5,  env: 0.62, bloom: 0.07, fog: 0.031 },
+  { hour: 18.5, zenith: '#58709a', horizon: '#f3a86c', ground: '#4d4038', skyBright: 1.85, voidColor: '#9c8778', sun: 11.0, sunColor: '#ff9552', sunElevation: 7,  sunAzimuth: 0.62,  window: 2.0,  windowColor: '#f2bf93', lampHaze: 0.069, haze: 0.34,  hemi: 0.095, hemiSky: '#c9a88c', hemiGround: '#3c322c', lamp: 1.5, monitor: 2.1, led: 0.6,  glass: 0.1,  exposure: 0.66, env: 0.76, bloom: 0.15, fog: 0.044 },
+  { hour: 20,   zenith: '#161f30', horizon: '#5c464f', ground: '#141313', skyBright: 0.95, voidColor: '#252d3a', sun: 0.25, sunColor: '#ff6a3a', sunElevation: 0,  sunAzimuth: 0.9,   window: 0.7,  windowColor: '#6b7694', lampHaze: 0.095, haze: 0.05, hemi: 0.095, hemiSky: '#44526f', hemiGround: '#121214', lamp: 2.5, monitor: 2.6, led: 1.05, glass: 0.22, exposure: 0.97, env: 0.84, bloom: 0.19, fog: 0.07 },
+  { hour: 21.5, zenith: '#080d16', horizon: '#161e2c', ground: '#090a0c', skyBright: 0.7,  voidColor: '#0d1119', sun: 0,    sunColor: '#8aa0c8', sunElevation: 20, sunAzimuth: 0.9,   window: 0.4,  windowColor: '#42588a', lampHaze: 0.105, haze: 0,    hemi: 0.08,  hemiSky: '#263654', hemiGround: '#0b0d10', lamp: 2.9, monitor: 2.9, led: 1.3,  glass: 0.32, exposure: 1.0,  env: 0.88, bloom: 0.2, fog: 0.082 },
+  { hour: 24,   zenith: '#04070c', horizon: '#0c121c', ground: '#06080a', skyBright: 0.55, voidColor: '#080b10', sun: 0,    sunColor: '#8aa0c8', sunElevation: 20, sunAzimuth: 0.9,   window: 0.3,  windowColor: '#3a4f7c', lampHaze: 0.108, haze: 0,    hemi: 0.075, hemiSky: '#22304d', hemiGround: '#0b0d10', lamp: 3.0, monitor: 2.9, led: 1.3,  glass: 0.36, exposure: 1.0,  env: 0.86,  bloom: 0.2, fog: 0.085 },
 ];
 
 /** Lamp cone half-angle. Shared with the dust so the motes light exactly where the beam is. */
-export const LAMP_ANGLE = 0.6;
+export const LAMP_ANGLE = 0.52;
+/** See the note where lampScatter is computed. */
+const LAMP_SCATTER_GAIN = 12;
 
 export interface LightState {
   hour: number;
@@ -69,6 +73,8 @@ export interface LightState {
   lamp: number;
   /** Volumetric scattering colour × strength (zero when the sun is down). */
   scatter: THREE.Color;
+  /** The same, for the lamp's beam: strongest at night, off in daylight. */
+  lampScatter: THREE.Color;
 }
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
@@ -145,6 +151,7 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
     monitor: 3,
     lamp: 0,
     scatter: new THREE.Color(),
+    lampScatter: new THREE.Color(),
   };
   const glassMat = room.windowGlass.material as THREE.MeshStandardMaterial;
   const discMat = room.lampDisc.material as THREE.MeshStandardMaterial;
@@ -257,6 +264,11 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
     exterior.update(exteriorState);
 
     state.scatter.copy(sun.color).multiplyScalar(sun.intensity * n('haze') * 0.42);
+    // §11: the beam is only worth seeing when the room is dark enough for it to register.
+    // The gain is explicit: a local source falls off as 1/d², so its per-step contribution
+    // along a ray is a small fraction of the sun's, which accumulates unattenuated. This
+    // brings the two into the same range so `lampHaze` reads as air density in both.
+    state.lampScatter.copy(lamp.color).multiplyScalar(lampLevel * n('lampHaze') * LAMP_SCATTER_GAIN);
     return state;
   }
 

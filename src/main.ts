@@ -62,7 +62,7 @@ async function start() {
 
   const exterior = createExterior(scene, room.windowCenter);
   const lighting = createLighting(scene, room, exterior);
-  const view = createRenderer(canvas, scene, camera, lighting.sun);
+  const view = createRenderer(canvas, scene, camera, lighting.sun, lighting.lamp);
   const rig = new CameraRig(camera, room, reducedMotion);
 
   // ---- Interaction targets: project objects, plus the bookshelf ----------
@@ -480,6 +480,9 @@ async function start() {
   /** Debug only: park the camera anywhere to inspect a model close up. */
   let parked: { p: number[]; t: number[]; fov: number } | null = null;
 
+  /** Suppressed while calibrating, so the reveal does not fire behind the loading bar. */
+  let calibrating = true;
+
   let reportedError = false;
   function frame(now: number) {
     // Schedule first: a runtime error in one frame must never freeze the room.
@@ -552,7 +555,7 @@ async function start() {
     perf.lap('lighting+shadows');
     perf.endFrame(view.renderer.info.render.calls, view.renderer.info.render.triangles, view.renderer.info.programs?.length ?? 0);
 
-    if (firstFrame) {
+    if (firstFrame && !calibrating) {
       firstFrame = false;
       requestAnimationFrame(() => document.getElementById('veil')!.classList.add('is-lifted'));
       window.setTimeout(() => {
@@ -569,13 +572,84 @@ async function start() {
   const restoreShadows = lighting.warmShadows();
   await view.warmUp(outlineSamples, (stage) => loader.advance(stage));
   restoreShadows();
-  // Calibrate against a frame that matches the real one, monitor upload and all.
-  let warmClock = 0;
-  const calibration = await view.calibrate((dt) => {
-    warmClock += dt;
-    lorenz.update(dt, warmClock, true, 0);
-    dust.update(warmClock, lighting.state.lamp, Math.cos(LAMP_ANGLE));
-  });
+  /**
+   * §23/§43: choose the render resolution before the first visible frame, by running the
+   * actual frame.
+   *
+   * Earlier versions measured `composer.render()` on its own and consistently came in a whole
+   * vsync interval under what the loop really cost — the render is only part of a frame. This
+   * drives `step()` itself, so what is measured is exactly what will run. Under vsync a frame
+   * that overruns does not come back slow, it comes back doubled, so the mean is the signal:
+   * it is just the true frame rate.
+   */
+  /**
+   * Budget for one frame, in the units the burst below reports. Frames in a burst pipeline on
+   * the GPU, so that number is lower than the latency of a single isolated frame — 15.5 is
+   * calibrated against this measurement, not against 1000/60. Re-tune it if the method changes.
+   */
+  const FRAME_BUDGET_MS = 15.5;
+
+  /**
+   * Resolve once the GPU has actually finished the work queued so far.
+   *
+   * `gl.finish()` does not block on this ANGLE/Metal path, and frame-to-frame rAF timing is
+   * no better: while the loading screen is up nothing is being presented, so rAF free-runs at
+   * the refresh rate while the driver quietly queues a backlog. Both report a frame that fits
+   * in one interval when it really takes two. A fence is the one signal that tells the truth.
+   */
+  function gpuFence(gl: WebGL2RenderingContext) {
+    const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+    if (!sync) return Promise.resolve();
+    gl.flush();
+    return new Promise<void>((resolve) => {
+      const poll = () => {
+        const status = gl.clientWaitSync(sync, 0, 0);
+        if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED || status === gl.WAIT_FAILED) {
+          gl.deleteSync(sync);
+          resolve();
+          return;
+        }
+        setTimeout(poll, 0);
+      };
+      poll();
+    });
+  }
+
+  /**
+   * §23/§43: choose the render resolution before the first visible frame, by running the
+   * actual frame — `step()` itself, not the composer on its own, which costs a whole vsync
+   * interval less than a real frame.
+   *
+   * Frames are rendered as a burst and fenced once at the end, so the poll granularity is
+   * divided across the whole burst instead of being paid per frame.
+   */
+  async function calibrate() {
+    const from = view.pixelRatio();
+    const gl = view.renderer.getContext() as WebGL2RenderingContext;
+    const burst = async (n: number) => {
+      const t0 = performance.now();
+      for (let i = 0; i < n; i++) step(performance.now());
+      await gpuFence(gl);
+      return (performance.now() - t0) / n;
+    };
+    await burst(4); // discard: driver first-use
+    let cost = await burst(12);
+    let steps = 0;
+    while (cost > FRAME_BUDGET_MS && steps < 2 && view.stepDownResolution()) {
+      steps++;
+      await burst(3);
+      cost = await burst(12);
+    }
+    return { frameMs: +cost.toFixed(2), from, chosen: view.pixelRatio(), steps };
+  }
+  const calibration = await calibrate();
+  calibrating = false;
+  // The calibration frames advanced the clocks; put them back so the visitor starts at zero.
+  elapsed = 0;
+  arrival = 0;
+  lightTimer = 0;
+  frameCount = 0;
+  perf.reset();
   loader.advance('ready');
   capturedSignature = lightSignature(lighting.state);
   sinceCapture = 0;
@@ -635,6 +709,17 @@ async function start() {
           parked = p ? { p, t: t ?? [0, 0.8, -0.6], fov } : null;
           if (!parked) camera.fov = CAMERA.fov;
         },
+        volumetric: () => ({
+          sunScatter: view.volumetric.scatter.toArray(),
+          lampScatter: view.volumetric.lampScatter.toArray(),
+          sunMap: !!lighting.sun.shadow.map,
+          sunDepthTex: !!lighting.sun.shadow.map?.depthTexture,
+          lampMap: !!lighting.lamp.shadow.map,
+          lampDepthTex: !!lighting.lamp.shadow.map?.depthTexture,
+          lampAngle: lighting.lamp.angle,
+          lampIntensity: lighting.lamp.intensity,
+          enabled: view.volumetric.enabled,
+        }),
         topLevel: () => scene.children.map((o, i) => `${i}:${o.type}:${o.name || o.userData.projectId || ''}`),
         hideTop: (i: number) => {
           scene.children.forEach((o, k) => { if (k === i) o.visible = false; });

@@ -63,12 +63,26 @@ class MultisampleScenePass extends Pass {
   }
 }
 
+/**
+ * §13: the final cinematic grade.
+ *
+ * AgX has already done the tone mapping by this point, so this is the part a colourist would
+ * do afterwards: a gentle S-curve for contrast, highlights rolling off toward desaturated
+ * white the way film shoulders do, a barely-there cool/warm separation between shadows and
+ * highlights, a vignette, and grain. Every term is deliberately small — the goal is a frame
+ * that reads as photographed, not one that announces a filter. No orange-and-teal.
+ */
 const GradeShader = {
   uniforms: {
     tDiffuse: { value: null as THREE.Texture | null },
     uTime: { value: 0 },
-    uVignette: { value: 0.3 },
-    uGrain: { value: 0.03 },
+    uVignette: { value: 0.32 },
+    uGrain: { value: 0.022 },
+    uContrast: { value: 0.22 },
+    uShadowTint: { value: new THREE.Color(0.97, 0.985, 1.05) },
+    uHighlightTint: { value: new THREE.Color(1.025, 1.005, 0.978) },
+    uHighlightDesat: { value: 0.3 },
+    uLift: { value: 0.006 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -76,21 +90,49 @@ const GradeShader = {
   `,
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse;
-    uniform float uTime, uVignette, uGrain;
+    uniform float uTime, uVignette, uGrain, uContrast, uHighlightDesat, uLift;
+    uniform vec3 uShadowTint, uHighlightTint;
     varying vec2 vUv;
+
     float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+
     void main() {
-      vec4 c = texture2D(tDiffuse, vUv);
+      vec3 c = texture2D(tDiffuse, vUv).rgb;
+
+      // Gentle S-curve about mid grey. Blended rather than applied outright, so shadow and
+      // highlight detail survives instead of being crushed to the ends.
+      c = mix(c, c * c * (3.0 - 2.0 * c), uContrast);
+
+      // Shoulder: the brightest values lose saturation on their way to white, which is what
+      // stops a sunlit white desk reading as one flat blown patch.
+      float l = luma(c);
+      c = mix(c, vec3(l), uHighlightDesat * smoothstep(0.62, 1.0, l));
+
+      // A hair of separation between the cool end and the warm end. Both tints sit within
+      // 3% of neutral: enough to feel graded, not enough to read as a colour cast.
+      c *= mix(uShadowTint, uHighlightTint, smoothstep(0.08, 0.8, l));
+
+      // Toe lift, so black areas hold a little air rather than clipping to nothing.
+      c += uLift * (1.0 - smoothstep(0.0, 0.3, l));
+
       vec2 q = vUv - 0.5;
-      float v = smoothstep(0.85, 0.2, length(q * vec2(1.05, 1.25)));
-      c.rgb *= mix(1.0 - uVignette, 1.0, v);
-      c.rgb += (hash(vUv * vec2(1920.0, 1080.0) + fract(uTime) * 91.0) - 0.5) * uGrain;
-      gl_FragColor = c;
+      float v = smoothstep(0.86, 0.18, length(q * vec2(1.05, 1.25)));
+      c *= mix(1.0 - uVignette, 1.0, v);
+
+      c += (hash(vUv * vec2(1920.0, 1080.0) + fract(uTime) * 91.0) - 0.5) * uGrain;
+      gl_FragColor = vec4(c, 1.0);
     }
   `,
 };
 
-export function createRenderer(canvas: HTMLCanvasElement, scene: THREE.Scene, camera: THREE.PerspectiveCamera, sun: THREE.DirectionalLight) {
+export function createRenderer(
+  canvas: HTMLCanvasElement,
+  scene: THREE.Scene,
+  camera: THREE.PerspectiveCamera,
+  sun: THREE.DirectionalLight,
+  lamp: THREE.SpotLight,
+) {
   const params = new URLSearchParams(location.search);
   // Profiling switches (A/B): ?ao=half|off  ?vol=0  ?msaa=0  ?bloom=0  ?pr=<ratio> (fixed, no fallback)
   const aoParam = params.get('ao');
@@ -134,7 +176,7 @@ export function createRenderer(canvas: HTMLCanvasElement, scene: THREE.Scene, ca
   gtao.enabled = !aoOff;
   composer.addPass(gtao);
 
-  const volumetric = new VolumetricLightPass(camera, sun, () => gtao.depthTexture ?? null);
+  const volumetric = new VolumetricLightPass(camera, sun, lamp, () => gtao.depthTexture ?? null);
   volumetric.enabled = volumetricEnabled;
   volumetric.resolutionScale = () => (volScaleParam > 0 ? volScaleParam : 0.4 / pixelRatio);
   composer.addPass(volumetric);
@@ -222,6 +264,7 @@ export function createRenderer(canvas: HTMLCanvasElement, scene: THREE.Scene, ca
     fog.color.copy(state.sky);
     fog.density = state.fog;
     volumetric.scatter.copy(state.scatter);
+    volumetric.lampScatter.copy(state.lampScatter);
   }
 
   function resize() {
@@ -242,63 +285,8 @@ export function createRenderer(canvas: HTMLCanvasElement, scene: THREE.Scene, ca
     return true;
   }
 
-  /**
-   * §23/§43: pick the render resolution *before* the first visible frame instead of
-   * discovering it seconds in.
-   *
-   * The old adaptive path started at 1.5×, waited six seconds, then dropped to 1× — which is
-   * exactly the "slow at first, then suddenly fast" the visitor was seeing.
-   *
-   * Timing here is deliberately wall-clock across real animation frames rather than a GPU
-   * timer. `gl.finish()` does not actually block on this ANGLE/Metal path — it reported 1.4 ms
-   * for a frame that genuinely took 21 ms — and `EXT_disjoint_timer_query` is usually absent.
-   *
-   * It is the *mean* delta that matters, not the median. Under vsync a scene that overruns the
-   * budget does not produce slow frames, it produces a mix of on-time and doubled ones, so the
-   * median still reads exactly one refresh interval while a third of frames are being missed.
-   * The mean is just the true frame rate, which is the thing being asked about.
-   */
-  const FRAME_BUDGET_MS = 17.2;
+  /** Candidate render resolutions, highest first. */
   const RATIO_STEPS = [1.5, 1.25, 1];
-
-  /**
-   * `onFrame` must do whatever per-frame work the real loop does besides the composer render —
-   * chiefly the monitor's canvas upload. Measuring a frame lighter than the one that will
-   * actually be drawn is how this picked a resolution the room could not hold.
-   */
-  async function calibrate(onFrame: (dt: number) => void = () => {}) {
-    const start = pixelRatio;
-    if (forcedRatio > 0) return { mean: 0, from: start, chosen: pixelRatio, steps: 0 };
-
-    const measure = async (frames: number) => {
-      const deltas: number[] = [];
-      let prev = performance.now();
-      for (let i = 0; i < frames; i++) {
-        await new Promise((r) => requestAnimationFrame(r));
-        onFrame(1 / 60);
-        composer.render(1 / 60);
-        const now = performance.now();
-        deltas.push(now - prev);
-        prev = now;
-      }
-      return deltas.reduce((a, b) => a + b, 0) / deltas.length;
-    };
-
-    // Throw the first batch away: it still carries first-use allocation inside the driver, and
-    // it lets the GPU queue reach a steady depth — a short sample taken while the queue is
-    // still filling reads the submission cost rather than the work.
-    await measure(8);
-    let mean = await measure(24);
-    let steps = 0;
-    while (mean > FRAME_BUDGET_MS && pixelRatio > 1 && steps < 2) {
-      const next = RATIO_STEPS.find((r) => r < pixelRatio - 0.01);
-      if (next === undefined) break;
-      setPixelRatio(Math.min(window.devicePixelRatio, next));
-      steps++;
-      mean = await measure(24);
-    }
-    return { mean: +mean.toFixed(2), from: start, chosen: pixelRatio, steps };
-  }
 
   /**
    * Safety net only. Calibration has already chosen the resolution, so this exists for a
@@ -331,7 +319,9 @@ export function createRenderer(canvas: HTMLCanvasElement, scene: THREE.Scene, ca
     // Post passes compile lazily on first use. Run the ones that normally sleep (hover outline,
     // daylight shafts) once under the veil, so they never hitch mid-interaction or at dawn.
     const scatter = volumetric.scatter.clone();
+    const lampScatter = volumetric.lampScatter.clone();
     if (scatter.r + scatter.g + scatter.b < 1e-4) volumetric.scatter.setRGB(0.001, 0.001, 0.001);
+    if (lampScatter.r + lampScatter.g + lampScatter.b < 1e-4) volumetric.lampScatter.setRGB(0.001, 0.001, 0.001);
     // Select every interactive object at once so each shader variant (instanced parts included) compiles.
     if (samples.length) {
       outline.selectedObjects = samples;
@@ -360,6 +350,7 @@ export function createRenderer(canvas: HTMLCanvasElement, scene: THREE.Scene, ca
     outline.enabled = false;
     outline.selectedObjects = [];
     volumetric.scatter.copy(scatter);
+    volumetric.lampScatter.copy(lampScatter);
     onStage('measuring');
   }
 
@@ -368,8 +359,13 @@ export function createRenderer(canvas: HTMLCanvasElement, scene: THREE.Scene, ca
     outline,
     volumetric,
     warmUp,
-    calibrate,
     pixelRatio: () => pixelRatio,
+    /** Step down to the next lower render resolution. Returns false at the floor. */
+    stepDownResolution() {
+      const next = RATIO_STEPS.find((r) => r < pixelRatio - 0.01);
+      if (next === undefined) return false;
+      return setPixelRatio(Math.min(window.devicePixelRatio, next));
+    },
     /** True while a spread environment capture still has faces left to render. */
     capturing: () => captureFace >= 0,
     captureEnvironmentNow,
