@@ -26,19 +26,27 @@ let page = await open(21.6);
 await page.screenshot({ path: path.join(out, '1-night-standing.png') });
 await sit(page);
 await page.screenshot({ path: path.join(out, '2-night-seated.png') });
-// 3 Inspecting the robot.
-await page.evaluate(() => window.__room.setHour(21.6));
-const p = await page.evaluate(() => window.__room.hitPositionOf('frc-robot'));
-if (p) { await page.mouse.move(p.x, p.y, { steps: 12 }); await wait(900); await page.mouse.down(); await page.mouse.up(); await wait(2600); }
+// 3 Inspecting the robot, via the accessible nav so the framing is deterministic.
+await page.evaluate(() => {
+  const b = [...document.querySelectorAll('#object-nav button')].find((x) => x.textContent.includes('FRC'));
+  b.click();
+});
+await wait(3000);
 await page.screenshot({ path: path.join(out, '3-inspect-robot.png') });
 await page.keyboard.press('Escape');
-await wait(1600);
+await wait(1800);
 // 4 Bookshelf browsing.
 await page.evaluate(() => window.__room.openShelf());
 await wait(2400);
 await page.evaluate(() => { window.__room.stepBook(1); window.__room.stepBook(1); });
 await wait(1400);
 await page.screenshot({ path: path.join(out, '4-bookshelf.png') });
+await page.keyboard.press('Escape');
+await wait(1600);
+// 8 The music widget, open.
+await page.click('#music-toggle');
+await wait(1800);
+await page.screenshot({ path: path.join(out, '8-music.png') });
 await page.close();
 
 // 5 Daylight, 6 golden hour.
