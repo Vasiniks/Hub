@@ -477,6 +477,9 @@ async function start() {
   let frameCount = 0;
   const perf = new FramePerf(params.has('debug'));
 
+  /** Debug only: park the camera anywhere to inspect a model close up. */
+  let parked: { p: number[]; t: number[]; fov: number } | null = null;
+
   let reportedError = false;
   function frame(now: number) {
     // Schedule first: a runtime error in one frame must never freeze the room.
@@ -502,7 +505,14 @@ async function start() {
     sinceCapture += dt;
 
     rig.holdLook(interaction.hoveredId !== null && !interaction.hoverIsCentred && rig.interactive);
-    rig.update(dt);
+    if (parked) {
+      camera.position.set(parked.p[0], parked.p[1], parked.p[2]);
+      camera.lookAt(parked.t[0], parked.t[1], parked.t[2]);
+      camera.fov = parked.fov;
+      camera.updateProjectionMatrix();
+    } else {
+      rig.update(dt);
+    }
     updateFrustum();
     perf.lap('camera');
 
@@ -621,6 +631,10 @@ async function start() {
           discWorld: room.lampDisc.getWorldPosition(new THREE.Vector3()).toArray(),
         }),
         /** Diagnostics: list top-level scene children, and hide one by index. */
+        parkCamera: (p: number[] | null, t?: number[], fov = 24) => {
+          parked = p ? { p, t: t ?? [0, 0.8, -0.6], fov } : null;
+          if (!parked) camera.fov = CAMERA.fov;
+        },
         topLevel: () => scene.children.map((o, i) => `${i}:${o.type}:${o.name || o.userData.projectId || ''}`),
         hideTop: (i: number) => {
           scene.children.forEach((o, k) => { if (k === i) o.visible = false; });

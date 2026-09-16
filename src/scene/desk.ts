@@ -191,6 +191,33 @@ const TKL_ROWS: number[][] = [
   [1.25, 1.25, 1.25, 6.25, 1.25, 1.25, 1.25, 1.25, -0.25, 1, 1, 1],
 ];
 
+/**
+ * A sculpted keycap: tapered toward the top with a shallow dish, not a flat slab. The taper is
+ * what catches a highlight on every cap edge and makes a field of 87 keys read as keys.
+ */
+function keycapGeometry(side: number, h: number) {
+  const geo = rboxGeo(side, h, side, side * 0.1, 3);
+  const pos = geo.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    if (y <= 0) continue;
+    const k = y / (h / 2);
+    const taper = 1 - 0.17 * k;
+    const x = pos.getX(i) * taper;
+    const z = pos.getZ(i) * taper;
+    pos.setX(i, x);
+    pos.setZ(i, z);
+    if (k > 0.8) {
+      // Shallow spherical dish across the top face.
+      const r = Math.min(1, Math.hypot(x, z) / (side / 2));
+      pos.setY(i, y - h * 0.11 * (1 - r * r));
+    }
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
 /** §5: white, and convincingly TKL in silhouette. Legends are deliberately not modelled. */
 function buildKeyboard(root: THREE.Group, m: Materials) {
   const { x, z, rotationY } = DESKTOP.keyboard;
@@ -211,21 +238,39 @@ function buildKeyboard(root: THREE.Group, m: Materials) {
   for (const s of [-1, 1]) at(rbox(0.02, 0.006, 0.012, m.rubber, 0.002), s * (width / 2 - 0.02), 0.002, depth / 2 - 0.02, caseG);
 
   // Keycaps: two instanced meshes (alphas, modifiers) — the whole 87-key field is two draw calls.
-  const capGeo = rboxGeo(U - GAP, 0.0092, U - GAP, 0.0016, 1);
+  const capGeo = keycapGeometry(U - GAP, 0.0098);
   const counts = { alpha: 0, mod: 0 };
-  const place: { accent: boolean; x: number; z: number; w: number; y: number }[] = [];
+  const place: { accent: boolean; x: number; z: number; w: number; y: number; tilt: number; skew: number }[] = [];
+  const jitter = rand(5150);
+  // Row sculpting: the home row sits lowest and flattest, the outer rows tilt toward the hands.
+  const SCULPT = [
+    { lift: 0.0018, tilt: 0.1 },
+    { lift: 0.001, tilt: 0.065 },
+    { lift: 0.0004, tilt: 0.028 },
+    { lift: 0, tilt: 0 },
+    { lift: 0.0005, tilt: -0.035 },
+    { lift: 0.0013, tilt: -0.075 },
+  ];
   for (let r = 0; r < rows; r++) {
     let cursor = -width / 2;
-    // Slight row sculpting: the home row sits lowest.
-    const sculpt = [0.0016, 0.0009, 0.0003, 0, 0.0004, 0.0011][r];
     const zRow = -depth / 2 + 0.006 + (r + 0.5) * U;
     for (const w of TKL_ROWS[r]) {
       if (w < 0) {
         cursor += -w * U;
         continue;
       }
-      const accent = w !== 1 || r === 0 || (r === 5 && false);
-      place.push({ accent, x: cursor + (w * U) / 2, z: zRow, w, y: 0.0255 + sculpt });
+      const accent = w !== 1 || r === 0;
+      place.push({
+        accent,
+        x: cursor + (w * U) / 2,
+        z: zRow,
+        w,
+        // A fraction of a millimetre of seat variation: no two caps sit perfectly level.
+        y: 0.0255 + SCULPT[r].lift + (jitter() - 0.5) * 0.00028,
+        tilt: SCULPT[r].tilt,
+        // Wide keys are held by stabilisers, so they cannot sit as crooked as a 1u cap.
+        skew: ((jitter() - 0.5) * 0.012) / w,
+      });
       accent ? counts.mod++ : counts.alpha++;
       cursor += w * U;
     }
@@ -237,6 +282,7 @@ function buildKeyboard(root: THREE.Group, m: Materials) {
   let mi = 0;
   for (const p of place) {
     dummy.position.set(p.x, p.y, p.z);
+    dummy.rotation.set(p.tilt, p.skew, 0);
     dummy.scale.set((p.w * U - GAP) / (U - GAP), 1, 1);
     dummy.updateMatrix();
     if (p.accent) mods.setMatrixAt(mi++, dummy.matrix);
@@ -246,26 +292,127 @@ function buildKeyboard(root: THREE.Group, m: Materials) {
     im.castShadow = im.receiveShadow = true;
     caseG.add(im);
   }
+
+  // Stabiliser bars under the wide keys — the detail that says this is a mechanical board.
+  const stabRow = (w: number, r: number, cx: number) => {
+    const zRow = -depth / 2 + 0.006 + (r + 0.5) * U;
+    for (const side of [-1, 1]) {
+      at(rbox(0.0035, 0.0045, 0.009, m.aluminumDark, 0.001), cx + side * (w * U) / 2 * 0.62, 0.0224, zRow, caseG);
+    }
+  };
+  stabRow(2, 1, -width / 2 + 13 * U + U);
+  stabRow(1.5, 2, -width / 2 + 13.5 * U - 0.75 * U);
+  stabRow(2.25, 3, -width / 2 + 12.75 * U + 1.125 * U);
+  stabRow(2.75, 4, -width / 2 + 12.25 * U + 1.375 * U);
+  stabRow(6.25, 5, -width / 2 + 3.75 * U + 3.125 * U);
+
   // Indicator LEDs above the nav cluster.
   const led = at(new THREE.Mesh(new THREE.CircleGeometry(0.0015, 8), m.ledGreen), width / 2 - 0.028, 0.0212, -depth / 2 + 0.002, caseG);
   led.rotation.x = -Math.PI / 2;
   return [led];
 }
 
-/** §5: white mouse, right of the keyboard. */
+/**
+ * §5: a real ergonomic shell.
+ *
+ * A mouse is a dome over a tapered footprint, so that is what this builds: for each station
+ * along the length, a cross-section arch whose width and height follow profile curves — narrow
+ * low nose, widest just behind the middle, tallest at about two thirds back, tail rolling down
+ * to the desk. An extruded outline cannot do this; it gives a flat-topped puck.
+ *
+ * `u` runs across the body (-1..1) and `t` along it (0 nose .. 1 tail), so the same function
+ * also generates the seam ribbons — they follow the dome exactly instead of floating over it.
+ */
+const mouseHalfWidth = (t: number, W: number) => (W / 2) * Math.pow(Math.sin(Math.PI * Math.pow(t, 1.15)), 0.36);
+const mouseHeight = (t: number, H: number) => H * Math.pow(Math.sin(Math.PI * Math.pow(t, 1.5)), 0.62);
+const mouseArch = (u: number) => Math.pow(Math.max(0, 1 - u * u), 0.42);
+
+function mouseSurface(
+  W: number,
+  L: number,
+  H: number,
+  range: { u0: number; u1: number; t0: number; t1: number; lift?: number; nz?: number; nx?: number },
+) {
+  const { u0, u1, t0, t1, lift = 1, nz = 28, nx = 20 } = range;
+  const verts: number[] = [];
+  const index: number[] = [];
+  for (let i = 0; i <= nz; i++) {
+    const t = t0 + ((t1 - t0) * i) / nz;
+    const hw = mouseHalfWidth(t, W);
+    const h = mouseHeight(t, H);
+    const z = -L / 2 + t * L;
+    for (let j = 0; j <= nx; j++) {
+      const u = u0 + ((u1 - u0) * j) / nx;
+      verts.push(hw * u, h * mouseArch(u) * lift, z);
+    }
+  }
+  for (let i = 0; i < nz; i++) {
+    for (let j = 0; j < nx; j++) {
+      const a = i * (nx + 1) + j;
+      const b = a + nx + 1;
+      index.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  geo.setIndex(index);
+  geo.computeVertexNormals();
+  return geo;
+}
+
 function buildMouse(root: THREE.Group, m: Materials) {
   const { x, z, rotationY } = DESKTOP.mouse;
+  const W = 0.063;
+  const L = 0.117;
+  const H = 0.038;
   const g = at(new THREE.Group(), x, DESK.top, z, root);
   g.rotation.y = rotationY;
-  at(rbox(0.061, 0.018, 0.108, m.plasticWhite, 0.012), 0, 0.009, 0, g);
-  // Domed shell: a squashed sphere is the cheapest honest mouse silhouette.
-  const shell = at(shadowed(new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), m.plasticWhite)), 0, 0.012, -0.004, g);
-  shell.scale.set(0.031, 0.0205, 0.056);
-  // Button split and scroll wheel.
-  at(rbox(0.0016, 0.004, 0.042, m.keycapAccent, 0.0005), 0, 0.0305, -0.026, g);
-  const wheel = at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.0072, 0.0072, 0.0052, 14), m.plasticGrey)), 0, 0.0318, -0.03, g);
+
+  at(shadowed(new THREE.Mesh(mouseSurface(W, L, H, { u0: -1, u1: 1, t0: 0, t1: 1 }), m.plasticWhite)), 0, 0, 0, g);
+
+  // Seams, generated from the same surface so they sit in the shell rather than on it.
+  const seam = new THREE.MeshStandardMaterial({ color: '#9ba2aa', roughness: 0.68 });
+  const split = at(new THREE.Mesh(mouseSurface(W, L, H, { u0: -0.022, u1: 0.022, t0: 0.05, t1: 0.54, lift: 1.004, nz: 14, nx: 2 }), seam), 0, 0, 0, g);
+  const cross = at(new THREE.Mesh(mouseSurface(W, L, H, { u0: -0.93, u1: 0.93, t0: 0.535, t1: 0.552, lift: 1.004, nz: 1, nx: 18 }), seam), 0, 0, 0, g);
+  split.castShadow = cross.castShadow = false;
+  split.receiveShadow = cross.receiveShadow = true;
+
+  // Scroll wheel, seated in the split at the height the dome actually has there.
+  const wheelT = 0.17;
+  const wheelY = mouseHeight(wheelT, H) - 0.004;
+  const wheelZ = -L / 2 + wheelT * L;
+  at(rbox(0.0145, 0.014, 0.027, m.plasticBlack, 0.002), 0, wheelY - 0.004, wheelZ, g);
+  const wheel = at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.0085, 0.0085, 0.0062, 18), m.plasticGrey)), 0, wheelY, wheelZ, g);
   wheel.rotation.z = Math.PI / 2;
-  at(rbox(0.0035, 0.006, 0.02, m.keycapAccent, 0.001), -0.031, 0.016, -0.012, g);
+  const tread = new THREE.InstancedMesh(new THREE.BoxGeometry(0.0066, 0.0013, 0.0018), m.rubber, 14);
+  const d = new THREE.Object3D();
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2;
+    d.position.set(0, Math.sin(a) * 0.0084, Math.cos(a) * 0.0084);
+    d.rotation.set(-a, 0, 0);
+    d.updateMatrix();
+    tread.setMatrixAt(i, d.matrix);
+  }
+  tread.castShadow = true;
+  at(tread, 0, wheelY, wheelZ, g);
+
+  // Thumb buttons, sunk into the left flank at the flank's own height.
+  for (const bt of [0.36, 0.47] as const) {
+    const bw = mouseHalfWidth(bt, W);
+    const btn = at(rbox(0.0035, 0.008, 0.017, seam, 0.0014), -bw + 0.0016, mouseHeight(bt, H) * 0.34, -L / 2 + bt * L, g);
+    btn.rotation.z = 0.16;
+  }
+  // PTFE glides only. A rectangular sole plate would poke out past the tapered footprint at
+  // the nose and tail; the shell already meets the desk all the way round its own outline.
+  for (const [gt, side] of [[0.22, 0], [0.86, -0.5], [0.86, 0.5]] as const) {
+    at(
+      rbox(0.011, 0.0009, 0.0075, m.plasticWhite, 0.0003),
+      mouseHalfWidth(gt, W) * side,
+      0.00045,
+      -L / 2 + gt * L,
+      g,
+    );
+  }
   return g;
 }
 
@@ -384,49 +531,68 @@ function buildMedals(lamp: THREE.Group, m: Materials, armA: THREE.Vector3, armB:
   });
 }
 
-/** §14: a recognisable speedcube, caught mid-solve with one layer turned. */
+/**
+ * §14/§18: a 56mm stickerless speedcube, caught mid-solve with one layer turned.
+ *
+ * What makes a GAN read as a GAN rather than as a Rubik's cube is the stickerless
+ * construction — colour moulded into the plastic, so it wraps the rounded chamfer of every
+ * tile instead of stopping at a sticker's edge — plus a frosted matte finish, generous corner
+ * radii, wide piece gaps showing dark interior plastic, and a recessed cap on each centre.
+ * Deliberately no logo: that is trademarked, and the form reads without it.
+ */
 function buildCube(root: THREE.Group) {
   const { x, z, rotationY, size } = DESKTOP.cube;
   const g = at(new THREE.Group(), x, DESK.top, z, root);
   g.rotation.y = rotationY;
-  g.rotation.x = 0.02;
+  g.rotation.x = 0.015;
 
   const cubie = size / 3;
-  const gap = 0.0011;
-  const body = new THREE.MeshStandardMaterial({ color: '#0d0e10', roughness: 0.42 });
-  // Stickers are rounded plates, slightly inset — that inset is what reads as a speedcube.
-  const faces: Record<string, THREE.MeshStandardMaterial> = {
-    U: new THREE.MeshStandardMaterial({ color: '#eef0f2', roughness: 0.28 }),
-    D: new THREE.MeshStandardMaterial({ color: '#f0d64a', roughness: 0.28 }),
-    F: new THREE.MeshStandardMaterial({ color: '#2f7d4c', roughness: 0.28 }),
-    B: new THREE.MeshStandardMaterial({ color: '#2a5da8', roughness: 0.28 }),
-    L: new THREE.MeshStandardMaterial({ color: '#d9541f', roughness: 0.28 }),
-    R: new THREE.MeshStandardMaterial({ color: '#b3282d', roughness: 0.28 }),
+  const gap = 0.0012;
+  const body = new THREE.MeshStandardMaterial({ color: '#17181b', roughness: 0.62, metalness: 0 });
+  // Frosted, slightly desaturated: moulded plastic under a matte finish, not gloss vinyl.
+  const frosted = (color: string) => new THREE.MeshStandardMaterial({ color, roughness: 0.58, metalness: 0, envMapIntensity: 0.45 });
+  const faces = {
+    U: frosted('#f4f5f2'),
+    D: frosted('#f8d945'),
+    F: frosted('#2bc264'),
+    B: frosted('#2f75da'),
+    L: frosted('#ff8f33'),
+    R: frosted('#e0323c'),
   };
-  const stickerGeo = rboxGeo(cubie * 0.78, 0.0012, cubie * 0.78, cubie * 0.16, 1);
+  // Colour runs nearly edge to edge on each piece, the way moulded plastic does — a small
+  // tile floating on a dark body reads as a stickered cube, which is the wrong object.
+  const tileSide = cubie * 0.935;
+  const tileGeo = rboxGeo(tileSide, 0.0019, tileSide, cubie * 0.13, 1);
+  const capGeo = new THREE.TorusGeometry(cubie * 0.25, 0.00055, 6, 20);
+  const cubieGeo = rboxGeo(cubie - gap, cubie - gap, cubie - gap, cubie * 0.17, 1);
 
-  // Top layer is rotated ~32°: the cube is mid-solve, not sitting factory-fresh.
+  // The top layer is rotated: the cube is mid-solve, not sitting factory-fresh.
   const top = at(new THREE.Group(), 0, 0, 0, g);
-  top.rotation.y = 0.56;
+  top.rotation.y = 0.52;
+
   for (let ix = -1; ix <= 1; ix++) {
     for (let iy = -1; iy <= 1; iy++) {
       for (let iz = -1; iz <= 1; iz++) {
         if (ix === 0 && iy === 0 && iz === 0) continue;
         const parent = iy === 1 ? top : g;
-        const c = at(
-          shadowed(new THREE.Mesh(rboxGeo(cubie - gap, cubie - gap, cubie - gap, cubie * 0.13, 1), body)),
-          ix * cubie,
-          size / 2 + iy * cubie,
-          iz * cubie,
-          parent,
-        );
+        const c = at(shadowed(new THREE.Mesh(cubieGeo, body)), ix * cubie, size / 2 + iy * cubie, iz * cubie, parent);
+        const isCentre = Math.abs(ix) + Math.abs(iy) + Math.abs(iz) === 1;
         const put = (mat: THREE.MeshStandardMaterial, ox: number, oy: number, oz: number, rx: number, rz: number) => {
-          const s = at(new THREE.Mesh(stickerGeo, mat), ox, oy, oz, c);
-          s.rotation.set(rx, 0, rz);
-          s.castShadow = false;
-          s.receiveShadow = true;
+          const tile = at(new THREE.Mesh(tileGeo, mat), ox, oy, oz, c);
+          tile.rotation.set(rx, 0, rz);
+          tile.castShadow = false;
+          tile.receiveShadow = true;
+          // Centres carry the shallow cap ring every GAN centre has. A filled dark disc reads
+          // as a hole; a ring groove in the piece's own colour reads as moulding.
+          if (isCentre) {
+            const cap = at(new THREE.Mesh(capGeo, mat), 0, 0.00075, 0, tile);
+            cap.rotation.x = Math.PI / 2;
+            cap.castShadow = false;
+            cap.receiveShadow = true;
+          }
         };
-        const h = cubie / 2 - 0.0002;
+        // Tiles sit a hair proud of the piece so the gap between them reads as a real seam.
+        const h = (cubie - gap) / 2 - 0.0002;
         if (iy === 1) put(faces.U, 0, h, 0, 0, 0);
         if (iy === -1) put(faces.D, 0, -h, 0, Math.PI, 0);
         if (iz === 1) put(faces.F, 0, 0, h, Math.PI / 2, 0);
