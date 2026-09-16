@@ -18,10 +18,12 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const quick = process.env.QUICK === '1';
 fs.mkdirSync('perf', { recursive: true });
 
+// CAPPED=1: real 60 Hz pacing and the room's own resolution calibration — what a visitor gets.
+const capped = process.env.CAPPED === '1';
 const browser = await chromium.launch({
   executablePath: chrome,
   headless: true,
-  args: ['--use-angle=metal', '--ignore-gpu-blocklist', '--disable-gpu-vsync', '--disable-frame-rate-limit', '--enable-precise-memory-info'],
+  args: ['--use-angle=metal', '--ignore-gpu-blocklist', ...(capped ? [] : ['--disable-gpu-vsync', '--disable-frame-rate-limit']), '--enable-precise-memory-info'],
 });
 
 const summary = { label, extra, hours: {} };
@@ -35,7 +37,7 @@ for (const hour of hours) {
   const room = (fn, arg) => page.evaluate(fn, arg);
 
   const t0 = Date.now();
-  await page.goto(`${process.env.BASE ?? 'http://127.0.0.1:5173'}/?debug&hour=${hour}&pr=${process.env.PR ?? 1.5}${extra}`, { waitUntil: 'load' });
+  await page.goto(`${process.env.BASE ?? 'http://127.0.0.1:5173'}/?debug&hour=${hour}${capped ? '' : `&pr=${process.env.PR ?? 1.5}`}${extra}`, { waitUntil: 'load' });
   await page.waitForFunction(() => window.__room !== undefined, null, { timeout: 60000 });
   const ready = Date.now() - t0;
 
@@ -60,6 +62,8 @@ for (const hour of hours) {
       tris: s.triangles,
       heapMB: s.heapMB,
       gpu: s.gpu,
+      missed: s.missed,
+      pixelRatio: s.pixelRatio,
     };
   }
   const sweep = async (ms, ampX = 680, ampY = 180) => {
@@ -143,12 +147,12 @@ fs.writeFileSync(file, JSON.stringify(summary, null, 2));
 // Concise table: fps, frame p50/p95/max, CPU avg/p95, draw calls.
 for (const [hour, h] of Object.entries(summary.hours)) {
   console.log(`\n=== ${label} hour=${hour}  errors=${h.errors.length} hover=${h.hoverOk}`);
-  console.log('scenario            fps    frame p50/p95/max      cpu avg/p95/max    calls  tris');
+  console.log('scenario            fps    frame p50/p95/max      cpu avg/p95/max    calls  tris   missed  pr');
   for (const [name, s] of Object.entries(h.scenarios)) {
     const f = s.frame ?? {};
     const c = s.cpu ?? {};
     console.log(
-      `${name.padEnd(18)} ${String(s.fps).padStart(5)}  ${`${f.p50}/${f.p95}/${f.max}`.padEnd(20)} ${`${c.avg}/${c.p95}/${c.max}`.padEnd(18)} ${String(s.calls).padStart(5)}  ${s.tris}`,
+      `${name.padEnd(18)} ${String(s.fps).padStart(5)}  ${`${f.p50}/${f.p95}/${f.max}`.padEnd(20)} ${`${c.avg}/${c.p95}/${c.max}`.padEnd(18)} ${String(s.calls).padStart(5)}  ${String(s.tris).padEnd(7)} ${String(s.missed).padStart(4)}  ${s.pixelRatio}`,
     );
   }
   for (const [name, s] of Object.entries(h.scenarios)) {

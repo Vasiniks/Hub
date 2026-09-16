@@ -83,6 +83,8 @@ export class FramePerf {
       frames: this.frames,
       fps: +(this.frames / (elapsed / 1000)).toFixed(1),
       frameMs: stats(this.deltas),
+      /** Frames that took more than 1.5 display intervals at 60 Hz: visible hitches under vsync. */
+      missed: this.deltas.filter((d) => d > 25).length,
       cpuMs: stats(this.cpu),
       stages: Object.fromEntries([...this.stages].map(([k, v]) => [k, stats(v)])),
       drawCalls: stats(this.calls),

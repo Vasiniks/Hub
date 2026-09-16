@@ -73,6 +73,8 @@ async function start() {
   screenMat.emissiveMap = lorenz.texture;
   screenMat.needsUpdate = true;
 
+  // Profiling switch: ?lorenz=0 freezes the screen (no repaint, no texture upload).
+  const lorenzEnabled = params.get('lorenz') !== '0';
   const dust = createDust(scene);
   dust.place(room.lampHead, room.lampPool);
 
@@ -126,6 +128,13 @@ async function start() {
     reducedMotion,
     label: document.getElementById('hover-label')!,
     lookExtent: () => rig.lookExtent(),
+  });
+
+  // Things that can never be picked (dust, city lights, attention dots) get no raycast at all.
+  // They were being tested and filtered out afterwards, and a Points raycast allocates a vector
+  // for every point within a metre of the ray — hundreds per pick.
+  scene.traverse((o) => {
+    if (o.userData.ignoreRaycast) o.raycast = () => {};
   });
 
   loader.advance('capturing light');
@@ -640,7 +649,7 @@ async function start() {
 
     // §26/§27: the attractor only integrates and repaints while the monitor is on camera.
     focusActivity = THREE.MathUtils.lerp(focusActivity, panelShown ? 1 : 0, 1 - Math.exp(-2 * dt));
-    lorenz.update(dt, elapsed, _frustum.intersectsSphere(screenSphere), focusActivity);
+    if (lorenzEnabled) lorenz.update(dt, elapsed, _frustum.intersectsSphere(screenSphere), focusActivity);
     dust.update(elapsed, lighting.state.lamp, Math.cos(LAMP_ANGLE));
     activityPulse = Math.max(0, activityPulse - dt * 0.28);
     lighting.setActivity(activityPulse);
@@ -753,14 +762,17 @@ async function start() {
       return (performance.now() - t0) / n;
     };
     await burst(4); // discard: driver first-use
+    const first = await burst(12);
     let cost = await burst(12);
+    const trace = [{ ratio: view.pixelRatio(), ms: +first.toFixed(2) }, { ratio: view.pixelRatio(), ms: +cost.toFixed(2) }];
     let steps = 0;
-    while (cost > FRAME_BUDGET_MS && steps < 2 && view.stepDownResolution()) {
+    while (view.adaptive && cost > FRAME_BUDGET_MS && steps < 2 && view.stepDownResolution()) {
       steps++;
       await burst(3);
       cost = await burst(12);
+      trace.push({ ratio: view.pixelRatio(), ms: +cost.toFixed(2) });
     }
-    return { frameMs: +cost.toFixed(2), from, chosen: view.pixelRatio(), steps };
+    return { frameMs: +cost.toFixed(2), from, chosen: view.pixelRatio(), steps, trace };
   }
   const calibration = await calibrate();
   calibrating = false;

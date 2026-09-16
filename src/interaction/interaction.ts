@@ -144,6 +144,9 @@ export function createInteraction(opts: {
   let focused: string | null = null;
   let enabled = true;
   const projected = new THREE.Vector3();
+  let labelX = NaN;
+  let labelY = NaN;
+  let labelShown = false;
 
   /** Nearest visible surface under a screen point; the attention dot counts as part of its object. */
   function pickAt(point: THREE.Vector2): string | null {
@@ -216,17 +219,21 @@ export function createInteraction(opts: {
     return null;
   }
 
+  /**
+   * Screen position of a world point. Returns a shared scratch object — it runs several times a
+   * frame per target, and a fresh object each call was steady garbage. Copy it to keep it.
+   */
+  const _screen = { x: 0, y: 0, visible: false };
   function screenOf(p: THREE.Vector3) {
     projected.copy(p).project(camera);
     // Points behind the camera project mirrored; flip so the direction toward them stays true.
     const behind = projected.z > 1;
     const x = behind ? -projected.x : projected.x;
     const y = behind ? -projected.y : projected.y;
-    return {
-      x: (x * 0.5 + 0.5) * window.innerWidth,
-      y: (-y * 0.5 + 0.5) * window.innerHeight,
-      visible: !behind && Math.abs(x) < 1.05 && Math.abs(y) < 1.05,
-    };
+    _screen.x = (x * 0.5 + 0.5) * window.innerWidth;
+    _screen.y = (-y * 0.5 + 0.5) * window.innerHeight;
+    _screen.visible = !behind && Math.abs(x) < 1.05 && Math.abs(y) < 1.05;
+    return _screen;
   }
 
   function outlineFor(id: string | null) {
@@ -286,7 +293,7 @@ export function createInteraction(opts: {
     },
     screenPositionOf(id: string) {
       const item = items.get(id);
-      return item ? screenOf(item.target.anchor) : null;
+      return item ? { ...screenOf(item.target.anchor) } : null;
     },
     /** Raw intersections under a client point, for diagnosing picking in the browser. */
     debugPick(clientX: number, clientY: number) {
@@ -329,7 +336,7 @@ export function createInteraction(opts: {
       const item = items.get(id);
       if (!item) return null;
       const dot = screenOf(item.target.dotPos);
-      if (dot.visible && dotUnoccluded(id, item)) return dot;
+      if (dot.visible && dotUnoccluded(id, item)) return { ...dot };
       const candidates: THREE.Vector3[] = [];
       item.target.group.traverse((o) => {
         const mesh = o as THREE.Mesh;
@@ -341,7 +348,7 @@ export function createInteraction(opts: {
         const s = screenOf(p);
         if (!s.visible) continue;
         probe.set((s.x / window.innerWidth) * 2 - 1, -(s.y / window.innerHeight) * 2 + 1);
-        if (pickAt(probe) === id) return s;
+        if (pickAt(probe) === id) return { ...s };
       }
       return null;
     },
@@ -425,9 +432,21 @@ export function createInteraction(opts: {
 
       if (hovered && !focused) {
         const s = screenOf(items.get(hovered)!.target.dotPos);
-        label.style.transform = `translate(${s.x}px, ${s.y - 16}px) translate(-50%, -100%)`;
-        label.classList.toggle('is-visible', s.visible);
-      } else {
+        // Only touch the DOM when the label actually moves a pixel: a style write every frame
+        // re-runs style resolution for nothing while the view is at rest.
+        const lx = Math.round(s.x);
+        const ly = Math.round(s.y - 16);
+        if (lx !== labelX || ly !== labelY) {
+          labelX = lx;
+          labelY = ly;
+          label.style.transform = `translate(${lx}px, ${ly}px) translate(-50%, -100%)`;
+        }
+        if (s.visible !== labelShown) {
+          labelShown = s.visible;
+          label.classList.toggle('is-visible', s.visible);
+        }
+      } else if (labelShown) {
+        labelShown = false;
         label.classList.remove('is-visible');
       }
     },

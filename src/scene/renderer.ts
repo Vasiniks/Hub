@@ -404,6 +404,8 @@ export function createRenderer(
     volumetric,
     warmUp,
     pixelRatio: () => pixelRatio,
+    /** False when the resolution is pinned (`?pr=`), so nothing may change it. */
+    adaptive,
     /** Step down to the next lower render resolution. Returns false at the floor. */
     stepDownResolution() {
       const next = RATIO_STEPS.find((r) => r < pixelRatio - 0.01);

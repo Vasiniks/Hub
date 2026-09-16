@@ -1,8 +1,13 @@
 # Performance log
 
 Method: `scripts/perf-suite.mjs` — headless Chrome (ANGLE/Metal, M2 Pro), 1440×900 CSS at
-DPR 2, render resolution pinned (`pr=1.5`, adaptive off), **no vsync, no frame cap**, so frame
-time is the real cost and a faster build shows up as a smaller number. Every comparison is
+DPR 2, **no vsync, no frame cap**, so frame time is the real cost and a faster build shows up as
+a smaller number.
+
+**Correction:** the suite asked for a pinned `pr=1.5`, but startup calibration ignored pinning and
+stepped both builds down to **1.25** — every uncapped table below was measured at 1.25 (the
+same ratio calibration chooses for real visitors on this machine). Baseline and working tree had
+the identical behaviour, so the before/after comparisons stand. Calibration now respects `?pr=`. Every comparison is
 **interleaved** against the untouched baseline build (`914ffd1`, served from a git worktree)
 in the same session, because the machine drifts by ~1 ms across a long run. Numbers are
 frame-time p50 / p95 in ms, night (hour 21) unless stated.
@@ -89,3 +94,38 @@ span the room — 1.5–2 ms per ray, and a pick casts one ray plus one per near
 Measured: per ray 1.46 → 0.08 ms with identical nearest hits and distances. Interaction stage:
 seated look 1.52 avg / 5.0 max → 0.13 / 1.1 ms; hover 1.20 / 4.1 → 0.06 / 0.4 ms. Tree build
 109 geometries in idle time; startup trace shows no frame over 16.8 ms after the reveal.
+
+### Allocation and main-thread hygiene
+- Objects that can never be picked (dust, city lights, attention dots) get a no-op raycast. They
+  were intersected and filtered afterwards; a Points raycast allocates a vector per point within
+  a metre of the ray.
+- `screenOf` returns a scratch object (ran several times per target per frame); the hover label
+  writes its style only when its rounded position changes.
+Measured (`scripts/alloc-profile.mjs`, look + hover): sampled allocation 158 → 134 KB/frame, the
+remainder inside three's render path. GC over an 8.7 s look sweep (`scripts/gc-trace.mjs`):
+baseline 35 minor GCs / 10.9 ms; now 11 / 6.8 ms, longest 2.1 ms — well under 0.1% of wall time.
+
+### Measured and left alone
+- Lorenz screen (30 Hz canvas repaint + upload): ~0.1 ms/frame (`?lorenz=0` A/B, 163 → 166 fps).
+- Reflection capture: frames inside a capture cost 10–13.7 ms uncapped vs 6.3 quiet — still
+  inside 60 Hz, only when the lit state drifts, ≥1.5 s apart. Zeroing `environmentIntensity`
+  instead of nulling the environment (to avoid program switches) measured no difference; reverted.
+
+## Real 60 Hz pacing (`CAPPED=1`, calibration as a visitor gets it — chose 1.25 in both builds)
+No missed frames in any scenario at any hour, baseline or now. Main-thread CPU per frame, avg/p95:
+
+| scenario | baseline | now |
+|---|---|---|
+| seated look | 3.0–3.1 / 6.0–6.5 | 1.4–1.5 / 2.2–2.4 |
+| hover | 3.3–3.5 / 5.6–5.9 | 1.4 / 2.1–2.2 |
+| standing look | 2.8–3.0 / 4.0–4.6 | 1.7 / 2.3–2.4 |
+| popup open | 1.3–1.5 / 1.7–2.8 | 1.0–1.2 / 1.7–2.4 |
+
+Draw calls: seated idle 168 → 96, hover 246 → 109, popup 150 → 77. Triangles in popup 103k → 38k.
+
+## Resolution cliff (open question for the visual pass)
+Truly pinned at 1.5, the full pipeline costs 17–20 ms uncapped (37–49 fps under vsync) against
+6–10 ms at 1.25: ~2× cost for 1.44× pixels, not explained by MSAA (msaa 0/2/4 all show it).
+Calibration correctly lands on 1.25 on this GPU. Making 1.5 affordable would need fewer
+full-resolution post passes (e.g. merging tone mapping with the grade, compositing the
+volumetrics in place) — measured headroom, not yet spent.
