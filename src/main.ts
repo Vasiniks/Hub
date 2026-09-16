@@ -14,7 +14,7 @@ import { createInteraction, OVERLAY_LAYER, type InteractTarget } from './interac
 import { createPanel, createHint, createObjectNav, createShelfCaption } from './ui/panel';
 import { createLoader } from './ui/loading';
 import { createMusicWidget } from './ui/music';
-import { CAMERA, INTERACTION } from './scene/layout';
+import { CAMERA, INTERACTION, SHELF } from './scene/layout';
 import { FramePerf } from './debug/perf';
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -307,7 +307,49 @@ async function start() {
     if (panel.isOpen) panel.close();
     panelShown = false;
     room.shelf.step(dir);
+    lastStepAt = performance.now();
     announceBook();
+  }
+
+  /**
+   * §19/§20: browsing is gesture-based, not event-based.
+   *
+   * A wheel or trackpad swipe emits a burst of events; treating each one as a navigation
+   * meant a flick threw the selection five books across the shelf. Instead, deltas accumulate
+   * until they cross a threshold, that commits exactly one step, and the gesture then disarms
+   * until the input has been quiet long enough to count as a new intent. The result: a slow
+   * nudge moves one book, and so does a violent swipe.
+   */
+  let wheelAccum = 0;
+  let lastWheelAt = 0;
+  let lastStepAt = 0;
+  let gestureArmed = true;
+
+  function shelfWheel(e: WheelEvent) {
+    // Normalise across deltaMode so a line-mode mouse and a pixel-mode trackpad agree.
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1;
+    const raw = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    const delta = raw * unit;
+    const now = performance.now();
+    if (now - lastWheelAt > SHELF.gesture.restMs) {
+      wheelAccum = 0;
+      gestureArmed = true;
+    }
+    lastWheelAt = now;
+    if (!gestureArmed) return;
+    // Direction is consistent: a push away from you, or to the right, advances the row.
+    wheelAccum += delta;
+    if (Math.abs(wheelAccum) < SHELF.gesture.threshold) return;
+    if (now - lastStepAt < SHELF.gesture.minStepMs || !room.shelf.settled) return;
+    stepBook(Math.sign(wheelAccum));
+    wheelAccum = 0;
+    gestureArmed = false;
+  }
+
+  /** Keyboard uses the same pacing, so held arrows advance one book at a time. */
+  function shelfKey(dir: number) {
+    if (performance.now() - lastStepAt < SHELF.gesture.minStepMs || !room.shelf.settled) return;
+    stepBook(dir);
   }
 
   function inspectBook() {
@@ -390,7 +432,7 @@ async function start() {
       e.preventDefault();
       if (rig.mode === 'standing' && e.deltaY > 2) sit();
       // While browsing, the wheel walks the row — the same gesture that got you into the chair.
-      else if (shelfMode && Math.abs(e.deltaY) > 2) stepBook(Math.sign(e.deltaY));
+      else if (shelfMode) shelfWheel(e);
     },
     { passive: false },
   );
@@ -407,10 +449,10 @@ async function start() {
       const shelfKeys = onBody || active === shelfFocus;
       if (['ArrowLeft', 'a', 'A'].includes(e.key)) {
         e.preventDefault();
-        stepBook(-1);
+        shelfKey(-1);
       } else if (['ArrowRight', 'd', 'D'].includes(e.key)) {
         e.preventDefault();
-        stepBook(1);
+        shelfKey(1);
       } else if (shelfKeys && [' ', 'Enter'].includes(e.key)) {
         e.preventDefault();
         inspectBook();
@@ -434,7 +476,20 @@ async function start() {
   document.addEventListener('pointerleave', () => interaction.setPointer(-10, -10, false));
 
   let downAt: { x: number; y: number } | null = null;
-  canvas.addEventListener('pointerdown', (e) => (downAt = { x: e.clientX, y: e.clientY }));
+  let dragConsumed = false;
+  canvas.addEventListener('pointerdown', (e) => {
+    downAt = { x: e.clientX, y: e.clientY };
+    dragConsumed = false;
+  });
+  // Dragging sideways across the shelf steps the row — once per drag, like every other gesture.
+  canvas.addEventListener('pointermove', (e) => {
+    if (!shelfMode || !downAt || dragConsumed) return;
+    const dx = e.clientX - downAt.x;
+    if (Math.abs(dx) < SHELF.gesture.dragPx) return;
+    if (!room.shelf.settled) return;
+    stepBook(Math.sign(dx));
+    dragConsumed = true;
+  });
   canvas.addEventListener('pointerup', (e) => {
     if (!downAt || Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > INTERACTION.clickSlopPx) return;
     downAt = null;
@@ -720,6 +775,22 @@ async function start() {
           lampIntensity: lighting.lamp.intensity,
           enabled: view.volumetric.enabled,
         }),
+        books: () => {
+          const out: Record<string, unknown>[] = [];
+          room.shelf.group.children.forEach((o) => {
+            if (!o.userData.dynamic) return;
+            out.push({
+              x: +o.position.x.toFixed(4),
+              y: +o.position.y.toFixed(4),
+              z: +o.position.z.toFixed(4),
+              rz: +o.rotation.z.toFixed(3),
+              ry: +o.rotation.y.toFixed(3),
+              s: +o.scale.x.toFixed(3),
+              vis: o.visible,
+            });
+          });
+          return out;
+        },
         topLevel: () => scene.children.map((o, i) => `${i}:${o.type}:${o.name || o.userData.projectId || ''}`),
         hideTop: (i: number) => {
           scene.children.forEach((o, k) => { if (k === i) o.visible = false; });

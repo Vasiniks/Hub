@@ -78,12 +78,18 @@ export const SHELF = {
   x: -1.72,
   y: 1.1,
   z: -0.8,
-  width: 0.6,
+  width: 0.74,
   depth: 0.2,
   /** Gap between book spines in the row. */
-  gap: 0.003,
+  gap: 0.005,
   /** How the selection reads: slide out, lift, turn to camera; neighbours ease aside and back. */
-  select: { out: 0.15, lift: 0.04, turn: 1.4, spread: 0.012, recede: 0.018 },
+  select: { out: 0.125, lift: 0.052, turn: 1.4, spread: 0.03, recede: 0.02, scale: 1.05, tilt: 0.1, centre: 0.35 },
+  /**
+   * §20: browsing advances exactly one book per committed gesture, however fast the input.
+   * A flick accumulates past `threshold`, commits once, then disarms until the input has been
+   * quiet for `restMs` — so a long fast swipe is one book, not five.
+   */
+  gesture: { threshold: 85, restMs: 90, minStepMs: 240, dragPx: 62 },
   /** Camera framing while browsing. */
   focus: { distance: 0.8, pitch: 0.1, offset: 0.12 },
 };

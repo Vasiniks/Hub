@@ -143,8 +143,9 @@ interface BookNode {
   /** Spring state for the pull-out amount, 0 at rest and 1 fully selected. */
   out: number;
   outVel: number;
-  /** Smoothed sideways shove from the selected book. */
+  /** Spring state for the sideways shove from the selected book. */
   shove: number;
+  shoveVel: number;
   base: THREE.Color;
 }
 
@@ -211,6 +212,7 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
       out: 0,
       outVel: 0,
       shove: 0,
+      shoveVel: 0,
       base: material.color.clone(),
     });
     cursor += def.thickness + SHELF.gap;
@@ -247,6 +249,30 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
   /** Underdamped enough to settle rather than stop dead — that settle is the whole feel. */
   const STIFFNESS = 150;
   const DAMPING = 2 * Math.sqrt(STIFFNESS) * 0.82;
+  /** The row is shoved aside a little faster than the book comes out, so it reads as cause. */
+  const SHOVE_STIFFNESS = 210;
+  const SHOVE_DAMPING = 2 * Math.sqrt(SHOVE_STIFFNESS) * 0.7;
+
+  /** True until the current selection has substantially arrived; gates the next step. */
+  let settled = true;
+
+  /**
+   * A step knocks the neighbours rather than merely retargeting them: the books nearest the
+   * new selection get an impulse away from it, which is what makes the row feel like objects
+   * being pushed apart instead of values being interpolated.
+   */
+  function kick(from: number, to: number) {
+    settled = false;
+    for (let i = 0; i < nodes.length; i++) {
+      const d = i - to;
+      if (d === 0) continue;
+      const near = Math.max(0, 1 - Math.abs(d) / 4.5);
+      if (near <= 0) continue;
+      nodes[i].shoveVel += Math.sign(d) * near * 0.55;
+    }
+    // The book being put back gets a small nudge home.
+    if (from !== to && nodes[from]) nodes[from].outVel -= 0.6;
+  }
 
   return {
     group,
@@ -284,12 +310,20 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
     exit() {
       active = false;
     },
+    /** True once the current transition has mostly arrived. */
+    get settled() {
+      return settled;
+    },
     step(dir: number) {
+      const from = index;
       index = THREE.MathUtils.clamp(index + dir, 0, books.length - 1);
+      if (index !== from) kick(from, index);
       return books[index];
     },
     select(i: number) {
+      const from = index;
       index = THREE.MathUtils.clamp(i, 0, books.length - 1);
+      if (index !== from) kick(from, index);
       return books[index];
     },
     /** Outline follows the selection while browsing, the whole unit while merely hovered. */
@@ -311,38 +345,50 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
       chevronOpacity = THREE.MathUtils.lerp(chevronOpacity, active ? 0.5 : 0, 1 - Math.exp(-6 * dt));
       for (const c of chevrons) c.material.opacity = chevronOpacity;
 
+      let arrived = true;
       for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i];
         const isSelected = active && i === index;
         const target = isSelected ? 1 : 0;
 
+        const delta = i - index;
+        const near = active && delta !== 0 ? Math.max(0, 1 - Math.abs(delta) / 4.5) : 0;
+        const wantShove = Math.sign(delta) * near * SHELF.select.spread;
+
         if (reducedMotion) {
           n.out = target;
           n.outVel = 0;
+          n.shove = wantShove;
+          n.shoveVel = 0;
         } else {
           // Spring on the pull-out amount; everything else is derived from it.
           n.outVel += (STIFFNESS * (target - n.out) - DAMPING * n.outVel) * step;
           n.out += n.outVel * step;
+          n.shoveVel += (SHOVE_STIFFNESS * (wantShove - n.shove) - SHOVE_DAMPING * n.shoveVel) * step;
+          n.shove += n.shoveVel * step;
         }
-
-        // Neighbours slide aside, further away the closer they are to the selection.
-        const delta = i - index;
-        const near = active && delta !== 0 ? Math.max(0, 1 - Math.abs(delta) / 3) : 0;
-        const wantShove = Math.sign(delta) * near * SHELF.select.spread;
-        n.shove = reducedMotion ? wantShove : THREE.MathUtils.lerp(n.shove, wantShove, 1 - Math.exp(-9 * dt));
+        // Loose on purpose: the gate exists to stop steps stacking mid-flight, not to make
+        // the visitor wait out the settle. It opens around halfway through the travel.
+        if (Math.abs(n.out - target) > 0.45) arrived = false;
 
         const holder = n.mesh;
-        holder.position.x = n.homeX + n.shove;
-        holder.position.z = n.out * SHELF.select.out - (active && !isSelected ? near * SHELF.select.recede : 0);
-        holder.position.y = n.out * SHELF.select.lift;
-        holder.rotation.y = -n.out * SHELF.select.turn;
-        // The lean straightens as a book comes out of the row.
-        holder.rotation.z = n.homeLean * (1 - n.out);
+        const ease = n.out;
+        // The selection drifts toward the middle of the shelf as it comes out, so it presents
+        // centred and stops sitting directly in front of the books beside it.
+        holder.position.x = n.homeX * (1 - ease * SHELF.select.centre) + n.shove;
+        holder.position.z = ease * SHELF.select.out - (active && !isSelected ? near * SHELF.select.recede : 0);
+        holder.position.y = ease * SHELF.select.lift;
+        holder.rotation.y = -ease * SHELF.select.turn;
+        // The lean straightens as a book comes out, and it tips toward the camera as it
+        // presents — the small extra rotation is what stops it reading as a sliding panel.
+        holder.rotation.z = n.homeLean * (1 - ease) - ease * SHELF.select.tilt;
+        holder.scale.setScalar(1 + ease * (SHELF.select.scale - 1));
 
         // Background books recede in tone as well as position, so the selection separates.
         const dim = active ? (isSelected ? 1 : 0.62) : 1;
         n.material.color.lerp(_color.copy(n.base).multiplyScalar(dim), 1 - Math.exp(-6 * dt));
       }
+      if (arrived) settled = true;
     },
   };
 }
