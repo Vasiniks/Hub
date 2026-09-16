@@ -90,7 +90,10 @@ Last verified commit: see `git log` (each checkpoint below is one commit).
       wall thickness), screwdriver (524, fluted), USB cable coil (1.8k), USB hub with LED meshes
       (384), loose dev board (1.2k, retinted per solder mask). Scripts: build_chair.py,
       build_bins.py, build_desk_items.py.
-- [ ] materials/textures pass (ambientCG CC0) — floor, walls, chair fabric
+- [x] **materials/textures pass (ambientCG CC0)** — WoodFloor051 (floor), PaintedPlaster017
+      (walls: relief + roughness only), Fabric030 (chair and rug). 7 maps, 683 KB, sized by screen
+      coverage, ImageBitmap-decoded behind the loader. Walls/chair/rug use object-space box
+      projection (`projectMaps`) since their UVs are 0–1 per face or absent. Cost ≈2% uncapped.
 
 ## Preserved and must not regress
 

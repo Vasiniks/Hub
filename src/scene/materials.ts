@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { projectMaps, type SurfaceTextures } from './textures';
 
 /**
  * Materials carry most of the perceived quality here: the geometry stays low-poly, so what
@@ -69,33 +70,6 @@ function brushedNoise(seed: number) {
 }
 
 /** Pale oak: warm floor tone that the lamp can pick up at night. */
-function woodTexture() {
-  return canvasTexture(512, (ctx, s) => {
-    const r = rand(7);
-    ctx.fillStyle = '#a08a6d';
-    ctx.fillRect(0, 0, s, s);
-    for (let i = 0; i < 220; i++) {
-      const y = r() * s;
-      const light = r() > 0.5;
-      ctx.strokeStyle = light ? `rgba(198,176,146,${0.05 + r() * 0.12})` : `rgba(104,84,62,${0.04 + r() * 0.12})`;
-      ctx.lineWidth = 1 + r() * 4;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      for (let x = 0; x <= s; x += 64) ctx.lineTo(x, y + Math.sin(x * 0.004 + i) * 5 * r());
-      ctx.stroke();
-    }
-    // Plank seams.
-    ctx.strokeStyle = 'rgba(70,56,42,0.35)';
-    ctx.lineWidth = 1.5;
-    for (let y = 0; y <= s; y += s / 4) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(s, y);
-      ctx.stroke();
-    }
-  });
-}
-
 /** Board with a solder mask, traces and pads: PCBs should not read as green boxes. */
 function pcbTexture(base: string, seed: number) {
   return canvasTexture(256, (ctx, s) => {
@@ -170,11 +144,7 @@ function applySetFade(mat: THREE.Material, o: { center?: [number, number]; radia
 
 const standard = (p: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial(p);
 
-export function createMaterials() {
-  const wood = woodTexture();
-  wood.repeat.set(2.5, 2.5);
-  const floorRough = roughnessNoise(0.62, 0.36, 3, 256);
-  floorRough.repeat.set(3, 3);
+export function createMaterials(surfaces: SurfaceTextures) {
   const brushed = brushedNoise(23);
   brushed.repeat.set(3, 1);
   // The desk is the largest light-catching surface in the frame: its roughness has to vary or
@@ -183,10 +153,47 @@ export function createMaterials() {
   paintRough.repeat.set(2, 2);
   const binRough = roughnessNoise(0.6, 0.3, 17, 256, 4);
 
-  const floor = standard({ map: wood, roughness: 0.66, roughnessMap: floorRough, metalness: 0, envMapIntensity: 0.5 });
+  // Scanned oak strip floor. The disc is 18 m across with 0–1 UVs, so twelve repeats puts one
+  // texture tile at 1.5 m — the scale the boards were photographed at. The roughness map's
+  // mean is 0.35; the factor scales it back to the floor's established ~0.62 response.
+  for (const t of [surfaces.floorColor, surfaces.floorNormal, surfaces.floorRough]) t.repeat.set(12, 12);
+  const floor = standard({
+    map: surfaces.floorColor,
+    normalMap: surfaces.floorNormal,
+    normalScale: new THREE.Vector2(0.6, 0.6),
+    roughness: 1.75,
+    roughnessMap: surfaces.floorRough,
+    metalness: 0,
+    envMapIntensity: 0.5,
+  });
   applySetFade(floor, { center: [-0.1, -0.4], radial: [2.3, 4.6] });
-  const wall = standard({ color: '#94969a', roughness: 0.94 });
+  // Painted plaster: surface relief and roughness only — the paint colour stays the room's.
+  const wall = standard({
+    color: '#94969a',
+    roughness: 1.8,
+    roughnessMap: surfaces.wallRough,
+    normalMap: surfaces.wallNormal,
+    normalScale: new THREE.Vector2(0.35, 0.35),
+  });
   applySetFade(wall, { x: [2.3, 3.5], z: [0.55, 1.45], y: [2.7, 3.3] });
+  projectMaps(wall, 1.6);
+  const fabric = standard({
+    color: '#24272c',
+    roughness: 1.3,
+    roughnessMap: surfaces.fabricRough,
+    normalMap: surfaces.fabricNormal,
+    normalScale: new THREE.Vector2(0.8, 0.8),
+  });
+  projectMaps(fabric, 0.09);
+  // The rug reuses the fabric scan at a coarser tile: pile texture for no extra download.
+  const rug = standard({
+    color: '#33363a',
+    roughness: 1.35,
+    roughnessMap: surfaces.fabricRough,
+    normalMap: surfaces.fabricNormal,
+    normalScale: new THREE.Vector2(0.9, 0.9),
+  });
+  projectMaps(rug, 0.22);
 
   return {
     /** §2: a clean white tabletop. Diffuse, with only enough sheen to read as painted. */
@@ -212,7 +219,7 @@ export function createMaterials() {
     ribbonBlue: standard({ color: '#2f4a7a', roughness: 0.88 }),
     ribbonRed: standard({ color: '#7d2b2f', roughness: 0.88 }),
     ribbonGreen: standard({ color: '#2f5f48', roughness: 0.88 }),
-    fabric: standard({ color: '#24272c', roughness: 0.95 }),
+    fabric,
     rubber: standard({ color: '#0e0f11', roughness: 0.9 }),
     paper: standard({ color: '#e8e6e0', roughness: 0.88 }),
     /** Glazed ceramic: whiter and far glossier than the room's plastics. */
@@ -220,7 +227,7 @@ export function createMaterials() {
     cardboard: standard({ color: '#a98a64', roughness: 0.9 }),
     wall,
     floor,
-    rug: standard({ color: '#33363a', roughness: 1 }),
+    rug,
     safetyOrange: standard({ color: '#e2661a', roughness: 0.5 }),
     bumperRed: standard({ color: '#a3262a', roughness: 0.85 }),
     // No transmission anywhere: it costs a full extra scene render per frame, and at these

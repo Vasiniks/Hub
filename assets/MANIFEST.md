@@ -6,6 +6,11 @@ scene without an entry here. Assets whose licensing is unclear are not used.
 | asset | source | author | licence | url | modifications |
 |---|---|---|---|---|---|
 | `lamp.glb` | Poly Haven | Yann Kervran, Kuutti Siitonen | CC0 | https://polyhaven.com/a/desk_lamp_arm_01 | Cone shade and desk clamp removed; flat circular head, diffuser and weighted base modelled in Blender; decimated 24k→3.8k tris; PBR textures replaced with the room's material palette |
+| `textures/floor_*.jpg` | ambientCG | ambientCG (Lennart Demes) | CC0 | https://ambientcg.com/view?id=WoodFloor051 | 1K colour + normal (GL), roughness downsized to 512; roughness factor rescaled at runtime |
+| `textures/wall_*.jpg` | ambientCG | ambientCG | CC0 | https://ambientcg.com/view?id=PaintedPlaster017 | normal (GL) 1K + roughness 512 only; paint colour stays the room's |
+| `textures/fabric_*.jpg` | ambientCG | ambientCG | CC0 | https://ambientcg.com/view?id=Fabric030 | normal 512 + roughness 256; used for chair fabric and, at a coarser tile, the rug |
+
+Untouched downloads live in `assets/source/textures/<id>/`.
 
 ## Sources checked and not usable
 
@@ -14,7 +19,7 @@ scene without an entry here. Assets whose licensing is unclear are not used.
 | Poly Pizza | API returns 401 without an account key; no anonymous download |
 | Sketchfab | `/v3/models/{uid}/download` returns 401; search works, download needs an account |
 | Poly Haven | open API, CC0 — **used** |
-| ambientCG | open API, CC0 textures — available for a later texture pass |
+| ambientCG | open API, CC0 textures — **used** (floor, walls, fabric) |
 
 No CC0 model exists in the reachable open repositories for: computer mouse, TKL keyboard,
 monitor, MacBook, speedcube. Those are modelled from scratch in Blender instead

@@ -2,6 +2,7 @@ import './styles.css';
 import * as THREE from 'three';
 import { projects } from './data/projects';
 import { createMaterials } from './scene/materials';
+import { loadSurfaceTextures } from './scene/textures';
 import { buildRoom } from './scene/room';
 import { loadAssets } from './scene/assets';
 import { createLorenzScreen } from './scene/lorenz';
@@ -49,6 +50,8 @@ async function start() {
   const camera = new THREE.PerspectiveCamera(CAMERA.fov, window.innerWidth / window.innerHeight, 0.02, 40);
   camera.layers.enable(OVERLAY_LAYER);
 
+  // Surface textures load alongside the models, both behind the loading bar.
+  const surfacesLoading = loadSurfaceTextures();
   // Models come from the Blender pipeline. Everything loads before the room is built, so no
   // asset can arrive mid-interaction and cause a hitch.
   const assets = await loadAssets([
@@ -72,7 +75,7 @@ async function start() {
   ]);
   loader.advance('building the room');
 
-  const materials = createMaterials();
+  const materials = createMaterials(await surfacesLoading);
   const room = buildRoom(materials, reducedMotion, assets);
   scene.add(room.root);
 
