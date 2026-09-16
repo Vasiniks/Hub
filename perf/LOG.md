@@ -64,3 +64,18 @@ What: the dust shader was never warmed on a daytime arrival (hidden while the la
 the first dusk compiled it mid-frame: 50–215 ms. Warm-up now forces it visible.
 Measured: `scripts/compile-watch.mjs` — zero programs compiled after load from start hours 6,
 13 and 21 across a 24 h sweep, all hovers and the shelf (was +1 at hour 16.5).
+
+## Visual fix: speedcube washout in daylight (not a performance change)
+
+Cause, measured on a parked daylight close-up (`scripts/cube-color.mjs`, mean HLS saturation of
+the cube's coloured faces): default 0.13 · volumetrics off 0.13 · grade off 0.10 · **bloom off
+0.75**. Not the atmosphere — bloom. Its threshold applied to the pre-exposure HDR image, so by day
+(exposure 0.47) the whole sunlit desk crossed it, and near-equal weights on the widest blur levels
+spread that over everything nearby.
+
+Fix: threshold divided by exposure (means the same on-screen brightness every hour) and per-level
+weights `[1.2, 0.8, 0.25, 0.08, 0.05]` — halos come from tight levels, the veil from wide ones.
+Rejected on measurement: energy-above-threshold extraction (fidelity 0.20–0.27 and changed the
+night look), lower thresholds (made the monitor-lit MacBook lid bloom).
+Scored with `scripts/bloom-score.mjs` + `.py`: cube saturation 0.17 → 0.47 (0.70 with no bloom);
+night frame difference 2.16 — the same as grain/dust noise (bloom-off vs old is 2.26).

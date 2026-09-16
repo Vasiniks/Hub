@@ -172,7 +172,8 @@ export function createRenderer(
   if (params.get('aoview') === 'ao') gtao.output = GTAOPass.OUTPUT.Denoise;
   // AO is low-frequency: render it at CSS-pixel density, not device density, so retina screens
   // get the same AO detail per point as standard ones without paying 2.25× the fill.
-  const aoScale = () => (aoParam === 'full' ? 1 : aoParam === 'half' ? 0.5 : 1 / pixelRatio);
+  const aoCss = Number(params.get('aoscale'));
+  const aoScale = () => (aoParam === 'full' ? 1 : aoParam === 'half' ? 0.5 : (aoCss > 0 ? aoCss : 1) / pixelRatio);
   const baseSetSize = gtao.setSize.bind(gtao);
   gtao.setSize = (width: number, height: number) =>
     baseSetSize(Math.max(1, Math.round(width * aoScale())), Math.max(1, Math.round(height * aoScale())));
@@ -208,11 +209,31 @@ export function createRenderer(
     }) as unknown as typeof pass.render;
   }
 
-  const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.3, 0.5, 1.45);
+  /**
+   * Bloom threshold in display terms. The bloom pass sees the scene-referred HDR image before
+   * exposure, so a fixed threshold meant "bright" changed with the hour: at night (exposure 1.0)
+   * only the lamp, LEDs and screen crossed it, but by day (exposure 0.47) the whole sunlit desk
+   * did. Dividing by exposure keeps it meaning the same brightness on screen at every hour.
+   */
+  const BLOOM_THRESHOLD = 1.45;
+  /**
+   * Weight of each blur level, tightest first. Stock weights are near-equal, and the widest
+   * levels spread a large bright area over everything around it: by day that laid a milky veil
+   * across the desk and took the speedcube's faces from strong colour to pastel at close range.
+   * The halo around a light comes from the tight levels, the veil from the wide ones, so the
+   * tight ones carry slightly more and the wide ones almost nothing. Measured with
+   * scripts/bloom-score: cube face saturation in a daylight close-up 0.17 → 0.47 (0.70 with no
+   * bloom at all), with the night frame unchanged to within grain.
+   */
+  const BLOOM_LEVELS = [1.2, 0.8, 0.25, 0.08, 0.05];
+  const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.3, 0.5, BLOOM_THRESHOLD);
   bloom.enabled = params.get('bloom') !== '0';
+  const tints = (bloom as unknown as { bloomTintColors: THREE.Vector3[] }).bloomTintColors;
+  BLOOM_LEVELS.forEach((v, i) => tints[i].setScalar(v));
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
   const grade = new ShaderPass(GradeShader);
+  grade.enabled = params.get('grade') !== '0';
   composer.addPass(grade);
 
   // Debug: GPU time per pass (?gpu). Wraps each pass, shadow-map rendering and env capture.
@@ -277,6 +298,7 @@ export function createRenderer(
     renderer.toneMappingExposure = state.exposure;
     scene.environmentIntensity = state.env;
     bloom.strength = state.bloom;
+    bloom.threshold = BLOOM_THRESHOLD / state.exposure;
     (scene.background as THREE.Color).copy(state.sky);
     fadeColor.copy(state.sky);
     const fog = scene.fog as THREE.FogExp2;
