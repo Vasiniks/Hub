@@ -58,6 +58,7 @@ async function start() {
     { name: 'keyboard', file: 'keyboard.glb' },
     { name: 'cube', file: 'cube.glb' },
     { name: 'book', file: 'book.glb' },
+    { name: 'robot', file: 'robot.glb' },
   ]);
   loader.advance('building the room');
 
@@ -81,7 +82,7 @@ async function start() {
 
   // ---- Interaction targets: project objects, plus the bookshelf ----------
   const projectObjects = projects.map((project) => {
-    const built = buildObject(project.object.builder, materials);
+    const built = buildObject(project.object.builder, materials, assets);
     const g = built.group;
     g.position.set(...project.object.position);
     g.rotation.y = project.object.rotationY;

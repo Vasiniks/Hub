@@ -44,6 +44,10 @@ Last verified commit: see `git log` (each checkpoint below is one commit).
   shrinks the bevel to the inset ring's width.
 - The preview's key light blows camera-facing faces out to white; judge colour in the scene
   (`__room.parkCamera(p, target, fov)` gives a close-up).
+- A multi-material object imports as a Group of primitive meshes, so `assets.part()` (mesh
+  lookup) misses it; use `getObjectByName()`.
+- Sweeping a section round a rounded path offsets it by its full depth — the outer corner radius
+  can never be below the section depth. Use mitre rings for square corners.
 - glTF UVs are top-down. A three.js CanvasTexture mapped onto an imported model needs
   `flipY = false`, or every label prints upside down.
 - glTF export is Y-up; Blender is Z-up. `lib.to_gltf()` converts, and placement metadata is
@@ -74,7 +78,12 @@ Last verified commit: see `git log` (each checkpoint below is one commit).
       each book's thickness/height so boards and squares keep their real size. Still one mesh
       and one draw call per book. Known, pre-existing: books right of the selection sit behind
       the presented book (centre drift), so their bottoms show beneath it.
-- [ ] FRC robot — already rebuilt in code last run and reads well; lowest priority
+- [x] **FRC robot** — Blender, from scratch. Hollow 2x1/1x1 tube with holes bored through;
+      bumpers swept from the plywood+two-noodle section with mitred corners and the number as a
+      decal grid on the fabric curve; treaded swerve wheels, finned motors; pocketed PDH with
+      breakers; battery, roboRIO, radio, main breaker, Bezier cable runs; two-stage elevator,
+      pocketed carriage with compliant-wheel rollers. 21.8k tris, 970 KB. `robot_carriage` and
+      `robot_rsl` exported separately (animated). Layout matches the old in-code robot.
 - [ ] electronics / bins — Tier 2
 
 ## Preserved and must not regress

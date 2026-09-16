@@ -3,7 +3,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import type { BuilderKey } from '../data/projects';
 import type { Materials } from './materials';
 import { mergeStatic } from './merge';
-import { rand } from './build';
+import type { Assets } from './assets';
 
 export interface BuiltObject {
   group: THREE.Group;
@@ -19,179 +19,71 @@ function mesh(geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 
   return m;
 }
 
-/** Position an already-built object (instanced meshes cannot go through `mesh`). */
-function at2<T extends THREE.Object3D>(o: T, x: number, y: number, z: number): T {
-  o.position.set(x, y, z);
-  return o;
-}
-
 const rb = (w: number, h: number, d: number, r = 0.004) =>
   new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2 - 1e-4, h / 2 - 1e-4, d / 2 - 1e-4));
 
-function placard(text: string) {
+/**
+ * Team number as it is actually applied: white numerals on the bumper fabric, nothing behind
+ * them. Transparent everywhere else, so the decal grid laid onto the fabric's curve in Blender
+ * shows only the digits.
+ */
+function bumperNumber(text: string) {
   const c = document.createElement('canvas');
-  c.width = 256;
-  c.height = 96;
+  c.width = 512;
+  c.height = 256;
   const ctx = c.getContext('2d')!;
-  ctx.fillStyle = '#f2f2f0';
-  ctx.fillRect(0, 0, 256, 96);
-  ctx.fillStyle = '#16181b';
-  ctx.font = '600 70px "IBM Plex Sans Condensed", system-ui, sans-serif';
+  ctx.fillStyle = '#f4f4f2';
+  ctx.font = '700 220px "IBM Plex Sans Condensed", system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(text, 128, 52);
+  ctx.fillText(text, 256, 138, 480);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
-  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.7 });
+  // glTF UVs run top-down.
+  t.flipY = false;
+  t.anisotropy = 4;
+  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.85, transparent: true, alphaTest: 0.35, depthWrite: false });
 }
 
 /**
- * §5/§31: a competition robot, not a stack of primitives.
+ * §5/§31: a competition robot.
  *
- * What makes an FRC robot legible is specific: fabric bumpers with a flat face and a number
- * plate, extruded aluminium rails with lightening holes, swerve modules with treaded wheels
- * and a motor stack on top, and a visible electrical board — battery, PDP, roboRIO, breaker.
- * Those are the details this builds; the rest stays low-poly.
+ * Geometry from `assets/processed/robot.glb` (`blender/scripts/build_robot.py`). This used to
+ * be rounded boxes with every detail faked on top — dark discs for lightening holes, boxes for
+ * tread, a sign for the number. It is now built the way a robot is: hollow 2x1 and 1x1 tube
+ * with holes bored through both walls, bumpers swept from the real plywood-and-noodle section
+ * with mitred corners and the number laid onto the fabric, treaded swerve wheels with finned
+ * motors, a pocketed PDH with seated breakers, and cable runs. The carriage and the signal
+ * light are separate objects because they move.
  */
-function frcRobot(m: Materials): BuiltObject {
+function frcRobot(m: Materials, assets: Assets): BuiltObject {
   const g = new THREE.Group();
-  const W = 0.62;
-  const L = 0.62;
-  const H0 = 0.075;
-  const r = rand(8123);
-
-  // ---- Frame: 2x1 extrusion with lightening holes -------------------------
-  const holeMat = new THREE.MeshStandardMaterial({ color: '#0c0d0f', roughness: 0.9 });
-  const rail = (w: number, d: number, x: number, z: number, along: 'x' | 'z') => {
-    mesh(rb(w, 0.05, d, 0.004), m.aluminum, x, H0, z, g);
-    // Holes read as dark discs on the web of the rail.
-    const n = 7;
-    for (let i = 0; i < n; i++) {
-      const t = (i + 0.5) / n - 0.5;
-      const hx = along === 'x' ? x + t * (w - 0.06) : x;
-      const hz = along === 'x' ? z : z + t * (d - 0.06);
-      for (const side of [-1, 1]) {
-        const hole = mesh(new THREE.CircleGeometry(0.014, 12), holeMat, hx, H0, hz, g);
-        if (along === 'x') {
-          hole.position.z += side * (d / 2 + 0.0004);
-          hole.rotation.y = side > 0 ? 0 : Math.PI;
-        } else {
-          hole.position.x += side * (w / 2 + 0.0004);
-          hole.rotation.y = side * Math.PI / 2;
-        }
-        hole.castShadow = false;
-      }
-    }
-  };
-  rail(W - 0.08, 0.035, 0, -(L / 2 - 0.06), 'x');
-  rail(W - 0.08, 0.035, 0, L / 2 - 0.06, 'x');
-  rail(0.035, L - 0.08, -(W / 2 - 0.06), 0, 'z');
-  rail(0.035, L - 0.08, W / 2 - 0.06, 0, 'z');
-  // Belly pan.
-  mesh(rb(W - 0.11, 0.005, L - 0.11, 0.002), m.plasticGrey, 0, H0 - 0.022, 0, g);
-
-  // ---- Bumpers: flat fabric faces, not tubes ------------------------------
-  const plate = placard('0000');
-  const bumper = (w: number, d: number, x: number, z: number, face: 'z' | 'x', sign: number) => {
-    // Small radius: a bumper has a flat front with rounded corners. A large radius turns it
-    // into a foam noodle, which is what this looked like before.
-    mesh(rb(w, 0.125, d, 0.012), m.bumperRed, x, 0.105, z, g);
-    // Seam where the fabric wraps the plywood backing.
-    mesh(rb(w * 0.995, 0.004, d * 0.995, 0.002), m.rubber, x, 0.105, z, g);
-    if (face === 'z') {
-      const p = mesh(new THREE.PlaneGeometry(0.21, 0.08), plate, x, 0.108, z + sign * (d / 2 + 0.0012), g);
-      p.rotation.y = sign > 0 ? 0 : Math.PI;
-      p.castShadow = false;
-    }
-  };
-  bumper(W + 0.1, 0.075, 0, -(L / 2 + 0.012), 'z', -1);
-  bumper(W + 0.1, 0.075, 0, L / 2 + 0.012, 'z', 1);
-  bumper(0.075, L - 0.04, -(W / 2 + 0.012), 0, 'x', -1);
-  bumper(0.075, L - 0.04, W / 2 + 0.012, 0, 'x', 1);
-
-  // ---- Swerve modules: treaded wheel, gear plate, motor stack -------------
-  const treadGeo = new THREE.BoxGeometry(0.0085, 0.006, 0.036);
-  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
-    const mx = sx * (W / 2 - 0.105);
-    const mz = sz * (L / 2 - 0.105);
-    const mod = new THREE.Group();
-    mod.position.set(mx, 0, mz);
-    // Each module is steered a little differently — a swerve drive at rest rarely lines up.
-    mod.rotation.y = (r() - 0.5) * 0.7;
-    g.add(mod);
-
-    mesh(rb(0.105, 0.035, 0.105, 0.006), m.plasticBlack, 0, H0 + 0.012, 0, mod);
-    const wheel = mesh(new THREE.CylinderGeometry(0.051, 0.051, 0.034, 22), m.rubber, 0, 0.051, 0, mod);
-    wheel.rotation.z = Math.PI / 2;
-    // Tread blocks around the circumference.
-    const tread = new THREE.InstancedMesh(treadGeo, m.rubber, 18);
-    const d = new THREE.Object3D();
-    for (let i = 0; i < 18; i++) {
-      const a = (i / 18) * Math.PI * 2;
-      d.position.set(0, Math.sin(a) * 0.0525, Math.cos(a) * 0.0525);
-      d.rotation.set(-a, 0, 0);
-      d.updateMatrix();
-      tread.setMatrixAt(i, d.matrix);
-    }
-    tread.castShadow = tread.receiveShadow = true;
-    mesh(rb(0.09, 0.05, 0.006, 0.002), m.aluminum, 0, 0.05, 0.026, mod);
-    mod.add(at2(tread, 0, 0.051, 0));
-    // Drive and steer motors stacked above the module.
-    mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.072, 16), m.steel, 0.022, H0 + 0.07, 0, mod);
-    mesh(new THREE.CylinderGeometry(0.027, 0.027, 0.012, 16), m.safetyOrange, 0.022, H0 + 0.112, 0, mod);
-    mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.05, 14), m.steel, -0.026, H0 + 0.058, 0.01, mod);
-  }
-
-  // ---- Electrical board ---------------------------------------------------
-  // Battery with a retention strap.
-  mesh(rb(0.165, 0.09, 0.09, 0.005), m.plasticBlack, -0.09, H0 + 0.043, 0.115, g);
-  mesh(rb(0.172, 0.012, 0.02, 0.003), m.bumperRed, -0.09, H0 + 0.09, 0.115, g);
-  for (const bx of [-0.05, 0.005]) mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.014, 10), m.copper, -0.09 + bx, H0 + 0.094, 0.09, g);
-  // Power distribution panel: a row of breakers is the recognisable part.
-  mesh(rb(0.135, 0.028, 0.115, 0.004), m.plasticWhite, 0.095, H0 + 0.014, 0.075, g);
-  for (let i = 0; i < 8; i++) {
-    mesh(rb(0.011, 0.012, 0.02, 0.002), m.safetyOrange, 0.047 + (i % 4) * 0.032, H0 + 0.033, 0.045 + Math.floor(i / 4) * 0.045, g);
-  }
-  // roboRIO with a port face.
-  mesh(rb(0.115, 0.032, 0.075, 0.004), m.plasticGrey, 0.075, H0 + 0.016, -0.095, g);
-  for (const px of [-0.03, 0, 0.03]) mesh(rb(0.018, 0.012, 0.004, 0.001), m.plasticBlack, 0.075 + px, H0 + 0.018, -0.059, g);
-  // Main breaker and a radio.
-  mesh(rb(0.03, 0.03, 0.022, 0.003), m.bumperRed, -0.005, H0 + 0.015, -0.09, g);
-  mesh(rb(0.055, 0.016, 0.055, 0.003), m.plasticBlack, -0.09, H0 + 0.008, -0.07, g);
-
-  // Loom from battery to PDP, and PDP to roboRIO.
-  for (const [pts, colour, rad] of [
-    [[[-0.005, 0.1, 0.09], [0.03, 0.14, 0.06], [0.06, 0.1, 0.05]], m.bumperRed, 0.007],
-    [[[0.09, 0.1, 0.04], [0.09, 0.12, -0.02], [0.08, 0.09, -0.06]], m.plasticBlack, 0.005],
-  ] as const) {
-    const curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(p[0], p[1], p[2])));
-    mesh(new THREE.TubeGeometry(curve, 14, rad, 6), colour, 0, 0, 0, g);
-  }
-
-  // ---- Elevator with a roller intake -------------------------------------
-  const mast = new THREE.Group();
-  mast.position.set(0, H0, -0.17);
-  g.add(mast);
-  for (const x of [-0.13, 0.13]) {
-    mesh(rb(0.035, 0.62, 0.035), m.aluminum, x, 0.31, 0, mast);
-    mesh(rb(0.028, 0.5, 0.028), m.aluminum, x, 0.42, 0.04, mast);
-    // Belt run up the inside of each stage.
-    mesh(rb(0.005, 0.56, 0.012, 0.001), m.rubber, x - 0.02, 0.33, 0, mast);
-  }
-  mesh(rb(0.3, 0.03, 0.035), m.aluminum, 0, 0.62, 0, mast);
-  const carriage = new THREE.Group();
-  carriage.position.set(0, 0.46, 0.07);
-  carriage.userData.dynamic = true;
-  mast.add(carriage);
-  mesh(rb(0.26, 0.12, 0.012, 0.004), m.plasticGrey, 0, 0, 0, carriage);
-  for (const y of [-0.04, 0.05]) {
-    const roller = mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.24, 14), m.safetyOrange, 0, y, 0.06, carriage);
-    roller.rotation.z = Math.PI / 2;
-  }
-  for (const x of [-0.12, 0.12]) mesh(rb(0.01, 0.14, 0.09, 0.003), m.plasticGrey, x, 0.005, 0.04, carriage);
-
+  const model = assets.instance('robot');
   const rslMat = m.ledOrange.clone();
-  mesh(rb(0.035, 0.05, 0.035, 0.006), rslMat, 0.13, 0.66, 0.03, mast);
+  assets.retint(model, {
+    robot_alu: m.aluminum,
+    robot_black: m.plasticBlack,
+    robot_rubber: m.rubber,
+    robot_bumper: m.bumperRed,
+    robot_orange: m.safetyOrange,
+    robot_white: m.plasticWhite,
+    robot_grey: m.plasticGrey,
+    robot_copper: m.copper,
+    robot_red: m.bumperRed,
+    robot_number: bumperNumber('0000'),
+    robot_rsl: rslMat,
+  });
+  model.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    // The decal sits a hair off the fabric; letting it cast would print the digits' shadow.
+    o.castShadow = !mats.every((mat) => mat.transparent);
+    o.receiveShadow = true;
+  });
+  g.add(model);
+  // Two materials, so GLTFLoader makes the carriage a group of primitives, not a mesh.
+  const carriage = model.getObjectByName('robot_carriage')!;
+  carriage.userData.dynamic = true;
 
   return {
     group: g,
@@ -199,7 +91,7 @@ function frcRobot(m: Materials): BuiltObject {
       // Robot signal light: slow blink when idle, faster when examined.
       const rate = 1.0 + activity * 1.5;
       rslMat.emissiveIntensity = Math.sin(time * Math.PI * rate) > 0 ? 3.2 : 0.15;
-      carriage.position.y = 0.46 + Math.sin(time * 0.5) * 0.004 * activity;
+      carriage.position.y = Math.sin(time * 0.5) * 0.004 * activity;
     },
   };
 }
@@ -366,7 +258,7 @@ function partsCrate(m: Materials): BuiltObject {
   return { group: g };
 }
 
-const builders: Record<BuilderKey, (m: Materials) => BuiltObject> = {
+const builders: Record<BuilderKey, (m: Materials, assets: Assets) => BuiltObject> = {
   frcRobot,
   polyhedron,
   notebooks,
@@ -374,8 +266,8 @@ const builders: Record<BuilderKey, (m: Materials) => BuiltObject> = {
   partsCrate,
 };
 
-export function buildObject(key: BuilderKey, m: Materials): BuiltObject {
-  const built = builders[key](m);
+export function buildObject(key: BuilderKey, m: Materials, assets: Assets): BuiltObject {
+  const built = builders[key](m, assets);
   built.group.userData.meshes = mergeStatic(built.group);
   return built;
 }
