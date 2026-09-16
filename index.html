@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Workspace</title>
+    <link rel="icon" href="data:," />
+    <meta name="description" content="A workspace you can explore. The projects are in the room." />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0f1216" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;1,400&display=swap"
+    />
+  </head>
+  <body>
+    <h1 class="sr-only">Workspace</h1>
+    <canvas id="scene" aria-hidden="true"></canvas>
+    <div id="veil" aria-hidden="true"></div>
+
+    <p id="hint" class="hint" aria-live="polite"></p>
+    <p id="hover-label" class="hover-label" aria-hidden="true"></p>
+
+    <nav class="sr-only" aria-label="Objects in the room" id="object-nav"></nav>
+
+    <aside id="panel" class="panel" role="dialog" aria-modal="false" aria-labelledby="panel-title" hidden>
+      <p class="panel-kind" id="panel-kind"></p>
+      <h2 class="panel-title" id="panel-title" tabindex="-1"></h2>
+      <p class="panel-summary" id="panel-summary"></p>
+      <dl class="panel-sections" id="panel-sections"></dl>
+      <div class="panel-footer">
+        <button class="panel-close" id="panel-close" type="button">
+          Back to room <kbd>Esc</kbd>
+        </button>
+      </div>
+    </aside>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

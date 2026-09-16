@@ -1,0 +1,96 @@
+import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const KEEP = new Set(['position', 'normal', 'uv']);
+
+interface Bucket {
+  material: THREE.Material;
+  cast: boolean;
+  receive: boolean;
+  parts: THREE.BufferGeometry[];
+  meshes: THREE.Mesh[];
+}
+
+/**
+ * Collapse static meshes that share a material and shadow flags into one draw call each.
+ * Every pass benefits: main render, AO normals, both shadow maps, and environment capture.
+ * Subtrees marked `userData.dynamic` keep their own transform and are merged internally.
+ * Returns the number of meshes before and after.
+ */
+export function mergeStatic(root: THREE.Object3D): { before: number; after: number } {
+  root.updateMatrixWorld(true);
+  const toRoot = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const buckets = new Map<string, Bucket>();
+  const dynamicRoots: THREE.Object3D[] = [];
+  let before = 0;
+
+  const visit = (o: THREE.Object3D) => {
+    if (o !== root && o.userData.dynamic) {
+      dynamicRoots.push(o);
+      return;
+    }
+    const mesh = o as THREE.Mesh;
+    if (mesh.isMesh) before++;
+    const mergeable =
+      o !== root &&
+      mesh.isMesh &&
+      !(mesh as THREE.InstancedMesh).isInstancedMesh &&
+      !mesh.userData.noMerge &&
+      !Array.isArray(mesh.material) &&
+      mesh.geometry.index !== null &&
+      [...KEEP].every((k) => mesh.geometry.getAttribute(k) !== undefined);
+    if (mergeable) {
+      const material = mesh.material as THREE.Material;
+      const key = `${material.uuid}|${mesh.castShadow}|${mesh.receiveShadow}`;
+      let bucket = buckets.get(key);
+      if (!bucket) buckets.set(key, (bucket = { material, cast: mesh.castShadow, receive: mesh.receiveShadow, parts: [], meshes: [] }));
+      const part = mesh.geometry.clone();
+      for (const name of Object.keys(part.attributes)) if (!KEEP.has(name)) part.deleteAttribute(name);
+      part.clearGroups();
+      part.applyMatrix4(new THREE.Matrix4().multiplyMatrices(toRoot, mesh.matrixWorld));
+      bucket.parts.push(part);
+      bucket.meshes.push(mesh);
+    }
+    for (const child of [...o.children]) visit(child);
+  };
+  visit(root);
+
+  const removed = new Set<THREE.Mesh>();
+  for (const bucket of buckets.values()) {
+    if (bucket.meshes.length < 2) {
+      bucket.parts.forEach((p) => p.dispose());
+      continue;
+    }
+    const merged = mergeGeometries(bucket.parts, false);
+    bucket.parts.forEach((p) => p.dispose());
+    if (!merged) continue;
+    merged.computeBoundingSphere();
+    const combined = new THREE.Mesh(merged, bucket.material);
+    combined.castShadow = bucket.cast;
+    combined.receiveShadow = bucket.receive;
+    root.add(combined);
+    bucket.meshes.forEach((m) => removed.add(m));
+  }
+
+  // Anything parented under a merged mesh keeps its world transform on the root.
+  for (const mesh of removed) {
+    for (const child of [...mesh.children]) if (!removed.has(child as THREE.Mesh)) root.attach(child);
+  }
+  for (const mesh of removed) mesh.removeFromParent();
+
+  let after = 0;
+  root.traverse((o) => {
+    if ((o as THREE.Mesh).isMesh && !dynamicRoots.some((d) => d === o || isDescendant(o, d))) after++;
+  });
+  for (const d of dynamicRoots) {
+    const r = mergeStatic(d);
+    before += r.before;
+    after += r.after;
+  }
+  return { before, after };
+}
+
+function isDescendant(o: THREE.Object3D, ancestor: THREE.Object3D) {
+  for (let p = o.parent; p; p = p.parent) if (p === ancestor) return true;
+  return false;
+}

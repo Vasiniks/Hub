@@ -1,0 +1,24 @@
+{
+  "skillOverrides": {
+    "scientific-figure-making": "off",
+    "paper-lookup": "off",
+    "matplotlib": "off",
+    "latex-paper-en": "off",
+    "hypothesis-generation": "off",
+    "convergence-study": "off",
+    "citation-management": "off",
+    "sympy": "off",
+    "design-taste-frontend": "user-invocable-only",
+    "design-motion-principles": "user-invocable-only",
+    "web-design-guidelines": "user-invocable-only",
+    "graphify": "user-invocable-only"
+  },
+  "permissions": {
+    "deny": [
+      "Skill(ui-ux-pro-max:design)",
+      "Skill(ui-ux-pro-max:brand)",
+      "Skill(ui-ux-pro-max:slides)",
+      "Skill(ui-ux-pro-max:banner-design)"
+    ]
+  }
+}
