@@ -57,48 +57,58 @@ function buildDesk(root: THREE.Group, m: Materials) {
   root.add(shadowed(new THREE.Mesh(new THREE.TubeGeometry(bundle, 28, 0.009, 6), m.rubber)));
 }
 
-/** §3: a real panel on a real stand, set far enough back to be an anchor rather than a wall. */
-function buildMonitor(root: THREE.Group, m: Materials): Pick<DeskRefs, 'screen' | 'screenCenter' | 'screenSize'> {
-  const { x, z, rotationY, panelWidth: PW, panelHeight: PH } = DESKTOP.monitor;
+/**
+ * §13: the monitor, set far enough back on the wide desk to be an anchor rather than a wall.
+ *
+ * Geometry from `assets/processed/monitor.glb` (`blender/scripts/build_monitor.py`). The bezel
+ * is the part that needed Blender: the screen sits in a well cut into the housing with a
+ * boolean, so there is a real recessed edge that catches light and throws a thin shadow onto
+ * the panel, instead of a dark rectangle laid on a slab.
+ */
+function buildMonitor(root: THREE.Group, m: Materials, assets: Assets): Pick<DeskRefs, 'screen' | 'screenCenter' | 'screenSize'> {
+  const { x, z, rotationY } = DESKTOP.monitor;
   const g = at(new THREE.Group(), x, DESK.top, z, root);
   g.rotation.y = rotationY;
 
-  // Stand: weighted plate, slim neck, small tilt knuckle.
-  at(rbox(0.22, 0.014, 0.15, m.aluminumDark, 0.005), 0, 0.007, 0.03, g);
-  at(rbox(0.04, 0.012, 0.13, m.aluminumDark, 0.004), 0, 0.016, 0.03, g);
-  const neck = at(rbox(0.052, 0.22, 0.028, m.aluminumDark, 0.008), 0, 0.125, 0.0, g);
-  neck.rotation.x = -0.05;
-  at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.05, 14), m.aluminumDark)), 0, 0.235, 0.004, g).rotation.z =
-    Math.PI / 2;
+  const model = assets.instance('monitor');
+  g.add(model);
+  assets.retint(model, { mon_housing: m.plasticBlack, mon_metal: m.aluminumDark, mon_led: m.ledGreen });
 
-  const panel = at(new THREE.Group(), 0, 0.235 + PH / 2 + 0.012, 0.012, g);
-  panel.rotation.x = -0.05;
-  // Back shell tapers to a thin rim, so the monitor reads thin in profile.
-  at(rbox(PW, PH, 0.02, m.plasticBlack, 0.006), 0, 0, -0.004, panel);
-  at(rbox(PW - 0.09, PH - 0.09, 0.024, m.plasticBlack, 0.01), 0, 0.01, -0.016, panel);
-  at(rbox(0.09, 0.05, 0.022, m.aluminumDark, 0.004), 0, -PH / 2 + 0.018, -0.02, panel);
+  const meta = assets.meta('monitor');
+  const sw = (meta.screenWidth as number) ?? 0.596;
+  const sh = (meta.screenHeight as number) ?? 0.341;
 
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(PW - 0.022, PH - 0.03), new THREE.MeshStandardMaterial({
+  // The imported quad is used only to locate the panel; its own surface parameterisation
+  // renders the attractor mirrored. A three.js plane has UVs this code controls, so the
+  // screen gets one of those, placed exactly where the asset's quad sits.
+  g.updateMatrixWorld(true);
+  const seat = assets.partCenter(model, 'monitor_screen');
+  assets.part(model, 'monitor_screen')?.removeFromParent();
+  const screenMat = new THREE.MeshStandardMaterial({
     color: '#030405',
     roughness: 0.34,
     metalness: 0,
     envMapIntensity: 0.3,
     emissive: '#ffffff',
     emissiveIntensity: 1,
-  }));
-  at(screen, 0, 0.004, 0.0075, panel);
-  // §19: a separate glass sheet so the panel picks up the room rather than only emitting.
-  const glass = at(new THREE.Mesh(new THREE.PlaneGeometry(PW - 0.02, PH - 0.028), m.glass), 0, 0.004, 0.0085, panel);
+  });
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(sw, sh), screenMat);
+  screen.castShadow = false;
+  screen.receiveShadow = false;
+  g.add(screen);
+  g.worldToLocal(screen.position.copy(seat));
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(sw + 0.004, sh + 0.004), m.glass);
+  glass.position.copy(screen.position);
+  glass.position.z += 0.0012;
   glass.renderOrder = 3;
   glass.castShadow = glass.receiveShadow = false;
   glass.userData.noMerge = true;
   glass.userData.ignoreRaycast = true;
+  g.add(glass);
 
   g.updateMatrixWorld(true);
-  const screenCenter = screen.getWorldPosition(new THREE.Vector3());
-  return { screen, screenCenter, screenSize: new THREE.Vector2(PW - 0.022, PH - 0.03) };
+  return { screen, screenCenter: screen.getWorldPosition(new THREE.Vector3()), screenSize: new THREE.Vector2(sw, sh) };
 }
-
 /**
  * §10: the MacBook, closed on an inclined riser, sloping up and away from the visitor.
  *
@@ -597,7 +607,7 @@ function buildFloorBins(root: THREE.Group, m: Materials) {
 
 export function buildDeskSet(root: THREE.Group, m: Materials, assets: Assets): DeskRefs {
   buildDesk(root, m);
-  const monitor = buildMonitor(root, m);
+  const monitor = buildMonitor(root, m, assets);
   buildMacBook(root, m, assets);
   const kbLeds = buildKeyboard(root, m);
   buildMouse(root, m, assets);

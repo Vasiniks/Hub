@@ -77,6 +77,18 @@ export async function loadAssets(specs: AssetSpec[], onProgress?: (done: number,
       });
       return copy;
     },
+    /**
+     * World-space centre of a named part.
+     *
+     * Not `getWorldPosition`: the Blender pipeline applies transforms into the vertices, so
+     * every exported mesh sits at its group's origin and its position tells you nothing about
+     * where the geometry actually is.
+     */
+    partCenter(root: THREE.Object3D, name: string, out = new THREE.Vector3()) {
+      const mesh = this.part(root, name);
+      if (!mesh) return out;
+      return new THREE.Box3().setFromObject(mesh).getCenter(out);
+    },
     /** Find a named part inside an instance (Blender object names survive the export). */
     part(root: THREE.Object3D, name: string): THREE.Mesh | null {
       let found: THREE.Mesh | null = null;

@@ -54,6 +54,7 @@ async function start() {
     { name: 'lamp', file: 'lamp.glb' },
     { name: 'mouse', file: 'mouse.glb' },
     { name: 'macbook', file: 'macbook.glb' },
+    { name: 'monitor', file: 'monitor.glb' },
   ]);
   loader.advance('building the room');
 
@@ -810,6 +811,20 @@ async function start() {
             });
           });
           return out;
+        },
+        screenInfo: () => {
+          const mat = room.screen.material as THREE.MeshStandardMaterial;
+          const wp = room.screen.getWorldPosition(new THREE.Vector3());
+          return {
+            world: wp.toArray().map((v) => +v.toFixed(3)),
+            centerRef: room.screenCenter.toArray().map((v) => +v.toFixed(3)),
+            visible: room.screen.visible,
+            hasMap: !!mat.emissiveMap,
+            emissiveIntensity: mat.emissiveIntensity,
+            texNeedsUpdate: (mat.emissiveMap as THREE.Texture | null)?.version ?? -1,
+            inFrustum: _frustum.intersectsSphere(screenSphere),
+            size: room.screenSize.toArray(),
+          };
         },
         topLevel: () => scene.children.map((o, i) => `${i}:${o.type}:${o.name || o.userData.projectId || ''}`),
         hideTop: (i: number) => {

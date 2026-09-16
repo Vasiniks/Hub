@@ -1,0 +1,190 @@
+{
+  "hour": "21",
+  "steps": [
+    {
+      "name": "renderer",
+      "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)"
+    },
+    {
+      "name": "standing",
+      "mode": "standing",
+      "camera": {
+        "position": [
+          1.06,
+          1.6278610051775597,
+          0.96
+        ],
+        "quaternion": [
+          -0.12359455755702006,
+          0.3048232375223436,
+          0.03993011028747145,
+          0.9435108719570282
+        ]
+      }
+    },
+    {
+      "name": "fps-standing",
+      "fps": 60.5
+    },
+    {
+      "name": "sitting-mid",
+      "mode": "sitting",
+      "chair": {
+        "position": [
+          0.05927716202112432,
+          0,
+          0.10160243911161837
+        ],
+        "rotationY": 0.08346396929488914
+      }
+    },
+    {
+      "name": "seated",
+      "mode": "seated",
+      "camera": {
+        "position": [
+          0,
+          1.175510408244818,
+          0.16
+        ],
+        "quaternion": [
+          -0.0660559922615835,
+          0.02426120546808322,
+          0.0016065829155272,
+          0.9975196332338069
+        ]
+      },
+      "chair": {
+        "position": [
+          0.020000000000000018,
+          0,
+          0.08000000000000002
+        ],
+        "rotationY": 0
+      }
+    },
+    {
+      "name": "04-look-left",
+      "camera": {
+        "position": [
+          0,
+          1.173170305081062,
+          0.16
+        ],
+        "quaternion": [
+          -0.05623536446591369,
+          0.5209674276543833,
+          0.03442525808783271,
+          0.8510261010757231
+        ]
+      }
+    },
+    {
+      "name": "05-look-right",
+      "camera": {
+        "position": [
+          0,
+          1.1760483370584656,
+          0.16
+        ],
+        "quaternion": [
+          -0.05896747600661299,
+          -0.44211726629066006,
+          -0.02914400086733224,
+          0.8945422219406572
+        ]
+      }
+    },
+    {
+      "name": "06-look-down",
+      "camera": {
+        "position": [
+          0,
+          1.1765414651570008,
+          0.16
+        ],
+        "quaternion": [
+          -0.4064429470644509,
+          0.017519040920638128,
+          0.007794949118223896,
+          0.9134749327458469
+        ]
+      }
+    },
+    {
+      "name": "07-frc-hover",
+      "id": "frc-robot",
+      "hovered": true,
+      "cursorClass": true
+    },
+    {
+      "name": "07-frc-focused",
+      "mode": "focused",
+      "panelOpen": true,
+      "title": "FRC robot",
+      "objectOnScreen": {
+        "x": 421.78869440522595,
+        "y": 499.97334868247356,
+        "visible": true
+      }
+    },
+    {
+      "name": "07-frc-returned",
+      "via": "escape",
+      "mode": "seated",
+      "panelOpen": false
+    },
+    {
+      "name": "08-devboard-hover",
+      "id": "dev-board",
+      "hovered": true,
+      "cursorClass": true
+    },
+    {
+      "name": "08-devboard-focused",
+      "mode": "focused",
+      "panelOpen": true,
+      "title": "Placeholder project",
+      "objectOnScreen": {
+        "x": 393.57235972078024,
+        "y": 516.104189935388,
+        "visible": true
+      }
+    },
+    {
+      "name": "08-devboard-returned",
+      "via": "click-outside",
+      "mode": "seated",
+      "panelOpen": false
+    },
+    {
+      "name": "09-notebooks-hover",
+      "id": "notebooks",
+      "hovered": true,
+      "cursorClass": true
+    },
+    {
+      "name": "09-notebooks-focused",
+      "mode": "focused",
+      "panelOpen": true,
+      "title": "Placeholder project",
+      "objectOnScreen": {
+        "x": 389.13305628103956,
+        "y": 523.1520457703606,
+        "visible": true
+      }
+    },
+    {
+      "name": "09-notebooks-returned",
+      "via": "escape",
+      "mode": "seated",
+      "panelOpen": false
+    },
+    {
+      "name": "fps-seated",
+      "fps": 60.5
+    }
+  ],
+  "errors": [],
+  "warnings": []
+}
