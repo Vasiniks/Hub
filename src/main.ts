@@ -57,6 +57,7 @@ async function start() {
     { name: 'monitor', file: 'monitor.glb' },
     { name: 'keyboard', file: 'keyboard.glb' },
     { name: 'cube', file: 'cube.glb' },
+    { name: 'book', file: 'book.glb' },
   ]);
   loader.advance('building the room');
 

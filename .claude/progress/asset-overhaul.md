@@ -44,6 +44,8 @@ Last verified commit: see `git log` (each checkpoint below is one commit).
   shrinks the bevel to the inset ring's width.
 - The preview's key light blows camera-facing faces out to white; judge colour in the scene
   (`__room.parkCamera(p, target, fov)` gives a close-up).
+- glTF UVs are top-down. A three.js CanvasTexture mapped onto an imported model needs
+  `flipY = false`, or every label prints upside down.
 - glTF export is Y-up; Blender is Z-up. `lib.to_gltf()` converts, and placement metadata is
   written in glTF space.
 
@@ -66,7 +68,12 @@ Last verified commit: see `git log` (each checkpoint below is one commit).
 - [x] **GAN cube** — Blender, from scratch. Stickerless: colour per face by normal and piece
       position, so it runs over the bevel; inset moulding groove; pillowed; U layer turned;
       seeded part-scramble. One mesh, 7 materials, 3.2k tris, 93 KB.
-- [ ] books
+- [x] **books** — Blender, from scratch: one canonical hardcover (U-profile case with boards,
+      rounded spine and hinge grooves; set-back page block with concave fore-edge; headbands),
+      320 tris, UVs laid into the per-book atlas regions. Runtime `sliceBook()` 9-slices it to
+      each book's thickness/height so boards and squares keep their real size. Still one mesh
+      and one draw call per book. Known, pre-existing: books right of the selection sit behind
+      the presented book (centre drift), so their bottoms show beneath it.
 - [ ] FRC robot — already rebuilt in code last run and reads well; lowest priority
 - [ ] electronics / bins — Tier 2
 

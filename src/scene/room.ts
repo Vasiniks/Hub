@@ -119,7 +119,7 @@ export function buildRoom(m: Materials, reducedMotion: boolean, assets: Assets):
 
   const shell = buildShell(root, m);
   const desk = buildDeskSet(root, m, assets);
-  const shelf = createBookshelf(root, m, reducedMotion);
+  const shelf = createBookshelf(root, m, reducedMotion, assets);
 
   const chairStart: ChairPose = { position: new THREE.Vector3(...CHAIR.start.position), rotationY: CHAIR.start.rotationY };
   const chairSeated: ChairPose = { position: new THREE.Vector3(...CHAIR.seated.position), rotationY: CHAIR.seated.rotationY };

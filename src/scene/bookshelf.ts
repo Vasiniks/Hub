@@ -4,6 +4,7 @@ import { SHELF } from './layout';
 import { at, rbox, shadowed } from './build';
 import { books, type BookDef } from '../data/books';
 import { OVERLAY_LAYER } from './layers';
+import type { Assets } from './assets';
 
 /**
  * §15: the bookshelf is a real mechanism, not a prop.
@@ -13,12 +14,17 @@ import { OVERLAY_LAYER } from './layers';
  * the shelf. Motion is a lightly underdamped spring per book, so the row has weight and the
  * selection lands with a settle rather than a snap.
  *
- * Each book is a single mesh. Cover, spine and page edges live in one small atlas texture and
- * are addressed by remapping the box's per-face UVs, so a book costs one draw call.
+ * Each book is one mesh from `assets/processed/book.glb` (`blender/scripts/build_book.py`): a
+ * hardcover with boards that overhang the page block, a rounded spine, hinge grooves, a set-back
+ * page block with a concave fore-edge, and headbands. It is resized per book by `sliceBook`, and
+ * its UVs already point into the regions of the per-book atlas below — cover, spine, page edges,
+ * and swatches for the board edges and headband — so a book still costs one draw call.
  */
 
 const COVER_U = [0.0, 0.6] as const;
+const EDGE_U = [0.6, 0.62] as const;
 const SPINE_U = [0.62, 0.74] as const;
+const BAND_U = [0.745, 0.775] as const;
 const PAGE_U = [0.78, 1.0] as const;
 
 function bookAtlas(def: BookDef) {
@@ -77,6 +83,13 @@ function bookAtlas(def: BookDef) {
   ctx.fillText(def.title.toUpperCase(), 0, 5, S * 0.55);
   ctx.restore();
 
+  // Swatches the model's board edges and headbands sample. Wider than the texels they need, so
+  // mip levels at shelf distance do not bleed the neighbouring cover gradient into them.
+  ctx.fillStyle = def.color;
+  ctx.fillRect(EDGE_U[0] * S, 0, (EDGE_U[1] - EDGE_U[0]) * S, S);
+  ctx.fillStyle = def.accent;
+  ctx.fillRect(BAND_U[0] * S, 0, (BAND_U[1] - BAND_U[0]) * S, S);
+
   // Page edges.
   const px = PAGE_U[0] * S;
   const pw = (PAGE_U[1] - PAGE_U[0]) * S;
@@ -95,21 +108,46 @@ function bookAtlas(def: BookDef) {
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
+  // The book model's UVs come from glTF, where v runs top-down; three's canvas default assumes
+  // bottom-up, which printed every cover and spine upside down.
+  tex.flipY = false;
   return tex;
 }
 
-/** Point each box face at its region of the atlas: +x cover, +z spine, everything else pages. */
-function remapBookUVs(geo: THREE.BoxGeometry) {
-  const uv = geo.getAttribute('uv') as THREE.BufferAttribute;
-  const region = (face: number): readonly [number, number] => (face === 0 ? COVER_U : face === 4 ? SPINE_U : PAGE_U);
-  for (let face = 0; face < 6; face++) {
-    const [u0, u1] = region(face);
-    for (let v = 0; v < 4; v++) {
-      const i = face * 4 + v;
-      uv.setX(i, u0 + uv.getX(i) * (u1 - u0));
-    }
+interface BookMeta {
+  thickness: number;
+  height: number;
+  depth: number;
+  sliceX: number;
+  sliceY: number;
+}
+
+/**
+ * Resize the canonical book to one book's thickness and height without stretching its
+ * construction. A 3D nine-slice: vertices within `sliceX` of either cover and `sliceY` of the
+ * top or bottom keep their distance to that face, and only the interior stretches — so the
+ * boards, squares, hinge grooves and headbands stay their real size on every book. Scaling the
+ * whole mesh would give the thinnest book 7 mm boards' worth of 0.5 mm card.
+ */
+function sliceBook(source: THREE.BufferGeometry, meta: BookMeta, thickness: number, height: number) {
+  const geo = source.clone();
+  const pos = geo.getAttribute('position') as THREE.BufferAttribute;
+  const hx = meta.thickness / 2;
+  const nx = thickness / 2;
+  const sx = (nx - meta.sliceX) / (hx - meta.sliceX);
+  const sy = (height - 2 * meta.sliceY) / (meta.height - 2 * meta.sliceY);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const ax = Math.abs(x);
+    pos.setX(i, ax > hx - meta.sliceX ? Math.sign(x) * (ax + nx - hx) : x * sx);
+    if (y > meta.height - meta.sliceY) pos.setY(i, y + height - meta.height);
+    else if (y > meta.sliceY) pos.setY(i, meta.sliceY + (y - meta.sliceY) * sy);
   }
-  uv.needsUpdate = true;
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  geo.computeBoundingBox();
+  geo.computeBoundingSphere();
   return geo;
 }
 
@@ -151,7 +189,7 @@ interface BookNode {
 
 export type Bookshelf = ReturnType<typeof createBookshelf>;
 
-export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: boolean) {
+export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: boolean, assets: Assets) {
   const group = at(new THREE.Group(), SHELF.x, SHELF.y, SHELF.z, root);
   // Local +x runs along the wall, local +z points into the room.
   group.rotation.y = Math.PI / 2;
@@ -190,18 +228,20 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
 
   // ---- Books -------------------------------------------------------------
   const nodes: BookNode[] = [];
-  const bookDepth = 0.145;
+  const bookMeta = assets.meta('book') as unknown as BookMeta;
+  const bookSource = (assets.part(assets.instance('book'), 'book') as THREE.Mesh).geometry;
+  const bookDepth = bookMeta.depth;
   const run = books.reduce((sum, b) => sum + b.thickness, 0) + (books.length - 1) * SHELF.gap;
   let cursor = -W / 2 + 0.022;
 
   for (const def of books) {
-    const geo = remapBookUVs(new THREE.BoxGeometry(def.thickness, def.height, bookDepth));
+    const geo = sliceBook(bookSource, bookMeta, def.thickness, def.height);
     const material = new THREE.MeshStandardMaterial({ map: bookAtlas(def), roughness: 0.78, metalness: 0 });
     const mesh = shadowed(new THREE.Mesh(geo, material));
     const holder = at(new THREE.Group(), cursor + def.thickness / 2, 0, 0, group);
     // Marked dynamic so the static merge leaves each book its own transform.
     holder.userData.dynamic = true;
-    at(mesh, 0, def.height / 2, -0.006 - bookDepth / 2, holder);
+    at(mesh, 0, 0, -0.006 - bookDepth / 2, holder);
     holder.rotation.z = def.lean ?? 0;
     nodes.push({
       def,
