@@ -236,15 +236,17 @@ function devBoard(m: Materials): BuiltObject {
   };
 }
 
-function partsCrate(m: Materials): BuiltObject {
+function partsCrate(m: Materials, assets: Assets): BuiltObject {
   const g = new THREE.Group();
+  // The workshop tote (build_bins.py) at crate size, in a darker plastic.
   const bin = new THREE.MeshStandardMaterial({ color: '#4a4f55', roughness: 0.7 });
-  const W = 0.46, H = 0.24, D = 0.32, T = 0.012;
-  mesh(rb(W, T, D, 0.004), bin, 0, T / 2, 0, g);
-  for (const s of [-1, 1]) {
-    mesh(rb(W, H, T, 0.004), bin, 0, H / 2, s * (D / 2 - T / 2), g);
-    mesh(rb(T, H, D, 0.004), bin, s * (W / 2 - T / 2), H / 2, 0, g);
-  }
+  const tote = assets.instance('tote');
+  tote.scale.set(1.44, 1.41, 1.33);
+  assets.retint(tote, { bin_plastic: bin });
+  tote.traverse((o) => {
+    if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;
+  });
+  g.add(tote);
   const bar1 = mesh(rb(0.03, 0.03, 0.42, 0.003), m.aluminum, -0.1, 0.22, 0.0, g);
   bar1.rotation.set(0.6, 0.2, 0.25);
   const bar2 = mesh(rb(0.03, 0.03, 0.36, 0.003), m.aluminum, -0.04, 0.2, 0.03, g);

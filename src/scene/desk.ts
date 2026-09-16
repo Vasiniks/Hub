@@ -329,54 +329,38 @@ function buildMug(root: THREE.Group, m: Materials) {
  * parts bins, a compartment tray, loose hardware. Art-directed mess: dense enough to say
  * someone works here, sparse enough that silhouettes stay readable.
  */
-function buildWorkClutter(root: THREE.Group, m: Materials) {
+function buildWorkClutter(root: THREE.Group, m: Materials, assets: Assets) {
   const Y = DESK.top;
   const leds: THREE.Mesh[] = [];
   const r = rand(90210);
 
-  // Compartment tray, back right.
-  const tray = at(new THREE.Group(), 0.86, Y, -0.97, root);
+  // Compartment organiser, back right: compartments milled from one block (build_bins.py).
+  const tray = at(assets.instance('organizer'), 0.86, Y, -0.97, root);
   tray.rotation.y = -0.16;
-  const T = 0.0035;
-  at(rbox(0.19, T, 0.125, m.binBlue, 0.002), 0, T / 2, 0, tray);
-  for (const s of [-1, 1]) {
-    at(rbox(0.19, 0.042, T, m.binBlue, 0.002), 0, 0.021, s * 0.0625, tray);
-    at(rbox(T, 0.042, 0.125, m.binBlue, 0.002), s * 0.095, 0.021, 0, tray);
-  }
-  for (const dx of [-0.063, 0, 0.063]) at(rbox(T, 0.034, 0.12, m.binBlue, 0.001), dx, 0.017, 0, tray);
-  at(rbox(0.19, T, 0.06, m.binBlue, 0.001), 0, 0.017, -0.032, tray);
+  assets.retint(tray, { bin_plastic: m.binBlue });
+  castShadows(tray);
   // Loose hardware in two compartments.
   for (let i = 0; i < 14; i++) {
     const cell = Math.floor(r() * 4) - 1.5;
     at(
       shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.0022, 0.0022, 0.009, 6), i % 3 ? m.steel : m.copper)),
-      cell * 0.063 + (r() - 0.5) * 0.04,
+      cell * 0.0465 + (r() - 0.5) * 0.02,
       0.008,
-      (r() - 0.5) * 0.1,
+      (r() > 0.5 ? 1 : -1) * 0.03 + (r() - 0.5) * 0.02,
       tray,
     ).rotation.set(Math.PI / 2, r() * 3, r() * 3);
   }
 
-  // Two stacked bins, slightly out of square.
+  // Two stacked parts bins, slightly out of square: moulded shells with a scooped front.
   const binStack = at(new THREE.Group(), 0.6, Y, -1.03, root);
   binStack.rotation.y = 0.1;
-  const bin = (parent: THREE.Object3D, w: number, h: number, d: number, y: number, mat: THREE.Material, yaw: number) => {
-    const b = at(new THREE.Group(), 0, y, 0, parent);
-    b.rotation.y = yaw;
-    const t = 0.0035;
-    at(rbox(w, t, d, mat, 0.002), 0, t / 2, 0, b);
-    for (const s of [-1, 1]) {
-      // Walls flare out slightly, the way moulded bins do.
-      const side = at(rbox(w, h, t, mat, 0.002), 0, h / 2, s * (d / 2 - t / 2), b);
-      side.rotation.x = s * -0.05;
-      const end = at(rbox(t, h, d, mat, 0.002), s * (w / 2 - t / 2), h / 2, 0, b);
-      end.rotation.z = s * 0.05;
-    }
-    at(rbox(w + 0.006, 0.004, d + 0.006, mat, 0.002), 0, h, 0, b);
-    return b;
-  };
-  bin(binStack, 0.15, 0.058, 0.1, 0, m.binWarm, 0);
-  bin(binStack, 0.14, 0.05, 0.095, 0.062, m.binBlue, 0.14);
+  const lower = at(assets.instance('bin'), 0, 0, 0, binStack);
+  assets.retint(lower, { bin_plastic: m.binWarm, bin_label: m.paper });
+  const upper = at(assets.instance('bin'), 0, 0.058, 0, binStack);
+  upper.rotation.y = 0.14;
+  upper.scale.setScalar(0.94);
+  assets.retint(upper, { bin_plastic: m.binBlue, bin_label: m.paper });
+  castShadows(binStack);
 
   // Boards lying around: one flat, one leaning, one half-off a bin.
   const board = (x: number, y: number, z: number, w: number, d: number, mat: THREE.Material, rot: [number, number, number]) => {
@@ -432,27 +416,27 @@ function buildWorkClutter(root: THREE.Group, m: Materials) {
   return leds;
 }
 
-/** Bins on the floor to the right: depth below the desk line, and a place for parts to live. */
-function buildFloorBins(root: THREE.Group, m: Materials) {
-  const g = at(new THREE.Group(), 0.98, 0, -0.62, root);
-  g.rotation.y = -0.28;
-  const crate = (y: number, w: number, h: number, d: number, mat: THREE.Material, yaw: number) => {
-    const b = at(new THREE.Group(), 0, y, 0, g);
-    b.rotation.y = yaw;
-    const t = 0.008;
-    at(rbox(w, t, d, mat, 0.004), 0, t / 2, 0, b);
-    for (const s of [-1, 1]) {
-      at(rbox(w, h, t, mat, 0.004), 0, h / 2, s * (d / 2 - t / 2), b).rotation.x = s * -0.04;
-      at(rbox(t, h, d, mat, 0.004), s * (w / 2 - t / 2), h / 2, 0, b).rotation.z = s * 0.04;
-    }
-    at(rbox(w + 0.014, 0.01, d + 0.014, mat, 0.004), 0, h, 0, b);
-    // Moulded handle recess on the long side.
-    at(rbox(w * 0.3, 0.018, 0.006, mat, 0.003), 0, h - 0.03, d / 2 - 0.004, b);
-    return b;
-  };
-  crate(0, 0.32, 0.17, 0.24, m.binBlue, 0);
-  crate(0.181, 0.3, 0.14, 0.22, m.binWarm, 0.12);
+/** Totes on the floor to the right: depth below the desk line, and a place for parts to live. */
+function buildFloorBins(root: THREE.Group, m: Materials, assets: Assets) {
+  // Under the right side of the desk, clear of the leg frame and of the parts crate beside it.
+  const g = at(new THREE.Group(), 0.64, 0, -0.8, root);
+  g.rotation.y = -0.12;
+  const lower = at(assets.instance('tote'), 0, 0, 0, g);
+  assets.retint(lower, { bin_plastic: m.binBlue });
+  // Stacked: rests on the lower tote's rim, a little smaller and turned.
+  const upper = at(assets.instance('tote'), 0, 0.172, 0, g);
+  upper.scale.setScalar(0.93);
+  upper.rotation.y = 0.12;
+  assets.retint(upper, { bin_plastic: m.binWarm });
+  castShadows(g);
   return g;
+}
+
+/** Imported models arrive without shadow flags; props on the desk cast and receive. */
+function castShadows(root: THREE.Object3D) {
+  root.traverse((o) => {
+    if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;
+  });
 }
 
 export function buildDeskSet(root: THREE.Group, m: Materials, assets: Assets): DeskRefs {
@@ -464,7 +448,7 @@ export function buildDeskSet(root: THREE.Group, m: Materials, assets: Assets): D
   const lamp = buildLamp(root, m, assets);
   buildCube(root, assets);
   buildMug(root, m);
-  const clutterLeds = buildWorkClutter(root, m);
-  buildFloorBins(root, m);
+  const clutterLeds = buildWorkClutter(root, m, assets);
+  buildFloorBins(root, m, assets);
   return { ...monitor, ...lamp, leds: [...kbLeds, ...clutterLeds] };
 }

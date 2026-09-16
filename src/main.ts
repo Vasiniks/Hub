@@ -61,6 +61,9 @@ async function start() {
     { name: 'book', file: 'book.glb' },
     { name: 'robot', file: 'robot.glb' },
     { name: 'chair', file: 'chair.glb' },
+    { name: 'bin', file: 'bin.glb' },
+    { name: 'tote', file: 'tote.glb' },
+    { name: 'organizer', file: 'organizer.glb' },
   ]);
   loader.advance('building the room');
 
