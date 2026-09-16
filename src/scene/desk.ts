@@ -139,136 +139,32 @@ function buildMacBook(root: THREE.Group, m: Materials, assets: Assets) {
   return g;
 }
 
-// TKL, 87 keys. Each row is a list of key widths in units; a negative entry is a gap.
-// prettier-ignore
-const TKL_ROWS: number[][] = [
-  [1, -1, 1, 1, 1, 1, -0.5, 1, 1, 1, 1, -0.5, 1, 1, 1, 1, -0.25, 1, 1, 1],
-  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, -0.25, 1, 1, 1],
-  [1.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.5, -0.25, 1, 1, 1],
-  [1.75, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2.25],
-  [2.25, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2.75, -1.25, 1],
-  [1.25, 1.25, 1.25, 6.25, 1.25, 1.25, 1.25, 1.25, -0.25, 1, 1, 1],
-];
-
 /**
- * A sculpted keycap: tapered toward the top with a shallow dish, not a flat slab. The taper is
- * what catches a highlight on every cap edge and makes a field of 87 keys read as keys.
+ * §5: the TKL keyboard.
+ *
+ * Geometry from `assets/processed/keyboard.glb` (`blender/scripts/build_keyboard.py`), layout
+ * included. It used to be one rounded box instanced 87 times and scaled in x, which stretches
+ * a 1u cap's corner fillets and its dish across a 6.25u spacebar. Every cap is now lofted at
+ * its own width with a constant corner radius, sheared to its row's sculpt angle, and dished
+ * across x — and the switch plate sits in a real boolean well, so the caps stand inside a wall
+ * rather than on a slab. Legends are still deliberately not modelled.
  */
-function keycapGeometry(side: number, h: number) {
-  const geo = rboxGeo(side, h, side, side * 0.1, 3);
-  const pos = geo.attributes.position as THREE.BufferAttribute;
-  for (let i = 0; i < pos.count; i++) {
-    const y = pos.getY(i);
-    if (y <= 0) continue;
-    const k = y / (h / 2);
-    const taper = 1 - 0.17 * k;
-    const x = pos.getX(i) * taper;
-    const z = pos.getZ(i) * taper;
-    pos.setX(i, x);
-    pos.setZ(i, z);
-    if (k > 0.8) {
-      // Shallow spherical dish across the top face.
-      const r = Math.min(1, Math.hypot(x, z) / (side / 2));
-      pos.setY(i, y - h * 0.11 * (1 - r * r));
-    }
-  }
-  pos.needsUpdate = true;
-  geo.computeVertexNormals();
-  return geo;
-}
-
-/** §5: white, and convincingly TKL in silhouette. Legends are deliberately not modelled. */
-function buildKeyboard(root: THREE.Group, m: Materials) {
+function buildKeyboard(root: THREE.Group, m: Materials, assets: Assets) {
   const { x, z, rotationY } = DESKTOP.keyboard;
-  const U = 0.019;
-  const GAP = 0.0013;
-  const rows = TKL_ROWS.length;
-  const width = 18.25 * U;
-  const depth = rows * U + 0.012;
-
   const g = at(new THREE.Group(), x, DESK.top, z, root);
   g.rotation.y = rotationY;
-  // Case: a low white tray with a 5° typing incline and a darker base plate showing at the seam.
-  const caseG = at(new THREE.Group(), 0, 0, 0, g);
-  caseG.rotation.x = -0.075;
-  at(rbox(width + 0.016, 0.019, depth + 0.012, m.plasticWhite, 0.0035), 0, 0.0115, 0, caseG);
-  at(rbox(width + 0.012, 0.006, depth + 0.008, m.aluminumDark, 0.002), 0, 0.0035, 0, caseG);
-  at(rbox(width - 0.004, 0.003, depth - 0.004, m.keycapAccent, 0.001), 0, 0.0208, 0, caseG);
-  for (const s of [-1, 1]) at(rbox(0.02, 0.006, 0.012, m.rubber, 0.002), s * (width / 2 - 0.02), 0.002, depth / 2 - 0.02, caseG);
-
-  // Keycaps: two instanced meshes (alphas, modifiers) — the whole 87-key field is two draw calls.
-  const capGeo = keycapGeometry(U - GAP, 0.0098);
-  const counts = { alpha: 0, mod: 0 };
-  const place: { accent: boolean; x: number; z: number; w: number; y: number; tilt: number; skew: number }[] = [];
-  const jitter = rand(5150);
-  // Row sculpting: the home row sits lowest and flattest, the outer rows tilt toward the hands.
-  const SCULPT = [
-    { lift: 0.0018, tilt: 0.1 },
-    { lift: 0.001, tilt: 0.065 },
-    { lift: 0.0004, tilt: 0.028 },
-    { lift: 0, tilt: 0 },
-    { lift: 0.0005, tilt: -0.035 },
-    { lift: 0.0013, tilt: -0.075 },
-  ];
-  for (let r = 0; r < rows; r++) {
-    let cursor = -width / 2;
-    const zRow = -depth / 2 + 0.006 + (r + 0.5) * U;
-    for (const w of TKL_ROWS[r]) {
-      if (w < 0) {
-        cursor += -w * U;
-        continue;
-      }
-      const accent = w !== 1 || r === 0;
-      place.push({
-        accent,
-        x: cursor + (w * U) / 2,
-        z: zRow,
-        w,
-        // A fraction of a millimetre of seat variation: no two caps sit perfectly level.
-        y: 0.0255 + SCULPT[r].lift + (jitter() - 0.5) * 0.00028,
-        tilt: SCULPT[r].tilt,
-        // Wide keys are held by stabilisers, so they cannot sit as crooked as a 1u cap.
-        skew: ((jitter() - 0.5) * 0.012) / w,
-      });
-      accent ? counts.mod++ : counts.alpha++;
-      cursor += w * U;
-    }
-  }
-  const alphas = new THREE.InstancedMesh(capGeo, m.keycap, counts.alpha);
-  const mods = new THREE.InstancedMesh(capGeo, m.keycapAccent, counts.mod);
-  const dummy = new THREE.Object3D();
-  let ai = 0;
-  let mi = 0;
-  for (const p of place) {
-    dummy.position.set(p.x, p.y, p.z);
-    dummy.rotation.set(p.tilt, p.skew, 0);
-    dummy.scale.set((p.w * U - GAP) / (U - GAP), 1, 1);
-    dummy.updateMatrix();
-    if (p.accent) mods.setMatrixAt(mi++, dummy.matrix);
-    else alphas.setMatrixAt(ai++, dummy.matrix);
-  }
-  for (const im of [alphas, mods]) {
-    im.castShadow = im.receiveShadow = true;
-    caseG.add(im);
-  }
-
-  // Stabiliser bars under the wide keys — the detail that says this is a mechanical board.
-  const stabRow = (w: number, r: number, cx: number) => {
-    const zRow = -depth / 2 + 0.006 + (r + 0.5) * U;
-    for (const side of [-1, 1]) {
-      at(rbox(0.0035, 0.0045, 0.009, m.aluminumDark, 0.001), cx + side * (w * U) / 2 * 0.62, 0.0224, zRow, caseG);
-    }
-  };
-  stabRow(2, 1, -width / 2 + 13 * U + U);
-  stabRow(1.5, 2, -width / 2 + 13.5 * U - 0.75 * U);
-  stabRow(2.25, 3, -width / 2 + 12.75 * U + 1.125 * U);
-  stabRow(2.75, 4, -width / 2 + 12.25 * U + 1.375 * U);
-  stabRow(6.25, 5, -width / 2 + 3.75 * U + 3.125 * U);
-
-  // Indicator LEDs above the nav cluster.
-  const led = at(new THREE.Mesh(new THREE.CircleGeometry(0.0015, 8), m.ledGreen), width / 2 - 0.028, 0.0212, -depth / 2 + 0.002, caseG);
-  led.rotation.x = -Math.PI / 2;
-  return [led];
+  const model = assets.instance('keyboard');
+  assets.retint(model, {
+    kb_case_mat: m.plasticWhite,
+    kb_cap_mat: m.keycap,
+    kb_mod_mat: m.keycapAccent,
+    kb_dark_mat: m.aluminumDark,
+    kb_plate_mat: m.plasticGrey,
+    kb_led_mat: m.ledGreen,
+  });
+  g.add(model);
+  const led = assets.part(model, 'keyboard_led');
+  return led ? [led] : [];
 }
 
 /**
@@ -609,7 +505,7 @@ export function buildDeskSet(root: THREE.Group, m: Materials, assets: Assets): D
   buildDesk(root, m);
   const monitor = buildMonitor(root, m, assets);
   buildMacBook(root, m, assets);
-  const kbLeds = buildKeyboard(root, m);
+  const kbLeds = buildKeyboard(root, m, assets);
   buildMouse(root, m, assets);
   const lamp = buildLamp(root, m, assets);
   buildCube(root);
