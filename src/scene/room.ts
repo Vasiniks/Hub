@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Materials } from './materials';
 import { mergeStatic } from './merge';
 import { ROOM, DESK, CHAIR } from './layout';
-import { at, rbox, shadowed } from './build';
+import { at, rbox } from './build';
 import { buildDeskSet, type DeskRefs } from './desk';
 import type { Assets } from './assets';
 import { createBookshelf, type Bookshelf } from './bookshelf';
@@ -88,28 +88,25 @@ function buildShell(root: THREE.Group, m: Materials) {
   return { windowGlass: glass, windowCenter: new THREE.Vector3(fx, fy, wallZ), windowSize: new THREE.Vector2(W, H) };
 }
 
-function buildChair(m: Materials) {
+/**
+ * The task chair. Geometry from `assets/processed/chair.glb` (`blender/scripts/build_chair.py`):
+ * a contoured seat with a waterfall front, a lumbar-curved backrest that wraps round the
+ * sitter, a tapered five-star base on twin-wheel casters. The origin is the gas lift, which is
+ * what the sit-down animation rolls and turns it about.
+ */
+function buildChair(m: Materials, assets: Assets) {
   const chair = new THREE.Group();
-  const base = new THREE.Group();
-  for (let i = 0; i < 5; i++) {
-    const arm = new THREE.Group();
-    arm.rotation.y = (i / 5) * Math.PI * 2;
-    at(rbox(0.3, 0.028, 0.045, m.plasticBlack, 0.01), 0.15, 0.075, 0, arm);
-    at(shadowed(new THREE.Mesh(new THREE.SphereGeometry(0.026, 12, 8), m.rubber)), 0.29, 0.026, 0, arm);
-    base.add(arm);
-  }
-  chair.add(base);
-  at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.03, 0.34, 16), m.steel)), 0, 0.25, 0, chair);
-  at(rbox(0.5, 0.075, 0.48, m.fabric, 0.03), 0, 0.46, 0, chair);
-  at(rbox(0.36, 0.025, 0.3, m.plasticBlack, 0.01), 0, 0.41, 0, chair);
-  const back = at(new THREE.Group(), 0, 0.5, 0.235, chair);
-  back.rotation.x = 0.1;
-  at(rbox(0.05, 0.3, 0.025, m.plasticBlack, 0.01), 0, 0.12, 0.02, back);
-  at(rbox(0.46, 0.56, 0.065, m.fabric, 0.03), 0, 0.46, 0, back);
-  for (const x of [-0.27, 0.27]) {
-    at(rbox(0.03, 0.2, 0.04, m.plasticBlack, 0.01), x, 0.55, 0.06, chair);
-    at(rbox(0.07, 0.025, 0.25, m.plasticBlack, 0.01), x, 0.66, 0.02, chair);
-  }
+  const model = assets.instance('chair');
+  assets.retint(model, {
+    chair_fabric: m.fabric,
+    chair_plastic: m.plasticBlack,
+    chair_metal: m.steel,
+    chair_rubber: m.rubber,
+  });
+  model.traverse((o) => {
+    if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;
+  });
+  chair.add(model);
   return chair;
 }
 
@@ -123,7 +120,7 @@ export function buildRoom(m: Materials, reducedMotion: boolean, assets: Assets):
 
   const chairStart: ChairPose = { position: new THREE.Vector3(...CHAIR.start.position), rotationY: CHAIR.start.rotationY };
   const chairSeated: ChairPose = { position: new THREE.Vector3(...CHAIR.seated.position), rotationY: CHAIR.seated.rotationY };
-  const chair = buildChair(m);
+  const chair = buildChair(m, assets);
   chair.userData.dynamic = true;
   chair.position.copy(chairStart.position);
   chair.rotation.y = chairStart.rotationY;

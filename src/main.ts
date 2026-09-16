@@ -60,6 +60,7 @@ async function start() {
     { name: 'cube', file: 'cube.glb' },
     { name: 'book', file: 'book.glb' },
     { name: 'robot', file: 'robot.glb' },
+    { name: 'chair', file: 'chair.glb' },
   ]);
   loader.advance('building the room');
 
