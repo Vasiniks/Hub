@@ -208,7 +208,7 @@ function notebooks(m: Materials): BuiltObject {
 
 function devBoard(m: Materials): BuiltObject {
   const g = new THREE.Group();
-  const board = mesh(rb(0.1, 0.004, 0.07, 0.002), m.pcb, 0, 0.012, 0, g);
+  const board = mesh(rb(0.1, 0.004, 0.07, 0.002), m.pcbGreen, 0, 0.012, 0, g);
   for (const [x, z] of [[-0.044, -0.03], [0.044, -0.03], [-0.044, 0.03], [0.044, 0.03]]) {
     mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.01, 8), m.aluminum, x, 0.005, z, g);
   }

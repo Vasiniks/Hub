@@ -158,7 +158,7 @@ export function createRenderer(canvas: HTMLCanvasElement, scene: THREE.Scene, ca
     }) as unknown as typeof pass.render;
   }
 
-  const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.3, 0.5, 1.15);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.3, 0.5, 1.45);
   bloom.enabled = params.get('bloom') !== '0';
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
@@ -233,31 +233,101 @@ export function createRenderer(canvas: HTMLCanvasElement, scene: THREE.Scene, ca
     composer.setSize(width, height);
   }
 
-  // Trade resolution only for sustained slowness after warm-up, judged by the median frame.
+  function setPixelRatio(next: number) {
+    if (Math.abs(next - pixelRatio) < 0.01) return false;
+    pixelRatio = next;
+    renderer.setPixelRatio(next);
+    composer.setPixelRatio(next);
+    resize();
+    return true;
+  }
+
+  /**
+   * §23/§43: pick the render resolution *before* the first visible frame instead of
+   * discovering it seconds in.
+   *
+   * The old adaptive path started at 1.5×, waited six seconds, then dropped to 1× — which is
+   * exactly the "slow at first, then suddenly fast" the visitor was seeing.
+   *
+   * Timing here is deliberately wall-clock across real animation frames rather than a GPU
+   * timer. `gl.finish()` does not actually block on this ANGLE/Metal path — it reported 1.4 ms
+   * for a frame that genuinely took 21 ms — and `EXT_disjoint_timer_query` is usually absent.
+   *
+   * It is the *mean* delta that matters, not the median. Under vsync a scene that overruns the
+   * budget does not produce slow frames, it produces a mix of on-time and doubled ones, so the
+   * median still reads exactly one refresh interval while a third of frames are being missed.
+   * The mean is just the true frame rate, which is the thing being asked about.
+   */
+  const FRAME_BUDGET_MS = 17.2;
+  const RATIO_STEPS = [1.5, 1.25, 1];
+
+  /**
+   * `onFrame` must do whatever per-frame work the real loop does besides the composer render —
+   * chiefly the monitor's canvas upload. Measuring a frame lighter than the one that will
+   * actually be drawn is how this picked a resolution the room could not hold.
+   */
+  async function calibrate(onFrame: (dt: number) => void = () => {}) {
+    const start = pixelRatio;
+    if (forcedRatio > 0) return { mean: 0, from: start, chosen: pixelRatio, steps: 0 };
+
+    const measure = async (frames: number) => {
+      const deltas: number[] = [];
+      let prev = performance.now();
+      for (let i = 0; i < frames; i++) {
+        await new Promise((r) => requestAnimationFrame(r));
+        onFrame(1 / 60);
+        composer.render(1 / 60);
+        const now = performance.now();
+        deltas.push(now - prev);
+        prev = now;
+      }
+      return deltas.reduce((a, b) => a + b, 0) / deltas.length;
+    };
+
+    // Throw the first batch away: it still carries first-use allocation inside the driver, and
+    // it lets the GPU queue reach a steady depth — a short sample taken while the queue is
+    // still filling reads the submission cost rather than the work.
+    await measure(8);
+    let mean = await measure(24);
+    let steps = 0;
+    while (mean > FRAME_BUDGET_MS && pixelRatio > 1 && steps < 2) {
+      const next = RATIO_STEPS.find((r) => r < pixelRatio - 0.01);
+      if (next === undefined) break;
+      setPixelRatio(Math.min(window.devicePixelRatio, next));
+      steps++;
+      mean = await measure(24);
+    }
+    return { mean: +mean.toFixed(2), from: start, chosen: pixelRatio, steps };
+  }
+
+  /**
+   * Safety net only. Calibration has already chosen the resolution, so this exists for a
+   * machine that gets slower later (another tab, thermal throttling) and steps down once.
+   */
   const recent = new Float32Array(120);
   let recentCount = 0;
   let clock = 0;
   function watchPerformance(dt: number) {
     clock += dt;
-    if (!adaptive || pixelRatio <= 1 || clock < 6) return;
+    if (!adaptive || pixelRatio <= 1 || clock < 10) return;
     recent[recentCount % recent.length] = dt;
     recentCount++;
     if (recentCount % 60 !== 0 || recentCount < recent.length) return;
     const median = Float32Array.from(recent).sort()[recent.length >> 1];
-    if (median > 1 / 32) {
-      pixelRatio = 1;
-      renderer.setPixelRatio(1);
-      composer.setPixelRatio(1);
-      resize();
-    }
+    if (median > 1 / 30) setPixelRatio(Math.max(1, pixelRatio - 0.25));
   }
 
-  /** Compile every shader and capture the environment before the first visible frame. */
-  async function warmUp(samples: THREE.Object3D[] = []) {
+  /**
+   * Compile every shader and capture the environment before the first visible frame.
+   * `onStage` fires as each phase genuinely completes, so the loading bar reports real work.
+   */
+  async function warmUp(samples: THREE.Object3D[] = [], onStage: (stage: string) => void = () => {}) {
     // Capture first: materials compiled before the environment exists get the wrong program
     // variant and recompile (synchronously) the first time each object comes into view.
     captureEnvironmentNow();
+    onStage('compiling shaders');
     await renderer.compileAsync(scene, camera);
+    onStage('warming passes');
     // Post passes compile lazily on first use. Run the ones that normally sleep (hover outline,
     // daylight shafts) once under the veil, so they never hitch mid-interaction or at dawn.
     const scatter = volumetric.scatter.clone();
@@ -290,6 +360,7 @@ export function createRenderer(canvas: HTMLCanvasElement, scene: THREE.Scene, ca
     outline.enabled = false;
     outline.selectedObjects = [];
     volumetric.scatter.copy(scatter);
+    onStage('measuring');
   }
 
   return {
@@ -297,6 +368,10 @@ export function createRenderer(canvas: HTMLCanvasElement, scene: THREE.Scene, ca
     outline,
     volumetric,
     warmUp,
+    calibrate,
+    pixelRatio: () => pixelRatio,
+    /** True while a spread environment capture still has faces left to render. */
+    capturing: () => captureFace >= 0,
     captureEnvironmentNow,
     requestEnvironmentCapture,
     applyLight,

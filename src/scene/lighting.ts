@@ -4,10 +4,14 @@ import type { RoomRefs } from './room';
 import type { createExterior } from './exterior';
 
 /**
- * The room exists in real time. The window in front of the desk is the main source of
- * daylight: direct sun through the glass plus sky light from the opening. Toward evening the
- * window loses importance and the lamp, monitors, and small LEDs take over. Keyframes describe
- * each hour; the current hour is interpolated continuously between them.
+ * The room exists in real time.
+ *
+ * By day the window in front of the desk is the dominant source: direct sun through the glass,
+ * plus a large area light standing in for the whole bright opening. After dark that inverts —
+ * the window goes quiet and the lamp, the monitor and the small LEDs carry the room (§11).
+ *
+ * Each keyframe describes one hour; the current hour is interpolated continuously between
+ * them with a smoothstep, so nothing ever cuts from one preset to another.
  */
 interface LightKey {
   hour: number;
@@ -39,17 +43,20 @@ interface LightKey {
 
 // prettier-ignore
 const KEYS: LightKey[] = [
-  { hour: 0,    zenith: '#05080d', horizon: '#101723', ground: '#07090c', skyBright: 0.6, voidColor: '#0b0f14', sun: 0,   sunColor: '#8aa0c8', sunElevation: 20, sunAzimuth: 0.9, window: 0.35, windowColor: '#41557a', haze: 0,    hemi: 0.03, hemiSky: '#1f2c42', hemiGround: '#0b0c0e', lamp: 9,   monitor: 5.5, led: 1,   glass: 0.34, exposure: 1.2,  env: 0.5,  bloom: 0.42, fog: 0.1 },
-  { hour: 5,    zenith: '#0d1422', horizon: '#2a3346', ground: '#0b0d10', skyBright: 0.8, voidColor: '#121821', sun: 0,   sunColor: '#8aa0c8', sunElevation: 0, sunAzimuth: -1.1,  window: 0.9,  windowColor: '#6b7a96', haze: 0,    hemi: 0.06, hemiSky: '#34435a', hemiGround: '#0e0f11', lamp: 5.5, monitor: 5,   led: 1,   glass: 0.3,  exposure: 1.15, env: 0.55, bloom: 0.4,  fog: 0.09 },
-  { hour: 6.5,  zenith: '#5d7596', horizon: '#e6a47a', ground: '#3a3430', skyBright: 1.3, voidColor: '#7b7f85', sun: 4, sunColor: '#ffb27a', sunElevation: 5, sunAzimuth: -1.0,  window: 2.2,    windowColor: '#e8c2a0', haze: 0.5,  hemi: 0.18, hemiSky: '#c9b8a6', hemiGround: '#4a4038', lamp: 1.5, monitor: 3.8, led: 0.8, glass: 0.14, exposure: 1.0,  env: 0.8,  bloom: 0.34, fog: 0.05 },
-  { hour: 9,    zenith: '#4777b8', horizon: '#adc6de', ground: '#5a5a55', skyBright: 1.5, voidColor: '#aeb5bb', sun: 8.5, sunColor: '#ffe9cf', sunElevation: 18, sunAzimuth: -0.75, window: 4,    windowColor: '#c3d6ea', haze: 0.06, hemi: 0.2,  hemiSky: '#d6e2ec', hemiGround: '#5f5a54', lamp: 0,   monitor: 2.8, led: 0.5, glass: 0.07, exposure: 0.74, env: 0.85,  bloom: 0.1, fog: 0.032 },
-  { hour: 13,   zenith: '#3f73b8', horizon: '#a9c4de', ground: '#6a6a64', skyBright: 1.5, voidColor: '#b7bec4', sun: 9.5, sunColor: '#ffefd6', sunElevation: 30, sunAzimuth: -0.42, window: 4.5,  windowColor: '#bcd3ea', haze: 0.04, hemi: 0.22, hemiSky: '#e3ebf2', hemiGround: '#6c6862', lamp: 0,   monitor: 2.6, led: 0.4, glass: 0.06, exposure: 0.72, env: 0.85,  bloom: 0.08, fog: 0.028 },
-  { hour: 16,   zenith: '#4a79b6', horizon: '#bfc9d2', ground: '#6d665c', skyBright: 1.5, voidColor: '#b8b8b4', sun: 8.8, sunColor: '#ffe2bd', sunElevation: 18, sunAzimuth: 0.1, window: 4,    windowColor: '#c9d5e0', haze: 0.07,  hemi: 0.2,  hemiSky: '#dde2e6', hemiGround: '#6d665d', lamp: 0,   monitor: 2.8, led: 0.45, glass: 0.07, exposure: 0.74, env: 0.85, bloom: 0.1, fog: 0.032 },
-  { hour: 18.5, zenith: '#58709a', horizon: '#f3a86c', ground: '#4d4038', skyBright: 1.9, voidColor: '#9c8778', sun: 7, sunColor: '#ff9a52', sunElevation: 7, sunAzimuth: 0.62,  window: 3.2,  windowColor: '#f2bf93', haze: 0.4,  hemi: 0.16, hemiSky: '#d9b89c', hemiGround: '#4e4038', lamp: 2,   monitor: 3.4, led: 0.7, glass: 0.1,  exposure: 0.9,  env: 0.85, bloom: 0.26, fog: 0.045 },
-  { hour: 20,   zenith: '#1f2a40', horizon: '#7a5a60', ground: '#1a1818', skyBright: 1.1, voidColor: '#36404f', sun: 0.3, sunColor: '#ff6a3a', sunElevation: 0, sunAzimuth: 0.9,  window: 1.4,  windowColor: '#7d86a6', haze: 0.05,  hemi: 0.1,  hemiSky: '#4a5670', hemiGround: '#121214', lamp: 7,   monitor: 4.4, led: 0.9, glass: 0.22, exposure: 1.08, env: 0.6,  bloom: 0.36, fog: 0.08 },
-  { hour: 22,   zenith: '#070b12', horizon: '#141c2a', ground: '#08090b', skyBright: 0.7, voidColor: '#101820', sun: 0,   sunColor: '#8aa0c8', sunElevation: 20, sunAzimuth: 0.9, window: 0.45, windowColor: '#4a5c80', haze: 0,    hemi: 0.04, hemiSky: '#26354d', hemiGround: '#0b0c0e', lamp: 8.5, monitor: 5.2, led: 1,   glass: 0.32, exposure: 1.18, env: 0.52, bloom: 0.4,  fog: 0.1 },
-  { hour: 24,   zenith: '#05080d', horizon: '#101723', ground: '#07090c', skyBright: 0.6, voidColor: '#0b0f14', sun: 0,   sunColor: '#8aa0c8', sunElevation: 20, sunAzimuth: 0.9, window: 0.35, windowColor: '#41557a', haze: 0,    hemi: 0.03, hemiSky: '#1f2c42', hemiGround: '#0b0c0e', lamp: 9,   monitor: 5.5, led: 1,   glass: 0.34, exposure: 1.2,  env: 0.5,  bloom: 0.42, fog: 0.1 },
+  { hour: 0,    zenith: '#04070c', horizon: '#0c121c', ground: '#06080a', skyBright: 0.55, voidColor: '#080b10', sun: 0,    sunColor: '#8aa0c8', sunElevation: 20, sunAzimuth: 0.9,   window: 0.3,  windowColor: '#3a4f7c', haze: 0,    hemi: 0.075, hemiSky: '#22304d', hemiGround: '#0b0d10', lamp: 3.0, monitor: 2.9, led: 1.3,  glass: 0.36, exposure: 1.0,  env: 0.5,  bloom: 0.2, fog: 0.085 },
+  { hour: 5,    zenith: '#0b1220', horizon: '#232c3e', ground: '#0a0c0f', skyBright: 0.75, voidColor: '#10161f', sun: 0,    sunColor: '#8aa0c8', sunElevation: 0,  sunAzimuth: -1.1,  window: 0.55, windowColor: '#5d6c88', haze: 0,    hemi: 0.09,  hemiSky: '#33445e', hemiGround: '#0d0e10', lamp: 2.4, monitor: 2.8, led: 1.2,  glass: 0.3,  exposure: 0.99, env: 0.55, bloom: 0.19, fog: 0.08 },
+  { hour: 6.5,  zenith: '#5d7596', horizon: '#e6a47a', ground: '#3a3430', skyBright: 1.3,  voidColor: '#7b7f85', sun: 6.5,  sunColor: '#ffb27a', sunElevation: 5,  sunAzimuth: -1.0,  window: 1.5,  windowColor: '#e8c2a0', haze: 0.5,  hemi: 0.10,  hemiSky: '#b8a795', hemiGround: '#3a322c', lamp: 1.0, monitor: 2.2, led: 0.8,  glass: 0.14, exposure: 0.78, env: 0.7,  bloom: 0.16, fog: 0.05 },
+  { hour: 9,    zenith: '#376cb4', horizon: '#a1bfda', ground: '#5a5a55', skyBright: 1.12, voidColor: '#a7aeb5', sun: 13.0, sunColor: '#ffe9cf', sunElevation: 18, sunAzimuth: -0.75, window: 2.5,  windowColor: '#c3d6ea', haze: 0.06, hemi: 0.10,  hemiSky: '#c6d6e6', hemiGround: '#4e4a45', lamp: 0,   monitor: 2.0, led: 0.4,  glass: 0.07, exposure: 0.55, env: 0.62, bloom: 0.07, fog: 0.03 },
+  { hour: 13,   zenith: '#2f66b4', horizon: '#9dbcda', ground: '#6a6a64', skyBright: 1.12, voidColor: '#b0b7bd', sun: 13.2, sunColor: '#ffefd6', sunElevation: 31, sunAzimuth: -0.42, window: 2.7,  windowColor: '#bcd3ea', haze: 0.04, hemi: 0.105, hemiSky: '#d2e0ee', hemiGround: '#575249', lamp: 0,   monitor: 2.0, led: 0.35, glass: 0.06, exposure: 0.52, env: 0.6,  bloom: 0.06, fog: 0.027 },
+  { hour: 16,   zenith: '#3b6eb2', horizon: '#b3c0cc', ground: '#6d665c', skyBright: 1.12, voidColor: '#b1b1ae', sun: 13.0, sunColor: '#ffe2bd', sunElevation: 18, sunAzimuth: 0.1,   window: 2.5,  windowColor: '#c9d5e0', haze: 0.07, hemi: 0.10,  hemiSky: '#ccd4da', hemiGround: '#5a544c', lamp: 0,   monitor: 2.0, led: 0.4,  glass: 0.07, exposure: 0.55, env: 0.62, bloom: 0.07, fog: 0.031 },
+  { hour: 18.5, zenith: '#58709a', horizon: '#f3a86c', ground: '#4d4038', skyBright: 1.85, voidColor: '#9c8778', sun: 11.0, sunColor: '#ff9552', sunElevation: 7,  sunAzimuth: 0.62,  window: 2.0,  windowColor: '#f2bf93', haze: 0.4,  hemi: 0.095, hemiSky: '#c9a88c', hemiGround: '#3c322c', lamp: 1.5, monitor: 2.1, led: 0.6,  glass: 0.1,  exposure: 0.66, env: 0.76, bloom: 0.15, fog: 0.044 },
+  { hour: 20,   zenith: '#161f30', horizon: '#5c464f', ground: '#141313', skyBright: 0.95, voidColor: '#252d3a', sun: 0.25, sunColor: '#ff6a3a', sunElevation: 0,  sunAzimuth: 0.9,   window: 0.7,  windowColor: '#6b7694', haze: 0.05, hemi: 0.095, hemiSky: '#44526f', hemiGround: '#121214', lamp: 2.5, monitor: 2.6, led: 1.05, glass: 0.22, exposure: 0.97, env: 0.56, bloom: 0.19, fog: 0.07 },
+  { hour: 21.5, zenith: '#080d16', horizon: '#161e2c', ground: '#090a0c', skyBright: 0.7,  voidColor: '#0d1119', sun: 0,    sunColor: '#8aa0c8', sunElevation: 20, sunAzimuth: 0.9,   window: 0.4,  windowColor: '#42588a', haze: 0,    hemi: 0.08,  hemiSky: '#263654', hemiGround: '#0b0d10', lamp: 2.9, monitor: 2.9, led: 1.3,  glass: 0.32, exposure: 1.0,  env: 0.52, bloom: 0.2, fog: 0.082 },
+  { hour: 24,   zenith: '#04070c', horizon: '#0c121c', ground: '#06080a', skyBright: 0.55, voidColor: '#080b10', sun: 0,    sunColor: '#8aa0c8', sunElevation: 20, sunAzimuth: 0.9,   window: 0.3,  windowColor: '#3a4f7c', haze: 0,    hemi: 0.075, hemiSky: '#22304d', hemiGround: '#0b0d10', lamp: 3.0, monitor: 2.9, led: 1.3,  glass: 0.36, exposure: 1.0,  env: 0.5,  bloom: 0.2, fog: 0.085 },
 ];
+
+/** Lamp cone half-angle. Shared with the dust so the motes light exactly where the beam is. */
+export const LAMP_ANGLE = 0.6;
 
 export interface LightState {
   hour: number;
@@ -59,6 +66,7 @@ export interface LightState {
   bloom: number;
   fog: number;
   monitor: number;
+  lamp: number;
   /** Volumetric scattering colour × strength (zero when the sun is down). */
   scatter: THREE.Color;
 }
@@ -71,29 +79,30 @@ const mix = (out: THREE.Color, a: string, b: string, t: number) => out.copy(_a.s
 export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: ReturnType<typeof createExterior>) {
   RectAreaLightUniformsLib.init();
 
-  // Direct sun, entering through the window. Its shadow map is also what shapes the light shafts.
+  // Direct sun through the window. Its shadow map also shapes the light shafts.
   const sun = new THREE.DirectionalLight('#ffffff', 0);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -2.6, right: 2.6, top: 2.6, bottom: -2.6, near: 0.5, far: 18 });
+  Object.assign(sun.shadow.camera, { left: -2.8, right: 2.8, top: 2.8, bottom: -2.8, near: 0.5, far: 18 });
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.02;
   sun.shadow.radius = 3;
   sun.shadow.autoUpdate = false;
-  sun.target.position.set(-0.05, 0.7, -0.25);
+  sun.target.position.set(-0.05, 0.7, -0.4);
   scene.add(sun, sun.target);
 
-  // Sky light from the whole opening: the soft, directional fill that makes window-facing surfaces glow.
+  // §8: the whole opening as one soft source. This is what makes the white desk glow toward
+  // the window and fall away toward the visitor, which is most of the daylight read.
   const sky = new THREE.RectAreaLight('#ffffff', 0, room.windowSize.x, room.windowSize.y);
   sky.position.copy(room.windowCenter).add(new THREE.Vector3(0, 0, 0.02));
-  sky.lookAt(room.windowCenter.clone().add(new THREE.Vector3(0, -0.25, 1)));
+  sky.lookAt(room.windowCenter.clone().add(new THREE.Vector3(0, -0.3, 1)));
   scene.add(sky);
 
   const hemi = new THREE.HemisphereLight('#ffffff', '#000000', 0);
   scene.add(hemi);
 
   // Always present, sometimes dark: toggling `visible` would recompile every shader at dusk.
-  const lamp = new THREE.SpotLight('#ffd2a0', 0, 3.2, 0.75, 0.85, 2);
+  const lamp = new THREE.SpotLight('#ffd2a0', 0, 3.0, LAMP_ANGLE, 0.85, 2);
   lamp.castShadow = true;
   lamp.shadow.mapSize.set(1024, 1024);
   lamp.shadow.bias = -0.0006;
@@ -101,26 +110,26 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
   lamp.shadow.radius = 4;
   lamp.shadow.autoUpdate = false;
   room.lampSocket.add(lamp);
+  // THREE.Light's constructor seeds position with the default up vector, which would hang the
+  // spot a metre above its socket and throw the beam past the desk entirely.
+  lamp.position.set(0, 0, 0);
   lamp.target = room.lampTarget;
 
-  const mainGlow = new THREE.RectAreaLight('#cfe0f2', 0, 0.64, 0.36);
-  room.mainScreen.add(mainGlow);
-  mainGlow.position.set(0, 0, 0.004);
-  mainGlow.rotation.y = Math.PI;
-  const sideGlow = new THREE.RectAreaLight('#d6e2ee', 0, 0.52, 0.295);
-  room.sideScreen.add(sideGlow);
-  sideGlow.position.set(0, 0, 0.004);
-  sideGlow.rotation.y = Math.PI;
-
-  // Lift the glows off the screen meshes (same world transform). A pass that temporarily hides
-  // meshes — the hover outline — would otherwise drop them from the light count, and the next
-  // shadow redraw would compile a whole new shader variant mid-interaction.
+  // §3: the monitor lights the room rather than just glowing. An area light the size of the
+  // panel puts real screen light on the desk, the MacBook lid and the keyboard.
+  const screenGlow = new THREE.RectAreaLight('#cfe0f2', 0, room.screenSize.x, room.screenSize.y);
+  room.screen.add(screenGlow);
+  screenGlow.position.set(0, 0, 0.004);
+  screenGlow.rotation.y = Math.PI;
+  // Lift it off the screen mesh, keeping the same world transform: a pass that temporarily
+  // hides meshes (the hover outline) would otherwise drop it from the light count, and the
+  // next shadow redraw would compile a fresh shader variant mid-interaction.
   room.root.updateMatrixWorld(true);
-  scene.attach(mainGlow);
-  scene.attach(sideGlow);
+  scene.attach(screenGlow);
 
-  const underGlow = new THREE.PointLight('#e8eeff', 0, 0.9, 2);
-  underGlow.position.set(0.45, 0.25, -0.55);
+  // A small cool bounce under the right-hand electronics, where the hub LEDs sit.
+  const underGlow = new THREE.PointLight('#cfe0ff', 0, 0.8, 2);
+  underGlow.position.set(0.42, 0.78, -0.9);
   scene.add(underGlow);
 
   const state: LightState = {
@@ -131,12 +140,13 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
     bloom: 0.3,
     fog: 0.05,
     monitor: 3,
+    lamp: 0,
     scatter: new THREE.Color(),
   };
   const glassMat = room.windowGlass.material as THREE.MeshStandardMaterial;
-  const lampMat = room.lampBulb.material as THREE.MeshStandardMaterial;
-  const screenMats = [room.mainScreen.material, room.sideScreen.material] as THREE.MeshStandardMaterial[];
-  const ledMats = room.pcLeds.map((l) => l.material as THREE.MeshStandardMaterial);
+  const discMat = room.lampDisc.material as THREE.MeshStandardMaterial;
+  const screenMat = room.screen.material as THREE.MeshStandardMaterial;
+  const ledMats = room.leds.map((l) => l.material as THREE.MeshStandardMaterial);
 
   const exteriorState = {
     zenith: new THREE.Color(),
@@ -145,9 +155,12 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
     sunDirection: new THREE.Vector3(),
     sunColor: new THREE.Color(),
     sunVisible: 0,
+    night: 0,
   };
   const toSun = new THREE.Vector3();
   const lastSunDir = new THREE.Vector3();
+  /** Small environmental reaction: opening something brightens the indicator LEDs briefly. */
+  let activity = 0;
   let sunWasLit = false;
   let lampWasLit = false;
 
@@ -185,7 +198,7 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
     state.fog = n('fog');
     state.monitor = n('monitor');
 
-    // The window faces away from the desk's back; the sun crosses it left to right through the day.
+    // The sun crosses the window left to right through the day.
     const az = n('sunAzimuth');
     const el = THREE.MathUtils.degToRad(Math.max(n('sunElevation'), 3));
     toSun.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
@@ -209,17 +222,20 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
 
     const lampLevel = n('lamp');
     lamp.intensity = lampLevel;
+    state.lamp = lampLevel;
     const lampLit = lampLevel > 0.01;
     if (lampLit && !lampWasLit) lamp.shadow.needsUpdate = true;
     lampWasLit = lampLit;
-    lampMat.emissiveIntensity = 0.05 + lampLevel * 0.28;
+    // Just over the bloom threshold when lit, so the shade carries a soft halo rather than
+    // reading as a flat cream disc.
+    discMat.emissiveIntensity = 0.03 + lampLevel * 0.45;
 
-    mainGlow.intensity = state.monitor * 1.1;
-    sideGlow.intensity = state.monitor * 0.8;
-    for (const mat of screenMats) mat.emissiveIntensity = 0.55 + state.monitor * 0.12;
+    screenGlow.intensity = state.monitor * 1.15;
+    screenMat.emissiveIntensity = 0.5 + state.monitor * 0.12;
 
-    const led = n('led');
-    underGlow.intensity = led * 0.12;
+    const led = n('led') * (1 + activity * 0.9);
+    room.shelf.setLevel(led);
+    underGlow.intensity = led * 0.1;
     for (const mat of ledMats) mat.emissiveIntensity = 1 + led * 2;
 
     // Glass: nearly invisible by day, a dark reflective pane at night.
@@ -233,14 +249,65 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
     exteriorState.sunDirection.copy(toSun);
     exteriorState.sunColor.copy(sun.color).multiplyScalar(Math.min(1, sun.intensity / 3));
     exteriorState.sunVisible = THREE.MathUtils.clamp(sun.intensity / 1.5, 0, 1);
+    // Fully lit windows only once the sky itself has gone; they fade out through dusk.
+    exteriorState.night = THREE.MathUtils.clamp(1 - n('skyBright') / 0.95, 0, 1);
     exterior.update(exteriorState);
 
-    state.scatter.copy(sun.color).multiplyScalar(sun.intensity * n('haze') * 0.45);
+    state.scatter.copy(sun.color).multiplyScalar(sun.intensity * n('haze') * 0.42);
     return state;
   }
 
   sun.shadow.needsUpdate = true;
   lamp.shadow.needsUpdate = true;
 
-  return { apply, state, lamp, sun, markShadowsDirty, shadowRequests };
+  /**
+   * Shadow depth shaders compile per material, but only the first time a mesh using that
+   * material is actually rendered into a given light's map. Objects that drift into a light's
+   * frustum later — the chair rolling under the lamp, a textured surface entering the sun's box
+   * at dawn — were paying 400–700 ms for that compile mid-interaction.
+   *
+   * Called around the warm-up render: light both lights and open their frusta wide enough to
+   * take in the whole room, so every depth variant is built while the loading bar is still up.
+   * Returns the restore function.
+   */
+  function warmShadows() {
+    const saved = {
+      sun: sun.intensity,
+      lamp: lamp.intensity,
+      angle: lamp.angle,
+      distance: lamp.distance,
+      box: { left: sun.shadow.camera.left, right: sun.shadow.camera.right, top: sun.shadow.camera.top, bottom: sun.shadow.camera.bottom, far: sun.shadow.camera.far },
+    };
+    sun.intensity = Math.max(saved.sun, 1);
+    lamp.intensity = Math.max(saved.lamp, 1);
+    lamp.angle = Math.PI / 2.6;
+    lamp.distance = 14;
+    Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, far: 30 });
+    sun.shadow.camera.updateProjectionMatrix();
+    sun.shadow.needsUpdate = true;
+    lamp.shadow.needsUpdate = true;
+    return () => {
+      sun.intensity = saved.sun;
+      lamp.intensity = saved.lamp;
+      lamp.angle = saved.angle;
+      lamp.distance = saved.distance;
+      Object.assign(sun.shadow.camera, saved.box);
+      sun.shadow.camera.updateProjectionMatrix();
+      sun.shadow.needsUpdate = true;
+      lamp.shadow.needsUpdate = true;
+    };
+  }
+
+  return {
+    apply,
+    state,
+    lamp,
+    sun,
+    markShadowsDirty,
+    warmShadows,
+    shadowRequests,
+    setActivity(v: number) {
+      activity = v;
+    },
+  };
 }

@@ -1,23 +1,27 @@
 import * as THREE from 'three';
 import type { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
-import type { ProjectDef } from '../data/projects';
-import type { Materials } from '../scene/materials';
-import { buildObject, type BuiltObject } from '../scene/objects';
 import type { FocusTarget } from '../camera/rig';
-
+import { INTERACTION } from '../scene/layout';
 import { OVERLAY_LAYER } from '../scene/layers';
 
 export { OVERLAY_LAYER };
 
-interface Interactable {
-  project: ProjectDef;
-  built: BuiltObject;
+/**
+ * One interaction language for everything in the room (§34): a quiet dot, a slow ring while
+ * unvisited, an outline on hover, then a camera move. Project objects and the bookshelf are
+ * both just targets here — the shelf differs only in what happens after it is activated.
+ */
+export interface InteractTarget {
+  id: string;
+  title: string;
+  /** Root object; anything under it resolves to this target when picked. */
+  group: THREE.Object3D;
   anchor: THREE.Vector3;
   dotPos: THREE.Vector3;
-  dot: THREE.Sprite;
-  ring: THREE.Sprite;
-  activity: number;
-  visited: boolean;
+  focus: () => FocusTarget;
+  tick?: (time: number, activity: number) => void;
+  /** What the outline pass should draw. Defaults to the whole group. */
+  outline?: () => THREE.Object3D[];
 }
 
 function dotTexture(hollow: boolean) {
@@ -65,60 +69,49 @@ function ringTexture() {
   return t;
 }
 
+interface Item {
+  target: InteractTarget;
+  dot: THREE.Sprite;
+  ring: THREE.Sprite;
+  activity: number;
+  visited: boolean;
+}
+
 export function createInteraction(opts: {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   outline: OutlinePass;
-  projects: ProjectDef[];
-  materials: Materials;
+  targets: InteractTarget[];
   reducedMotion: boolean;
   label: HTMLElement;
+  /** 0 at rest, 1 when the head is turned as far as it goes. */
+  lookExtent: () => number;
 }) {
-  const { scene, camera, outline, projects, materials, reducedMotion, label } = opts;
+  const { scene, camera, outline, targets, reducedMotion, label, lookExtent } = opts;
   const solidTex = dotTexture(false);
   const hollowTex = dotTexture(true);
   const ringTex = ringTexture();
 
-  const items = new Map<string, Interactable>();
-  const groups: THREE.Object3D[] = [];
-
-  for (const project of projects) {
-    const built = buildObject(project.object.builder, materials);
-    const g = built.group;
-    g.position.set(...project.object.position);
-    g.rotation.y = project.object.rotationY;
-    g.scale.setScalar(project.object.scale ?? 1);
-    g.userData.projectId = project.id;
-    scene.add(g);
-    g.updateMatrixWorld(true);
-    groups.push(g);
-
-    const anchor = g.localToWorld(new THREE.Vector3(...project.anchor));
-    const box = new THREE.Box3().setFromObject(g);
-    const dotPos = new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y + 0.035, (box.min.z + box.max.z) / 2);
-
+  const items = new Map<string, Item>();
+  for (const target of targets) {
+    target.group.userData.projectId = target.id;
     const mat = (map: THREE.Texture, opacity: number) =>
       new THREE.SpriteMaterial({ map, transparent: true, opacity, depthWrite: false, sizeAttenuation: false, toneMapped: false });
     const dot = new THREE.Sprite(mat(solidTex, 0.9));
     dot.scale.setScalar(0.022);
     const ring = new THREE.Sprite(mat(ringTex, 0));
     ring.scale.setScalar(0.022);
-    dot.userData.ignoreRaycast = true;
-    ring.userData.ignoreRaycast = true;
     for (const s of [dot, ring]) {
-      s.userData.projectId = project.id;
-      s.position.copy(dotPos);
+      s.userData.ignoreRaycast = true;
+      s.userData.projectId = target.id;
+      s.position.copy(target.dotPos);
       s.layers.set(OVERLAY_LAYER);
       s.renderOrder = 10;
       scene.add(s);
     }
-    items.set(project.id, { project, built, anchor, dotPos, dot, ring, activity: 0, visited: false });
+    items.set(target.id, { target, dot, ring, activity: 0, visited: false });
   }
 
-  /** Screen-space radius around a visible dot that counts as hovering its object. */
-  const DOT_RADIUS_PX = 30;
-  /** Once hovered, an object stays hovered within this wider radius (hysteresis). */
-  const DOT_RETAIN_PX = 64;
   const raycaster = new THREE.Raycaster();
   raycaster.layers.enableAll();
   const occluder = new THREE.Raycaster();
@@ -132,6 +125,8 @@ export function createInteraction(opts: {
   // Picking is skipped on frames where neither the pointer nor the view has meaningfully moved.
   let pointerDirty = true;
   let lastPicked: string | null = null;
+  /** True when the current hover was acquired by looking rather than by pointing. */
+  let lastCentred = false;
   const lastPickQuat = new THREE.Quaternion();
   let hovered: string | null = null;
   let forced: string | null = null;
@@ -150,36 +145,28 @@ export function createInteraction(opts: {
     return (o?.userData.projectId as string | undefined) ?? null;
   }
 
-  function dotUnoccluded(id: string, item: Interactable) {
-    toDot.copy(item.dotPos).sub(camera.position);
+  function dotUnoccluded(id: string, item: Item) {
+    toDot.copy(item.target.dotPos).sub(camera.position);
     const dist = toDot.length();
     occluder.set(camera.position, toDot.normalize());
     occluder.far = dist;
-    const hit = occluder
-      .intersectObjects(scene.children, true)
-      .find((h) => h.object.visible && !h.object.userData.ignoreRaycast);
+    const hit = occluder.intersectObjects(scene.children, true).find((h) => h.object.visible && !h.object.userData.ignoreRaycast);
     if (!hit || hit.distance > dist - 0.03) return true;
     let o: THREE.Object3D | null = hit.object;
     while (o && o.userData.projectId === undefined) o = o.parent;
     return o?.userData.projectId === id;
   }
 
-  function pick(): string | null {
-    if (!pointerInside) return null;
-    const direct = pickAt(ndc);
+  /** Nearest target to a screen point: a direct hit, or a visible dot within the radius. */
+  function pickNear(point: THREE.Vector2, radius: number): string | null {
+    const direct = pickAt(point);
     if (direct) return direct;
-    // Generous target: a visible, unoccluded attention dot near the cursor stands in for its object.
-    const px = (ndc.x * 0.5 + 0.5) * window.innerWidth;
-    const py = (-ndc.y * 0.5 + 0.5) * window.innerHeight;
-    if (hovered && !forced) {
-      const current = items.get(hovered)!;
-      const s = screenOf(current.dotPos);
-      if (s.visible && Math.hypot(s.x - px, s.y - py) < DOT_RETAIN_PX && dotUnoccluded(hovered, current)) return hovered;
-    }
+    const px = (point.x * 0.5 + 0.5) * window.innerWidth;
+    const py = (-point.y * 0.5 + 0.5) * window.innerHeight;
     let best: string | null = null;
-    let bestDist = DOT_RADIUS_PX;
+    let bestDist = radius;
     for (const [id, item] of items) {
-      const s = screenOf(item.dotPos);
+      const s = screenOf(item.target.dotPos);
       if (!s.visible) continue;
       const d = Math.hypot(s.x - px, s.y - py);
       if (d < bestDist && dotUnoccluded(id, item)) {
@@ -188,6 +175,34 @@ export function createInteraction(opts: {
       }
     }
     return best;
+  }
+
+  const CENTRE = new THREE.Vector2(0, 0);
+
+  function pick(): string | null {
+    lastCentred = false;
+    if (!pointerInside) return null;
+    const atPointer = pickNear(ndc, INTERACTION.dotRadiusPx);
+    if (atPointer) return atPointer;
+    // Hysteresis: once hovered, an object keeps the hover within a wider radius.
+    if (hovered && !forced) {
+      const px = (ndc.x * 0.5 + 0.5) * window.innerWidth;
+      const py = (-ndc.y * 0.5 + 0.5) * window.innerHeight;
+      const current = items.get(hovered)!;
+      const s = screenOf(current.target.dotPos);
+      if (s.visible && Math.hypot(s.x - px, s.y - py) < INTERACTION.dotRetainPx && dotUnoccluded(hovered, current)) return hovered;
+    }
+    // Pushed to the edge of the look range: the cursor is steering, so read the centre of the
+    // frame instead. Without this, anything only reachable at full yaw — the bookshelf — can
+    // never be hovered, because reaching it moves it away from the cursor.
+    if (lookExtent() > 0.78) {
+      const centred = pickNear(CENTRE, INTERACTION.centreRadiusPx);
+      if (centred) {
+        lastCentred = true;
+        return centred;
+      }
+    }
+    return null;
   }
 
   function screenOf(p: THREE.Vector3) {
@@ -203,9 +218,23 @@ export function createInteraction(opts: {
     };
   }
 
+  function outlineFor(id: string | null) {
+    if (!id) return [];
+    const item = items.get(id)!;
+    return item.target.outline ? item.target.outline() : [item.target.group];
+  }
+
   return {
     get hoveredId() {
       return hovered;
+    },
+    /**
+     * Whether the hover came from the centre-of-frame fallback. The camera must not freeze for
+     * these: the visitor is mid-turn, and holding would strand them on the first object the
+     * view sweeps past instead of letting them reach the one they are turning toward.
+     */
+    get hoverIsCentred() {
+      return lastCentred;
     },
     setPointer(x: number, y: number, inside: boolean) {
       ndc.set(x, y);
@@ -227,14 +256,26 @@ export function createInteraction(opts: {
         item.dot.material.needsUpdate = true;
       }
     },
+    /** Re-read the outline for the current target: used when the shelf changes selection. */
+    refreshOutline() {
+      const id = focused ?? hovered;
+      outline.selectedObjects = outlineFor(id);
+      outline.enabled = outline.selectedObjects.length > 0;
+    },
+    /** Keep an object outlined while it is being examined (the shelf stays lit while browsing). */
+    holdOutline(id: string | null) {
+      outline.selectedObjects = outlineFor(id);
+      outline.enabled = outline.selectedObjects.length > 0;
+    },
     focusTarget(id: string): FocusTarget {
-      const item = items.get(id)!;
-      const { distance, yaw, pitch } = item.project.focus;
-      return { center: item.anchor.clone(), distance, yaw, pitch };
+      return items.get(id)!.target.focus();
+    },
+    titleOf(id: string) {
+      return items.get(id)?.target.title ?? '';
     },
     screenPositionOf(id: string) {
       const item = items.get(id);
-      return item ? screenOf(item.anchor) : null;
+      return item ? screenOf(item.target.anchor) : null;
     },
     /** Raw intersections under a client point, for diagnosing picking in the browser. */
     debugPick(clientX: number, clientY: number) {
@@ -259,7 +300,7 @@ export function createInteraction(opts: {
     },
     debugDots() {
       return [...items].map(([id, item]) => {
-        const s = screenOf(item.dotPos);
+        const s = screenOf(item.target.dotPos);
         let unoccluded: boolean | string;
         try {
           unoccluded = dotUnoccluded(id, item);
@@ -276,14 +317,14 @@ export function createInteraction(opts: {
     hitPositionOf(id: string) {
       const item = items.get(id);
       if (!item) return null;
-      const dot = screenOf(item.dotPos);
+      const dot = screenOf(item.target.dotPos);
       if (dot.visible && dotUnoccluded(id, item)) return dot;
       const candidates: THREE.Vector3[] = [];
-      item.built.group.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (!m.isMesh) return;
-        m.geometry.computeBoundingSphere();
-        candidates.push(m.localToWorld(m.geometry.boundingSphere!.center.clone()));
+      item.target.group.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        mesh.geometry.computeBoundingSphere();
+        candidates.push(mesh.localToWorld(mesh.geometry.boundingSphere!.center.clone()));
       });
       for (const p of candidates) {
         const s = screenOf(p);
@@ -312,15 +353,17 @@ export function createInteraction(opts: {
       if (next !== hovered) {
         hovered = next;
         document.body.classList.toggle('is-hovering', !!picked);
-        outline.selectedObjects = hovered ? [items.get(hovered)!.built.group] : [];
-        outline.enabled = hovered !== null;
-        if (hovered) label.textContent = items.get(hovered)!.project.title;
+        if (!focused) {
+          outline.selectedObjects = outlineFor(hovered);
+          outline.enabled = hovered !== null;
+        }
+        if (hovered) label.textContent = items.get(hovered)!.target.title;
       }
 
       for (const [id, item] of items) {
         const wanted = id === hovered || id === focused ? 1 : 0;
         item.activity = THREE.MathUtils.lerp(item.activity, wanted, 1 - Math.exp(-4 * dt));
-        item.built.tick?.(time, item.activity);
+        item.target.tick?.(time, item.activity);
 
         // Dots stay quiet: fade entirely while examining something.
         const base = focused ? 0 : item.visited ? 0.55 : 0.9;
@@ -340,7 +383,7 @@ export function createInteraction(opts: {
       }
 
       if (hovered && !focused) {
-        const s = screenOf(items.get(hovered)!.dotPos);
+        const s = screenOf(items.get(hovered)!.target.dotPos);
         label.style.transform = `translate(${s.x}px, ${s.y - 16}px) translate(-50%, -100%)`;
         label.classList.toggle('is-visible', s.visible);
       } else {

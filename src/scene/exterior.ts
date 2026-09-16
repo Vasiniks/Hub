@@ -12,6 +12,8 @@ export interface ExteriorState {
   sunDirection: THREE.Vector3;
   sunColor: THREE.Color;
   sunVisible: number;
+  /** 0 by day, 1 deep at night: drives the lit windows across the skyline. */
+  night: number;
 }
 
 function silhouette(width: number, base: number, amp: number, seed: number, steps: number) {
@@ -31,6 +33,68 @@ function silhouette(width: number, base: number, amp: number, seed: number, step
   shape.lineTo(width / 2, -2);
   shape.closePath();
   return new THREE.ShapeGeometry(shape);
+}
+
+/**
+ * §10: the skyline keeps a little life after dark. Scattered lit windows across the two
+ * silhouette bands, as one additive point cloud that fades out completely by day — so the
+ * night window has something to look at without brightening the room.
+ */
+function cityLights(bands: { z: number; width: number; top: number; count: number; seed: number }[]) {
+  const total = bands.reduce((n, b) => n + b.count, 0);
+  const positions = new Float32Array(total * 3);
+  const shades = new Float32Array(total);
+  let i = 0;
+  for (const band of bands) {
+    let s = band.seed;
+    const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    for (let n = 0; n < band.count; n++) {
+      // Quantised to a loose grid so they read as windows rather than as stars.
+      positions[i * 3] = Math.round((r() - 0.5) * band.width * 6) / 6;
+      positions[i * 3 + 1] = 0.12 + Math.round(r() * band.top * 12) / 12;
+      positions[i * 3 + 2] = band.z;
+      shades[i] = 0.35 + r() * 0.65;
+      i++;
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('shade', new THREE.BufferAttribute(shades, 1));
+  const uniforms = { uNight: { value: 0 } };
+  const material = new THREE.ShaderMaterial({
+    uniforms,
+    fog: false,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    vertexShader: /* glsl */ `
+      attribute float shade;
+      uniform float uNight;
+      varying float vShade;
+      void main() {
+        vShade = shade * uNight;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_Position = projectionMatrix * mv;
+        gl_PointSize = max(1.5, 26.0 / max(-mv.z, 0.05));
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      varying float vShade;
+      void main() {
+        if (vShade < 0.01) discard;
+        vec2 d = gl_PointCoord - 0.5;
+        if (max(abs(d.x), abs(d.y)) > 0.4) discard;
+        // Warm interiors with a few cooler ones mixed in.
+        vec3 warm = mix(vec3(0.55, 0.72, 1.0), vec3(1.0, 0.82, 0.55), step(0.55, vShade));
+        gl_FragColor = vec4(warm * vShade * 0.7, 1.0);
+      }
+    `,
+  });
+  const points = new THREE.Points(geometry, material);
+  points.userData.ignoreRaycast = true;
+  points.userData.noMerge = true;
+  points.frustumCulled = false;
+  return { points, uniforms };
 }
 
 export function createExterior(scene: THREE.Scene, observer: THREE.Vector3) {
@@ -69,7 +133,7 @@ export function createExterior(scene: THREE.Scene, observer: THREE.Vector3) {
         vec3 sky = mix(uHorizon, uZenith, pow(up, 0.6));
         sky = mix(sky, uGround, smoothstep(0.0, -0.3, d.y));
         float s = max(dot(d, uSunDir), 0.0);
-        sky += uSunColor * uSunVisible * (pow(s, 1800.0) * 60.0 + pow(s, 64.0) * 1.6 + pow(s, 6.0) * 0.25);
+        sky += uSunColor * uSunVisible * (pow(s, 1800.0) * 60.0 + pow(s, 90.0) * 1.3 + pow(s, 10.0) * 0.14);
         gl_FragColor = vec4(sky, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -87,6 +151,13 @@ export function createExterior(scene: THREE.Scene, observer: THREE.Vector3) {
   const near = new THREE.Mesh(silhouette(11, 0.55, 0.8, 5, 30), nearMat);
   near.position.set(-0.3, 0, -3.9);
   group.add(far, near);
+
+  const lights = cityLights([
+    { z: -4.88, width: 13, top: 1.5, count: 150, seed: 31 },
+    { z: -3.88, width: 10, top: 1.1, count: 90, seed: 77 },
+  ]);
+  lights.points.position.set(-0.3, 0, 0);
+  group.add(lights.points);
 
   for (const m of [sky, far, near]) {
     m.castShadow = false;
@@ -108,6 +179,7 @@ export function createExterior(scene: THREE.Scene, observer: THREE.Vector3) {
       // Aerial perspective: distant layers dissolve toward the horizon colour.
       farMat.color.copy(_haze.copy(state.horizon).lerp(state.ground, 0.35));
       nearMat.color.copy(_haze.copy(state.horizon).lerp(state.ground, 0.62));
+      lights.uniforms.uNight.value = state.night;
     },
   };
 }

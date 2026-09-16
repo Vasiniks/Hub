@@ -5,7 +5,7 @@ const hour = process.argv[2] ?? '21';
 const label = process.argv[3] ?? 'baseline';
 const chrome = process.env.CHROME_PATH ?? '/Applications/Google Chrome 3.app/Contents/MacOS/Google Chrome';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist', '--disable-gpu-vsync', '--disable-frame-rate-limit'] });
+const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist', ] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
 page.on('pageerror', (e) => console.log('ERROR', e.message));
 await page.addInitScript(() => {
@@ -16,6 +16,13 @@ await page.addInitScript(() => {
   raf(tick);
 });
 await page.goto(`http://127.0.0.1:5173/?debug&hour=${hour}`, { waitUntil: 'commit' });
+// When did the loading screen actually go away?
+const loaderGone = await page.evaluate(async () => {
+  const t0 = performance.now();
+  const el = document.getElementById('loader');
+  while (el && !el.hidden && performance.now() - t0 < 30000) await new Promise((r) => setTimeout(r, 16));
+  return performance.now() - window.__trace.t0;
+}).catch(() => null);
 await wait(16000);
 const trace = await page.evaluate(() => ({
   frames: window.__trace.frames,
@@ -25,6 +32,7 @@ const trace = await page.evaluate(() => ({
 const f = trace.frames;
 const firstVisible = f.findIndex((x, i) => i > 2 && x[1] < 300);
 console.log(`\n== ${label} hour=${hour} ==`);
+console.log('loading screen hidden at:', loaderGone ? loaderGone.toFixed(0) + 'ms' : 'n/a');
 console.log('total frames in 16s:', f.length);
 const gaps = f.filter((x) => x[1] > 60).slice(0, 14);
 console.log('gaps >60ms:', JSON.stringify(gaps));

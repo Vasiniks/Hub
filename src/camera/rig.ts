@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { RoomRefs } from '../scene/room';
+import { CAMERA } from '../scene/layout';
 
 export type RigMode = 'standing' | 'sitting' | 'seated' | 'focusing' | 'focused' | 'returning';
 
@@ -8,6 +9,11 @@ export interface FocusTarget {
   distance: number;
   yaw: number;
   pitch: number;
+  /**
+   * How far to aim right of the object, as a fraction of `distance`, so it sits left of centre
+   * beside the panel. The bookshelf wants a near-centred frame, so it passes a small value.
+   */
+  offset?: number;
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -57,10 +63,10 @@ export class CameraRig {
   private readonly room: RoomRefs;
   private readonly reduced: boolean;
 
-  private readonly standPos = new THREE.Vector3(1.0, 1.63, 0.92);
-  private readonly standLook = yawPitchTo(this.standPos, new THREE.Vector3(-0.28, 1.02, -0.9));
-  private readonly seatPos = new THREE.Vector3(0.0, 1.17, 0.14);
-  private readonly seatLook = yawPitchTo(this.seatPos, new THREE.Vector3(-0.03, 1.04, -0.9));
+  private readonly standPos = new THREE.Vector3(...CAMERA.stand.position);
+  private readonly standLook = yawPitchTo(this.standPos, new THREE.Vector3(...CAMERA.stand.lookAt));
+  private readonly seatPos = new THREE.Vector3(...CAMERA.seat.position);
+  private readonly seatLook = yawPitchTo(this.seatPos, new THREE.Vector3(...CAMERA.seat.lookAt));
 
   private pointer = new THREE.Vector2();
   private lookYaw = 0;
@@ -99,6 +105,22 @@ export class CameraRig {
     this.pointer.set(nx, ny);
   }
 
+  /**
+   * How hard the head is turned toward its limit, 0 at rest and 1 at the edge.
+   *
+   * Picking uses this: in the middle of the screen the cursor is pointing at things, but once
+   * the visitor has pushed the view all the way over, they are turning to look at something —
+   * and whatever they are reaching for is in the centre of the frame, not under the cursor.
+   */
+  lookExtent() {
+    const standing = this.mode === 'standing';
+    const yawRange = standing ? CAMERA.standYaw : CAMERA.seatYaw;
+    const pitchRange = standing ? CAMERA.standPitch : CAMERA.seatPitch;
+    const yaw = Math.abs(this.lookYaw) / (this.lookYaw >= 0 ? yawRange[0] : yawRange[1]);
+    const pitch = Math.abs(this.lookPitch) / (this.lookPitch >= 0 ? pitchRange[1] : pitchRange[0]);
+    return Math.max(yaw, pitch);
+  }
+
   sitDown() {
     if (this.mode !== 'standing') return false;
     this.begin('sitting', this.reduced ? 0.9 : 2.9);
@@ -123,7 +145,7 @@ export class CameraRig {
     // Aim slightly to the right of the object so it sits left of centre, beside the panel.
     const forward = center.clone().sub(this.toPos).normalize();
     const right = new THREE.Vector3().crossVectors(forward, UP).normalize();
-    const aim = center.clone().addScaledVector(right, distance * 0.3);
+    const aim = center.clone().addScaledVector(right, distance * (target.offset ?? 0.3));
     this.toQuat.copy(lookQuaternion(this.toPos, aim));
 
     const lift = Math.min(0.12, distance * 0.08);
@@ -166,8 +188,8 @@ export class CameraRig {
       this.targetYaw = this.lookYaw;
       this.targetPitch = this.lookPitch;
     } else {
-      const sx = shapeAxis(this.pointer.x, 0.3);
-      const sy = shapeAxis(this.pointer.y, 0.28);
+      const sx = shapeAxis(this.pointer.x, CAMERA.deadZoneX);
+      const sy = shapeAxis(this.pointer.y, CAMERA.deadZoneY);
       this.targetYaw = sx > 0 ? -sx * yawRange[1] : -sx * yawRange[0];
       this.targetPitch = sy > 0 ? sy * pitchRange[1] : sy * pitchRange[0];
     }
@@ -207,7 +229,7 @@ export class CameraRig {
 
     switch (this.mode) {
       case 'standing': {
-        this.updateLook(dt, [0.32, 0.32], [0.16, 0.12]);
+        this.updateLook(dt, CAMERA.standYaw, CAMERA.standPitch);
         this.camera.position.copy(this.standPos).y += idle.y * 1.4;
         this.camera.quaternion.copy(this.baseQuat(this.standLook, this.lookYaw + idle.yaw * 1.3, this.lookPitch + idle.pitch));
         break;
@@ -242,7 +264,7 @@ export class CameraRig {
       }
       case 'seated': {
         this.lookBlend = Math.min(1, this.lookBlend + dt / 1.2);
-        this.updateLook(dt * this.lookBlend, [1.2, 1.25], [0.78, 0.38]);
+        this.updateLook(dt * this.lookBlend, CAMERA.seatYaw, CAMERA.seatPitch);
         this.camera.position.copy(this.seatPos).y += idle.y;
         this.camera.quaternion.copy(this.baseQuat(this.seatLook, this.lookYaw + idle.yaw, this.lookPitch + idle.pitch));
         break;

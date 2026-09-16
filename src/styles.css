@@ -242,7 +242,122 @@ kbd {
   cursor: pointer;
 }
 
+
+/* ---- Loading state -------------------------------------------------------
+   A bar on an empty field. It only moves when a preparation stage finishes. */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-content: center;
+  gap: 18px;
+  background: #0f1216;
+  transition: opacity 400ms var(--ease-out);
+}
+.loader.is-done { opacity: 0; pointer-events: none; }
+.loader-track {
+  width: 260px;
+  height: 2px;
+  background: rgba(233, 236, 239, 0.14);
+  overflow: hidden;
+}
+.loader-fill {
+  height: 100%;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 420ms var(--ease-out);
+}
+.loader-label {
+  margin: 0;
+  text-align: center;
+  font: 400 12px/1 var(--font);
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--ink-faint);
+}
+.loader.is-failed .loader-fill { background: var(--signal); }
+
+/* ---- Music widget --------------------------------------------------------
+   Present, small, and inert until a real player source is connected. */
+.music {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px 7px 8px;
+  background: rgba(16, 19, 23, 0.42);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out);
+}
+.music.is-visible { opacity: 1; transform: translateY(0); }
+.music:hover { background: rgba(16, 19, 23, 0.58); }
+.music-toggle {
+  display: grid;
+  place-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  color: var(--ink);
+  cursor: pointer;
+}
+.music-toggle:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.music-glyph { display: flex; align-items: flex-end; gap: 2px; height: 11px; }
+.music-glyph i {
+  width: 2px;
+  height: 4px;
+  background: var(--ink-soft);
+  transform-origin: bottom center;
+}
+.music.is-playing .music-glyph i { animation: music-bar 1200ms var(--ease-out) infinite alternate; }
+.music.is-playing .music-glyph i:nth-child(2) { animation-delay: 160ms; }
+.music.is-playing .music-glyph i:nth-child(3) { animation-delay: 320ms; }
+@keyframes music-bar { from { height: 3px; } to { height: 11px; } }
+.music-meta { display: flex; flex-direction: column; gap: 2px; }
+.music-title { font: 500 12px/1.1 var(--font-cond); letter-spacing: 0.02em; color: var(--ink); }
+.music-artist { font: 400 10px/1.1 var(--font); color: var(--ink-faint); }
+.music-progress {
+  width: 52px;
+  height: 2px;
+  background: rgba(233, 236, 239, 0.14);
+  overflow: hidden;
+}
+.music-progress i { display: block; height: 100%; background: var(--ink-soft); transform: scaleX(0); transform-origin: left center; }
+.music-note { font: 400 10px/1 var(--font); color: var(--ink-faint); }
+
+/* ---- Bookshelf browsing --------------------------------------------------
+   The shelf explains itself through the objects; this is the one line of text. */
+.shelf-caption {
+  position: fixed;
+  left: 50%;
+  bottom: 76px;
+  transform: translate(-50%, 6px);
+  margin: 0;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 320ms var(--ease-out), transform 320ms var(--ease-out);
+}
+.shelf-caption.is-visible { opacity: 1; transform: translate(-50%, 0); }
+.shelf-caption b { display: block; font: 600 17px/1.2 var(--font-cond); letter-spacing: 0.01em; color: var(--ink); }
+.shelf-caption span { font: 400 12px/1.4 var(--font); color: var(--ink-faint); }
+
 @media (prefers-reduced-motion: reduce) {
-  #veil, .hint, .hover-label, .panel { transition-duration: 1ms !important; }
+  #veil, .hint, .hover-label, .panel, .loader, .loader-fill, .music, .shelf-caption {
+    transition-duration: 1ms !important;
+  }
   .panel { filter: none; transform: translate(0, -50%); }
+  .music.is-playing .music-glyph i { animation: none; height: 7px; }
 }
