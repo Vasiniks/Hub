@@ -50,7 +50,11 @@ async function start() {
 
   // Models come from the Blender pipeline. Everything loads before the room is built, so no
   // asset can arrive mid-interaction and cause a hitch.
-  const assets = await loadAssets([{ name: 'lamp', file: 'lamp.glb' }]);
+  const assets = await loadAssets([
+    { name: 'lamp', file: 'lamp.glb' },
+    { name: 'mouse', file: 'mouse.glb' },
+    { name: 'macbook', file: 'macbook.glb' },
+  ]);
   loader.advance('building the room');
 
   const materials = createMaterials();

@@ -104,16 +104,26 @@ def apply_transforms(obj):
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
 
-def recentre(obj, mode='base'):
-    """Move the mesh so the origin sits where the object naturally rests."""
-    apply_transforms(obj)
-    lo, hi = world_bounds([obj])
+def recentre(objs, mode='base'):
+    """
+    Move a whole group so its origin sits where the object naturally rests.
+
+    Takes a list, deliberately. Recentring one object of an assembly and leaving the rest is
+    how the lamp's head and the mouse's scroll wheel both ended up floating beside their
+    bodies — every part has to move by the same vector.
+    """
+    if not isinstance(objs, (list, tuple)):
+        objs = [objs]
+    for o in objs:
+        apply_transforms(o)
+    lo, hi = world_bounds(objs)
     mid = (lo + hi) / 2
     offset = mathutils.Vector((-mid.x, -mid.y, -lo.z if mode == 'base' else -mid.z))
-    me = obj.data
-    for v in me.vertices:
-        v.co += offset
-    me.update()
+    for o in objs:
+        for v in o.data.vertices:
+            v.co += offset
+        o.data.update()
+    return offset
 
 
 def scale_to(obj, axis, target):

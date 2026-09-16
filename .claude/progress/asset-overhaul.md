@@ -27,6 +27,12 @@ Last verified commit: see `git log` (each checkpoint below is one commit).
 - Placing a part by measuring an extreme vertex or a part centroid is fragile on a scanned
   mesh. For the lamp the reliable answer was: project along a known direction and take the
   extreme vertex.
+- `lib.recentre()` takes a **list**. Recentring one object of an assembly and leaving the rest
+  is how the lamp head and the mouse wheel both ended up floating beside their bodies.
+- A POLY curve converted to mesh has edges but no face, so Solidify thickens nothing — build
+  profiles as an n-gon with bmesh instead.
+- `cube()` applies transforms, so reading `.location` back afterwards returns zero. Pass
+  positions in; do not read them back.
 - glTF export is Y-up; Blender is Z-up. `lib.to_gltf()` converts, and placement metadata is
   written in glTF space.
 
@@ -34,9 +40,12 @@ Last verified commit: see `git log` (each checkpoint below is one commit).
 
 - [x] **lamp** — Poly Haven CC0 spring arm, shade + clamp replaced, 3.8k tris, 216 KB.
       Integrated, lit, aimed, medals hung. `LAMP` in `layout.ts` holds yaw/scale/medal anchors.
-- [ ] mouse (Blender, from scratch — no CC0 source exists)
+- [x] **mouse** — Blender, from scratch. Dome over a tapered footprint; click split and palm
+      seam are boolean grooves. 3.9k tris, 99 KB.
 - [ ] keyboard TKL
-- [ ] MacBook + stand
+- [x] **MacBook + stand** — Blender, from scratch. One solid body with a bevel all round,
+      boolean port/notch recesses, real rounded hinge; body and riser tilt together so they
+      cannot intersect. 1.8k tris, 75 KB.
 - [ ] monitor
 - [ ] GAN cube
 - [ ] books

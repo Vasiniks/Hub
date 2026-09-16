@@ -100,85 +100,33 @@ function buildMonitor(root: THREE.Group, m: Materials): Pick<DeskRefs, 'screen' 
 }
 
 /**
- * §4/§17: closed, on an inclined riser, sloping up and away from the visitor.
+ * §10: the MacBook, closed on an inclined riser, sloping up and away from the visitor.
  *
- * The riser is a real extruded side profile with a front lip, and the laptop sits on the deck
- * plane that profile defines — so the arms cannot punch through the body, and the contact is
- * an actual contact rather than two shapes overlapping. The rear edge is a cylinder, which is
- * what a closed laptop's hinge reads as from behind.
+ * Geometry from `assets/processed/macbook.glb` (`blender/scripts/build_macbook.py`). The body
+ * is one solid with a bevel all round, the port cutouts and the front notch are boolean
+ * recesses rather than dark boxes laid on the surface, and the rear edge is a real rounded
+ * hinge. Body and riser are built in the deck's own frame and tilted together, so the arms
+ * cannot pass through the body at any angle.
  */
-function buildMacBook(root: THREE.Group, m: Materials) {
-  const { x, z, rotationY, tilt } = DESKTOP.macbook;
+function buildMacBook(root: THREE.Group, m: Materials, assets: Assets) {
+  const { x, z, rotationY } = DESKTOP.macbook;
   const g = at(new THREE.Group(), x, DESK.top, z, root);
   g.rotation.y = rotationY;
-
-  // Side profile in the ZY plane: foot, back post, deck line, front lip.
-  const BACK_Z = -0.112;
-  const FRONT_Z = 0.104;
-  const BACK_Y = 0.086;
-  const FRONT_Y = 0.022;
-  const profile = new THREE.Shape();
-  // Back post, deck line falling toward the visitor, then a short lip that stops the body
-  // sliding forward. The lip is 5mm — enough to catch the front edge, not a pillar.
-  profile.moveTo(BACK_Z, 0.004);
-  profile.lineTo(BACK_Z, BACK_Y);
-  profile.lineTo(FRONT_Z - 0.012, FRONT_Y);
-  profile.lineTo(FRONT_Z, FRONT_Y + 0.005);
-  profile.lineTo(FRONT_Z + 0.006, FRONT_Y + 0.005);
-  profile.lineTo(FRONT_Z + 0.006, 0.004);
-  profile.lineTo(FRONT_Z - 0.03, 0.004);
-  profile.lineTo(BACK_Z + 0.03, 0.004);
-  profile.closePath();
-  const armGeo = new THREE.ExtrudeGeometry(profile, { depth: 0.016, bevelEnabled: true, bevelSize: 0.0014, bevelThickness: 0.0014, bevelSegments: 1, curveSegments: 1 });
-  // Extrude runs along +z; stand it up so the profile lies in the room's ZY plane. The sign
-  // matters: +PI/2 mirrors the profile in z and puts the tall back post at the front.
-  armGeo.rotateY(-Math.PI / 2);
-
-  for (const side of [-1, 1]) {
-    const arm = at(shadowed(new THREE.Mesh(armGeo, m.aluminum)), side * 0.131 + 0.008, 0, 0, g);
-    at(rbox(0.02, 0.005, 0.032, m.rubber, 0.002), side * 0.131, 0.0032, BACK_Z + 0.022, g);
-    at(rbox(0.02, 0.005, 0.032, m.rubber, 0.002), side * 0.131, 0.0032, FRONT_Z - 0.026, g);
-    void arm;
-  }
-  // Cross brace between the arms, tucked under the deck so it never meets the body.
-  const brace = at(rbox(0.24, 0.01, 0.026, m.aluminumDark, 0.003), 0, 0.058, BACK_Z + 0.03, g);
-  brace.rotation.x = tilt;
-
-  // The deck plane the laptop rests on, defined by the profile's top edge.
-  const deckMidZ = (BACK_Z + FRONT_Z) / 2;
-  const deckMidY = (BACK_Y + FRONT_Y) / 2;
-  const deck = at(new THREE.Group(), 0, deckMidY, deckMidZ, g);
-  // Positive rotation drops the front and lifts the back: the slope runs away from the visitor.
-  deck.rotation.x = Math.atan2(BACK_Y - FRONT_Y, FRONT_Z - BACK_Z);
-
-  // Grip strips where the body actually touches the deck.
-  for (const gz of [BACK_Z - deckMidZ + 0.024, FRONT_Z - deckMidZ - 0.028]) {
-    at(rbox(0.2, 0.0025, 0.014, m.rubber, 0.001), 0, 0.0012, gz, deck);
-  }
-
-  // Body: base and lid as separate slabs, a hair apart, with a cylindrical rear edge.
-  const W = 0.304;
-  const D = 0.2;
-  at(rbox(W, 0.0095, D, m.aluminum, 0.0028), 0, 0.00725, 0.004, deck);
-  at(rbox(W - 0.004, 0.0072, D - 0.003, m.aluminum, 0.0024), 0, 0.0156, 0.004, deck);
-  const hinge = at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.0084, 0.0084, W - 0.028, 18), m.aluminumDark)), 0, 0.0113, -0.0955, deck);
-  hinge.rotation.z = Math.PI / 2;
-  // Seam between lid and base, and the notch under the front edge.
-  for (const side of [-1, 1]) at(rbox(0.0016, 0.0014, D - 0.02, m.aluminumDark, 0.0004), side * (W / 2 - 0.0012), 0.0119, 0.004, deck);
-  at(rbox(0.058, 0.0042, 0.0035, m.aluminumDark, 0.001), 0, 0.0115, D / 2 + 0.0038, deck);
-  // Ports on the left flank.
-  for (const pz of [-0.03, 0.006, 0.042]) at(rbox(0.0035, 0.0036, 0.0155, m.plasticBlack, 0.001), -W / 2 + 0.0008, 0.0092, pz, deck);
+  const model = assets.instance('macbook');
+  assets.retint(model, { mb_alu: m.aluminum, mb_dark: m.aluminumDark, mb_rubber: m.rubber });
+  g.add(model);
 
   // Charge cable leaving the left flank and dropping behind the desk.
-  deck.updateMatrixWorld(true);
-  const port = deck.localToWorld(new THREE.Vector3(-W / 2, 0.0092, 0.006));
+  g.updateMatrixWorld(true);
+  const port = g.localToWorld(new THREE.Vector3(-0.152, 0.075, 0.0));
   const cable = new THREE.CatmullRomCurve3([
     port,
     port.clone().add(new THREE.Vector3(-0.09, -0.028, -0.05)),
     port.clone().add(new THREE.Vector3(-0.13, -0.05, -0.16)),
-    port.clone().add(new THREE.Vector3(-0.1, -0.056, -0.28)),
+    port.clone().add(new THREE.Vector3(-0.1, -0.058, -0.28)),
   ]);
   root.add(shadowed(new THREE.Mesh(new THREE.TubeGeometry(cable, 26, 0.0034, 6), m.plasticWhite)));
+  return g;
 }
 
 // TKL, 87 keys. Each row is a list of key widths in units; a negative entry is a gap.
@@ -314,109 +262,27 @@ function buildKeyboard(root: THREE.Group, m: Materials) {
 }
 
 /**
- * §5: a real ergonomic shell.
+ * §8: the mouse.
  *
- * A mouse is a dome over a tapered footprint, so that is what this builds: for each station
- * along the length, a cross-section arch whose width and height follow profile curves — narrow
- * low nose, widest just behind the middle, tallest at about two thirds back, tail rolling down
- * to the desk. An extruded outline cannot do this; it gives a flat-topped puck.
- *
- * `u` runs across the body (-1..1) and `t` along it (0 nose .. 1 tail), so the same function
- * also generates the seam ribbons — they follow the dome exactly instead of floating over it.
+ * Geometry from `assets/processed/mouse.glb` (`blender/scripts/build_mouse.py`). The shape is
+ * a dome over a tapered footprint — nose low and narrow, palm rest tallest about two thirds
+ * back — but what makes it read is the part that needs Blender: the click split and the palm
+ * seam are boolean grooves cut into the shell, so they are real recesses that catch a shadow
+ * rather than strips laid on top of it.
  */
-const mouseHalfWidth = (t: number, W: number) => (W / 2) * Math.pow(Math.sin(Math.PI * Math.pow(t, 1.15)), 0.36);
-const mouseHeight = (t: number, H: number) => H * Math.pow(Math.sin(Math.PI * Math.pow(t, 1.5)), 0.62);
-const mouseArch = (u: number) => Math.pow(Math.max(0, 1 - u * u), 0.42);
-
-function mouseSurface(
-  W: number,
-  L: number,
-  H: number,
-  range: { u0: number; u1: number; t0: number; t1: number; lift?: number; nz?: number; nx?: number },
-) {
-  const { u0, u1, t0, t1, lift = 1, nz = 28, nx = 20 } = range;
-  const verts: number[] = [];
-  const index: number[] = [];
-  for (let i = 0; i <= nz; i++) {
-    const t = t0 + ((t1 - t0) * i) / nz;
-    const hw = mouseHalfWidth(t, W);
-    const h = mouseHeight(t, H);
-    const z = -L / 2 + t * L;
-    for (let j = 0; j <= nx; j++) {
-      const u = u0 + ((u1 - u0) * j) / nx;
-      verts.push(hw * u, h * mouseArch(u) * lift, z);
-    }
-  }
-  for (let i = 0; i < nz; i++) {
-    for (let j = 0; j < nx; j++) {
-      const a = i * (nx + 1) + j;
-      const b = a + nx + 1;
-      index.push(a, b, a + 1, a + 1, b, b + 1);
-    }
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
-  geo.setIndex(index);
-  geo.computeVertexNormals();
-  return geo;
-}
-
-function buildMouse(root: THREE.Group, m: Materials) {
+function buildMouse(root: THREE.Group, m: Materials, assets: Assets) {
   const { x, z, rotationY } = DESKTOP.mouse;
-  const W = 0.063;
-  const L = 0.117;
-  const H = 0.038;
   const g = at(new THREE.Group(), x, DESK.top, z, root);
   g.rotation.y = rotationY;
-
-  at(shadowed(new THREE.Mesh(mouseSurface(W, L, H, { u0: -1, u1: 1, t0: 0, t1: 1 }), m.plasticWhite)), 0, 0, 0, g);
-
-  // Seams, generated from the same surface so they sit in the shell rather than on it.
-  const seam = new THREE.MeshStandardMaterial({ color: '#9ba2aa', roughness: 0.68 });
-  const split = at(new THREE.Mesh(mouseSurface(W, L, H, { u0: -0.022, u1: 0.022, t0: 0.05, t1: 0.54, lift: 1.004, nz: 14, nx: 2 }), seam), 0, 0, 0, g);
-  const cross = at(new THREE.Mesh(mouseSurface(W, L, H, { u0: -0.93, u1: 0.93, t0: 0.535, t1: 0.552, lift: 1.004, nz: 1, nx: 18 }), seam), 0, 0, 0, g);
-  split.castShadow = cross.castShadow = false;
-  split.receiveShadow = cross.receiveShadow = true;
-
-  // Scroll wheel, seated in the split at the height the dome actually has there.
-  const wheelT = 0.17;
-  const wheelY = mouseHeight(wheelT, H) - 0.004;
-  const wheelZ = -L / 2 + wheelT * L;
-  at(rbox(0.0145, 0.014, 0.027, m.plasticBlack, 0.002), 0, wheelY - 0.004, wheelZ, g);
-  const wheel = at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.0085, 0.0085, 0.0062, 18), m.plasticGrey)), 0, wheelY, wheelZ, g);
-  wheel.rotation.z = Math.PI / 2;
-  const tread = new THREE.InstancedMesh(new THREE.BoxGeometry(0.0066, 0.0013, 0.0018), m.rubber, 14);
-  const d = new THREE.Object3D();
-  for (let i = 0; i < 14; i++) {
-    const a = (i / 14) * Math.PI * 2;
-    d.position.set(0, Math.sin(a) * 0.0084, Math.cos(a) * 0.0084);
-    d.rotation.set(-a, 0, 0);
-    d.updateMatrix();
-    tread.setMatrixAt(i, d.matrix);
-  }
-  tread.castShadow = true;
-  at(tread, 0, wheelY, wheelZ, g);
-
-  // Thumb buttons, sunk into the left flank at the flank's own height.
-  for (const bt of [0.36, 0.47] as const) {
-    const bw = mouseHalfWidth(bt, W);
-    const btn = at(rbox(0.0035, 0.008, 0.017, seam, 0.0014), -bw + 0.0016, mouseHeight(bt, H) * 0.34, -L / 2 + bt * L, g);
-    btn.rotation.z = 0.16;
-  }
-  // PTFE glides only. A rectangular sole plate would poke out past the tapered footprint at
-  // the nose and tail; the shell already meets the desk all the way round its own outline.
-  for (const [gt, side] of [[0.22, 0], [0.86, -0.5], [0.86, 0.5]] as const) {
-    at(
-      rbox(0.011, 0.0009, 0.0075, m.plasticWhite, 0.0003),
-      mouseHalfWidth(gt, W) * side,
-      0.00045,
-      -L / 2 + gt * L,
-      g,
-    );
-  }
+  const model = assets.instance('mouse');
+  assets.retint(model, {
+    mouse_shell_mat: m.plasticWhite,
+    mouse_grey_mat: m.plasticGrey,
+    mouse_dark_mat: m.plasticBlack,
+  });
+  g.add(model);
   return g;
 }
-
 /**
  * §12: the lamp.
  *
@@ -732,9 +598,9 @@ function buildFloorBins(root: THREE.Group, m: Materials) {
 export function buildDeskSet(root: THREE.Group, m: Materials, assets: Assets): DeskRefs {
   buildDesk(root, m);
   const monitor = buildMonitor(root, m);
-  buildMacBook(root, m);
+  buildMacBook(root, m, assets);
   const kbLeds = buildKeyboard(root, m);
-  buildMouse(root, m);
+  buildMouse(root, m, assets);
   const lamp = buildLamp(root, m, assets);
   buildCube(root);
   buildMug(root, m);
