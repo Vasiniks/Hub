@@ -18,7 +18,8 @@ scene without an entry here. Assets whose licensing is unclear are not used.
 
 No CC0 model exists in the reachable open repositories for: computer mouse, TKL keyboard,
 monitor, MacBook, speedcube. Those are modelled from scratch in Blender instead
-(`blender/scripts/build_*.py`), which is why the pipeline is built around authoring as well
+(`blender/scripts/build_*.py`) — `build_mouse.py`, `build_keyboard.py`, `build_macbook.py`,
+`build_monitor.py`, `build_cube.py` — which contain no third-party geometry, which is why the pipeline is built around authoring as well
 as importing.
 
 If you download something manually from a site that needs an account, drop the source file in

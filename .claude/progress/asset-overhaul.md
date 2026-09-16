@@ -33,6 +33,17 @@ Last verified commit: see `git log` (each checkpoint below is one commit).
   profiles as an n-gon with bmesh instead.
 - `cube()` applies transforms, so reading `.location` back afterwards returns zero. Pass
   positions in; do not read them back.
+- The pipeline applies transforms into vertices, so every exported mesh sits at its group's
+  origin. Use `assets.partCenter()` (bounding-box centre), never `getWorldPosition()`.
+- Blender crashed at startup in Metal backend detection inside the sandbox; run it with
+  `--factory-startup` and outside the sandbox.
+- `mesh.materials.clear()` (inside `lib.set_materials`) resets every polygon's material index
+  to 0. For multi-material bmesh builds, append slots to the mesh *before* `bm.to_mesh()`.
+- `bmesh.ops.bevel` consumes the vertices it rounds — assign anything per-face afterwards from
+  position and normal, not from held references. Bevel before inset, or `clamp_overlap`
+  shrinks the bevel to the inset ring's width.
+- The preview's key light blows camera-facing faces out to white; judge colour in the scene
+  (`__room.parkCamera(p, target, fov)` gives a close-up).
 - glTF export is Y-up; Blender is Z-up. `lib.to_gltf()` converts, and placement metadata is
   written in glTF space.
 
@@ -42,12 +53,19 @@ Last verified commit: see `git log` (each checkpoint below is one commit).
       Integrated, lit, aimed, medals hung. `LAMP` in `layout.ts` holds yaw/scale/medal anchors.
 - [x] **mouse** — Blender, from scratch. Dome over a tapered footprint; click split and palm
       seam are boolean grooves. 3.9k tris, 99 KB.
-- [ ] keyboard TKL
+- [x] **keyboard TKL** — Blender, from scratch, layout included. 87 caps lofted at their own
+      width (constant corner radius), sheared per row sculpt, dished; plate in a boolean well;
+      incline from modelled flip-out feet. 9.6k tris, 289 KB. Replaced ~100k tris of instanced
+      rounded boxes — scene tris 252k → 154k.
 - [x] **MacBook + stand** — Blender, from scratch. One solid body with a bevel all round,
       boolean port/notch recesses, real rounded hinge; body and riser tilt together so they
       cannot intersect. 1.8k tris, 75 KB.
-- [ ] monitor
-- [ ] GAN cube
+- [x] **monitor** — Blender, from scratch, built directly in Z-up. Boolean bezel well, slim
+      neck, weighted base. 850 tris, 41 KB. Runtime swaps the screen quad for a three.js plane
+      (the imported quad showed the attractor mirrored) at `assets.partCenter()`.
+- [x] **GAN cube** — Blender, from scratch. Stickerless: colour per face by normal and piece
+      position, so it runs over the bevel; inset moulding groove; pillowed; U layer turned;
+      seeded part-scramble. One mesh, 7 materials, 3.2k tris, 93 KB.
 - [ ] books
 - [ ] FRC robot — already rebuilt in code last run and reads well; lowest priority
 - [ ] electronics / bins — Tier 2

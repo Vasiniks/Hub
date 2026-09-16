@@ -65,30 +65,8 @@ lib.reset()
 
 # --------------------------------------------------------------------------- outline
 
-def rounded(u, v, a, b, r):
-    """
-    Map a point of the unit square to a rounded rectangle of half-extents (a, b).
-
-    Written as a mapping rather than an outline so the same function places the interior
-    vertices of the dished top face, and so the corner radius stays `r` at every key width —
-    which is the whole reason a 6.25u spacebar cannot just be a scaled 1u cap.
-    """
-    r = min(r, a, b)
-    sx, sy = (1 if u >= 0 else -1), (1 if v >= 0 else -1)
-    ax, ay = abs(u) * a, abs(v) * b
-    ex = max(0.0, ax - (a - r)) / r
-    ey = max(0.0, ay - (b - r)) / r
-    if ex > 0.0 and ey > 0.0:
-        m = max(ex, ey)
-        nx, ny = ex / m, ey / m
-        k = 1.0 / math.hypot(nx, ny)
-        ex, ey = ex * k, ey * k
-    return sx * (min(ax, a - r) + ex * r), sy * (min(ay, b - r) + ey * r)
-
-
 N = 5                         # grid resolution across the dished top; odd, so there is a centre
-RING = [(i, 0) for i in range(N - 1)] + [(N - 1, j) for j in range(N - 1)] + \
-       [(N - 1 - i, N - 1) for i in range(N - 1)] + [(0, N - 1 - j) for j in range(N - 1)]
+RING = lib.ring_indices(N)
 
 
 def ring_uv(scale=1.0):
@@ -113,7 +91,7 @@ def keycap(bm, cx, cy, w, h, angle_deg, dish):
     dish_a = at
 
     def put(uv, ax, by, z, dished=False):
-        x, y = rounded(uv[0], uv[1], ax, by, CAP_R)
+        x, y = lib.rounded(uv[0], uv[1], ax, by, CAP_R)
         if dished:
             t = min(1.0, abs(x) / dish_a) if dish_a > 1e-6 else 0.0
             z -= dish * (1.0 - t * t)

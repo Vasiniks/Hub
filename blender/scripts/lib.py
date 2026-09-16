@@ -126,6 +126,50 @@ def recentre(objs, mode='base'):
     return offset
 
 
+def rounded(u, v, a, b, r):
+    """
+    Map a point of the unit square to a rounded rectangle of half-extents (a, b).
+
+    A mapping rather than an outline, so the same function also places the interior vertices
+    of a dished or domed face — and so the corner radius stays `r` at every size, which is the
+    whole reason a 6.25u spacebar cannot just be a scaled 1u keycap.
+    """
+    r = min(r, a, b)
+    sx, sy = (1 if u >= 0 else -1), (1 if v >= 0 else -1)
+    ax, ay = abs(u) * a, abs(v) * b
+    ex = max(0.0, ax - (a - r)) / r
+    ey = max(0.0, ay - (b - r)) / r
+    if ex > 0.0 and ey > 0.0:
+        m = max(ex, ey)
+        nx, ny = ex / m, ey / m
+        k = 1.0 / math.hypot(nx, ny)
+        ex, ey = ex * k, ey * k
+    return sx * (min(ax, a - r) + ex * r), sy * (min(ay, b - r) + ey * r)
+
+
+def ring_indices(n):
+    """(i, j) grid indices walking the boundary of an n x n grid once, counter-clockwise."""
+    return ([(i, 0) for i in range(n - 1)] + [(n - 1, j) for j in range(n - 1)] +
+            [(n - 1 - i, n - 1) for i in range(n - 1)] + [(0, n - 1 - j) for j in range(n - 1)])
+
+
+def pillow(objs, radius, amount):
+    """
+    Push every vertex a fraction of the way toward a sphere of `radius` about the origin.
+
+    What makes a speedcube's faces catch a moving highlight instead of a flat one: face
+    centres bulge by a fraction of a millimetre while the corners, already out at the sphere,
+    barely move. Applied to every part with the same formula so the tiles keep following the
+    bodies they sit on.
+    """
+    for o in objs:
+        for v in o.data.vertices:
+            d = v.co.length
+            if d > 1e-9:
+                v.co *= 1.0 + amount * (radius / d - 1.0)
+        o.data.update()
+
+
 def scale_to(obj, axis, target):
     """Uniformly scale so one dimension measures `target` metres. Real objects have a size."""
     apply_transforms(obj)

@@ -279,76 +279,30 @@ function buildMedals(lamp: THREE.Group, m: Materials, model: THREE.Object3D) {
 }
 
 /**
- * §14/§18: a 56mm stickerless speedcube, caught mid-solve with one layer turned.
+ * §9: the GAN speedcube.
  *
- * What makes a GAN read as a GAN rather than as a Rubik's cube is the stickerless
- * construction — colour moulded into the plastic, so it wraps the rounded chamfer of every
- * tile instead of stopping at a sticker's edge — plus a frosted matte finish, generous corner
- * radii, wide piece gaps showing dark interior plastic, and a recessed cap on each centre.
- * Deliberately no logo: that is trademarked, and the form reads without it.
+ * Geometry from `assets/processed/cube.glb` (`blender/scripts/build_cube.py`). Stickerless, the
+ * way a GAN is: the colour is the piece itself and runs over each bevelled edge until it meets
+ * the next colour, rather than a tile floating on a dark body (which reads as a stickered
+ * Rubik's Cube — a different object). A moulding groove is inset into every exterior face, the
+ * assembly is pillowed toward a sphere, and the U layer is caught mid-turn. The asset carries
+ * its own colours; only the finish is adjusted here.
  */
-function buildCube(root: THREE.Group) {
-  const { x, z, rotationY, size } = DESKTOP.cube;
+function buildCube(root: THREE.Group, assets: Assets) {
+  const { x, z, rotationY } = DESKTOP.cube;
   const g = at(new THREE.Group(), x, DESK.top, z, root);
   g.rotation.y = rotationY;
   g.rotation.x = 0.015;
-
-  const cubie = size / 3;
-  const gap = 0.0012;
-  const body = new THREE.MeshStandardMaterial({ color: '#17181b', roughness: 0.62, metalness: 0 });
-  // Frosted, slightly desaturated: moulded plastic under a matte finish, not gloss vinyl.
-  const frosted = (color: string) => new THREE.MeshStandardMaterial({ color, roughness: 0.58, metalness: 0, envMapIntensity: 0.45 });
-  const faces = {
-    U: frosted('#f4f5f2'),
-    D: frosted('#f8d945'),
-    F: frosted('#2bc264'),
-    B: frosted('#2f75da'),
-    L: frosted('#ff8f33'),
-    R: frosted('#e0323c'),
-  };
-  // Colour runs nearly edge to edge on each piece, the way moulded plastic does — a small
-  // tile floating on a dark body reads as a stickered cube, which is the wrong object.
-  const tileSide = cubie * 0.935;
-  const tileGeo = rboxGeo(tileSide, 0.0019, tileSide, cubie * 0.13, 1);
-  const capGeo = new THREE.TorusGeometry(cubie * 0.25, 0.00055, 6, 20);
-  const cubieGeo = rboxGeo(cubie - gap, cubie - gap, cubie - gap, cubie * 0.17, 1);
-
-  // The top layer is rotated: the cube is mid-solve, not sitting factory-fresh.
-  const top = at(new THREE.Group(), 0, 0, 0, g);
-  top.rotation.y = 0.52;
-
-  for (let ix = -1; ix <= 1; ix++) {
-    for (let iy = -1; iy <= 1; iy++) {
-      for (let iz = -1; iz <= 1; iz++) {
-        if (ix === 0 && iy === 0 && iz === 0) continue;
-        const parent = iy === 1 ? top : g;
-        const c = at(shadowed(new THREE.Mesh(cubieGeo, body)), ix * cubie, size / 2 + iy * cubie, iz * cubie, parent);
-        const isCentre = Math.abs(ix) + Math.abs(iy) + Math.abs(iz) === 1;
-        const put = (mat: THREE.MeshStandardMaterial, ox: number, oy: number, oz: number, rx: number, rz: number) => {
-          const tile = at(new THREE.Mesh(tileGeo, mat), ox, oy, oz, c);
-          tile.rotation.set(rx, 0, rz);
-          tile.castShadow = false;
-          tile.receiveShadow = true;
-          // Centres carry the shallow cap ring every GAN centre has. A filled dark disc reads
-          // as a hole; a ring groove in the piece's own colour reads as moulding.
-          if (isCentre) {
-            const cap = at(new THREE.Mesh(capGeo, mat), 0, 0.00075, 0, tile);
-            cap.rotation.x = Math.PI / 2;
-            cap.castShadow = false;
-            cap.receiveShadow = true;
-          }
-        };
-        // Tiles sit a hair proud of the piece so the gap between them reads as a real seam.
-        const h = (cubie - gap) / 2 - 0.0002;
-        if (iy === 1) put(faces.U, 0, h, 0, 0, 0);
-        if (iy === -1) put(faces.D, 0, -h, 0, Math.PI, 0);
-        if (iz === 1) put(faces.F, 0, 0, h, Math.PI / 2, 0);
-        if (iz === -1) put(faces.B, 0, 0, -h, -Math.PI / 2, 0);
-        if (ix === -1) put(faces.L, -h, 0, 0, 0, Math.PI / 2);
-        if (ix === 1) put(faces.R, h, 0, 0, 0, -Math.PI / 2);
-      }
-    }
-  }
+  const model = assets.instance('cube');
+  model.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    o.castShadow = o.receiveShadow = true;
+    const mat = o.material as THREE.MeshStandardMaterial;
+    // Matte moulded plastic: keep the room's reflections from glazing it.
+    mat.envMapIntensity = 0.45;
+  });
+  g.add(model);
+  return g;
 }
 
 /** A mug, left-front: the one object on the desk with no technical purpose. */
@@ -508,7 +462,7 @@ export function buildDeskSet(root: THREE.Group, m: Materials, assets: Assets): D
   const kbLeds = buildKeyboard(root, m, assets);
   buildMouse(root, m, assets);
   const lamp = buildLamp(root, m, assets);
-  buildCube(root);
+  buildCube(root, assets);
   buildMug(root, m);
   const clutterLeds = buildWorkClutter(root, m);
   buildFloorBins(root, m);
