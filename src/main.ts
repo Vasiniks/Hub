@@ -346,9 +346,12 @@ async function start() {
     gestureArmed = false;
   }
 
-  /** Keyboard uses the same pacing, so held arrows advance one book at a time. */
-  function shelfKey(dir: number) {
-    if (performance.now() - lastStepAt < SHELF.gesture.minStepMs || !room.shelf.settled) return;
+  /**
+   * A key press is a discrete intent, so each one steps. Auto-repeat is not — a held arrow is
+   * one continuous gesture — so repeats get the same pacing as a swipe.
+   */
+  function shelfKey(dir: number, repeat: boolean) {
+    if (repeat && (performance.now() - lastStepAt < SHELF.gesture.minStepMs || !room.shelf.settled)) return;
     stepBook(dir);
   }
 
@@ -449,10 +452,10 @@ async function start() {
       const shelfKeys = onBody || active === shelfFocus;
       if (['ArrowLeft', 'a', 'A'].includes(e.key)) {
         e.preventDefault();
-        shelfKey(-1);
+        shelfKey(-1, e.repeat);
       } else if (['ArrowRight', 'd', 'D'].includes(e.key)) {
         e.preventDefault();
-        shelfKey(1);
+        shelfKey(1, e.repeat);
       } else if (shelfKeys && [' ', 'Enter'].includes(e.key)) {
         e.preventDefault();
         inspectBook();

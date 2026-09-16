@@ -37,7 +37,17 @@ out.announcedAfter = await page.textContent('#live');
 
 await page.keyboard.press('Enter');
 await wait(900);
-out.panel = { open: await page.evaluate(() => window.__room.panelOpen()), title: await page.textContent('#panel-title') };
+out.panel = {
+  open: await page.evaluate(() => window.__room.panelOpen()),
+  title: await page.textContent('#panel-title'),
+  // Class state is not visibility: a stray id rule once hid the panel entirely while
+  // every class-based assertion still passed.
+  visible: await page.evaluate(() => {
+    const el = document.getElementById('panel');
+    const r = el.getBoundingClientRect();
+    return r.width > 100 && r.height > 100 && getComputedStyle(el).display !== 'none';
+  }),
+};
 out.focusInPanel = await page.evaluate(() => document.activeElement?.id);
 
 await page.keyboard.press('Escape');
