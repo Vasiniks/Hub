@@ -204,6 +204,38 @@ async function start() {
     return motion;
   }
 
+  // ---- Ambient occlusion cache ------------------------------------------
+  // AO is reused while nothing that shapes it has moved (see ao.ts). The camera is checked by
+  // the pass itself; this watches everything else that can move on screen — animated parts,
+  // books, and the few millimetres a project object lifts under attention.
+  const aoWatch = [...casters.map((c) => c.node), ...projectObjects.map((t) => t.group)].map((node) => ({
+    node,
+    pos: node.getWorldPosition(new THREE.Vector3()),
+    quat: node.getWorldQuaternion(new THREE.Quaternion()),
+    reach: new THREE.Box3().setFromObject(node).getBoundingSphere(new THREE.Sphere()).radius + 0.05,
+  }));
+  const _aoPos = new THREE.Vector3();
+  const _aoQuat = new THREE.Quaternion();
+  function watchOcclusion() {
+    if (view.ao.invalid) return;
+    for (const w of aoWatch) {
+      w.node.getWorldPosition(_aoPos);
+      if (!_frustum.intersectsSphere(_reachSphere.set(_aoPos, w.reach))) continue;
+      w.node.getWorldQuaternion(_aoQuat);
+      const angle = 2 * Math.acos(Math.min(1, Math.abs(_aoQuat.dot(w.quat))));
+      if (angle > 0.008 || _aoPos.distanceTo(w.pos) > 0.0012) {
+        view.ao.invalid = true;
+        return;
+      }
+    }
+  }
+  function rebaseOcclusion() {
+    for (const w of aoWatch) {
+      w.node.getWorldPosition(w.pos);
+      w.node.getWorldQuaternion(w.quat);
+    }
+  }
+
   // ---- Time of day -------------------------------------------------------
   let liveHour = hourOverride;
   let arrival = 0;
@@ -614,7 +646,9 @@ async function start() {
     music.update();
     perf.lap('screens+reactions');
 
+    watchOcclusion();
     view.render(dt, elapsed, !reducedMotion);
+    if (view.ao.computedThisFrame) rebaseOcclusion();
     perf.lap('render');
 
     // Light advances on a one-second tick, six times faster while the room is settling from
@@ -650,7 +684,12 @@ async function start() {
   // is genuinely finished. Nothing is deferred into the first seconds of interaction.
   const outlineSamples = targets.map((t) => t.group);
   const restoreShadows = lighting.warmShadows();
+  // Warm-up compiles only what is visible. The dust is hidden whenever the lamp is off, so a
+  // daytime arrival never compiled it — and the first dusk paid for it with a 50–200 ms frame.
+  const dustWasVisible = dust.points.visible;
+  dust.points.visible = true;
   await view.warmUp(outlineSamples, (stage) => loader.advance(stage));
+  dust.points.visible = dustWasVisible;
   restoreShadows();
   /**
    * §23/§43: choose the render resolution before the first visible frame, by running the
@@ -757,15 +796,23 @@ async function start() {
         hour: () => lighting.state.hour,
         calibration: () => calibration,
         pixelRatio: () => view.pixelRatio(),
+        aoComputed: () => view.ao.computedThisFrame,
         programs: () => (view.renderer.info.programs ?? []).map((p) => p.name),
         programKeys: () => (view.renderer.info.programs ?? []).map((p) => `${p.name}::${p.cacheKey}`),
         shadowRequests: () => ({ ...lighting.shadowRequests }),
+        forceHover: (id: string | null) => interaction.setForcedHover(id),
         outlineOnly: (id: string | null) => {
           const group = id ? targets.find((t) => t.id === id)?.group : undefined;
           view.outline.selectedObjects = group ? [group] : [];
           view.outline.enabled = !!group;
         },
-        perf: { reset: () => perf.reset(), snapshot: () => perf.snapshot(view.renderer.getPixelRatio()) },
+        perf: {
+          reset: () => {
+            perf.reset();
+            view.gpu.reset();
+          },
+          snapshot: () => ({ ...perf.snapshot(view.renderer.getPixelRatio()), gpu: view.gpu.enabled ? view.gpu.snapshot() : null }),
+        },
         setHour: (h: number) => {
           liveHour = h;
           refreshLight(true);
@@ -800,6 +847,7 @@ async function start() {
           lampIntensity: lighting.lamp.intensity,
           enabled: view.volumetric.enabled,
         }),
+        bookFootprints: () => room.shelf.footprints(),
         books: () => {
           const out: Record<string, unknown>[] = [];
           room.shelf.group.children.forEach((o) => {

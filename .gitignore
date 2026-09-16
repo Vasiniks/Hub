@@ -3,3 +3,6 @@ dist/
 .playwright-mcp/
 .DS_Store
 .claude/settings.local.json
+
+# performance suite raw output
+perf/*.json

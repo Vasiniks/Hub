@@ -100,8 +100,16 @@ export const SHELF = {
   depth: 0.2,
   /** Gap between book spines in the row. */
   gap: 0.005,
-  /** How the selection reads: slide out, lift, turn to camera; neighbours ease aside and back. */
-  select: { out: 0.125, lift: 0.052, turn: 1.4, spread: 0.03, recede: 0.02, scale: 1.05, tilt: 0.1, centre: 0.35 },
+  /**
+   * How the selection reads: slide out, lift, turn the cover to camera. The row opens a real
+   * gap for it — a turned book's cover swings a full book-depth to the right of its spine, so
+   * the books on that side have to move out of the way or the cover ends up in front of them
+   * with their bottoms showing underneath. `openLeft` is how much of that gap the left side
+   * of the row (and the selection with it) gives; the right side gives the rest.
+   */
+  select: { out: 0.125, lift: 0.052, turn: 1.4, recede: 0.02, scale: 1.05, tilt: 0.1, openLeft: 0.05, clearance: 0.012 },
+  /** Where the row starts, measured in from the shelf's left side panel. Leaves room to open left. */
+  rowInset: 0.07,
   /**
    * §20: browsing advances exactly one book per committed gesture, however fast the input.
    * A flick accumulates past `threshold`, commits once, then disarms until the input has been

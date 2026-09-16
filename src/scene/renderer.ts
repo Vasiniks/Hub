@@ -12,6 +12,9 @@ import type { LightState } from './lighting';
 import { fadeColor } from './materials';
 import { OVERLAY_LAYER } from './layers';
 import { VolumetricLightPass } from './volumetric';
+import { CachedGTAOPass } from './ao';
+import { SharedDepthOutlinePass } from './outline';
+import { createGpuTimer } from '../debug/gpuTimer';
 
 /**
  * Rendering path: WebGL2 rasterisation with PBR materials, soft PCF shadow maps, area
@@ -163,7 +166,10 @@ export function createRenderer(
   composer.setPixelRatio(pixelRatio);
   composer.addPass(msaaSamples > 0 ? new MultisampleScenePass(scene, camera, msaaSamples) : new RenderPass(scene, camera));
 
-  const gtao = new GTAOPass(scene, camera, w, h);
+  const gtao = new CachedGTAOPass(scene, camera, w, h);
+  gtao.caching = params.get('aocache') !== '0';
+  // Debug: ?aoview=ao shows the denoised occlusion buffer on its own.
+  if (params.get('aoview') === 'ao') gtao.output = GTAOPass.OUTPUT.Denoise;
   // AO is low-frequency: render it at CSS-pixel density, not device density, so retina screens
   // get the same AO detail per point as standard ones without paying 2.25× the fill.
   const aoScale = () => (aoParam === 'full' ? 1 : aoParam === 'half' ? 0.5 : 1 / pixelRatio);
@@ -181,7 +187,9 @@ export function createRenderer(
   volumetric.resolutionScale = () => (volScaleParam > 0 ? volScaleParam : 0.4 / pixelRatio);
   composer.addPass(volumetric);
 
-  const outline = new OutlinePass(new THREE.Vector2(w, h), scene, camera);
+  const outline = params.get('outline') === 'stock'
+    ? new OutlinePass(new THREE.Vector2(w, h), scene, camera)
+    : new SharedDepthOutlinePass(new THREE.Vector2(w, h), scene, camera, () => (gtao.enabled ? gtao.depthTexture : null));
   outline.edgeStrength = 2.4;
   outline.edgeGlow = 0;
   outline.edgeThickness = 1;
@@ -206,6 +214,13 @@ export function createRenderer(
   composer.addPass(new OutputPass());
   const grade = new ShaderPass(GradeShader);
   composer.addPass(grade);
+
+  // Debug: GPU time per pass (?gpu). Wraps each pass, shadow-map rendering and env capture.
+  const gpu = createGpuTimer(renderer.getContext() as WebGL2RenderingContext, params.has('gpu'));
+  if (gpu.enabled) {
+    for (const pass of composer.passes) gpu.wrap(pass, 'render', pass.constructor.name);
+    gpu.wrap(renderer.shadowMap, 'render', 'ShadowMaps');
+  }
 
   // ---- Environment capture: reflections + indirect light from the lit room ----------------
   const cubeTarget = new THREE.WebGLCubeRenderTarget(128, { type: THREE.HalfFloatType });
@@ -244,13 +259,17 @@ export function createRenderer(
       const previous = renderer.getRenderTarget();
       scene.environment = null;
       renderer.setRenderTarget(cubeTarget, captureFace);
+      gpu.begin('EnvCaptureFace');
       renderer.render(scene, cubeCamera.children[captureFace] as THREE.Camera);
+      gpu.end();
       renderer.setRenderTarget(previous);
       scene.environment = env;
       captureFace++;
       return;
     }
+    gpu.begin('EnvPMREM');
     swapEnvironment();
+    gpu.end();
     captureFace = -1;
   }
 
@@ -356,6 +375,9 @@ export function createRenderer(
 
   return {
     renderer,
+    gpu,
+    /** Ambient occlusion cache: flag `invalid` when something on screen moves. */
+    ao: gtao,
     outline,
     volumetric,
     warmUp,
@@ -376,6 +398,7 @@ export function createRenderer(
       stepCapture();
       grade.uniforms.uTime.value = animateGrain ? time : 0;
       composer.render(dt);
+      gpu.endFrame();
       watchPerformance(dt);
     },
   };

@@ -232,7 +232,8 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
   const bookSource = (assets.part(assets.instance('book'), 'book') as THREE.Mesh).geometry;
   const bookDepth = bookMeta.depth;
   const run = books.reduce((sum, b) => sum + b.thickness, 0) + (books.length - 1) * SHELF.gap;
-  let cursor = -W / 2 + 0.022;
+  const rowStart = -W / 2 + SHELF.rowInset;
+  let cursor = rowStart;
 
   for (const def of books) {
     const geo = sliceBook(bookSource, bookMeta, def.thickness, def.height);
@@ -257,13 +258,26 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
     });
     cursor += def.thickness + SHELF.gap;
   }
-  // A bookend closing the row, and a leaning folder in the space left over.
-  at(rbox(0.01, 0.1, 0.1, m.steel, 0.002), cursor + 0.01, 0.05, -0.06, group);
-  const folder = at(rbox(0.13, 0.2, 0.014, m.cardboard, 0.003), cursor + 0.09, 0.098, -0.07, group);
+  // A bookend closing the row — it moves with the books when the row opens — and a leaning
+  // folder out by the side panel, clear of anywhere the row can reach.
+  const bookend = at(rbox(0.01, 0.1, 0.1, m.steel, 0.002), cursor + 0.01, 0.05, -0.06, group);
+  bookend.userData.dynamic = true;
+  const bookendHome = bookend.position.x;
+  let bookendShove = 0;
+  let bookendVel = 0;
+  const folder = at(rbox(0.13, 0.2, 0.014, m.cardboard, 0.003), W / 2 - 0.075, 0.098, -0.07, group);
   folder.rotation.set(0, Math.PI / 2, -0.22);
 
+  /**
+   * The gap a presented book needs. Turned about its spine, its body swings across the row by
+   * depth × sin(turn), scaled with it, plus a little air so the cover never grazes a spine.
+   */
+  const presentedSwing = bookDepth * Math.abs(Math.sin(SHELF.select.turn)) * SHELF.select.scale + SHELF.select.clearance;
+  const openLeft = Math.min(SHELF.select.openLeft, SHELF.rowInset - 0.01);
+  const openRight = presentedSwing - openLeft - SHELF.gap;
+
   // ---- Interaction affordances ------------------------------------------
-  const anchor = group.localToWorld(new THREE.Vector3(run / 2 - W / 2, 0.11, 0.02));
+  const anchor = group.localToWorld(new THREE.Vector3(rowStart + run / 2, 0.11, 0.02));
   // On the book row, not the top board: the seated camera already looks down at the desk,
   // so a dot up at the carcass would sit far above the centre of the frame.
   const dotPos = group.localToWorld(new THREE.Vector3(0, 0.15, 0.01));
@@ -366,6 +380,21 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
       if (index !== from) kick(from, index);
       return books[index];
     },
+    /** Debug: each book's footprint on the shelf plane, in shelf-local metres. */
+    footprints() {
+      group.updateMatrixWorld(true);
+      const inv = new THREE.Matrix4().copy(group.matrixWorld).invert();
+      const box = new THREE.Box3();
+      return {
+        selected: index,
+        books: nodes.map((n) => {
+          const mesh = n.mesh.children[0] as THREE.Mesh;
+          mesh.geometry.computeBoundingBox();
+          box.copy(mesh.geometry.boundingBox!).applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, mesh.matrixWorld));
+          return { x0: box.min.x, x1: box.max.x, z0: box.min.z, z1: box.max.z, shove: n.shove };
+        }),
+      };
+    },
     /** Outline follows the selection while browsing, the whole unit while merely hovered. */
     outlineTargets(): THREE.Object3D[] {
       return active ? [nodes[index].mesh] : [group];
@@ -393,7 +422,9 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
 
         const delta = i - index;
         const near = active && delta !== 0 ? Math.max(0, 1 - Math.abs(delta) / 4.5) : 0;
-        const wantShove = Math.sign(delta) * near * SHELF.select.spread;
+        // The row parts around the selection: everything from the selection leftward gives a
+        // little, everything to its right gives the rest of the swing.
+        const wantShove = !active ? 0 : delta > 0 ? openRight : -openLeft;
 
         if (reducedMotion) {
           n.out = target;
@@ -413,9 +444,7 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
 
         const holder = n.mesh;
         const ease = n.out;
-        // The selection drifts toward the middle of the shelf as it comes out, so it presents
-        // centred and stops sitting directly in front of the books beside it.
-        holder.position.x = n.homeX * (1 - ease * SHELF.select.centre) + n.shove;
+        holder.position.x = n.homeX + n.shove;
         holder.position.z = ease * SHELF.select.out - (active && !isSelected ? near * SHELF.select.recede : 0);
         holder.position.y = ease * SHELF.select.lift;
         holder.rotation.y = -ease * SHELF.select.turn;
@@ -428,6 +457,14 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
         const dim = active ? (isSelected ? 1 : 0.62) : 1;
         n.material.color.lerp(_color.copy(n.base).multiplyScalar(dim), 1 - Math.exp(-6 * dt));
       }
+      // The bookend belongs to the right-hand side of the row, whichever book is out.
+      const bookendWant = active ? openRight : 0;
+      if (reducedMotion) bookendShove = bookendWant;
+      else {
+        bookendVel += (SHOVE_STIFFNESS * (bookendWant - bookendShove) - SHOVE_DAMPING * bookendVel) * step;
+        bookendShove += bookendVel * step;
+      }
+      bookend.position.x = bookendHome + bookendShove;
       if (arrived) settled = true;
     },
   };
