@@ -97,6 +97,8 @@ async function start() {
     dotPos: room.shelf.dotPos,
     focus: () => room.shelf.focusTarget(),
     outline: () => room.shelf.outlineTargets(),
+    // A wall fixture does not bob when looked at.
+    lift: false,
   };
 
   const targets = [...projectObjects, shelfTarget];

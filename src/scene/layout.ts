@@ -51,6 +51,8 @@ export const DESKTOP = {
 /** Constrained first-person camera. Ranges are radians from the rest direction. */
 export const CAMERA = {
   fov: 54,
+  /** Narrower while examining an object: a gentle dolly rather than a jump cut. */
+  focusFov: 45,
   stand: { position: [1.06, 1.63, 0.96], lookAt: [-0.3, 1.0, -0.95] },
   seat: { position: [0.0, 1.175, 0.16], lookAt: [-0.05, 1.03, -0.95] },
   /** [left, right] and [up, down] limits while standing. */
@@ -99,6 +101,8 @@ export const INTERACTION = {
   dotRadiusPx: 30,
   /** Once hovered, an object stays hovered within this wider radius. */
   dotRetainPx: 64,
+  /** Beyond dotRadiusPx, how far out the cursor still draws a response from a dot. */
+  proximityPx: 130,
   /** Radius used around the centre of the frame while the view is turned to its limit. */
   centreRadiusPx: 260,
   /** Pointer travel that still counts as a click rather than a drag. */

@@ -20,6 +20,8 @@ export interface InteractTarget {
   dotPos: THREE.Vector3;
   focus: () => FocusTarget;
   tick?: (time: number, activity: number) => void;
+  /** Objects lift slightly under attention. Fixtures like the shelf opt out. */
+  lift?: boolean;
   /** What the outline pass should draw. Defaults to the whole group. */
   outline?: () => THREE.Object3D[];
 }
@@ -74,7 +76,10 @@ interface Item {
   dot: THREE.Sprite;
   ring: THREE.Sprite;
   activity: number;
+  /** 0..1 as the cursor approaches, before hover actually locks on. */
+  proximity: number;
   visited: boolean;
+  baseY: number;
 }
 
 export function createInteraction(opts: {
@@ -88,6 +93,8 @@ export function createInteraction(opts: {
   lookExtent: () => number;
 }) {
   const { scene, camera, outline, targets, reducedMotion, label, lookExtent } = opts;
+  const EDGE_STRENGTH = outline.edgeStrength;
+  let edge = 0;
   const solidTex = dotTexture(false);
   const hollowTex = dotTexture(true);
   const ringTex = ringTexture();
@@ -109,7 +116,7 @@ export function createInteraction(opts: {
       s.renderOrder = 10;
       scene.add(s);
     }
-    items.set(target.id, { target, dot, ring, activity: 0, visited: false });
+    items.set(target.id, { target, dot, ring, activity: 0, proximity: 0, visited: false, baseY: target.group.position.y });
   }
 
   const raycaster = new THREE.Raycaster();
@@ -360,16 +367,46 @@ export function createInteraction(opts: {
         if (hovered) label.textContent = items.get(hovered)!.target.title;
       }
 
+      // §23/§24: the outline fades in rather than snapping on, so attention arrives at the
+      // object instead of being switched onto it.
+      const wantEdge = hovered ? 1 : 0;
+      edge = THREE.MathUtils.lerp(edge, wantEdge, 1 - Math.exp(-13 * dt));
+      if (outline.enabled) outline.edgeStrength = EDGE_STRENGTH * edge;
+
+      // Screen-space cursor position, for the proximity cue below.
+      const cursorX = (ndc.x * 0.5 + 0.5) * window.innerWidth;
+      const cursorY = (-ndc.y * 0.5 + 0.5) * window.innerHeight;
+
       for (const [id, item] of items) {
         const wanted = id === hovered || id === focused ? 1 : 0;
         item.activity = THREE.MathUtils.lerp(item.activity, wanted, 1 - Math.exp(-4 * dt));
         item.target.tick?.(time, item.activity);
 
+        // §23: the dot answers the cursor before the hover commits — approaching it brightens
+        // and grows it. That anticipation is what makes the room feel aware of the pointer,
+        // without a reticle or a crosshair anywhere.
+        let near = 0;
+        if (pointerInside && enabled && !focused) {
+          const s = screenOf(item.target.dotPos);
+          if (s.visible) {
+            const d = Math.hypot(s.x - cursorX, s.y - cursorY);
+            near = 1 - THREE.MathUtils.clamp((d - INTERACTION.dotRadiusPx) / INTERACTION.proximityPx, 0, 1);
+          }
+        }
+        item.proximity = THREE.MathUtils.lerp(item.proximity, near, 1 - Math.exp(-9 * dt));
+
         // Dots stay quiet: fade entirely while examining something.
         const base = focused ? 0 : item.visited ? 0.55 : 0.9;
         const dm = item.dot.material;
-        dm.opacity = THREE.MathUtils.lerp(dm.opacity, id === hovered ? 1 : base, 1 - Math.exp(-6 * dt));
-        item.dot.scale.setScalar(0.02 + item.activity * 0.004);
+        const want = id === hovered ? 1 : base + item.proximity * (1 - base) * 0.75;
+        dm.opacity = THREE.MathUtils.lerp(dm.opacity, want, 1 - Math.exp(-6 * dt));
+        item.dot.scale.setScalar(0.02 + item.activity * 0.004 + item.proximity * 0.003);
+
+        // §24: a few millimetres of lift under attention. Small enough to feel like a response
+        // rather than an animation, and far below anything that would move the focus anchor.
+        if (item.target.lift !== false) {
+          item.target.group.position.y = item.baseY + item.activity * 0.005;
+        }
 
         const rm = item.ring.material;
         if (!reducedMotion && !focused && !item.visited) {

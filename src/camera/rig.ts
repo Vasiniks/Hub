@@ -79,6 +79,11 @@ export class CameraRig {
   private targetPitch = 0;
   private savedLook = { yaw: 0, pitch: 0 };
 
+  /** Lens: the focus move dollies in a little, which reads as a camera rather than a teleport. */
+  private fov = CAMERA.fov;
+  private fovFrom = CAMERA.fov;
+  private fovTo = CAMERA.fov;
+
   private t0 = 0;
   private duration = 1;
   private clock = 0;
@@ -132,7 +137,9 @@ export class CameraRig {
   focus(target: FocusTarget) {
     if (this.mode !== 'seated' && this.mode !== 'returning' && this.mode !== 'focused') return;
     if (this.mode === 'seated') this.savedLook = { yaw: this.lookYaw, pitch: this.lookPitch };
-    this.begin('focusing', this.reduced ? 0.35 : 1.35);
+    this.begin('focusing', this.reduced ? 0.35 : 1.5);
+    this.fovFrom = this.fov;
+    this.fovTo = CAMERA.focusFov;
     this.fromPos.copy(this.camera.position);
     this.fromQuat.copy(this.camera.quaternion);
 
@@ -155,7 +162,9 @@ export class CameraRig {
 
   unfocus() {
     if (this.mode !== 'focused' && this.mode !== 'focusing') return false;
-    this.begin('returning', this.reduced ? 0.3 : 1.15);
+    this.begin('returning', this.reduced ? 0.3 : 1.2);
+    this.fovFrom = this.fov;
+    this.fovTo = CAMERA.fov;
     this.fromPos.copy(this.camera.position);
     this.fromQuat.copy(this.camera.quaternion);
     this.lookYaw = this.targetYaw = this.savedLook.yaw;
@@ -221,6 +230,14 @@ export class CameraRig {
     return o;
   }
 
+  /** Only touches the projection matrix when the value actually moves. */
+  private setFov(next: number) {
+    if (Math.abs(next - this.fov) < 0.01) return;
+    this.fov = next;
+    this.camera.fov = next;
+    this.camera.updateProjectionMatrix();
+  }
+
   update(dt: number) {
     this.clock += dt;
     const time = this.clock;
@@ -274,6 +291,7 @@ export class CameraRig {
         const e = smoother(u);
         bezier(this.camera.position, this.fromPos, this.arcA, this.arcB, this.toPos, e);
         this.camera.quaternion.slerpQuaternions(this.fromQuat, this.toQuat, e);
+        this.setFov(THREE.MathUtils.lerp(this.fovFrom, this.fovTo, e));
         if (this.mode === 'focusing') this.onFocusProgress?.(u);
         if (u >= 1) {
           if (this.mode === 'focusing') this.mode = 'focused';
