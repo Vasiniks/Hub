@@ -42,7 +42,10 @@ function buildShell(root: THREE.Group, m: Materials) {
   const cz = wallZ - wallDepth / 2;
   const piece = (x0: number, x1: number, y0: number, y1: number) =>
     at(rbox(x1 - x0, y1 - y0, wallDepth, m.wall, 0.004), (x0 + x1) / 2, (y0 + y1) / 2, cz, root);
-  piece(-2.4, 4.4, 0, win.y0);
+  // Stops short of the opening: the sill caps this wall, and the two interpenetrate rather
+  // than meeting face to face. Coplanar faces here were z-fighting into a blown white band
+  // across the whole window.
+  piece(-2.4, 4.4, 0, win.y0 - 0.02);
   piece(-2.4, 4.4, win.y1, wallTop);
   piece(-2.4, win.x0, win.y0, win.y1);
   piece(win.x1, 4.4, win.y0, win.y1);
@@ -75,9 +78,11 @@ function buildShell(root: THREE.Group, m: Materials) {
   glass.renderOrder = 2;
   root.add(glass);
 
-  // Sill, and a deep reveal board below it: both catch direct sun and read as bright edges.
-  at(rbox(W + 0.16, 0.032, 0.22, m.sill, 0.006), fx, win.y0 - 0.016, wallZ - 0.06, root);
-  at(rbox(W + 0.1, 0.05, 0.03, m.sill, 0.004), fx, win.y0 - 0.055, wallZ + 0.03, root);
+  // Sill: a board capping the wall under the opening, running the full reveal depth and
+  // projecting a nose into the room. Its top face is the window's bottom edge exactly.
+  at(rbox(W + 0.16, 0.038, 0.3, m.sill, 0.006), fx, win.y0 - 0.019, wallZ - 0.06, root);
+  // Apron tucked under the nose, overlapping it so there is no coincident face.
+  at(rbox(W + 0.06, 0.045, 0.03, m.sill, 0.004), fx, win.y0 - 0.058, wallZ + 0.085, root);
 
   return { windowGlass: glass, windowCenter: new THREE.Vector3(fx, fy, wallZ), windowSize: new THREE.Vector2(W, H) };
 }

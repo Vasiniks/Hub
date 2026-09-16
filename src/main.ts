@@ -620,6 +620,19 @@ async function start() {
           pool: room.lampPool.toArray(),
           discWorld: room.lampDisc.getWorldPosition(new THREE.Vector3()).toArray(),
         }),
+        /** Diagnostics: list top-level scene children, and hide one by index. */
+        topLevel: () => scene.children.map((o, i) => `${i}:${o.type}:${o.name || o.userData.projectId || ''}`),
+        hideTop: (i: number) => {
+          scene.children.forEach((o, k) => { if (k === i) o.visible = false; });
+        },
+        showAll: () => scene.children.forEach((o) => (o.visible = true)),
+        /** Diagnostics: keep one light (or none) and mute the rest. */
+        soloLight: (keep: number) => {
+          const all: THREE.Light[] = [];
+          scene.traverse((o) => { if ((o as THREE.Light).isLight) all.push(o as THREE.Light); });
+          all.forEach((l, i) => { l.userData.saved ??= l.intensity; l.intensity = i === keep ? l.userData.saved : 0; });
+          return all.map((l, i) => `${i}:${l.type}`);
+        },
         lights: () => {
           const out: Record<string, unknown>[] = [];
           scene.traverse((o) => {

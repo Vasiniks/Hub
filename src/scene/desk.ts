@@ -98,40 +98,86 @@ function buildMonitor(root: THREE.Group, m: Materials): Pick<DeskRefs, 'screen' 
   return { screen, screenCenter, screenSize: new THREE.Vector2(PW - 0.022, PH - 0.03) };
 }
 
-/** §4: closed, on an inclined riser, toward the front of the desk. */
+/**
+ * §4/§17: closed, on an inclined riser, sloping up and away from the visitor.
+ *
+ * The riser is a real extruded side profile with a front lip, and the laptop sits on the deck
+ * plane that profile defines — so the arms cannot punch through the body, and the contact is
+ * an actual contact rather than two shapes overlapping. The rear edge is a cylinder, which is
+ * what a closed laptop's hinge reads as from behind.
+ */
 function buildMacBook(root: THREE.Group, m: Materials) {
   const { x, z, rotationY, tilt } = DESKTOP.macbook;
   const g = at(new THREE.Group(), x, DESK.top, z, root);
   g.rotation.y = rotationY;
 
-  // Riser: two curved-looking side rails and a rubber-lined cradle.
-  for (const s of [-1, 1]) {
-    const rail = at(rbox(0.016, 0.075, 0.2, m.aluminum, 0.006), s * 0.13, 0.038, 0, g);
-    rail.rotation.x = -tilt * 0.5;
-    at(rbox(0.02, 0.012, 0.055, m.rubber, 0.004), s * 0.13, 0.004, -0.07, g);
+  // Side profile in the ZY plane: foot, back post, deck line, front lip.
+  const BACK_Z = -0.112;
+  const FRONT_Z = 0.104;
+  const BACK_Y = 0.086;
+  const FRONT_Y = 0.022;
+  const profile = new THREE.Shape();
+  // Back post, deck line falling toward the visitor, then a short lip that stops the body
+  // sliding forward. The lip is 5mm — enough to catch the front edge, not a pillar.
+  profile.moveTo(BACK_Z, 0.004);
+  profile.lineTo(BACK_Z, BACK_Y);
+  profile.lineTo(FRONT_Z - 0.012, FRONT_Y);
+  profile.lineTo(FRONT_Z, FRONT_Y + 0.005);
+  profile.lineTo(FRONT_Z + 0.006, FRONT_Y + 0.005);
+  profile.lineTo(FRONT_Z + 0.006, 0.004);
+  profile.lineTo(FRONT_Z - 0.03, 0.004);
+  profile.lineTo(BACK_Z + 0.03, 0.004);
+  profile.closePath();
+  const armGeo = new THREE.ExtrudeGeometry(profile, { depth: 0.016, bevelEnabled: true, bevelSize: 0.0014, bevelThickness: 0.0014, bevelSegments: 1, curveSegments: 1 });
+  // Extrude runs along +z; stand it up so the profile lies in the room's ZY plane. The sign
+  // matters: +PI/2 mirrors the profile in z and puts the tall back post at the front.
+  armGeo.rotateY(-Math.PI / 2);
+
+  for (const side of [-1, 1]) {
+    const arm = at(shadowed(new THREE.Mesh(armGeo, m.aluminum)), side * 0.131 + 0.008, 0, 0, g);
+    at(rbox(0.02, 0.005, 0.032, m.rubber, 0.002), side * 0.131, 0.0032, BACK_Z + 0.022, g);
+    at(rbox(0.02, 0.005, 0.032, m.rubber, 0.002), side * 0.131, 0.0032, FRONT_Z - 0.026, g);
+    void arm;
   }
-  at(rbox(0.28, 0.01, 0.022, m.aluminum, 0.004), 0, 0.028, -0.082, g);
-  const cradle = at(rbox(0.29, 0.008, 0.026, m.rubber, 0.003), 0, 0.03, -0.078, g);
-  cradle.rotation.x = -tilt;
+  // Cross brace between the arms, tucked under the deck so it never meets the body.
+  const brace = at(rbox(0.24, 0.01, 0.026, m.aluminumDark, 0.003), 0, 0.058, BACK_Z + 0.03, g);
+  brace.rotation.x = tilt;
 
-  // Body: base and lid as separate slabs with a hinge seam between them.
-  const book = at(new THREE.Group(), 0, 0.063, 0.006, g);
-  book.rotation.x = -tilt;
-  at(rbox(0.304, 0.0092, 0.212, m.aluminum, 0.0035), 0, 0, 0, book);
-  at(rbox(0.302, 0.0068, 0.21, m.aluminum, 0.003), 0, 0.0082, 0, book);
-  // Hinge: a slightly darker recessed bar along the back edge.
-  at(rbox(0.22, 0.0055, 0.009, m.aluminumDark, 0.002), 0, 0.005, -0.1, book);
-  // Front lip notch — the detail that makes a closed laptop read as a laptop.
-  at(rbox(0.06, 0.004, 0.006, m.aluminumDark, 0.0015), 0, 0.0045, 0.1035, book);
-  // Port cutouts on the left flank.
-  for (const pz of [-0.03, 0.006, 0.042]) at(rbox(0.004, 0.0035, 0.016, m.plasticBlack, 0.001), -0.1515, 0.002, pz, book);
+  // The deck plane the laptop rests on, defined by the profile's top edge.
+  const deckMidZ = (BACK_Z + FRONT_Z) / 2;
+  const deckMidY = (BACK_Y + FRONT_Y) / 2;
+  const deck = at(new THREE.Group(), 0, deckMidY, deckMidZ, g);
+  // Positive rotation drops the front and lifts the back: the slope runs away from the visitor.
+  deck.rotation.x = Math.atan2(BACK_Y - FRONT_Y, FRONT_Z - BACK_Z);
 
+  // Grip strips where the body actually touches the deck.
+  for (const gz of [BACK_Z - deckMidZ + 0.024, FRONT_Z - deckMidZ - 0.028]) {
+    at(rbox(0.2, 0.0025, 0.014, m.rubber, 0.001), 0, 0.0012, gz, deck);
+  }
+
+  // Body: base and lid as separate slabs, a hair apart, with a cylindrical rear edge.
+  const W = 0.304;
+  const D = 0.2;
+  at(rbox(W, 0.0095, D, m.aluminum, 0.0028), 0, 0.00725, 0.004, deck);
+  at(rbox(W - 0.004, 0.0072, D - 0.003, m.aluminum, 0.0024), 0, 0.0156, 0.004, deck);
+  const hinge = at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.0084, 0.0084, W - 0.028, 18), m.aluminumDark)), 0, 0.0113, -0.0955, deck);
+  hinge.rotation.z = Math.PI / 2;
+  // Seam between lid and base, and the notch under the front edge.
+  for (const side of [-1, 1]) at(rbox(0.0016, 0.0014, D - 0.02, m.aluminumDark, 0.0004), side * (W / 2 - 0.0012), 0.0119, 0.004, deck);
+  at(rbox(0.058, 0.0042, 0.0035, m.aluminumDark, 0.001), 0, 0.0115, D / 2 + 0.0038, deck);
+  // Ports on the left flank.
+  for (const pz of [-0.03, 0.006, 0.042]) at(rbox(0.0035, 0.0036, 0.0155, m.plasticBlack, 0.001), -W / 2 + 0.0008, 0.0092, pz, deck);
+
+  // Charge cable leaving the left flank and dropping behind the desk.
+  deck.updateMatrixWorld(true);
+  const port = deck.localToWorld(new THREE.Vector3(-W / 2, 0.0092, 0.006));
   const cable = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(x - 0.155, DESK.top + 0.066, z - 0.03),
-    new THREE.Vector3(x - 0.27, DESK.top + 0.02, z - 0.08),
-    new THREE.Vector3(x - 0.3, DESK.top + 0.004, z - 0.2),
+    port,
+    port.clone().add(new THREE.Vector3(-0.09, -0.028, -0.05)),
+    port.clone().add(new THREE.Vector3(-0.13, -0.05, -0.16)),
+    port.clone().add(new THREE.Vector3(-0.1, -0.056, -0.28)),
   ]);
-  root.add(shadowed(new THREE.Mesh(new THREE.TubeGeometry(cable, 20, 0.0035, 5), m.plasticWhite)));
+  root.add(shadowed(new THREE.Mesh(new THREE.TubeGeometry(cable, 26, 0.0034, 6), m.plasticWhite)));
 }
 
 // TKL, 87 keys. Each row is a list of key widths in units; a negative entry is a gap.

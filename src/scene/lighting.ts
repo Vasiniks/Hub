@@ -127,9 +127,12 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
   room.root.updateMatrixWorld(true);
   scene.attach(screenGlow);
 
-  // A small cool bounce under the right-hand electronics, where the hub LEDs sit.
-  const underGlow = new THREE.PointLight('#cfe0ff', 0, 0.8, 2);
-  underGlow.position.set(0.42, 0.78, -0.9);
+  // Accent tier (§10): the cool spill the powered electronics throw onto the desk around them.
+  // A rect light rather than a point — a point source this close to a smooth surface collapses
+  // into a pinpoint specular, which is what the stray highlight in the window glass was.
+  const underGlow = new THREE.RectAreaLight('#cfe0ff', 0, 0.22, 0.12);
+  underGlow.position.set(0.42, 0.79, -0.9);
+  underGlow.lookAt(0.42, 0.7, -0.6);
   scene.add(underGlow);
 
   const state: LightState = {
@@ -235,7 +238,7 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
 
     const led = n('led') * (1 + activity * 0.9);
     room.shelf.setLevel(led);
-    underGlow.intensity = led * 0.1;
+    underGlow.intensity = led * 0.5;
     for (const mat of ledMats) mat.emissiveIntensity = 1 + led * 2;
 
     // Glass: nearly invisible by day, a dark reflective pane at night.

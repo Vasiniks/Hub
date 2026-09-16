@@ -224,16 +224,20 @@ export function createMaterials() {
     // No transmission anywhere: it costs a full extra scene render per frame, and at these
     // sizes a rough standard material with low opacity is indistinguishable.
     glass: standard({ color: '#aab4bd', roughness: 0.08, transparent: true, opacity: 0.22, depthWrite: false }),
+    // Roughness 0.16, not 0.04: a pane that near-mirror turns every point source in the room
+    // into a single blown-out pixel in the glass. Real glass at this scale reads as a soft
+    // sheen, and the softer lobe is also what makes the night reflections believable.
     windowGlass: standard({
       color: '#c9d4dc',
-      roughness: 0.04,
+      roughness: 0.16,
       metalness: 0,
       transparent: true,
       opacity: 0.08,
       depthWrite: false,
     }),
     windowFrame: standard({ color: '#23262a', roughness: 0.5, metalness: 0.55 }),
-    sill: standard({ color: '#e9eaeb', roughness: 0.48 }),
+    // A painted sill reflects about 70%, not 92%. At 92% it clipped under direct sun.
+    sill: standard({ color: '#dcdedf', roughness: 0.56 }),
     ledWhite: standard({ color: '#000000', emissive: '#f3f6ff', emissiveIntensity: 3 }),
     ledGreen: standard({ color: '#000000', emissive: '#6dffa8', emissiveIntensity: 2.5 }),
     ledOrange: standard({ color: '#000000', emissive: '#ff8a2a', emissiveIntensity: 3 }),

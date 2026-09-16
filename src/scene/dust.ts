@@ -76,9 +76,13 @@ export function createDust(scene: THREE.Scene) {
         vBright = cone * falloff * twinkle * uIntensity;
 
         vec4 mv = modelViewMatrix * vec4(world, 1.0);
+        float depth = -mv.z;
+        // Dust this close to the eye would not resolve as a speck; without this fade a single
+        // mote drifting past the camera became a 40px blob that bloom turned into a lamp.
+        vBright *= smoothstep(0.22, 0.7, depth);
         gl_Position = projectionMatrix * mv;
-        // A mote is a few pixels across at arm's length, never more.
-        gl_PointSize = uSize * (1.0 + vBright * 0.8) * (3.2 / max(-mv.z, 0.05));
+        // A mote is a few pixels across at arm's length, and never more than a few.
+        gl_PointSize = min(uSize * (1.0 + vBright * 0.8) * (3.2 / max(depth, 0.05)), 7.0);
       }
     `,
     fragmentShader: /* glsl */ `
