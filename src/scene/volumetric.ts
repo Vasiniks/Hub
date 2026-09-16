@@ -143,18 +143,21 @@ const blurShader = {
   `,
 };
 
+/**
+ * Added onto the image in place with additive blending. It used to copy the whole frame into a
+ * second buffer as base + scatter; the blend gives the same pixels without re-reading the base
+ * or swapping buffers, which is one full-resolution pass fewer every frame.
+ */
 const compositeShader = {
   uniforms: {
-    tDiffuse: { value: null as THREE.Texture | null },
     tScatter: { value: null as THREE.Texture | null },
   },
   vertexShader: marchShader.vertexShader,
   fragmentShader: /* glsl */ `
-    uniform sampler2D tDiffuse, tScatter;
+    uniform sampler2D tScatter;
     varying vec2 vUv;
     void main() {
-      vec4 base = texture2D(tDiffuse, vUv);
-      gl_FragColor = vec4(base.rgb + texture2D(tScatter, vUv).rgb, base.a);
+      gl_FragColor = vec4(texture2D(tScatter, vUv).rgb, 1.0);
     }
   `,
 };
@@ -193,6 +196,14 @@ export class VolumetricLightPass extends Pass {
       m.depthTest = false;
       m.depthWrite = false;
     }
+    // Pure addition of the scattered light: source × 1 + destination × 1, alpha untouched.
+    this.composite.blending = THREE.CustomBlending;
+    this.composite.blendSrc = THREE.OneFactor;
+    this.composite.blendDst = THREE.OneFactor;
+    this.composite.blendSrcAlpha = THREE.ZeroFactor;
+    this.composite.blendDstAlpha = THREE.OneFactor;
+    this.composite.transparent = true;
+    this.needsSwap = false;
   }
 
   setSize(width: number, height: number) {
@@ -204,7 +215,7 @@ export class VolumetricLightPass extends Pass {
     this.targetB.setSize(w, h);
   }
 
-  render(renderer: THREE.WebGLRenderer, writeBuffer: THREE.WebGLRenderTarget, readBuffer: THREE.WebGLRenderTarget) {
+  render(renderer: THREE.WebGLRenderer, _writeBuffer: THREE.WebGLRenderTarget, readBuffer: THREE.WebGLRenderTarget) {
     const sunTex = this.sun.shadow.map?.depthTexture ?? null;
     const spotTex = this.lamp.shadow.map?.depthTexture ?? null;
     const depth = this.getDepth();
@@ -258,17 +269,16 @@ export class VolumetricLightPass extends Pass {
       this.quad.render(renderer);
     }
 
-    if (!active) {
-      // Nothing to add (night, or no shadow map yet): leave the image untouched and skip the swap.
-      this.needsSwap = false;
-      return;
-    }
-    this.needsSwap = true;
+    // Nothing to add (no light scattering, or no shadow map yet): leave the image untouched.
+    if (!active) return;
     this.quad.material = this.composite;
-    this.composite.uniforms.tDiffuse.value = readBuffer.texture;
     this.composite.uniforms.tScatter.value = this.targetA.texture;
-    renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
+    renderer.setRenderTarget(this.renderToScreen ? null : readBuffer);
+    // Drawing in place: an auto-clear here would wipe the image before the light is added.
+    const autoClear = renderer.autoClear;
+    renderer.autoClear = false;
     this.quad.render(renderer);
+    renderer.autoClear = autoClear;
   }
 
   dispose() {

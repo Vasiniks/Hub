@@ -129,3 +129,15 @@ Truly pinned at 1.5, the full pipeline costs 17–20 ms uncapped (37–49 fps un
 Calibration correctly lands on 1.25 on this GPU. Making 1.5 affordable would need fewer
 full-resolution post passes (e.g. merging tone mapping with the grade, compositing the
 volumetrics in place) — measured headroom, not yet spent.
+
+### Two fewer full-resolution post passes
+What: tone mapping + colour encoding + grade in one pass (`GradedOutputPass`); volumetric light
+added in place with additive blending instead of copying base + scatter to a second buffer.
+Why: the frame is fill/bandwidth-bound (see the resolution cliff), so every full-resolution
+pass matters more than draw calls.
+Image: pixel diff against the previous build with frozen grain/sway (`scripts/frame-diff.mjs`)
+— mean 0.29–0.43 / 255, the >4-level pixels being animated dust and volumetric jitter.
+Measured (interleaved with HEAD, two rounds each, night): pr 1.25 seated idle 94.2 → 97.3 fps,
+standing 94.0 → 96.8; pr 1.5 seated idle 52.4 → 53.8, look 40.0 → 41.3. Consistent ~3%.
+(Absolute numbers in this block are ~50% slower than earlier blocks for *both* builds: the
+machine was thermally loaded by then. Only interleaved pairs are comparable.)

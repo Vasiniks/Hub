@@ -5,7 +5,6 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { CopyShader } from 'three/addons/shaders/CopyShader.js';
 import type { LightState } from './lighting';
@@ -75,59 +74,82 @@ class MultisampleScenePass extends Pass {
  * highlights, a vignette, and grain. Every term is deliberately small — the goal is a frame
  * that reads as photographed, not one that announces a filter. No orange-and-teal.
  */
-const GradeShader = {
-  uniforms: {
-    tDiffuse: { value: null as THREE.Texture | null },
-    uTime: { value: 0 },
-    uVignette: { value: 0.32 },
-    uGrain: { value: 0.022 },
-    uContrast: { value: 0.22 },
-    uShadowTint: { value: new THREE.Color(0.97, 0.985, 1.05) },
-    uHighlightTint: { value: new THREE.Color(1.025, 1.005, 0.978) },
-    uHighlightDesat: { value: 0.3 },
-    uLift: { value: 0.006 },
-  },
-  vertexShader: /* glsl */ `
-    varying vec2 vUv;
-    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
-  `,
-  fragmentShader: /* glsl */ `
-    uniform sampler2D tDiffuse;
-    uniform float uTime, uVignette, uGrain, uContrast, uHighlightDesat, uLift;
-    uniform vec3 uShadowTint, uHighlightTint;
-    varying vec2 vUv;
 
-    float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-    float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
-
-    void main() {
-      vec3 c = texture2D(tDiffuse, vUv).rgb;
-
-      // Gentle S-curve about mid grey. Blended rather than applied outright, so shadow and
-      // highlight detail survives instead of being crushed to the ends.
-      c = mix(c, c * c * (3.0 - 2.0 * c), uContrast);
-
-      // Shoulder: the brightest values lose saturation on their way to white, which is what
-      // stops a sunlit white desk reading as one flat blown patch.
-      float l = luma(c);
-      c = mix(c, vec3(l), uHighlightDesat * smoothstep(0.62, 1.0, l));
-
-      // A hair of separation between the cool end and the warm end. Both tints sit within
-      // 3% of neutral: enough to feel graded, not enough to read as a colour cast.
-      c *= mix(uShadowTint, uHighlightTint, smoothstep(0.08, 0.8, l));
-
-      // Toe lift, so black areas hold a little air rather than clipping to nothing.
-      c += uLift * (1.0 - smoothstep(0.0, 0.3, l));
-
-      vec2 q = vUv - 0.5;
-      float v = smoothstep(0.86, 0.18, length(q * vec2(1.05, 1.25)));
-      c *= mix(1.0 - uVignette, 1.0, v);
-
-      c += (hash(vUv * vec2(1920.0, 1080.0) + fract(uTime) * 91.0) - 0.5) * uGrain;
-      gl_FragColor = vec4(c, 1.0);
-    }
-  `,
+const GRADE_UNIFORMS = {
+  uTime: { value: 0 },
+  uVignette: { value: 0.32 },
+  uGrain: { value: 0.022 },
+  uContrast: { value: 0.22 },
+  uShadowTint: { value: new THREE.Color(0.97, 0.985, 1.05) },
+  uHighlightTint: { value: new THREE.Color(1.025, 1.005, 0.978) },
+  uHighlightDesat: { value: 0.3 },
+  uLift: { value: 0.006 },
 };
+
+const GRADE_PARS = /* glsl */ `
+  uniform float uTime, uVignette, uGrain, uContrast, uHighlightDesat, uLift;
+  uniform vec3 uShadowTint, uHighlightTint;
+  float gradeHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+  float gradeLuma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+`;
+
+const GRADE_BODY = /* glsl */ `
+  #ifdef GRADE
+  {
+    vec3 c = gl_FragColor.rgb;
+
+    // Gentle S-curve about mid grey. Blended rather than applied outright, so shadow and
+    // highlight detail survives instead of being crushed to the ends.
+    c = mix(c, c * c * (3.0 - 2.0 * c), uContrast);
+
+    // Shoulder: the brightest values lose saturation on their way to white, which is what
+    // stops a sunlit white desk reading as one flat blown patch.
+    float l = gradeLuma(c);
+    c = mix(c, vec3(l), uHighlightDesat * smoothstep(0.62, 1.0, l));
+
+    // A hair of separation between the cool end and the warm end. Both tints sit within
+    // 3% of neutral: enough to feel graded, not enough to read as a colour cast.
+    c *= mix(uShadowTint, uHighlightTint, smoothstep(0.08, 0.8, l));
+
+    // Toe lift, so black areas hold a little air rather than clipping to nothing.
+    c += uLift * (1.0 - smoothstep(0.0, 0.3, l));
+
+    vec2 q = vUv - 0.5;
+    float v = smoothstep(0.86, 0.18, length(q * vec2(1.05, 1.25)));
+    c *= mix(1.0 - uVignette, 1.0, v);
+
+    c += (gradeHash(vUv * vec2(1920.0, 1080.0) + fract(uTime) * 91.0) - 0.5) * uGrain;
+    gl_FragColor = vec4(c, 1.0);
+  }
+  #endif
+`;
+
+/**
+ * Tone mapping, colour encoding and the grade in one full-screen pass.
+ *
+ * They used to be two: the output pass wrote a full-resolution image purely so the grade could
+ * read it back and write another. Same maths, same order — AgX, sRGB encoding, then the grade on
+ * display-referred values — one fewer full-resolution pass per frame.
+ */
+class GradedOutputPass extends OutputPass {
+  readonly grade = GRADE_UNIFORMS;
+
+  constructor(enabled: boolean) {
+    super();
+    Object.assign(this.uniforms, GRADE_UNIFORMS);
+    const material = (this as unknown as { material: THREE.RawShaderMaterial }).material;
+    const source = material.fragmentShader;
+    const end = source.lastIndexOf('}');
+    material.fragmentShader =
+      (enabled ? '#define GRADE\n' : '') +
+      source.slice(0, end).replace('varying vec2 vUv;', `varying vec2 vUv;\n${GRADE_PARS}`) +
+      GRADE_BODY +
+      source.slice(end);
+    // OutputPass rebuilds its defines when the tone mapping changes; keep the grade switch in the
+    // source instead so that rebuild cannot drop it.
+    material.needsUpdate = true;
+  }
+}
 
 export function createRenderer(
   canvas: HTMLCanvasElement,
@@ -231,10 +253,8 @@ export function createRenderer(
   const tints = (bloom as unknown as { bloomTintColors: THREE.Vector3[] }).bloomTintColors;
   BLOOM_LEVELS.forEach((v, i) => tints[i].setScalar(v));
   composer.addPass(bloom);
-  composer.addPass(new OutputPass());
-  const grade = new ShaderPass(GradeShader);
-  grade.enabled = params.get('grade') !== '0';
-  composer.addPass(grade);
+  const output = new GradedOutputPass(params.get('grade') !== '0');
+  composer.addPass(output);
 
   // Debug: GPU time per pass (?gpu). Wraps each pass, shadow-map rendering and env capture.
   const gpu = createGpuTimer(renderer.getContext() as WebGL2RenderingContext, params.has('gpu'));
@@ -420,7 +440,7 @@ export function createRenderer(
     resize,
     render(dt: number, time: number, animateGrain: boolean) {
       stepCapture();
-      grade.uniforms.uTime.value = animateGrain ? time : 0;
+      output.grade.uTime.value = animateGrain ? time : 0;
       composer.render(dt);
       gpu.endFrame();
       watchPerformance(dt);
