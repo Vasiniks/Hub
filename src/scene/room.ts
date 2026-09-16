@@ -4,6 +4,7 @@ import { mergeStatic } from './merge';
 import { ROOM, DESK, CHAIR } from './layout';
 import { at, rbox, shadowed } from './build';
 import { buildDeskSet, type DeskRefs } from './desk';
+import type { Assets } from './assets';
 import { createBookshelf, type Bookshelf } from './bookshelf';
 
 /** Scene units are metres. The desk faces +z; the visitor sits at +z looking toward -z. */
@@ -112,12 +113,12 @@ function buildChair(m: Materials) {
   return chair;
 }
 
-export function buildRoom(m: Materials, reducedMotion: boolean): RoomRefs {
+export function buildRoom(m: Materials, reducedMotion: boolean, assets: Assets): RoomRefs {
   const root = new THREE.Group();
   root.name = 'room';
 
   const shell = buildShell(root, m);
-  const desk = buildDeskSet(root, m);
+  const desk = buildDeskSet(root, m, assets);
   const shelf = createBookshelf(root, m, reducedMotion);
 
   const chairStart: ChairPose = { position: new THREE.Vector3(...CHAIR.start.position), rotationY: CHAIR.start.rotationY };

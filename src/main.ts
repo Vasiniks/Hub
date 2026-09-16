@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { projects } from './data/projects';
 import { createMaterials } from './scene/materials';
 import { buildRoom } from './scene/room';
+import { loadAssets } from './scene/assets';
 import { createLorenzScreen } from './scene/lorenz';
 import { createDust } from './scene/dust';
 import { createLighting, LAMP_ANGLE, type LightState } from './scene/lighting';
@@ -37,7 +38,7 @@ const arrivalEnabled = params.get('arrive') !== '0' && hourOverride === null;
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const hint = createHint();
-const loader = createLoader(['scene', 'light', 'shaders', 'passes', 'calibrate']);
+const loader = createLoader(['assets', 'scene', 'light', 'shaders', 'passes', 'calibrate']);
 
 async function start() {
   const scene = new THREE.Scene();
@@ -47,8 +48,13 @@ async function start() {
   const camera = new THREE.PerspectiveCamera(CAMERA.fov, window.innerWidth / window.innerHeight, 0.02, 40);
   camera.layers.enable(OVERLAY_LAYER);
 
+  // Models come from the Blender pipeline. Everything loads before the room is built, so no
+  // asset can arrive mid-interaction and cause a hitch.
+  const assets = await loadAssets([{ name: 'lamp', file: 'lamp.glb' }]);
+  loader.advance('building the room');
+
   const materials = createMaterials();
-  const room = buildRoom(materials, reducedMotion);
+  const room = buildRoom(materials, reducedMotion, assets);
   scene.add(room.root);
 
   // The monitor runs the attractor; the screen material samples the canvas as its emissive map.

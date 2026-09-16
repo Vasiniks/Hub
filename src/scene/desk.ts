@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import type { Materials } from './materials';
-import { DESK, DESKTOP } from './layout';
-import { at, rbox, rboxGeo, rod, shadowed, rand } from './build';
+import type { Assets } from './assets';
+import { DESK, DESKTOP, LAMP } from './layout';
+import { at, rbox, rboxGeo, shadowed, rand } from './build';
 
 /**
  * The desk and everything standing on it.
@@ -417,115 +418,89 @@ function buildMouse(root: THREE.Group, m: Materials) {
 }
 
 /**
- * §6: a flat circular head on a two-axis arm, with medals hung off the upper joint.
- * The head is also the room's warm light source after dark.
+ * §12: the lamp.
+ *
+ * Geometry comes from `assets/processed/lamp.glb`, built by `blender/scripts/build_lamp.py`
+ * from a CC0 Poly Haven spring arm whose cone shade and desk clamp are replaced by a flat
+ * circular head and a weighted base. A spring arm with real knuckles and tension rods is not
+ * worth approximating with cylinders, which is the whole reason the pipeline exists.
+ *
+ * The medals stay in code: they hang off the arm and are simple enough that this is the right
+ * place for them.
  */
-function buildLamp(root: THREE.Group, m: Materials): Omit<DeskRefs, 'screen' | 'screenCenter' | 'screenSize' | 'leds'> {
-  const { x, z, headRadius: R } = DESKTOP.lamp;
+function buildLamp(root: THREE.Group, m: Materials, assets: Assets): Omit<DeskRefs, 'screen' | 'screenCenter' | 'screenSize' | 'leds'> {
+  const { x, z } = DESKTOP.lamp;
   const g = at(new THREE.Group(), x, DESK.top, z, root);
+  g.rotation.y = LAMP.yaw;
 
-  // Weighted base with a rubber foot ring and a small brushed collar.
-  at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.09, 0.016, 28), m.aluminumDark)), 0, 0.008, 0, g);
-  at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.086, 0.086, 0.003, 28), m.rubber)), 0, 0.0015, 0, g);
-  at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.034, 0.022, 20), m.aluminum)), 0, 0.026, 0, g);
+  const model = assets.instance('lamp');
+  model.scale.setScalar(LAMP.scale);
+  g.add(model);
 
-  // Two-axis arm: post → shoulder knuckle → lower arm → elbow knuckle → upper arm → head yoke.
-  const knuckle = (px: number, py: number, pz: number, r = 0.013) => {
-    const k = at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.026, 14), m.aluminum)), px, py, pz, g);
-    k.rotation.z = Math.PI / 2;
-    at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(r * 0.45, r * 0.45, 0.032, 10), m.steel)), px, py, pz, g).rotation.z =
-      Math.PI / 2;
-    return k;
-  };
-  const p0 = new THREE.Vector3(0, 0.035, 0);
-  const p1 = new THREE.Vector3(0, 0.2, 0.005);
-  const p2 = new THREE.Vector3(0.12, 0.44, 0.1);
-  const p3 = new THREE.Vector3(0.3, 0.5, 0.235);
-  g.add(rod(p0, p1, 0.011, m.aluminum, 12));
-  knuckle(p1.x, p1.y, p1.z);
-  // Arm segments are flattened bars, not tubes: they read as a mechanism.
-  const seg = (a: THREE.Vector3, b: THREE.Vector3, w: number) => {
-    const bar = rod(a, b, 0.0085, m.aluminum, 8);
-    bar.scale.x = w;
-    g.add(bar);
-    return bar;
-  };
-  seg(p1, p2, 2.1);
-  knuckle(p2.x, p2.y, p2.z, 0.0145);
-  seg(p2, p3, 1.9);
-  // Tension spring alongside the lower arm.
-  const spring = rod(new THREE.Vector3(0.018, 0.22, 0.03), new THREE.Vector3(0.108, 0.41, 0.09), 0.004, m.steel, 6);
-  g.add(spring);
-
-  const head = at(new THREE.Group(), p3.x, p3.y, p3.z, g);
-  // Aim down and forward onto the working half of the desk. The head's +z is the beam axis,
-  // which is also what the spot light and the dust volume follow.
-  const pool = new THREE.Vector3(-0.02, DESK.top, -0.42);
-  head.lookAt(pool);
-  // Flat circular body: rim, back plate, diffuser.
-  at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.026, 32), m.aluminum)), 0, 0, 0, head).rotation.x = Math.PI / 2;
-  at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(R - 0.008, R - 0.008, 0.03, 32), m.aluminumDark)), 0, 0, -0.004, head).rotation.x =
-    Math.PI / 2;
-  const disc = at(new THREE.Mesh(new THREE.CircleGeometry(R - 0.011, 32), new THREE.MeshStandardMaterial({
+  // Re-author the imported materials against this room's palette, so the lamp answers this
+  // room's lighting instead of arriving with its own look.
+  const discMat = new THREE.MeshStandardMaterial({
     color: '#0a0a0a',
     emissive: '#ffd6a0',
     emissiveIntensity: 0.1,
-    roughness: 0.6,
-  })), 0, 0, 0.0145, head);
-  // Yoke arms holding the head, and a small tilt knob.
-  for (const s of [-1, 1]) {
-    const yoke = at(rbox(0.008, 0.05, 0.016, m.aluminum, 0.003), s * (R - 0.004), -0.03, -0.01, head);
-    yoke.rotation.z = s * 0.35;
-  }
-  at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.02, 10), m.steel)), R - 0.006, -0.05, -0.012, head).rotation.z =
-    Math.PI / 2;
+    roughness: 0.55,
+  });
+  assets.retint(model, { lamp_metal: m.aluminum, lamp_dark: m.aluminumDark, lamp_diffuser: discMat });
+  const disc = (assets.part(model, 'lamp_glass') ?? assets.part(model, 'lamp_head'))!;
 
-  const socket = at(new THREE.Object3D(), 0, 0, 0.03, head);
-  const target = at(new THREE.Object3D(), 0, 0, 1, head);
-
-  buildMedals(g, m, p2, p3);
+  // Socket and aim come from the build's sidecar, so the light sits at the real head rather
+  // than at a position guessed at runtime.
+  const meta = assets.meta('lamp');
+  const socketLocal = new THREE.Vector3(...(meta.socket ?? [0, 0.5, 0])).multiplyScalar(LAMP.scale);
+  const beamLocal = new THREE.Vector3(...(meta.beam ?? [0, -1, 0])).normalize();
+  const head = at(new THREE.Object3D(), socketLocal.x, socketLocal.y, socketLocal.z, g);
+  const socket = at(new THREE.Object3D(), 0, 0, 0, head);
+  const target = at(new THREE.Object3D(), beamLocal.x, beamLocal.y, beamLocal.z, head);
 
   g.updateMatrixWorld(true);
+  const headWorld = head.getWorldPosition(new THREE.Vector3());
+  const beamWorld = target.getWorldPosition(new THREE.Vector3()).sub(headWorld).normalize();
+  const drop = (DESK.top - headWorld.y) / Math.min(-0.05, beamWorld.y);
+  const pool = headWorld.clone().addScaledVector(beamWorld, drop);
+
+  buildMedals(g, m, model);
   return { lampHead: head, lampSocket: socket, lampTarget: target, lampDisc: disc, lampPool: pool };
 }
 
 /**
- * §6: medals hung over the lamp's upper arm. Each one is a lanyard folded over the arm with
- * the disc swinging at the bottom — lengths, lean and facing all differ, so they read as
+ * §12: medals hung over the lamp's arm. Lengths, lean and facing all differ, so they read as
  * things that were dropped there rather than an arrangement.
  */
-function buildMedals(lamp: THREE.Group, m: Materials, armA: THREE.Vector3, armB: THREE.Vector3) {
+function buildMedals(lamp: THREE.Group, m: Materials, model: THREE.Object3D) {
   const metals = [m.gold, m.silver, m.bronze, m.gold];
   const ribbons = [m.ribbonBlue, m.ribbonRed, m.ribbonGreen, m.ribbonRed];
   const r = rand(4211);
-  // Where along the arm each lanyard sits, how long it hangs, and how it has settled.
+  const from = new THREE.Vector3(...LAMP.medalFrom).multiplyScalar(LAMP.scale);
+  const to = new THREE.Vector3(...LAMP.medalTo).multiplyScalar(LAMP.scale);
+  void model;
   const specs = [
-    { t: 0.26, drop: 0.2, lean: -0.24, turn: 0.35, tilt: 0.16 },
-    { t: 0.42, drop: 0.155, lean: -0.1, turn: 1.32, tilt: -0.08 },
-    { t: 0.55, drop: 0.235, lean: -0.3, turn: -0.42, tilt: 0.24 },
-    { t: 0.68, drop: 0.13, lean: -0.05, turn: 0.78, tilt: -0.2 },
+    { t: 0.0, drop: 0.2, lean: -0.24, turn: 0.35 },
+    { t: 0.34, drop: 0.155, lean: -0.1, turn: 1.32 },
+    { t: 0.62, drop: 0.235, lean: -0.3, turn: -0.42 },
+    { t: 1.0, drop: 0.13, lean: -0.05, turn: 0.78 },
   ];
   specs.forEach((s, i) => {
-    const hang = armA.clone().lerp(armB, s.t);
+    const hang = from.clone().lerp(to, s.t);
     const g = at(new THREE.Group(), hang.x, hang.y, hang.z, lamp);
     g.rotation.z = s.lean;
     g.rotation.y = s.turn;
-    g.rotation.x = s.tilt * 0.5;
 
-    // Lanyard: two straps from the arm down to the ring, splayed slightly apart.
     const bottom = -s.drop;
     for (const side of [-1, 1]) {
       const strap = at(rbox(0.009, s.drop, 0.0016, ribbons[i], 0.0006), side * 0.011, bottom / 2, 0, g);
       strap.rotation.z = side * 0.05 + (r() - 0.5) * 0.04;
     }
     at(rbox(0.026, 0.006, 0.0022, ribbons[i], 0.0008), 0, bottom + 0.004, 0, g);
-    // Ring and disc.
     const ring = at(shadowed(new THREE.Mesh(new THREE.TorusGeometry(0.006, 0.0016, 6, 12), metals[i])), 0, bottom - 0.002, 0, g);
     ring.rotation.y = Math.PI / 2;
     const disc = at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.023, 0.023, 0.0035, 22), metals[i])), 0, bottom - 0.028, 0, g);
     disc.rotation.x = Math.PI / 2;
     disc.rotation.z = (r() - 0.5) * 0.5;
-    // Raised inner face so the disc is not a plain coin.
     at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.0042, 22), metals[i])), 0, bottom - 0.028, 0.0004, g).rotation.x =
       Math.PI / 2;
   });
@@ -754,13 +729,13 @@ function buildFloorBins(root: THREE.Group, m: Materials) {
   return g;
 }
 
-export function buildDeskSet(root: THREE.Group, m: Materials): DeskRefs {
+export function buildDeskSet(root: THREE.Group, m: Materials, assets: Assets): DeskRefs {
   buildDesk(root, m);
   const monitor = buildMonitor(root, m);
   buildMacBook(root, m);
   const kbLeds = buildKeyboard(root, m);
   buildMouse(root, m);
-  const lamp = buildLamp(root, m);
+  const lamp = buildLamp(root, m, assets);
   buildCube(root);
   buildMug(root, m);
   const clutterLeds = buildWorkClutter(root, m);

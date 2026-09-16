@@ -49,6 +49,22 @@ export const DESKTOP = {
 };
 
 /** Constrained first-person camera. Ranges are radians from the rest direction. */
+/** Placement of the imported lamp asset. Its geometry is built in Blender. */
+export const LAMP = {
+  /**
+   * Rotation about Y. The asset's beam leaves along -Z, so this is what turns the arm — and
+   * therefore the light — toward the working half of the desk.
+   */
+  yaw: -2.19,
+  scale: 0.92,
+  /**
+   * Where the medals hang, in the asset's own space: two points along the lower arm. Taken
+   * from the build rather than from a bounding box, which put them out in the air.
+   */
+  medalFrom: [0.012, 0.17, -0.06] as [number, number, number],
+  medalTo: [0.034, 0.40, -0.17] as [number, number, number],
+};
+
 export const CAMERA = {
   fov: 54,
   /** Narrower while examining an object: a gentle dolly rather than a jump cut. */
