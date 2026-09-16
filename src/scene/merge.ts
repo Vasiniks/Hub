@@ -7,12 +7,18 @@ interface Bucket {
   material: THREE.Material;
   cast: boolean;
   receive: boolean;
+  /** mergeGeometries needs every input to agree on this, so it is part of the bucket key. */
+  indexed: boolean;
   parts: THREE.BufferGeometry[];
   meshes: THREE.Mesh[];
 }
 
 /**
  * Collapse static meshes that share a material and shadow flags into one draw call each.
+ *
+ * Bevelled boxes come from RoundedBoxGeometry, which discards its index — so index-ness is
+ * part of the bucket key rather than a reason to skip a mesh. Requiring an index here quietly
+ * excluded almost every object in the room from merging.
  * Every pass benefits: main render, AO normals, both shadow maps, and environment capture.
  * Subtrees marked `userData.dynamic` keep their own transform and are merged internally.
  * Returns the number of meshes before and after.
@@ -37,13 +43,15 @@ export function mergeStatic(root: THREE.Object3D): { before: number; after: numb
       !(mesh as THREE.InstancedMesh).isInstancedMesh &&
       !mesh.userData.noMerge &&
       !Array.isArray(mesh.material) &&
-      mesh.geometry.index !== null &&
       [...KEEP].every((k) => mesh.geometry.getAttribute(k) !== undefined);
     if (mergeable) {
       const material = mesh.material as THREE.Material;
-      const key = `${material.uuid}|${mesh.castShadow}|${mesh.receiveShadow}`;
+      const indexed = mesh.geometry.index !== null;
+      const key = `${material.uuid}|${mesh.castShadow}|${mesh.receiveShadow}|${indexed}`;
       let bucket = buckets.get(key);
-      if (!bucket) buckets.set(key, (bucket = { material, cast: mesh.castShadow, receive: mesh.receiveShadow, parts: [], meshes: [] }));
+      if (!bucket) {
+        buckets.set(key, (bucket = { material, cast: mesh.castShadow, receive: mesh.receiveShadow, indexed, parts: [], meshes: [] }));
+      }
       const part = mesh.geometry.clone();
       for (const name of Object.keys(part.attributes)) if (!KEEP.has(name)) part.deleteAttribute(name);
       part.clearGroups();
