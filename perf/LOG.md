@@ -124,6 +124,13 @@ No missed frames in any scenario at any hour, baseline or now. Main-thread CPU p
 Draw calls: seated idle 168 → 96, hover 246 → 109, popup 150 → 77. Triangles in popup 103k → 38k.
 
 ## Resolution cliff (open question for the visual pass)
+
+> **Correction (rendering pass, below):** this "cliff" was a bug, not the GPU. `EffectComposer` was
+> constructed with a render target sized in device pixels, took that as its CSS size and applied
+> the pixel ratio again, so every post buffer ran at ratio² — "1.25" was really 1.5625 and "1.5"
+> was 2.25 — until a window resize happened to correct it. Headless runs never resize. Every
+> pinned-ratio number in the tables above is at ratio². Comparisons stand (both sides had the bug).
+
 Truly pinned at 1.5, the full pipeline costs 17–20 ms uncapped (37–49 fps under vsync) against
 6–10 ms at 1.25: ~2× cost for 1.44× pixels, not explained by MSAA (msaa 0/2/4 all show it).
 Calibration correctly lands on 1.25 on this GPU. Making 1.5 affordable would need fewer
@@ -199,3 +206,162 @@ Where headroom is still thin: **turning the head** (seated look) recomputes AO e
 the pipeline is fill-bound — pixel ratio 1.5 costs ~2× 1.25 on this GPU. Next levers, measured
 but not yet spent: AO at reduced resolution only while the view moves; fewer full-resolution
 post passes; temporal accumulation for AO/volumetrics.
+
+# Rendering pass: precompute what can be known, and stop shading what cannot be seen
+
+Method changes for this pass:
+- **Fence timing.** `window.__room.bench(pose)` (`src/debug/bench.ts`, debug-only, lazy) parks the
+  camera, pauses the loop and times N composer renders between two `fenceSync` waits: real GPU
+  completion, not queue time. Feature costs are A/B toggles alternated inside one page load.
+  `scripts/bench.mjs` (per pass/light/feature), `scripts/bench-materials.mjs` (per material),
+  `scripts/bench-ab.mjs` (URL variants in interleaved page loads, three seated poses; "look" forces
+  AO to recompute every frame, "idle" reuses it).
+- **Image checks.** `scripts/compare-variants.mjs` + `.py`: reduced motion, `lorenz=0`, parked
+  views (seated, desk right, shelf, standing), mean/>8-level pixel diff against a reference variant
+  and side-by-side sheets. Same-build noise floor ≈ 0.3–0.6 mean. `scripts/lamp-shots.mjs`: night
+  close-ups of the lamp pool.
+- True pixel ratio 1.5 (the fix above), 1440×900 CSS at DPR 2 = 2160×1350 rendered.
+
+## Where the 10.8 ms went (seated, turning, pr 1.5, before this pass)
+
+| cost | ms |
+|---|---|
+| scene render (MSAA 2×) | 5.1–5.6 |
+| · rect-area lights (4) | ~4.0 — specular ~2.1, diffuse ~1.2 (interleaved toggles) |
+| · lamp / sun / environment | 0.7 / 0.3–0.6 / 0.3–0.6 |
+| GTAO (recomputed every turning frame) | 3.2–3.4 — AO shader 2.5–2.7, normals 0.7, denoise 0.7 |
+| bloom / volumetric | 0.5–0.7 / 0.3–0.8 |
+| CPU submission | 0.5–0.8 |
+
+GPU-bound: CPU is under a millisecond, draw calls ~160, shadow-map redraws already rare and cheap.
+The time was per-pixel integrals re-evaluated every frame for answers that barely change.
+
+## 1. Rect-area light specular → environment probe + near field
+
+What: three evaluates an LTC polygon integral (plus two LUT fetches) for every rect light's
+specular on every pixel. Now (`src/scene/areaLights.ts`):
+- Diffuse stays per pixel, exact, but skips a light where the bound
+  4·|hw|·|hh|·max(radiance)/d² < 0.0005 — the shelf strip and desk spill are invisible almost
+  everywhere on screen.
+- **Large emitters (the window)** get their specular from the probe: a pane at the light's
+  radiance (÷ environment intensity) on a reflection-only layer is drawn over the cube capture,
+  unoccluded like the integral. The capture is filtered twice — once without panes for irradiance
+  (materials read it through a shared `envMapIrradiance` uniform), once with them for radiance — so
+  the window is not counted twice in diffuse. Capture already happens only when the light drifts.
+- **Small emitters** keep the LTC specular only within 70 cm, where a room-centred probe is wrong:
+  the monitor 30 cm from the laptop lid.
+
+Measured (interleaved, pr 1.5): look 10.5 → 8.2, idle 7.2 → 4.6 ms, day and night alike.
+Image vs `?arealights=pixel`: seated 1.05–1.64, desk 1.07–1.10, shelf 0.89–1.82, standing
+0.95–1.99 mean — the remainder a faint window sheen on the floor (probe parallax).
+
+Rejected on the way:
+- Specular simply dropped: saved the same but the laptop lid went from white to dark navy, day and
+  night (mean diff 5–7 seated).
+- Window pane in the probe without the split filter: the lid came back, but the room brightened
+  (window counted twice in irradiance; standing 5.4 mean diff).
+- Pane only for the window, no near field: lid still dark at night (monitor reflection is near
+  field). Near field costs no measurable time (8.36 vs 8.16 ms, noise).
+- **Per-vertex diffuse** (form factor in the vertex shader, receivers tessellated): a further
+  ~0.8 ms, but near-field banding where a small light sits close to a large face (shelf strip on the
+  back wall at night). Per-vertex diffuse with per-pixel specular saved nothing — specular was the
+  cost. Removed.
+
+## 2. AO at half resolution while the view moves
+
+What (`src/scene/ao.ts`): while the view sweeps (> 0.6 CSS px/frame) or on-screen geometry keeps
+invalidating, depth/normals, trace and denoise all run on half-resolution targets (denoise radius
+halved to keep its footprint). Still for 0.12 s → full resolution computed once and crossfaded in
+over 0.2 s. Idle breathing stays below the motion threshold, so a resting view is always full
+resolution. Outline and light shafts read the half depth while moving: pixel-identical outline.
+
+Measured: AO recompute 3.3 → ~0.8 ms. Seated look 8.1 → 6.0 (half AO) → 5.4 (half G-buffer too).
+Image, still vs forced-moving path: 0.3–0.6 mean — thin geometry (lamp arms) gains a faint halo
+at half resolution, which is why it never shows at rest. `scripts/verify-ao-motion.mjs`: idle 100%
+full, sweep 88% half, back to full after the camera's glide settles (~1.2 s after the mouse stops).
+
+Considered and not done: temporal accumulation (reprojection ghosting on the chair, books and
+robot; the half-resolution path already recovers most of the cost); baked AO (desk-scale contact
+occlusion between props is exactly what vertex/lightmap AO on this geometry cannot hold, and GTAO's
+remaining cost while turning is under a millisecond).
+
+## 3. Window pane: image lighting only
+
+The pane covers a third of the seated view and was shaded with every direct light. The sun and
+the window light are behind it, monitor and shelf face away, and the lamp is already in it via the
+probe (its diffuser is in the capture). `imageLightingOnly` keeps IBL and ambient, drops the
+direct loops. −0.2 to −0.6 ms by pose; image diff 0.22–0.41 mean (noise floor), day/golden/night.
+
+## 4. The lamp as a disk (visual; costs ≤0.4 ms at night)
+
+See `src/scene/lampDisk.ts`. PCSS: blocker search (12 taps) on a float depth map of the casters —
+redrawn only when the lamp's shadow map is — with receiver-plane depth bias; penumbra
+r·(dR−dB)/dB; 12-tap filter on the hardware compare map; no blocker found → one filtered tap (a
+sparse search can step over a contact occluder). Specular roughness widened α' = α + r/2d.
+Falloff 1/(d² + r²). Shadow camera near 0.5 → 0.1 m (the medals on the arm were never in the map).
+Cube and mug shadows harden at contact and soften with height; the desk's pinpoint hot spot is a
+broad sheen; the dark laptop stand now shows the diffuser's reflection (verified to be specular,
+not a lost shadow: identical to the point light with widening off). Night seated +0.0–0.4 ms.
+
+## Measured and kept
+
+- MSAA 2× costs 0.8 ms (0× 4.5 / 2× 5.3 / 4× 5.8 look). Kept: edge crawl while turning is the
+  most visible regression available, and a post AA softens textures.
+- Bloom 0.67 ms: the tight levels carry the look (see the washout fix); dropping the wide levels
+  saves nothing (they are tiny mips).
+- Volumetric 0.3–0.4 ms at 0.4 resolution. Environment sampling 0.3–0.4 ms.
+- Per-material scene cost after the above (`bench-materials`): no material over ~0.5 ms; cost is
+  spread across the room's ~40 lit materials.
+
+## Considered, not done (with the numbers that decided it)
+
+- **Lightmaps / baked irradiance.** After §1 each remaining light costs 0.1–0.3 ms. Baking would
+  save ~1 ms while freezing a continuously moving sun and lamp, and needs a UV2 unwrap for procedural
+  geometry. The probe split in §1 already precomputes the expensive part (specular) per lighting
+  state.
+- **Occlusion/visibility culling.** CPU 0.5–0.8 ms, ~160 draw calls, GPU-bound fill: culling
+  saves CPU the frame is not waiting on.
+- **Dynamic resolution of the main pass.** Already adaptive (steps down on sustained slow frames);
+  now rarely engages.
+
+## Before → after (this pass)
+
+Baseline = `bca8de1` (start of the pass) **with only the composer ratio fix applied**, served from a
+git worktree, so the comparison isolates rendering work. `scripts/perf-suite.mjs`, uncapped, true
+pr 1.5 (2160×1350), runs interleaved base/now/base/now, averaged over day 13:00, golden 18:30,
+evening 20:00, night 21:30. Frame p50 / p95 / max ms, (missed-frame count summed over 8 runs),
+draw calls. (As shipped before the fix, buffers were 2.25× larger again.)
+
+| scenario | before | after | p50 |
+|---|---|---|---|
+| standing idle | 8.1 / 15.7 / 27 (22) · 137 | 5.3 / 10.2 / 17 (0) · 137 | −34% |
+| standing look | 8.9 / 24.4 / 35 (139) · 240 | 5.5 / 11.0 / 22 (0) · 155 | −38% |
+| sitting | 10.4 / 27.6 / 32 (205) · 281 | 5.7 / 11.3 / 23 (0) · 316 | −45% |
+| seated idle | 7.7 / 14.3 / 26 (16) · 93 | 5.1 / 9.5 / 15 (0) · 93 | −34% |
+| **seated look** | **10.4 / 27.6 / 45 (205) · 156** | **5.6 / 10.9 / 22 (0) · 155** | **−46%** |
+| hover | 8.2 / 15.8 / 30 (36) · 106 | 5.6 / 10.9 / 19 (0) · 106 | −32% |
+| focus transition | 11.4 / 24.7 / 33 (60) · 133 | 6.3 / 12.0 / 28 (1) · 130 | −45% |
+| popup open | 7.7 / 13.3 / 31 (16) · 77 | 5.4 / 9.7 / 19 (0) · 77 | −30% |
+| time transition | 8.1 / 21.9 / 51 (110) · 106 | 5.7 / 11.7 / 33 (6) · 107 | −30% |
+
+By hour (p50): seated idle 7.6→4.5 day, 7.8→5.3 golden, 7.8→5.3 evening, 7.7→5.2 night; seated look
+10.4→5.5 / 5.7 / 5.7 / 5.7; standing look 9.0→5.5 / 8.8→5.7 / 9.2→5.6 / 8.8→5.5; popup 7.7→5.4 /
+7.8→5.4 / 7.7→5.4 / 7.7→5.3. Night idle keeps ~0.7 ms more than day: the disk lamp's shadow work.
+Sitting draws +35 calls: the lamp blocker map redraws with the shadow maps while the chair rolls.
+
+Real 60 Hz (`CAPPED=1`, calibration picks 1.5): 60 fps, **zero missed frames in every scenario**
+day and night; main-thread CPU 1.0–1.9 ms avg, ≤3.7 ms p95. Heap 34–43 MB both builds, no growth.
+Loader hidden at 1.37–1.6 s; startup trace 60 fps with no frame over 16.8 ms after reveal.
+
+Image, before vs after, frozen grain (`scripts/compare-variants`): mean 0.8–2.3 per view and hour;
+the visible changes are the lamp (softer, contact-hardening shadows; wider highlight), and a slightly
+weaker window sheen on the lamp base by day (161 → 159 mean luminance in that patch).
+
+Tests: verify-room, verify-gesture, verify-motion, verify-a11y (keyboard focus, focus restore,
+reduced motion: no idle motion), verify-shelf, verify-shelf-a11y, verify-books, verify-ao-motion
+all pass with no console errors; compile-watch from 06:00, 13:00, 21:00: zero shader compiles after
+load across the 24 h sweep, hovers and shelf.
+
+**Largest remaining cost:** the main scene pass — lit PBR shading of ~40 materials at 2160×1350 with
+MSAA 2× (~3 ms, of which MSAA 0.8), spread evenly with no dominant material; then bloom (0.7) and
+AO while turning (~0.8).
