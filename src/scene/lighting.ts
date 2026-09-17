@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import type { RoomRefs } from './room';
 import type { createExterior } from './exterior';
 
@@ -83,7 +82,7 @@ const _b = new THREE.Color();
 const mix = (out: THREE.Color, a: string, b: string, t: number) => out.copy(_a.set(a)).lerp(_b.set(b), t);
 
 export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: ReturnType<typeof createExterior>) {
-  RectAreaLightUniformsLib.init();
+  // Rect-area light lookup tables are installed by loadLtcTables() before this runs.
 
   // Direct sun through the window. Its shadow map also shapes the light shafts.
   const sun = new THREE.DirectionalLight('#ffffff', 0);

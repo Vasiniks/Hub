@@ -161,3 +161,12 @@ server), build ~90, env capture + setup ~155, shader compile ~55, pass warm-up ~
 designed 420 ms bar fade, unchanged.
 Loader hidden (`scripts/startup-trace.mjs`): 2.06–2.10 s → 1.72–1.90 s (4 runs, avg 1.81 s);
 no frame over 16.8 ms after the reveal. Zero shader compiles after load (`compile-watch`).
+
+### Bundle: rect-area light tables out of the JavaScript
+Attribution (source map): `RectAreaLightTexturesLib` was 241 KB of the minified main bundle — two
+64×64 RGBA LTC tables as ~33,000 float literals. Now a 64 KB half-float binary
+(`scripts/build-ltc.mjs` → `public/assets/ltc.bin`, 50 KB gzipped) fetched behind the loading bar;
+float textures are expanded from it (≤0.1% relative difference; three already uses this exact
+half data where float filtering is unavailable). Frozen-grain pixel diff vs previous build: mean
+0.21–0.32/255 (noise floor). Main bundle 1,095 → 848 kB, gzip 329 → 224 kB (the pass started at
+928 / 279 kB); three-mesh-bvh stays a separate 48 kB lazy chunk.
