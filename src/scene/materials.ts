@@ -106,6 +106,29 @@ export type Materials = ReturnType<typeof createMaterials>;
 /** Colour the set dissolves into; kept equal to the background and the fog. */
 export const fadeColor = new THREE.Color('#0f1216');
 
+/**
+ * Shade from the environment probe and ambient terms only, skipping every direct light.
+ *
+ * For the window pane: a transparent surface covering a third of the seated view, whose look is
+ * its reflection and tint. The sun and the window's area light sit behind it, the monitor and
+ * shelf face away from it, and the lamp already appears in it through the probe (its diffuser is
+ * in the capture) — so the direct-light loops were ~0.5 ms of shading that contributed nothing
+ * visible. `?glass=full` restores them.
+ */
+function imageLightingOnly<T extends THREE.MeshStandardMaterial>(mat: T): T {
+  if (new URLSearchParams(location.search).get('glass') === 'full') return mat;
+  mat.onBeforeCompile = (shader, renderer) => {
+    Object.getPrototypeOf(mat).onBeforeCompile.call(mat, shader, renderer);
+    const chunk = (THREE.ShaderChunk as unknown as Record<string, string>).lights_fragment_begin;
+    const start = chunk.indexOf('#if ( NUM_POINT_LIGHTS > 0 ) && defined( RE_Direct )');
+    const end = chunk.indexOf('#if defined( RE_IndirectDiffuse )');
+    if (start < 0 || end < start) throw new Error('image lighting only: lights_fragment_begin changed');
+    shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>', chunk.slice(0, start) + chunk.slice(end));
+  };
+  mat.customProgramCacheKey = () => 'image-lighting-only';
+  return mat;
+}
+
 type Range = [number, number];
 const OFF: Range = [1e5, 1e5 + 1];
 
@@ -238,14 +261,16 @@ export function createMaterials(surfaces: SurfaceTextures) {
     // Roughness 0.16, not 0.04: a pane that near-mirror turns every point source in the room
     // into a single blown-out pixel in the glass. Real glass at this scale reads as a soft
     // sheen, and the softer lobe is also what makes the night reflections believable.
-    windowGlass: standard({
-      color: '#c9d4dc',
-      roughness: 0.16,
-      metalness: 0,
-      transparent: true,
-      opacity: 0.08,
-      depthWrite: false,
-    }),
+    windowGlass: imageLightingOnly(
+      standard({
+        color: '#c9d4dc',
+        roughness: 0.16,
+        metalness: 0,
+        transparent: true,
+        opacity: 0.08,
+        depthWrite: false,
+      }),
+    ),
     windowFrame: standard({ color: '#23262a', roughness: 0.5, metalness: 0.55 }),
     // A painted sill reflects about 70%, not 92%. At 92% it clipped under direct sun.
     sill: standard({ color: '#dcdedf', roughness: 0.56 }),

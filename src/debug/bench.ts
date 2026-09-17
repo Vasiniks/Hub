@@ -77,7 +77,7 @@ export function createBench(ctx: BenchContext) {
      * Park the camera, then measure the frame and each pass/feature. `aoLive` forces AO to
      * recompute every frame, which is what turning the head costs.
      */
-    async run(pose: { p: number[]; t: number[]; fov: number; quick?: boolean }) {
+    async run(pose: { p: number[]; t: number[]; fov: number; quick?: boolean; materials?: boolean }) {
       ctx.pause(true);
       const saved = { pos: camera.position.clone(), quat: camera.quaternion.clone(), fov: camera.fov };
       camera.position.fromArray(pose.p);
@@ -111,6 +111,30 @@ export function createBench(ctx: BenchContext) {
         camera.updateProjectionMatrix();
         ctx.pause(false);
         return results;
+      }
+
+      // Per-material cost of the scene: every mesh drawing with one material hidden at once. Idle
+      // frames (AO cached), so the delta is what that material costs the scene and post passes.
+      if (pose.materials) {
+        const frustum = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+        const byMaterial = new Map<THREE.Material, THREE.Mesh[]>();
+        scene.traverse((o) => {
+          const mesh = o as THREE.Mesh;
+          if (!mesh.isMesh || !mesh.visible || !mesh.layers.test(camera.layers)) return;
+          if (mesh.frustumCulled && !frustum.intersectsObject(mesh)) return;
+          for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+            if (!byMaterial.has(m)) byMaterial.set(m, []);
+            byMaterial.get(m)!.push(mesh);
+          }
+        });
+        const rows: { label: string; with: number; without: number; cost: number }[] = [];
+        for (const [m, meshes] of byMaterial) {
+          const label = `${m.name || meshes.map((x) => x.name || x.parent?.name || '?').slice(0, 2).join('+')}${m.transparent ? ' (T)' : ''} ×${meshes.length}`;
+          rows.push(await ab(label, idleFrame, () => meshes.forEach((x) => (x.visible = true)), () => meshes.forEach((x) => (x.visible = false)), 3, 10));
+        }
+        const transparent = [...byMaterial].filter(([m]) => m.transparent).flatMap(([, ms]) => ms);
+        rows.push(await ab(`ALL transparent ×${transparent.length}`, idleFrame, () => transparent.forEach((x) => (x.visible = true)), () => transparent.forEach((x) => (x.visible = false)), 4, 10));
+        results.materials = rows.sort((a, b) => b.cost - a.cost);
       }
 
       const passes: unknown[] = [];
