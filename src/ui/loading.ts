@@ -10,10 +10,16 @@ export function createLoader(stages: readonly string[]) {
   const fill = document.getElementById('loader-fill')!;
   const label = document.getElementById('loader-label')!;
   let done = 0;
+  /** When each stage finished, in ms since navigation start — read by the startup profiler. */
+  const marks: { stage: string; at: number }[] = [];
+  let current = stages[0];
 
   return {
+    marks,
     /** Mark a stage complete and describe what is starting next. */
     advance(next?: string) {
+      marks.push({ stage: current, at: Math.round(performance.now()) });
+      current = next ?? current;
       done = Math.min(stages.length, done + 1);
       fill.style.transform = `scaleX(${done / stages.length})`;
       if (next) label.textContent = next;

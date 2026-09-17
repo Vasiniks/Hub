@@ -55,18 +55,18 @@ async function start() {
   // Models come from the Blender pipeline. Everything loads before the room is built, so no
   // asset can arrive mid-interaction and cause a hitch.
   const assets = await loadAssets([
-    { name: 'lamp', file: 'lamp.glb' },
+    { name: 'lamp', file: 'lamp.glb', meta: true },
     { name: 'mouse', file: 'mouse.glb' },
     { name: 'macbook', file: 'macbook.glb' },
-    { name: 'monitor', file: 'monitor.glb' },
-    { name: 'keyboard', file: 'keyboard.glb' },
-    { name: 'cube', file: 'cube.glb' },
-    { name: 'book', file: 'book.glb' },
-    { name: 'robot', file: 'robot.glb' },
+    { name: 'monitor', file: 'monitor.glb', meta: true },
+    { name: 'keyboard', file: 'keyboard.glb', meta: true },
+    { name: 'cube', file: 'cube.glb', meta: true },
+    { name: 'book', file: 'book.glb', meta: true },
+    { name: 'robot', file: 'robot.glb', meta: true },
     { name: 'chair', file: 'chair.glb' },
-    { name: 'bin', file: 'bin.glb' },
-    { name: 'tote', file: 'tote.glb' },
-    { name: 'organizer', file: 'organizer.glb' },
+    { name: 'bin', file: 'bin.glb', meta: true },
+    { name: 'tote', file: 'tote.glb', meta: true },
+    { name: 'organizer', file: 'organizer.glb', meta: true },
     { name: 'mug', file: 'mug.glb' },
     { name: 'screwdriver', file: 'screwdriver.glb' },
     { name: 'cable', file: 'cable.glb' },
@@ -774,14 +774,23 @@ async function start() {
       return (performance.now() - t0) / n;
     };
     await burst(4); // discard: driver first-use
-    const first = await burst(12);
-    let cost = await burst(12);
-    const trace = [{ ratio: view.pixelRatio(), ms: +first.toFixed(2) }, { ratio: view.pixelRatio(), ms: +cost.toFixed(2) }];
+    /**
+     * Six frames decide a clear case; only a result near the budget earns six more. The first
+     * resolution tried is often well over budget, and twelve frames at ~17 ms each were a
+     * quarter of a second of loading spent confirming what six already showed.
+     */
+    const measure = async () => {
+      const first = await burst(6);
+      if (Math.abs(first - FRAME_BUDGET_MS) > FRAME_BUDGET_MS * 0.25) return first;
+      return (first + (await burst(6))) / 2;
+    };
+    let cost = await measure();
+    const trace = [{ ratio: view.pixelRatio(), ms: +cost.toFixed(2) }];
     let steps = 0;
     while (view.adaptive && cost > FRAME_BUDGET_MS && steps < 2 && view.stepDownResolution()) {
       steps++;
       await burst(3);
-      cost = await burst(12);
+      cost = await measure();
       trace.push({ ratio: view.pixelRatio(), ms: +cost.toFixed(2) });
     }
     return { frameMs: +cost.toFixed(2), from, chosen: view.pixelRatio(), steps, trace };
@@ -824,6 +833,7 @@ async function start() {
         calibration: () => calibration,
         pixelRatio: () => view.pixelRatio(),
         aoComputed: () => view.ao.computedThisFrame,
+        startupMarks: () => loader.marks,
         pickingTrees: () => pickingTrees,
         programs: () => (view.renderer.info.programs ?? []).map((p) => p.name),
         programKeys: () => (view.renderer.info.programs ?? []).map((p) => `${p.name}::${p.cacheKey}`),

@@ -141,3 +141,23 @@ Measured (interleaved with HEAD, two rounds each, night): pr 1.25 seated idle 94
 standing 94.0 → 96.8; pr 1.5 seated idle 52.4 → 53.8, look 40.0 → 41.3. Consistent ~3%.
 (Absolute numbers in this block are ~50% slower than earlier blocks for *both* builds: the
 machine was thermally loaded by then. Only interleaved pairs are comparable.)
+
+## Assets and startup
+
+### GLB quantization (pipeline step)
+What: `scripts/optimize-glb.mjs` — Blender output (`assets/processed`) → `public/assets/processed`
+with KHR_mesh_quantization (16-bit positions, 8-bit normals, 16-bit UVs), dedup, prune. Three's
+GLTFLoader reads it natively: no decoder shipped. The loader dequantizes on arrival
+(`assets.ts`: float attributes, node transforms baked, nodes reset) because the room merges static
+geometry in room space, slices books in metres and animates parts by absolute position.
+Measured: all 17 models 2,347 KB → 1,190 KB (robot 970 → 449). Frozen-grain pixel diff vs the
+unquantized build: mean 0.28–0.36/255 — the same as animated noise between identical builds.
+Only models with a sidecar request one (was a 404 per model).
+
+### Startup
+Stage timing (`scripts/startup-stages.mjs`, 5–6 cold loads, DPR 2): assets ~200–360 ms (dev
+server), build ~90, env capture + setup ~155, shader compile ~55, pass warm-up ~175, calibration
+560 → 491 ms (six frames decide a clear case; a leftover diagnostic burst removed). Then the
+designed 420 ms bar fade, unchanged.
+Loader hidden (`scripts/startup-trace.mjs`): 2.06–2.10 s → 1.72–1.90 s (4 runs, avg 1.81 s);
+no frame over 16.8 ms after the reveal. Zero shader compiles after load (`compile-watch`).

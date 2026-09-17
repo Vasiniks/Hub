@@ -17,6 +17,52 @@ export interface AssetSpec {
   name: string;
   /** Path under /assets/processed. */
   file: string;
+  /** Has a sidecar `.json` (placement metadata). Only these are fetched — no 404 per model. */
+  meta?: boolean;
+}
+
+/**
+ * Undo mesh quantization on arrival.
+ *
+ * The runtime GLBs are quantized (scripts/optimize-glb.mjs): 16-bit positions, 8-bit normals,
+ * with each mesh's dequantization stored as a scale and offset on its node. That halves the
+ * download, but the room merges static geometry into shared buffers in room coordinates, slices
+ * the book in metres, and animates parts by absolute position — none of which survive integer
+ * attributes or extra node transforms. The pipeline applies every real transform in Blender
+ * before export, so every node transform under a model's root is quantization and nothing else:
+ * baking it into a float copy of each mesh's geometry and resetting the nodes is exactly the
+ * unquantized model, at the cost of a few milliseconds behind the loading bar.
+ */
+function dequantize(root: THREE.Object3D) {
+  root.updateMatrixWorld(true);
+  const toRoot = new THREE.Matrix4();
+  const rootInverse = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const meshes: THREE.Mesh[] = [];
+  root.traverse((o) => {
+    if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh);
+  });
+  for (const mesh of meshes) {
+    const source = mesh.geometry;
+    const geo = new THREE.BufferGeometry();
+    for (const [name, attr] of Object.entries(source.attributes)) {
+      const a = attr as THREE.BufferAttribute;
+      const out = new Float32Array(a.count * a.itemSize);
+      for (let i = 0; i < a.count; i++) for (let k = 0; k < a.itemSize; k++) out[i * a.itemSize + k] = a.getComponent(i, k);
+      geo.setAttribute(name, new THREE.BufferAttribute(out, a.itemSize));
+    }
+    if (source.index) geo.setIndex(source.index);
+    for (const g of source.groups) geo.addGroup(g.start, g.count, g.materialIndex);
+    toRoot.multiplyMatrices(rootInverse, mesh.matrixWorld);
+    geo.applyMatrix4(toRoot);
+    mesh.geometry = geo;
+  }
+  root.traverse((o) => {
+    if (o === root) return;
+    o.position.set(0, 0, 0);
+    o.quaternion.identity();
+    o.scale.set(1, 1, 1);
+  });
+  root.updateMatrixWorld(true);
 }
 
 export type Assets = Awaited<ReturnType<typeof loadAssets>>;
@@ -37,15 +83,13 @@ export async function loadAssets(specs: AssetSpec[], onProgress?: (done: number,
   let done = 0;
   await Promise.all(
     specs.map(async (spec) => {
-      const gltf = await loader.loadAsync(base + spec.file);
+      const [gltf, meta] = await Promise.all([
+        loader.loadAsync(base + spec.file),
+        spec.meta ? fetch(base + spec.file.replace(/\.glb$/, '.json')).then((r) => (r.ok ? r.json() : null)) : null,
+      ]);
+      dequantize(gltf.scene);
       scenes.set(spec.name, gltf.scene);
-      // Sidecar metadata is optional; most assets are pure geometry.
-      try {
-        const res = await fetch(base + spec.file.replace(/\.glb$/, '.json'));
-        if (res.ok) metas.set(spec.name, (await res.json()) as AssetMeta);
-      } catch {
-        /* no sidecar for this asset */
-      }
+      if (meta) metas.set(spec.name, meta as AssetMeta);
       done++;
       onProgress?.(done, specs.length);
     }),
