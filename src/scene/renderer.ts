@@ -7,12 +7,13 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { CopyShader } from 'three/addons/shaders/CopyShader.js';
-import type { LightState } from './lighting';
+import { LAMP_DISK_RADIUS, type LightState } from './lighting';
 import { fadeColor } from './materials';
 import { OVERLAY_LAYER, REFLECTION_LAYER } from './layers';
 import { VolumetricLightPass } from './volumetric';
 import { createReflectionEmitters, environmentIrradiance, installDiffuseOnlyAreaLights, installSplitEnvironment } from './areaLights';
 import { CachedGTAOPass } from './ao';
+import { createDiskLampShadow, installDiskLamp } from './lampDisk';
 import { SharedDepthOutlinePass } from './outline';
 import { createGpuTimer } from '../debug/gpuTimer';
 
@@ -163,6 +164,7 @@ export function createRenderer(
   // Must precede every material compile (see areaLights.ts).
   installDiffuseOnlyAreaLights();
   installSplitEnvironment();
+  installDiskLamp();
   // Profiling switches (A/B): ?ao=half|off  ?vol=0  ?msaa=0  ?bloom=0  ?pr=<ratio> (fixed, no fallback)
   const aoParam = params.get('ao');
   const volScaleParam = Number(params.get('volscale'));
@@ -269,6 +271,8 @@ export function createRenderer(
     for (const pass of composer.passes) gpu.wrap(pass, 'render', pass.constructor.name);
     gpu.wrap(renderer.shadowMap, 'render', 'ShadowMaps');
   }
+
+  const lampShadow = createDiskLampShadow(renderer, scene, lamp, LAMP_DISK_RADIUS);
 
   // ---- Environment capture: reflections + indirect light from the lit room ----------------
   const cubeTarget = new THREE.WebGLCubeRenderTarget(128, { type: THREE.HalfFloatType });
@@ -416,6 +420,7 @@ export function createRenderer(
     // Capture first: materials compiled before the environment exists get the wrong program
     // variant and recompile (synchronously) the first time each object comes into view.
     captureEnvironmentNow();
+    lampShadow?.draw();
     onStage('compiling shaders');
     await renderer.compileAsync(scene, camera);
     onStage('warming passes');
@@ -484,6 +489,7 @@ export function createRenderer(
     applyLight,
     resize,
     render(dt: number, time: number, animateGrain: boolean) {
+      lampShadow?.update();
       stepCapture();
       output.grade.uTime.value = animateGrain ? time : 0;
       composer.render(dt);

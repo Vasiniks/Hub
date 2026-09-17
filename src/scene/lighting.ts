@@ -58,6 +58,8 @@ const KEYS: LightKey[] = [
 
 /** Lamp cone half-angle. Shared with the dust so the motes light exactly where the beam is. */
 export const LAMP_ANGLE = 0.52;
+/** Radius of the lamp's diffuser: it lights as a disk this size (see lampDisk.ts). */
+export const LAMP_DISK_RADIUS = 0.065;
 /** See the note where lampScatter is computed. */
 const LAMP_SCATTER_GAIN = 12;
 
@@ -118,6 +120,9 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
   lamp.shadow.normalBias = 0.01;
   lamp.shadow.radius = 4;
   lamp.shadow.autoUpdate = false;
+  // The default near plane (0.5 m) dropped everything within half a metre of the head — the
+  // medals on the arm — out of the shadow map entirely.
+  lamp.shadow.camera.near = 0.1;
   room.lampSocket.add(lamp);
   // THREE.Light's constructor seeds position with the default up vector, which would hang the
   // spot a metre above its socket and throw the beam past the desk entirely.

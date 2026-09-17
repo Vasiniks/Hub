@@ -890,6 +890,8 @@ async function start() {
           targetWorld: room.lampTarget.getWorldPosition(new THREE.Vector3()).toArray(),
           pool: room.lampPool.toArray(),
           discWorld: room.lampDisc.getWorldPosition(new THREE.Vector3()).toArray(),
+        discSize: new THREE.Box3().setFromObject(room.lampDisc).getSize(new THREE.Vector3()).toArray(),
+        shadowCamera: { near: lighting.lamp.shadow.camera.near, far: lighting.lamp.shadow.camera.far, fov: lighting.lamp.shadow.camera.fov },
         }),
         /** Diagnostics: list top-level scene children, and hide one by index. */
         parkCamera: (p: number[] | null, t?: number[], fov = 24) => {

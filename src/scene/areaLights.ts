@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { shareUniform } from './sharedUniforms';
 
 /**
  * Rect-area light specular, moved to where it is cheap.
@@ -74,10 +75,7 @@ export function installSplitEnvironment() {
   chunks.envmap_physical_pars_fragment = src
     .replace('#ifdef USE_ENVMAP', '#ifdef USE_ENVMAP\n\tuniform sampler2D envMapIrradiance;')
     .replace(sampleLine, sampleLine.replace('( envMap,', '( envMapIrradiance,'));
-  // Every physical material shares the one uniform object (hooks set on instances chain to this).
-  THREE.MeshStandardMaterial.prototype.onBeforeCompile = (shader) => {
-    shader.uniforms.envMapIrradiance = environmentIrradiance;
-  };
+  shareUniform('envMapIrradiance', environmentIrradiance);
 }
 
 /**
