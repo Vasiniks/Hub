@@ -123,9 +123,29 @@ const COMPOSITE_PARS = /* glsl */ `
   uniform float uAO, uAOFade, uScatter, uOutline, uOutlineStrength, uBloom;
   // Screen NDC → the snapshot views AO (and the shafts) and the faded-from AO were computed for.
   uniform mat3 uAOView, uAOPreviousView;
+  // For the eye's small translations (breathing): the snapshot's depth, its camera, and the current eye.
+  uniform sampler2D tAODepth;
+  uniform mat4 uSnapProjectionInverse, uSnapWorld, uSnapViewProjection;
+  uniform mat4 uViewProjectionInverse;
+  uniform vec3 uSnapEye, uEye;
   vec2 snapshotUv( mat3 view, vec2 uv ) {
     vec3 h = view * vec3( uv * 2.0 - 1.0, 1.0 );
     return h.xy / h.z * 0.5 + 0.5;
+  }
+  /**
+   * Rotation maps exactly; translation is corrected per pixel. The surface is found in the snapshot
+   * along the rotated ray, placed at that distance along this eye's ray, and projected back into
+   * the snapshot. Exact for millimetres of travel, which is all a snapshot is kept through.
+   */
+  vec2 snapshotUvWithParallax( vec2 uv ) {
+    vec2 rotated = snapshotUv( uAOView, uv );
+    float z = texture2D( tAODepth, rotated ).x;
+    vec4 snapView = uSnapProjectionInverse * vec4( rotated * 2.0 - 1.0, z * 2.0 - 1.0, 1.0 );
+    vec3 surface = ( uSnapWorld * vec4( snapView.xyz / snapView.w, 1.0 ) ).xyz;
+    vec4 far = uViewProjectionInverse * vec4( uv * 2.0 - 1.0, 1.0, 1.0 );
+    vec3 ray = normalize( far.xyz / far.w - uEye );
+    vec4 clip = uSnapViewProjection * vec4( uEye + ray * distance( surface, uSnapEye ), 1.0 );
+    return clip.xy / clip.w * 0.5 + 0.5;
   }
   uniform vec3 uBloomWeights[5];
 `;
@@ -133,12 +153,12 @@ const COMPOSITE_PARS = /* glsl */ `
 /** Everything the image receives after the scene render, in the order the old pass chain applied it. */
 const COMPOSITE_BODY = /* glsl */ `
   if ( uAO > 0.0 ) {
-    vec2 aoUv = snapshotUv( uAOView, vUv );
+    vec2 aoUv = snapshotUvWithParallax( vUv );
     vec3 ao = texture2D( tAO, aoUv ).rgb;
     if ( uAOFade < 1.0 ) ao = mix( texture2D( tAOPrevious, snapshotUv( uAOPreviousView, vUv ) ).rgb, ao, uAOFade );
     gl_FragColor.rgb *= mix( vec3( 1.0 ), ao, uAO );
   }
-  if ( uScatter > 0.0 ) gl_FragColor.rgb += texture2D( tScatter, snapshotUv( uAOView, vUv ) ).rgb;
+  if ( uScatter > 0.0 ) gl_FragColor.rgb += texture2D( tScatter, snapshotUvWithParallax( vUv ) ).rgb;
   if ( uOutline > 0.0 ) {
     vec4 edge = uOutlineStrength * texture2D( tOutlineMask, vUv ).r * texture2D( tOutlineEdge, vUv );
     gl_FragColor.rgb += edge.rgb * edge.a;
@@ -200,6 +220,13 @@ class GradedOutputPass extends OutputPass {
       uBloom: { value: 0 },
       uBloomWeights: { value: [0, 0, 0, 0, 0].map(() => new THREE.Vector3()) },
       uAOView: { value: new THREE.Matrix3() },
+      tAODepth: { value: null },
+      uSnapProjectionInverse: { value: new THREE.Matrix4() },
+      uSnapWorld: { value: new THREE.Matrix4() },
+      uSnapViewProjection: { value: new THREE.Matrix4() },
+      uViewProjectionInverse: { value: new THREE.Matrix4() },
+      uSnapEye: { value: new THREE.Vector3() },
+      uEye: { value: new THREE.Vector3() },
       uAOPreviousView: { value: new THREE.Matrix3() },
     });
     const material = (this as unknown as { material: THREE.RawShaderMaterial }).material;
@@ -229,7 +256,16 @@ class GradedOutputPass extends OutputPass {
     u.tAO.value = ao.texture;
     u.tAOPrevious.value = ao.previousTexture;
     u.uAOFade.value = ao.fadeProgress;
-    ao.view.reprojection(this.inputs.camera, u.uAOView.value as THREE.Matrix3);
+    const main = this.inputs.camera;
+    const snap = ao.view.camera;
+    ao.view.reprojection(main, u.uAOView.value as THREE.Matrix3);
+    u.tAODepth.value = ao.depthTexture;
+    (u.uSnapProjectionInverse.value as THREE.Matrix4).copy(snap.projectionMatrixInverse);
+    (u.uSnapWorld.value as THREE.Matrix4).copy(snap.matrixWorld);
+    (u.uSnapViewProjection.value as THREE.Matrix4).multiplyMatrices(snap.projectionMatrix, snap.matrixWorldInverse);
+    (u.uViewProjectionInverse.value as THREE.Matrix4).multiplyMatrices(main.projectionMatrix, main.matrixWorldInverse).invert();
+    (u.uSnapEye.value as THREE.Vector3).setFromMatrixPosition(snap.matrixWorld);
+    (u.uEye.value as THREE.Vector3).setFromMatrixPosition(main.matrixWorld);
     if (ao.fadeProgress < 1) ao.previousView.reprojection(this.inputs.camera, u.uAOPreviousView.value as THREE.Matrix3);
     u.uScatter.value = volumetric.enabled && volumetric.active ? 1 : 0;
     u.tScatter.value = volumetric.texture;

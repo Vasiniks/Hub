@@ -16,8 +16,10 @@ for (const [name, q] of Object.entries(variants)) {
   const eye = [0, 1.175, 0.16];
   for (let i = 0; i <= 6; i++) {
     const yaw = -0.35 + i * 0.012; // ~0.7° per step
-    const t = [eye[0] - Math.sin(yaw), 1.0, eye[2] - Math.cos(yaw)];
-    await page.evaluate(({ p, t }) => window.__room.parkCamera(p, t, 54), { p: eye, t });
+    // …and the eye rises 1.5 mm per step, beyond the breathing bob, to exercise the parallax correction.
+    const p = [eye[0], eye[1] + i * 0.0015, eye[2]];
+    const t = [p[0] - Math.sin(yaw), 1.0 + i * 0.0015, p[2] - Math.cos(yaw)];
+    await page.evaluate(({ p, t }) => window.__room.parkCamera(p, t, 54), { p, t });
     await new Promise((r) => setTimeout(r, i === 0 ? 1500 : 250));
     const computed = await page.evaluate(() => window.__room.aoComputed());
     await page.screenshot({ path: `${out}/${name}-${i}.png` });

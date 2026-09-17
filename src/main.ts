@@ -247,7 +247,7 @@ async function start() {
       w.node.getWorldPosition(_aoPos);
       if (!_frustum.intersectsSphere(_reachSphere.set(_aoPos, w.reach))) continue;
       w.node.getWorldQuaternion(_aoQuat);
-      const angle = 2 * Math.acos(Math.min(1, Math.abs(_aoQuat.dot(w.quat))));
+      const angle = w.node.userData.aoIgnoresRotation ? 0 : 2 * Math.acos(Math.min(1, Math.abs(_aoQuat.dot(w.quat))));
       if (angle > 0.008 || _aoPos.distanceTo(w.pos) > 0.0012) {
         view.ao.invalid = true;
         return;

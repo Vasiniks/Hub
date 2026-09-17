@@ -106,6 +106,9 @@ function polyhedron(m: Materials): BuiltObject {
   const rodMat = new THREE.MeshStandardMaterial({ color: '#9ea4aa', roughness: 0.5, metalness: 0.85 });
   body.position.y = 0.115;
   body.userData.dynamic = true;
+  // Spinning an open wire icosahedron changes its shadows but not the occlusion around it: AO
+  // ignores its rotation (it still re-shadows as it turns).
+  body.userData.aoIgnoresRotation = true;
   g.add(body);
   const ico = new THREE.IcosahedronGeometry(0.06, 0);
   const pos = ico.getAttribute('position');

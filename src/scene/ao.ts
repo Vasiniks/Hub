@@ -124,8 +124,12 @@ export class CachedGTAOPass extends GTAOPass {
   invalid = true;
   /** True on frames where AO was actually recomputed (the owner re-baselines its motion checks). */
   computedThisFrame = false;
-  /** Largest allowed apparent shift, in CSS pixels, before AO is recomputed. */
-  pixelTolerance = 1.0;
+  /**
+   * Eye travel (m) a snapshot is reprojected through before AO is recomputed. The composite corrects
+   * translation per pixel from the snapshot's depth, so the breathing bob (a few millimetres) no
+   * longer forces recomputes; the limit only guards disocclusion, which appears over centimetres.
+   */
+  translationTolerance = 0.012;
   /** Depth used to turn camera translation into parallax: roughly the nearest desk objects. */
   parallaxDepth = 0.5;
   caching = true;
@@ -251,9 +255,7 @@ export class CachedGTAOPass extends GTAOPass {
     const camera = this.main;
     camera.matrixWorld.decompose(_p, _q, _s);
     if (camera.fov !== this.lastFov || camera.aspect !== this.lastAspect) return false;
-    const parallax = _p.distanceTo(this.lastPos) / this.parallaxDepth;
-    const pxPerRadian = window.innerHeight / THREE.MathUtils.degToRad(camera.fov);
-    if (parallax * pxPerRadian > this.pixelTolerance) return false;
+    if (_p.distanceTo(this.lastPos) > this.translationTolerance) return false;
     return this.current.view.covers(camera, this._corners);
   }
 
