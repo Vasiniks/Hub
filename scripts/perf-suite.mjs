@@ -29,7 +29,9 @@ const browser = await chromium.launch({
 const summary = { label, extra, hours: {} };
 
 for (const hour of hours) {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+  // VIEWPORT=WxH (CSS px); the target Mac's browser window is ~1728×1000 at DPR 2.
+  const [vw, vh] = (process.env.VIEWPORT ?? '1728x1000').split('x').map(Number);
+  const context = await browser.newContext({ viewport: { width: vw, height: vh }, deviceScaleFactor: 2 });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));

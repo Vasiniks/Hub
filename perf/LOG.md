@@ -365,3 +365,135 @@ load across the 24 h sweep, hovers and shelf.
 **Largest remaining cost:** the main scene pass — lit PBR shading of ~40 materials at 2160×1350 with
 MSAA 2× (~3 ms, of which MSAA 0.8), spread evenly with no dominant material; then bloom (0.7) and
 AO while turning (~0.8).
+
+# Second rendering pass: precompute, reproject, and stop re-deriving what cannot have changed
+
+Target: not 60 fps but real headroom — 120+ on the machine this is built on (M2 Pro, 19-core GPU,
+16 GB), with the render cost reported separately from the display's limit.
+
+**Measurement conditions changed.** The target Mac's built-in display is a 3024×1964 120 Hz XDR
+panel, so a browser window is ~1728×1000 CSS at DPR 2, and the room renders it at pixel ratio 1.5:
+**2592×1500 = 3.9 MP**, a third more pixels than the 1440×900 window the earlier tables used. All
+numbers below are at that window unless stated; a few are also given at 2560×1440 (8.3 MP), which is
+what an external display or a maximised window costs. `scripts/bench*.mjs` take `VIEWPORT=WxH`.
+
+## Where the frame went at the start of this pass (seated, turning, 3.9 MP)
+
+| cost | ms |
+|---|---|
+| scene render (MSAA 2×) | 3.8–4.1 |
+| AO (half resolution while moving) | 1.0–1.1 |
+| bloom | 0.9–1.0 |
+| volumetric shafts | 0.5–0.65 |
+| tone map + grade | 0.45 |
+| CPU | 0.5–0.7 |
+| **frame** | **6.8–7.5 (134–147 fps)** |
+
+At 120 Hz that is 7 ms of an 8.3 ms budget: fine on a quiet machine, and a dropped frame whenever
+anything else wanted the GPU. That is the "feels laggy" this pass was asked about.
+
+## Rejected first: a depth pre-pass (the overdraw was not real)
+
+The bench now measures depth complexity (`overdraw` in `scripts/bench.mjs`): 2.0–2.4 shaded opaque
+fragments per pixel at the seated views, because three sorts opaque draws by material before depth.
+A depth-only pre-pass with a trivial shader made frames **1.0–2.2 ms slower** at every pose, day and
+night. Apple's GPU is tile-based and defers shading: hidden-surface removal already discards covered
+opaque fragments whatever the draw order, so the pre-pass only added a second geometry pass. Kept as
+a standing lesson: on this GPU, opaque overdraw is not a cost, and **the levers are shaded pixels,
+render-pass count and attachment bandwidth**.
+
+## 1. One full-screen pass after the scene (−1.3 to −2.5 ms)
+
+Every stage used to hand the next a full-resolution image: the MSAA resolve was copied into the
+composer's buffer, AO multiplied it in place, the shafts added into it, the outline overlaid it,
+bloom high-passed it and added itself back, and the output pass tone-mapped it. Six full-resolution
+passes, each of which a tile GPU must load and store.
+
+Now each stage writes only its own (mostly small) buffer — AO at CSS or half resolution, shafts at
+0.4, bloom's mip chain from half down, the outline's mask and edges — and one pass reads them all,
+composites in the same order and with the same arithmetic, tone maps, grades and writes the canvas.
+Bloom's threshold moved into the first tap of its own blur, which removes its high-pass and
+composite passes too. The composer's two full-resolution swap buffers are no longer used at all, so
+they shrink to a pixel: ~60 MB of half-float back.
+
+Measured (interleaved): day look 6.8–7.0 → 5.4–5.6 ms, idle 5.9 → 4.8; night look 8.3–9.5 → 5.6–6.1.
+Bloom now sees the scene before AO and the shafts rather than after, which is *less* washout, not
+more: daylight speedcube saturation 0.476 → 0.576 (no bloom at all is 0.699), night frame unchanged
+within grain noise.
+
+## 2. AO and shafts reprojected across head turns (−1.0 to −1.5 ms while looking)
+
+The seated eye never translates more than the few millimetres of its breathing bob; looking around
+is rotation. Occlusion and scattered light belong to surfaces and to the eye's position — not to
+which way the head is pointed — so recomputing them per frame was re-deriving the same answer in a
+different place on screen.
+
+Both are now computed for a **snapshot camera** with a 14% guard band and mapped into the current
+view by one 3×3 homography in the composite, plus a per-pixel parallax correction that reads the
+snapshot's depth (so the bob costs nothing). This is a single warp of a buffer computed moments ago
+for the same eye — no history, no accumulation, so there is nothing that can ghost or trail. They
+are recomputed only when the eye travels more than 12 mm, the lens changes, something on screen
+moves, the lights or a shadow map change, or the view leaves the guard band. The hover outline
+depth-tests in the snapshot camera's space, so its hidden-edge colour stays correct.
+
+- Reprojected vs recomputed every step, stepping the yaw 0.7°/step and raising the eye 1.5 mm/step:
+  **0.13–0.20 mean image difference**, all of it resampling at edges.
+- A real mouse sweep recomputes AO on **12 of 109 frames** (was 96); idle **0 of 121** (was 30).
+- Real turning (yaw 0.25–1°/frame): 7.1–7.3 → 4.5–5.2 ms.
+
+The idle figure needed one scene fix: the polyhedron's wire body spins continuously and invalidated
+AO ~15×/s. A rotating open icosahedron does not change the occlusion around it, so its *rotation* no
+longer invalidates AO (`userData.aoIgnoresRotation`); it still re-shadows.
+
+## 3. The rect lights' diffuse, baked into a volume per light (−0.35 to −0.6 ms)
+
+The window, the monitor's panel, the shelf strip and the spill under the electronics never move.
+What their per-pixel integral computes is a purely geometric quantity — the rectangle's *vector*
+form factor at that point — which the shader then projects onto the pixel's normal. Only colour and
+intensity follow the hour, and those are uniforms.
+
+So the vector field is baked once, on the GPU at startup, into a 96³ half-float volume per light
+(384 tiny draws, ~28 MB), and shading becomes one trilinear fetch plus three's own horizon-clipped
+projection. Lights stay fully dynamic and normal maps still catch them.
+
+Each volume spans the whole room but its axes are warped as the square of distance from its own
+light: voxels are sub-millimetre next to the desk spill and ~8 cm across the room, where the field is
+flat. That is what makes one 96³ texture enough for both the near field and the far field, with no
+box edge to hide.
+
+Image vs the per-pixel integral: **0.22–0.56 mean**, the same as run-to-run noise. Startup unchanged
+(loader at 1.34 s).
+
+## 4. Lamp soft shadows only where they can be seen (−0.16 ms at 8.3 MP)
+
+PCSS is ~24 taps and ran for every pixel inside the lamp's cone, including surfaces facing away from
+it and pixels too dim for a shadow to read. Gated on received light. Image identical within noise.
+
+## Rejected, with the numbers
+
+- **Depth pre-pass** — see above, +1.0 to +2.2 ms.
+- **Bloom levels combined into one texture before the composite** (four fewer full-resolution
+  fetches, four more small passes): no gain at 3.9 MP *or* 8.3 MP. Reverted.
+- **64³ light volumes**: same speed as 96³, slightly less accurate (shelf at night 0.85 vs 0.56 mean).
+- **Range-limiting the small lights' volume fetches**: no measurable gain, so the risk of cutting a
+  light short was not worth taking.
+- **Per-vertex area lighting** (previous pass): still rejected; the volumes now give what it gave,
+  without the tessellation or the near-field banding.
+
+## Not attempted, and why
+
+- **Lightmaps / UV2 baking of the whole static room.** After §3 the remaining per-light costs are
+  0.2–0.6 ms each, and a lightmap needs a UV2 unwrap for geometry that is partly procedural and
+  about to be replaced with better models. The volume bake achieves the same "precompute what cannot
+  change" without touching the asset pipeline.
+- **A deferred irradiance buffer** (evaluate sun/lamp/rect diffuse once per snapshot, reproject it,
+  and have the forward pass fetch it). Estimated −0.7 ms at 3.9 MP / −1.5 at 8.3 MP, but the shadow
+  terms would have to stay per-pixel for specular, dynamic geometry needs a forward path, and the
+  room is already display-limited on the target machine. This is the next lever if the scene gets
+  more expensive.
+- **Turning MSAA off** (−1.0 ms at 3.9 MP): the previous pass kept it because edges crawl while
+  turning, which is exactly what this room does most.
+- **A cached panorama of the static room.** The camera's rotation-only motion makes it exact, but the
+  room animates continuously (spinning ornament, dust, the attractor at 30 Hz, pulsing rings), so it
+  needs a static/dynamic split, and re-anchoring costs ~7–8 ms in one frame — right at the 120 Hz
+  budget. Frame pacing was worth more than the average.
