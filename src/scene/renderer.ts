@@ -196,6 +196,7 @@ export function createRenderer(
 
   const gtao = new CachedGTAOPass(scene, camera, w, h);
   gtao.caching = params.get('aocache') !== '0';
+  gtao.adaptiveResolution = params.get('aoadaptive') !== '0';
   // Debug: ?aoview=ao shows the denoised occlusion buffer on its own.
   if (params.get('aoview') === 'ao') gtao.output = GTAOPass.OUTPUT.Denoise;
   // AO is low-frequency: render it at CSS-pixel density, not device density, so retina screens

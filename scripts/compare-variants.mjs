@@ -23,6 +23,8 @@ for (const [name, q] of Object.entries(variants)) {
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text().slice(0, 200)));
     await page.goto(`${process.env.BASE ?? 'http://127.0.0.1:5173'}/?debug&pr=1&hour=${hour}&lorenz=0&${q}`, { waitUntil: 'load' });
     await page.waitForFunction(() => window.__room !== undefined, null, { timeout: 60000 });
+    // HOVER=<project id>: keep that object outlined in every view.
+    if (process.env.HOVER) await page.evaluate((id) => window.__room.forceHover(id), process.env.HOVER);
     for (const [vname, v] of Object.entries(views)) {
       await page.evaluate((vv) => window.__room.parkCamera(vv.p, vv.t, vv.fov), v);
       await wait(1300);

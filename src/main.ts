@@ -842,6 +842,7 @@ async function start() {
         calibration: () => calibration,
         pixelRatio: () => view.pixelRatio(),
         aoComputed: () => view.ao.computedThisFrame,
+        aoScale: () => view.ao.lastScale,
         passSizes: () =>
           view.composer.passes.map((p) => {
             const o = p as unknown as Record<string, { width?: number; height?: number } | number>;
