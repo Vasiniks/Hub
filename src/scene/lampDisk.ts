@@ -134,7 +134,10 @@ export function installDiskLamp() {
     .replace(
       stockShadow,
       `#ifdef LAMP_DISK_SHADOW
-		directLight.color *= ( directLight.visible && receiveShadow && max( max( directLight.color.r, directLight.color.g ), directLight.color.b ) > 0.0 ) ? getLampShadow( spotShadowMap[ i ], spotLightShadow.shadowMapSize, spotLightShadow.shadowIntensity, spotLightShadow.shadowBias, vSpotLightCoord[ i ] ) : 1.0;
+		// Only where the lamp can actually be seen to shadow: facing it, and bright enough here. The
+		// search and filter are ~24 taps, and the cone covers far more of the screen than the pool does.
+		float lampReach = max( max( directLight.color.r, directLight.color.g ), directLight.color.b ) * saturate( dot( geometryNormal, directLight.direction ) );
+		directLight.color *= ( directLight.visible && receiveShadow && lampReach > 0.004 ) ? getLampShadow( spotShadowMap[ i ], spotLightShadow.shadowMapSize, spotLightShadow.shadowIntensity, spotLightShadow.shadowBias, vSpotLightCoord[ i ] ) : 1.0;
 		#else
 		${stockShadow}
 		#endif`,
