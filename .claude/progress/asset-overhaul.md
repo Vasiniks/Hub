@@ -101,3 +101,19 @@ Camera, interaction, bookshelf one-book-per-gesture, project popup, lighting/tim
 volumetrics, music widget, Lorenz monitor, loading + calibration performance work.
 Suites: `verify-room`, `verify-shelf`, `verify-gesture`, `verify-a11y`, `verify-shelf-a11y`,
 `verify-motion`, `startup-trace`, `gallery`.
+
+## Performance pass (see perf/LOG.md for method and numbers)
+
+Done and verified: AO cache (recompute only on view/geometry change), shared-depth hover
+outline, BVH picking (lazy, idle-built), no-op raycast for unpickable objects, allocation fixes,
+merged output+grade pass and in-place volumetric composite, bloom threshold by exposure + level
+weights (fixed daylight colour washout), dust shader warmed (dusk hitch), calibration honours
+`?pr=` and decides faster, GLB quantization (optimize-glb.mjs) with load-time dequantize, LTC
+tables as binary (bundle −247 kB), UV-less props merge, book row opens a real gap.
+
+Tooling: perf-suite (QUICK/CAPPED/PR/BASE env), compile-watch, alloc-profile, gc-trace,
+capture-cost, startup-stages, frame-diff, bloom-score, cube-color, verify-books, optimize-glb,
+build-ltc. Always compare interleaved against a baseline worktree: the machine drifts ~50%
+between cool and hot.
+
+Open: seated look still pays full AO each frame; pr 1.5 is ~2× the cost of 1.25 on an M2 Pro.

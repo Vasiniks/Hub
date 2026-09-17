@@ -170,3 +170,32 @@ float textures are expanded from it (≤0.1% relative difference; three already 
 half data where float filtering is unavailable). Frozen-grain pixel diff vs previous build: mean
 0.21–0.32/255 (noise floor). Main bundle 1,095 → 848 kB, gzip 329 → 224 kB (the pass started at
 928 / 279 kB); three-mesh-bvh stays a separate 48 kB lazy chunk.
+
+## Final: 914ffd1 → now (same session, same machine; `now` measured second and hotter)
+
+Uncapped, DPR 2, render resolution 1.25 (what calibration picks for visitors), frame p50 in ms,
+averaged over night / day / golden hour. Draw calls and triangles from the final runs.
+
+| scenario | baseline | now | change |
+|---|---|---|---|
+| standing idle | 13.7 | 9.6 | −30% |
+| standing look | 13.7 | 10.6 | −23% |
+| sitting transition | 14.5 | 14.0 | −3% |
+| seated idle | 15.4 | 9.3 | −40% |
+| seated look | 15.1 | 14.4 | −5% |
+| hover | 16.4 | 9.9 | −40% |
+| object focus transition | 16.6 | 15.4 | −7% |
+| popup open | 16.8 | 9.1 | −46% |
+| time transition | 16.0 (max 338) | 9.6 (max 45) | −40%, hitch gone |
+
+Real 60 Hz (`CAPPED=1`): no missed frames anywhere, before or after. Main-thread CPU per frame
+now 0.9–2.0 ms avg (baseline 1.3–3.5). Draw calls (capped runs): seated idle 168 → 93, hover
+246 → 106, popup 150 → 77, standing idle 246 → 137. Triangles drawn in popup 103k → 37k.
+Heap 31–50 MB sawtooth in both builds, no growth. Startup: loader hidden 2.06–2.10 → 1.63–1.83 s.
+Bundle 928 / 279 kB (gzip) at the start of the pass → 848 / 224 kB. Models 2.35 → 1.19 MB with
+all Tier 2 props added; textures +683 KB (new).
+
+Where headroom is still thin: **turning the head** (seated look) recomputes AO every frame, and
+the pipeline is fill-bound — pixel ratio 1.5 costs ~2× 1.25 on this GPU. Next levers, measured
+but not yet spent: AO at reduced resolution only while the view moves; fewer full-resolution
+post passes; temporal accumulation for AO/volumetrics.
