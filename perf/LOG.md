@@ -497,3 +497,54 @@ it and pixels too dim for a shadow to read. Gated on received light. Image ident
   room animates continuously (spinning ornament, dust, the attractor at 30 Hz, pulsing rings), so it
   needs a static/dynamic split, and re-anchoring costs ~7–8 ms in one frame — right at the 120 Hz
   budget. Frame pacing was worth more than the average.
+
+## Before → after (this pass)
+
+`scripts/perf-suite.mjs`, uncapped, 1728×1000 CSS at DPR 2, pixel ratio 1.5 (3.9 MP), interleaved
+base/now/base/now against `9bf4193` (the commit this pass started from, served from a worktree),
+averaged over day 13:00, golden 18:30, evening 20:00 and night 21:30. Frame p50 / p95 / worst ms,
+fps, (missed frames summed over 8 runs), draw calls.
+
+| scenario | before | after | p50 |
+|---|---|---|---|
+| standing idle | 6.8 / 13.8 / 26 · 139 fps (2) · 137 | 5.1 / 9.8 / 15 · 190 fps (0) · 128 | −24% |
+| standing look | 7.2 / 14.8 / 30 · 134 fps (5) · 137 | 5.1 / 9.9 / 16 · 188 fps (0) · 128 | −28% |
+| sitting | 7.6 / 14.8 / 26 · 135 fps (3) · 320 | 5.3 / 10.7 / 21 · 181 fps (0) · 265 | −30% |
+| seated idle | 6.6 / 12.9 / 25 · 139 fps (1) · 96 | 5.0 / 9.3 / 12 · 196 fps (0) · 87 | −24% |
+| **seated look** | **7.4 / 14.6 / 31 · 131 fps (2) · 162** | **5.0 / 9.6 / 16 · 194 fps (0) · 85** | **−32%** |
+| hover | 7.5 / 14.5 / 26 · 123 fps (17) · 109 | 5.5 / 10.2 / 23 · 176 fps (0) · 99 | −27% |
+| focus transition | 8.4 / 17.5 / 32 · 123 fps (26) · 130 | 6.4 / 12.4 / 22 · 162 fps (0) · 110 | −24% |
+| popup open | 7.3 / 12.3 / 25 · 136 fps (1) · 77 | 5.0 / 7.0 / 17 · 194 fps (0) · 67 | −32% |
+| time transition | 7.5 / 16.6 / 33 · 119 fps (62) · 109 | 5.7 / 12.2 / 31 · 167 fps (10) · 99 | −24% |
+
+Seated look by hour (p50): day 7.2 → 5.0, golden 7.5 → 5.1, evening 7.5 → 5.1, night 7.5 → 5.0.
+Draw calls fall while turning because the AO G-buffer pass now runs on a minority of frames.
+Heap 39–41 MB in both builds; no console errors in any run.
+
+GPU-only cost, fence-timed (`scripts/bench-ab.mjs`, real yaw 0.25–1°/frame, night):
+
+| | 3.9 MP (1728×1000) | 8.3 MP (2560×1440) |
+|---|---|---|
+| before | 7.1–7.3 ms | 14.3–15.2 ms (66–70 fps) |
+| after | 4.1–4.9 ms (205–240 fps) | 8.3–9.9 ms (101–120 fps) |
+
+**In a real Chrome window** (`scripts/real-chrome.mjs`, headed, vsync, 120 Hz ProMotion panel):
+120.1 fps and **zero missed frames** in seated idle, seated look, hover, popup and a time sweep, at
+day and at night, with the room's own calibration keeping pixel ratio 1.5 and 1.3–1.9 ms of CPU per
+frame. The frame's p50 of 8.3 ms *is* the vsync interval — the renderer uses about 4.5 ms of it, so
+the room is now display-limited rather than GPU-limited. The same test on the pre-pass build held
+120 in the steady states but fell to 117.7 fps in the popup and 110.5 fps (worst frame 26.5 ms) in
+the time sweep.
+
+Capped (`CAPPED=1`, headless vsync 60): no missed frames in any scenario at either hour, CPU
+1.2–1.9 ms avg. Startup: loader hidden at 1.34 s (was 1.37); zero shader compiles after load from
+06:00, 13:00, 18:30 and 21:00 across a 24 h sweep, hovers and the shelf.
+
+Image, before vs after, frozen grain, four views × four hours: **0.35–1.41 mean**, the largest being
+the daylight seated view, where the change is bloom seeing the scene before AO and the shafts (less
+washout, §1). Suites: verify-room, -gesture, -motion, -a11y (keyboard focus, focus restore, reduced
+motion), -shelf, -shelf-a11y, -books and the new -ao-motion all pass with no console errors.
+
+**Largest remaining cost**: the scene render itself — at 3.9 MP roughly 3.1 ms of a 5 ms frame, of
+which MSAA 2× is ~1.0 and the lamp, sun and environment about 1.6 between them. Then the final
+composite (0.9) and bloom (0.4). The next lever is the deferred irradiance buffer described above.
