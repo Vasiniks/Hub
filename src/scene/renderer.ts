@@ -6,7 +6,7 @@ import { LAMP_DISK_RADIUS, type LightState } from './lighting';
 import { fadeColor } from './materials';
 import { OVERLAY_LAYER, REFLECTION_LAYER } from './layers';
 import { VolumetricLightPass } from './volumetric';
-import { createReflectionEmitters, environmentIrradiance, installDiffuseOnlyAreaLights, installSplitEnvironment } from './areaLights';
+import { bakeRectAreaVolumes, createReflectionEmitters, environmentIrradiance, installDiffuseOnlyAreaLights, installRectAreaVolumes, installSplitEnvironment } from './areaLights';
 import { CachedGTAOPass } from './ao';
 import { createDiskLampShadow, installDiskLamp } from './lampDisk';
 import { SharedDepthOutlinePass } from './outline';
@@ -295,6 +295,7 @@ export function createRenderer(
   // Must precede every material compile (see areaLights.ts).
   installDiffuseOnlyAreaLights();
   installSplitEnvironment();
+  installRectAreaVolumes();
   installDiskLamp();
   // Profiling switches (A/B): ?ao=half|off  ?vol=0  ?msaa=0  ?bloom=0  ?pr=<ratio> (fixed, no fallback)
   const aoParam = params.get('ao');
@@ -436,6 +437,9 @@ export function createRenderer(
   }
 
   const lampShadow = createDiskLampShadow(renderer, scene, lamp, LAMP_DISK_RADIUS);
+  /** Where the room's lighting lives: the walls, plus the space the visitor can stand in. */
+  const ROOM_BOX = new THREE.Box3(new THREE.Vector3(-1.95, 0, -1.45), new THREE.Vector3(1.85, 3, 1.6));
+  let rectAreaVolumes: unknown[] = [];
 
   // ---- Environment capture: reflections + indirect light from the lit room ----------------
   const cubeTarget = new THREE.WebGLCubeRenderTarget(128, { type: THREE.HalfFloatType });
@@ -580,6 +584,9 @@ export function createRenderer(
    * `onStage` fires as each phase genuinely completes, so the loading bar reports real work.
    */
   async function warmUp(samples: THREE.Object3D[] = [], onStage: (stage: string) => void = () => {}) {
+    // The rect lights' diffuse volumes, before anything renders with them (see areaLights.ts).
+    scene.updateMatrixWorld(true);
+    rectAreaVolumes = bakeRectAreaVolumes(renderer, scene, ROOM_BOX);
     // Capture first: materials compiled before the environment exists get the wrong program
     // variant and recompile (synchronously) the first time each object comes into view.
     captureEnvironmentNow();
@@ -631,6 +638,8 @@ export function createRenderer(
     composer,
     scenePass,
     gpu,
+    /** Debug: the boxes the rect-area light volumes were baked over. */
+    rectAreaVolumes: () => rectAreaVolumes,
     /** Ambient occlusion cache: flag `invalid` when something on screen moves. */
     ao: gtao,
     outline,

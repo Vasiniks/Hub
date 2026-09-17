@@ -843,6 +843,7 @@ async function start() {
         pixelRatio: () => view.pixelRatio(),
         aoComputed: () => view.ao.computedThisFrame,
         aoScale: () => view.ao.lastScale,
+        rectAreaVolumes: () => view.rectAreaVolumes(),
         passSizes: () =>
           view.composer.passes.map((p) => {
             const o = p as unknown as Record<string, { width?: number; height?: number } | number>;
