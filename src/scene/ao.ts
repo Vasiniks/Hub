@@ -14,8 +14,8 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
  * resting view still refreshes several times a second — the result can never drift visibly —
  * while a turning head recomputes every frame, exactly as before.
  *
- * The blend itself is also cheaper than stock: it is a pure multiply, so it is applied to the
- * image in place instead of copying the whole frame to a second buffer first.
+ * Nothing is blended here: the final composite (renderer.ts) multiplies the result into the image,
+ * so this pass writes no full-resolution buffer at all.
  *
  * While the view is actually moving, occlusion is traced and denoised at half resolution (a
  * quarter of the pixels): depth and normals, trace and denoise together, ~1 ms instead of ~3.3 at
@@ -34,17 +34,6 @@ const FADE_SECONDS = 0.2;
 /** Apparent view speed, in CSS pixels per frame, that counts as moving (idle breathing is well below). */
 const MOVING_PX_PER_FRAME = 0.6;
 
-const blendFragment = /* glsl */ `
-  uniform float intensity;
-  uniform float fade;
-  uniform sampler2D tDiffuse;
-  uniform sampler2D tPrevious;
-  varying vec2 vUv;
-  void main() {
-    vec4 texel = texture2D( tDiffuse, vUv );
-    if ( fade < 1.0 ) texel = mix( texture2D( tPrevious, vUv ), texel, fade );
-    gl_FragColor = vec4( mix( vec3( 1. ), texel.rgb, intensity ), texel.a );
-  }`;
 
 interface TargetSet {
   gtao: THREE.WebGLRenderTarget;
@@ -59,8 +48,6 @@ interface Internals {
   pdRenderTarget: THREE.WebGLRenderTarget;
   gtaoMaterial: THREE.ShaderMaterial;
   pdMaterial: THREE.ShaderMaterial;
-  blendMaterial: THREE.ShaderMaterial;
-  _renderPass(r: THREE.WebGLRenderer, m: THREE.Material, t: THREE.WebGLRenderTarget | null): void;
 }
 
 export class CachedGTAOPass extends GTAOPass {
@@ -108,10 +95,6 @@ export class CachedGTAOPass extends GTAOPass {
     });
     this.half = { gtao: own.gtaoRenderTarget.clone(), pd: own.pdRenderTarget.clone(), normal: halfNormal };
     this.sizeHalf(width, height);
-    own.blendMaterial.uniforms.fade = { value: 1 };
-    own.blendMaterial.uniforms.tPrevious = { value: null };
-    own.blendMaterial.fragmentShader = blendFragment;
-    own.blendMaterial.needsUpdate = true;
   }
 
   setSize(width: number, height: number) {
@@ -191,20 +174,30 @@ export class CachedGTAOPass extends GTAOPass {
     return (angle + parallax) * pxPerRadian;
   }
 
+  /** The occlusion to multiply the image by (denoised, at whichever resolution was last computed). */
+  get texture() {
+    return (this as unknown as Internals).pdRenderTarget.texture;
+  }
+
+  /** While fading up to full resolution: the half-resolution result being faded from, and progress. */
+  get previousTexture() {
+    return this.half.pd.texture;
+  }
+
+  get fadeProgress() {
+    return this.fade;
+  }
+
+  /**
+   * Computes occlusion when it could have changed. It no longer draws anything onto the image:
+   * the final composite multiplies it in, so no full-resolution buffer is written here.
+   */
   render(renderer: THREE.WebGLRenderer, writeBuffer: THREE.WebGLRenderTarget, readBuffer: THREE.WebGLRenderTarget) {
-    // Debug outputs (AO, denoise, normals) keep the stock path.
-    if (this.output !== GTAOPass.OUTPUT.Default) {
-      this.needsSwap = true;
-      super.render(renderer, writeBuffer, readBuffer, 0, false);
-      return;
-    }
-    this.needsSwap = false;
 
     const camera = this.camera as THREE.PerspectiveCamera;
     const now = performance.now() / 1000;
     const dt = this.lastTime ? Math.min(0.1, now - this.lastTime) : 0;
     this.lastTime = now;
-    const own = this as unknown as Internals;
 
     // Moving: the view is sweeping, or on-screen geometry has invalidated AO two frames running.
     const moving = this.forceMoving || this.frameShiftPx() > MOVING_PX_PER_FRAME || (this.invalid && this.invalidLastFrame);
@@ -220,7 +213,6 @@ export class CachedGTAOPass extends GTAOPass {
       if (upgrade) {
         // Fade from what is on screen now to the sharper result.
         this.fade = 0;
-        own.blendMaterial.uniforms.tPrevious.value = this.half.pd.texture;
       } else if (wantScale === 0.5) this.fade = 1;
       // (A full-resolution refresh mid-fade, from idle breathing, lets the fade run on.)
       this.use(wantScale === 1 ? this.full : this.half, wantScale);
@@ -236,10 +228,5 @@ export class CachedGTAOPass extends GTAOPass {
     }
     if (this.fade < 1 && !upgrade) this.fade = Math.min(1, this.fade + dt / FADE_SECONDS);
 
-    const blend = own.blendMaterial.uniforms;
-    blend.intensity.value = this.blendIntensity;
-    blend.fade.value = this.fade;
-    blend.tDiffuse.value = own.pdRenderTarget.texture;
-    own._renderPass(renderer, own.blendMaterial, this.renderToScreen ? null : readBuffer);
   }
 }

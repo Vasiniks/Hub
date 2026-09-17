@@ -46,6 +46,16 @@ interface Internals {
 const Blur = OutlinePass as unknown as { BlurDirectionX: THREE.Vector2; BlurDirectionY: THREE.Vector2 };
 
 export class SharedDepthOutlinePass extends OutlinePass {
+  /** Full-resolution selection mask (r: selected, g: visible), for the final composite. */
+  get maskTexture() {
+    return (this as unknown as Internals).renderTargetMaskBuffer.texture;
+  }
+
+  /** Blurred edge, half resolution. */
+  get edgeTexture() {
+    return (this as unknown as Internals).renderTargetEdgeBuffer1.texture;
+  }
+
   private readonly getDepth: () => THREE.Texture | null;
 
   constructor(
@@ -157,28 +167,11 @@ export class SharedDepthOutlinePass extends OutlinePass {
         quad.render(renderer);
       }
 
-      quad.material = self.overlayMaterial;
-      const o = self.overlayMaterial.uniforms;
-      o.maskTexture.value = self.renderTargetMaskBuffer.texture;
-      o.edgeTexture1.value = self.renderTargetEdgeBuffer1.texture;
-      o.edgeTexture2.value = self.renderTargetEdgeBuffer2.texture;
-      o.patternTexture.value = self.patternTexture;
-      o.edgeStrength.value = this.edgeStrength;
-      o.edgeGlow.value = this.edgeGlow;
-      o.usePatternTexture.value = this.usePatternTexture;
-      if (maskActive) renderer.state.buffers.stencil.setTest(true);
-      renderer.setRenderTarget(readBuffer);
-      quad.render(renderer);
-
+      // The overlay itself (edge colour over the image) is drawn by the final composite, from
+      // `maskTexture` and `edgeTexture`: no full-resolution buffer is written here.
       renderer.setClearColor(self._oldClearColor, self.oldClearAlpha);
       renderer.autoClear = oldAutoClear;
     }
 
-    if (this.renderToScreen) {
-      self._fsQuad.material = self.materialCopy;
-      self.copyUniforms.tDiffuse.value = readBuffer.texture;
-      renderer.setRenderTarget(null);
-      self._fsQuad.render(renderer);
-    }
   }
 }

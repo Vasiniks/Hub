@@ -1,9 +1,11 @@
 // Interleaved page loads per variant, fence-timed seated look/idle frames at pinned resolution.
-// Usage: VARIANTS='{"a":"q1","b":"q2"}' node scripts/bench-ab.mjs [rounds=3] [hour=13] [pr=1.5]
+// Usage: VARIANTS='{"a":"q1","b":"http://127.0.0.1:5181|q2"}' (origin| prefix: another build) node scripts/bench-ab.mjs [rounds=3] [hour=13] [pr=1.5]
 import { chromium } from 'playwright-core';
 const rounds = Number(process.argv[2] ?? 3);
 const hour = process.argv[3] ?? '13';
 const pr = process.argv[4] ?? '1.5';
+// VIEWPORT=WxH (CSS px). The target Mac's browser window is ~1728×1000 at DPR 2.
+const [vw, vh] = (process.env.VIEWPORT ?? '1728x1000').split('x').map(Number);
 const variants = JSON.parse(process.env.VARIANTS);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome 3.app/Contents/MacOS/Google Chrome', headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist', '--disable-gpu-vsync', '--disable-frame-rate-limit'] });
@@ -15,8 +17,9 @@ const poses = [
 const acc = {};
 for (let r = 0; r < rounds; r++) {
   for (const [name, q] of Object.entries(variants)) {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
-    await page.goto(`http://127.0.0.1:5173/?debug&hour=${hour}&pr=${pr}&${q}`, { waitUntil: 'load' });
+    const page = await browser.newPage({ viewport: { width: vw, height: vh }, deviceScaleFactor: 2 });
+    const [origin, query] = q.includes('|') ? q.split('|') : ['http://127.0.0.1:5173', q];
+    await page.goto(`${origin}/?debug&hour=${hour}&pr=${pr}&${query}`, { waitUntil: 'load' });
     await page.waitForFunction(() => window.__room !== undefined, null, { timeout: 60000 });
     await wait(1500);
     for (const [i, pose] of poses.entries()) {

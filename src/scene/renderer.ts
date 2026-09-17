@@ -1,12 +1,7 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
-import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
-import { CopyShader } from 'three/addons/shaders/CopyShader.js';
+import { Pass } from 'three/addons/postprocessing/Pass.js';
 import { LAMP_DISK_RADIUS, type LightState } from './lighting';
 import { fadeColor } from './materials';
 import { OVERLAY_LAYER, REFLECTION_LAYER } from './layers';
@@ -15,6 +10,7 @@ import { createReflectionEmitters, environmentIrradiance, installDiffuseOnlyArea
 import { CachedGTAOPass } from './ao';
 import { createDiskLampShadow, installDiskLamp } from './lampDisk';
 import { SharedDepthOutlinePass } from './outline';
+import { BloomPass } from './bloom';
 import { createGpuTimer } from '../debug/gpuTimer';
 
 /**
@@ -34,36 +30,31 @@ class MultisampleScenePass extends Pass {
   private readonly scene: THREE.Scene;
   private readonly camera: THREE.Camera;
   private readonly target: THREE.WebGLRenderTarget;
-  private readonly quad: FullScreenQuad;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, samples: number) {
     super();
     this.scene = scene;
     this.camera = camera;
     this.target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples });
-    const copy = new THREE.ShaderMaterial(CopyShader);
-    copy.blending = THREE.NoBlending;
-    copy.depthTest = false;
-    copy.depthWrite = false;
-    this.quad = new FullScreenQuad(copy);
     this.needsSwap = false;
+  }
+
+  /** The resolved scene. Read directly by AO-free consumers and the final composite; never copied. */
+  get texture() {
+    return this.target.texture;
+  }
+
+  render(renderer: THREE.WebGLRenderer) {
+    renderer.setRenderTarget(this.target);
+    renderer.render(this.scene, this.camera);
   }
 
   setSize(width: number, height: number) {
     this.target.setSize(width, height);
   }
 
-  render(renderer: THREE.WebGLRenderer, _writeBuffer: THREE.WebGLRenderTarget, readBuffer: THREE.WebGLRenderTarget) {
-    renderer.setRenderTarget(this.target);
-    renderer.render(this.scene, this.camera);
-    (this.quad.material as THREE.ShaderMaterial).uniforms.tDiffuse.value = this.target.texture;
-    renderer.setRenderTarget(this.renderToScreen ? null : readBuffer);
-    this.quad.render(renderer);
-  }
-
   dispose() {
     this.target.dispose();
-    this.quad.dispose();
   }
 }
 
@@ -126,30 +117,122 @@ const GRADE_BODY = /* glsl */ `
   #endif
 `;
 
+const COMPOSITE_PARS = /* glsl */ `
+  uniform sampler2D tAO, tAOPrevious, tScatter, tOutlineMask, tOutlineEdge;
+  uniform sampler2D tBloom0, tBloom1, tBloom2, tBloom3, tBloom4;
+  uniform float uAO, uAOFade, uScatter, uOutline, uOutlineStrength, uBloom;
+  uniform vec3 uBloomWeights[5];
+`;
+
+/** Everything the image receives after the scene render, in the order the old pass chain applied it. */
+const COMPOSITE_BODY = /* glsl */ `
+  if ( uAO > 0.0 ) {
+    vec3 ao = texture2D( tAO, vUv ).rgb;
+    if ( uAOFade < 1.0 ) ao = mix( texture2D( tAOPrevious, vUv ).rgb, ao, uAOFade );
+    gl_FragColor.rgb *= mix( vec3( 1.0 ), ao, uAO );
+  }
+  if ( uScatter > 0.0 ) gl_FragColor.rgb += texture2D( tScatter, vUv ).rgb;
+  if ( uOutline > 0.0 ) {
+    vec4 edge = uOutlineStrength * texture2D( tOutlineMask, vUv ).r * texture2D( tOutlineEdge, vUv );
+    gl_FragColor.rgb += edge.rgb * edge.a;
+  }
+  if ( uBloom > 0.0 ) {
+    gl_FragColor.rgb += uBloomWeights[ 0 ] * texture2D( tBloom0, vUv ).rgb
+      + uBloomWeights[ 1 ] * texture2D( tBloom1, vUv ).rgb
+      + uBloomWeights[ 2 ] * texture2D( tBloom2, vUv ).rgb
+      + uBloomWeights[ 3 ] * texture2D( tBloom3, vUv ).rgb
+      + uBloomWeights[ 4 ] * texture2D( tBloom4, vUv ).rgb;
+  }
+`;
+
+export interface CompositeInputs {
+  scene: () => THREE.Texture;
+  ao: CachedGTAOPass;
+  volumetric: VolumetricLightPass;
+  outline: SharedDepthOutlinePass;
+  bloom: BloomPass;
+}
+
 /**
- * Tone mapping, colour encoding and the grade in one full-screen pass.
+ * The whole post chain in one full-screen pass: AO, light shafts, hover outline and bloom are
+ * applied to the scene here, then AgX, sRGB encoding and the grade — straight to the canvas.
  *
- * They used to be two: the output pass wrote a full-resolution image purely so the grade could
- * read it back and write another. Same maths, same order — AgX, sRGB encoding, then the grade on
- * display-referred values — one fewer full-resolution pass per frame.
+ * Every earlier stage now writes only its own small buffer (AO at CSS or half resolution, shafts at
+ * 0.4, bloom levels from half down, the outline's mask and edges). Before, each one copied or blended
+ * the full-resolution image: the MSAA resolve copy, AO multiply, shafts add, outline overlay and bloom
+ * add were five full-resolution passes. On a tile-based GPU every one of those stores and reloads the
+ * whole frame, which cost more than their arithmetic. Same maths, same order.
  */
 class GradedOutputPass extends OutputPass {
   readonly grade = GRADE_UNIFORMS;
+  private readonly inputs: CompositeInputs;
+  /** 0 normal, 1 occlusion only (`?aoview=ao`). */
+  private readonly aoView: boolean;
 
-  constructor(enabled: boolean) {
+  constructor(enabled: boolean, inputs: CompositeInputs, aoView: boolean) {
     super();
-    Object.assign(this.uniforms, GRADE_UNIFORMS);
+    this.inputs = inputs;
+    this.aoView = aoView;
+    Object.assign(this.uniforms, GRADE_UNIFORMS, {
+      tAO: { value: null },
+      tAOPrevious: { value: null },
+      tScatter: { value: null },
+      tOutlineMask: { value: null },
+      tOutlineEdge: { value: null },
+      tBloom0: { value: null },
+      tBloom1: { value: null },
+      tBloom2: { value: null },
+      tBloom3: { value: null },
+      tBloom4: { value: null },
+      uAO: { value: 0 },
+      uAOFade: { value: 1 },
+      uScatter: { value: 0 },
+      uOutline: { value: 0 },
+      uOutlineStrength: { value: 1 },
+      uBloom: { value: 0 },
+      uBloomWeights: { value: [0, 0, 0, 0, 0].map(() => new THREE.Vector3()) },
+    });
     const material = (this as unknown as { material: THREE.RawShaderMaterial }).material;
     const source = material.fragmentShader;
     const end = source.lastIndexOf('}');
+    const sample = 'gl_FragColor = texture2D( tDiffuse, vUv );';
+    if (!source.includes(sample)) throw new Error('composite: OutputShader changed');
     material.fragmentShader =
       (enabled ? '#define GRADE\n' : '') +
-      source.slice(0, end).replace('varying vec2 vUv;', `varying vec2 vUv;\n${GRADE_PARS}`) +
+      source
+        .slice(0, end)
+        .replace('varying vec2 vUv;', `varying vec2 vUv;\n${GRADE_PARS}\n${COMPOSITE_PARS}`)
+        .replace(sample, `${sample}\n${aoView ? 'gl_FragColor = vec4( texture2D( tAO, vUv ).rgb, 1.0 );' : COMPOSITE_BODY}`) +
       GRADE_BODY +
       source.slice(end);
     // OutputPass rebuilds its defines when the tone mapping changes; keep the grade switch in the
     // source instead so that rebuild cannot drop it.
     material.needsUpdate = true;
+  }
+
+  private readonly input: { texture: THREE.Texture | null } = { texture: null };
+
+  render(renderer: THREE.WebGLRenderer, writeBuffer: THREE.WebGLRenderTarget) {
+    const u = this.uniforms as Record<string, THREE.IUniform>;
+    const { ao, volumetric, outline, bloom } = this.inputs;
+    u.uAO.value = ao.enabled || this.aoView ? ao.blendIntensity : 0;
+    u.tAO.value = ao.texture;
+    u.tAOPrevious.value = ao.previousTexture;
+    u.uAOFade.value = ao.fadeProgress;
+    u.uScatter.value = volumetric.enabled && volumetric.active ? 1 : 0;
+    u.tScatter.value = volumetric.texture;
+    u.uOutline.value = outline.enabled && outline.selectedObjects.length > 0 ? 1 : 0;
+    u.uOutlineStrength.value = outline.edgeStrength;
+    u.tOutlineMask.value = outline.maskTexture;
+    u.tOutlineEdge.value = outline.edgeTexture;
+    u.uBloom.value = bloom.enabled ? 1 : 0;
+    bloom.textures.forEach((t, i) => {
+      u[`tBloom${i}`].value = t;
+      (u.uBloomWeights.value as THREE.Vector3[])[i].setScalar(bloom.weight(i));
+    });
+    // OutputPass reads `readBuffer.texture` as its input: hand it the scene instead.
+    this.input.texture = this.inputs.scene();
+    super.render(renderer, writeBuffer, this.input as unknown as THREE.WebGLRenderTarget, 0, false);
   }
 }
 
@@ -193,14 +276,12 @@ export function createRenderer(
   // multiplies by the pixel ratio again, so every buffer ran at ratio² (2250×1406 at "1.25") until
   // the first window resize happened to correct it. Its own targets are half-float already.
   const composer = new EffectComposer(renderer);
-  const scenePass = msaaSamples > 0 ? new MultisampleScenePass(scene, camera, msaaSamples) : new RenderPass(scene, camera);
+  const scenePass = new MultisampleScenePass(scene, camera, msaaSamples);
   composer.addPass(scenePass);
 
   const gtao = new CachedGTAOPass(scene, camera, w, h);
   gtao.caching = params.get('aocache') !== '0';
   gtao.adaptiveResolution = params.get('aoadaptive') !== '0';
-  // Debug: ?aoview=ao shows the denoised occlusion buffer on its own.
-  if (params.get('aoview') === 'ao') gtao.output = GTAOPass.OUTPUT.Denoise;
   // AO is low-frequency: render it at CSS-pixel density, not device density, so retina screens
   // get the same AO detail per point as standard ones without paying 2.25× the fill.
   const aoCss = Number(params.get('aoscale'));
@@ -219,9 +300,7 @@ export function createRenderer(
   volumetric.resolutionScale = () => (volScaleParam > 0 ? volScaleParam : 0.4 / pixelRatio);
   composer.addPass(volumetric);
 
-  const outline = params.get('outline') === 'stock'
-    ? new OutlinePass(new THREE.Vector2(w, h), scene, camera)
-    : new SharedDepthOutlinePass(new THREE.Vector2(w, h), scene, camera, () => (gtao.enabled ? gtao.depthTexture : null));
+  const outline = new SharedDepthOutlinePass(new THREE.Vector2(w, h), scene, camera, () => (gtao.enabled ? gtao.depthTexture : null));
   outline.edgeStrength = 2.4;
   outline.edgeGlow = 0;
   outline.edgeThickness = 1;
@@ -257,13 +336,36 @@ export function createRenderer(
    * bloom at all), with the night frame unchanged to within grain.
    */
   const BLOOM_LEVELS = [1.2, 0.8, 0.25, 0.08, 0.05];
-  const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.3, 0.5, BLOOM_THRESHOLD);
+  const bloom = new BloomPass(() => scenePass.texture);
+  bloom.strength = 0.3;
+  bloom.threshold = BLOOM_THRESHOLD;
   bloom.enabled = params.get('bloom') !== '0';
-  const tints = (bloom as unknown as { bloomTintColors: THREE.Vector3[] }).bloomTintColors;
-  BLOOM_LEVELS.forEach((v, i) => tints[i].setScalar(v));
+  BLOOM_LEVELS.forEach((v, i) => (bloom.levels[i] = v));
   composer.addPass(bloom);
-  const output = new GradedOutputPass(params.get('grade') !== '0');
+  // Debug: ?aoview=ao shows the occlusion on its own.
+  const output = new GradedOutputPass(
+    params.get('grade') !== '0',
+    { scene: () => scenePass.texture, ao: gtao, volumetric, outline, bloom },
+    params.get('aoview') === 'ao',
+  );
   composer.addPass(output);
+  // Every pass writes its own buffers and the composite writes the canvas, so the composer's two
+  // full-resolution swap buffers are never used: keep them at a pixel instead of ~60 MB of float.
+  const shrinkSwapBuffers = () => {
+    composer.renderTarget1.setSize(1, 1);
+    composer.renderTarget2.setSize(1, 1);
+  };
+  const composerSetSize = composer.setSize.bind(composer);
+  composer.setSize = (width: number, height: number) => {
+    composerSetSize(width, height);
+    shrinkSwapBuffers();
+  };
+  const composerSetPixelRatio = composer.setPixelRatio.bind(composer);
+  composer.setPixelRatio = (ratio: number) => {
+    composerSetPixelRatio(ratio);
+    shrinkSwapBuffers();
+  };
+  shrinkSwapBuffers();
 
   // Debug: GPU time per pass (?gpu). Wraps each pass, shadow-map rendering and env capture.
   const gpu = createGpuTimer(renderer.getContext() as WebGL2RenderingContext, params.has('gpu'));

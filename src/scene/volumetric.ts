@@ -143,25 +143,6 @@ const blurShader = {
   `,
 };
 
-/**
- * Added onto the image in place with additive blending. It used to copy the whole frame into a
- * second buffer as base + scatter; the blend gives the same pixels without re-reading the base
- * or swapping buffers, which is one full-resolution pass fewer every frame.
- */
-const compositeShader = {
-  uniforms: {
-    tScatter: { value: null as THREE.Texture | null },
-  },
-  vertexShader: marchShader.vertexShader,
-  fragmentShader: /* glsl */ `
-    uniform sampler2D tScatter;
-    varying vec2 vUv;
-    void main() {
-      gl_FragColor = vec4(texture2D(tScatter, vUv).rgb, 1.0);
-    }
-  `,
-};
-
 export class VolumetricLightPass extends Pass {
   /** Sun scattering colour × strength. */
   readonly scatter = new THREE.Color(0, 0, 0);
@@ -173,11 +154,12 @@ export class VolumetricLightPass extends Pass {
   private readonly getDepth: () => THREE.Texture | null;
   private readonly march = new THREE.ShaderMaterial(marchShader);
   private readonly blur = new THREE.ShaderMaterial(blurShader);
-  private readonly composite = new THREE.ShaderMaterial(compositeShader);
   private readonly quad = new FullScreenQuad();
   private readonly targetA = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
   private readonly targetB = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
   private frame = 0;
+  /** True when the last render produced scattered light (`texture` holds it); false means add nothing. */
+  active = false;
   /** Fraction of the drawing buffer the shafts render at. */
   resolutionScale: () => number = () => 0.4;
 
@@ -192,17 +174,10 @@ export class VolumetricLightPass extends Pass {
     this.sun = sun;
     this.lamp = lamp;
     this.getDepth = getDepth;
-    for (const m of [this.march, this.blur, this.composite]) {
+    for (const m of [this.march, this.blur]) {
       m.depthTest = false;
       m.depthWrite = false;
     }
-    // Pure addition of the scattered light: source × 1 + destination × 1, alpha untouched.
-    this.composite.blending = THREE.CustomBlending;
-    this.composite.blendSrc = THREE.OneFactor;
-    this.composite.blendDst = THREE.OneFactor;
-    this.composite.blendSrcAlpha = THREE.ZeroFactor;
-    this.composite.blendDstAlpha = THREE.OneFactor;
-    this.composite.transparent = true;
     this.needsSwap = false;
   }
 
@@ -215,13 +190,14 @@ export class VolumetricLightPass extends Pass {
     this.targetB.setSize(w, h);
   }
 
-  render(renderer: THREE.WebGLRenderer, _writeBuffer: THREE.WebGLRenderTarget, readBuffer: THREE.WebGLRenderTarget) {
+  render(renderer: THREE.WebGLRenderer, _writeBuffer: THREE.WebGLRenderTarget, _readBuffer: THREE.WebGLRenderTarget) {
     const sunTex = this.sun.shadow.map?.depthTexture ?? null;
     const spotTex = this.lamp.shadow.map?.depthTexture ?? null;
     const depth = this.getDepth();
     const sunOn = this.scatter.r + this.scatter.g + this.scatter.b > 1e-4 && sunTex !== null;
     const spotOn = this.lampScatter.r + this.lampScatter.g + this.lampScatter.b > 1e-4 && spotTex !== null;
     const active = (sunOn || spotOn) && depth !== null;
+    this.active = active;
 
     if (active) {
       this.frame++;
@@ -269,16 +245,12 @@ export class VolumetricLightPass extends Pass {
       this.quad.render(renderer);
     }
 
-    // Nothing to add (no light scattering, or no shadow map yet): leave the image untouched.
-    if (!active) return;
-    this.quad.material = this.composite;
-    this.composite.uniforms.tScatter.value = this.targetA.texture;
-    renderer.setRenderTarget(this.renderToScreen ? null : readBuffer);
-    // Drawing in place: an auto-clear here would wipe the image before the light is added.
-    const autoClear = renderer.autoClear;
-    renderer.autoClear = false;
-    this.quad.render(renderer);
-    renderer.autoClear = autoClear;
+    // The final composite adds `texture` in; nothing is drawn onto the image here.
+  }
+
+  /** Scattered light at reduced resolution, blurred. */
+  get texture() {
+    return this.targetA.texture;
   }
 
   dispose() {
@@ -286,7 +258,6 @@ export class VolumetricLightPass extends Pass {
     this.targetB.dispose();
     this.march.dispose();
     this.blur.dispose();
-    this.composite.dispose();
     this.quad.dispose();
   }
 }

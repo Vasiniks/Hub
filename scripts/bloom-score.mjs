@@ -15,7 +15,9 @@ const browser = await chromium.launch({ executablePath: '/Applications/Google Ch
 for (const [name, q] of Object.entries(variants)) {
   for (const s of shots) {
     const page = await browser.newPage({ viewport: { width: 1200, height: 750 } });
-    await page.goto(`http://127.0.0.1:5173/?debug&pr=1&hour=${s.hour}&${q}`, { waitUntil: 'load' });
+    // A query may be prefixed with another build's origin: "http://127.0.0.1:5181|bloom=0".
+    const [origin, query] = q.includes('|') ? q.split('|') : ['http://127.0.0.1:5173', q];
+    await page.goto(`${origin}/?debug&pr=1&hour=${s.hour}&${query}`, { waitUntil: 'load' });
     await page.waitForFunction(() => window.__room !== undefined, null, { timeout: 60000 });
     await page.evaluate((v) => window.__room.parkCamera(v.p, v.t, v.fov), s);
     await wait(1600);

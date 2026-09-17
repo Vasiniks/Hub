@@ -72,12 +72,76 @@ export function createBench(ctx: BenchContext) {
     return found;
   };
 
+  function measureOverdraw() {
+    const size = renderer.getDrawingBufferSize(new THREE.Vector2());
+    const target = new THREE.WebGLRenderTarget(size.x, size.y, { depthBuffer: true });
+    const make = (transparent: boolean) =>
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(1 / 255, 1 / 255, 1 / 255), transparent, blending: THREE.AdditiveBlending, depthWrite: !transparent, depthTest: true, toneMapped: false, fog: false });
+    const counters = { opaque: make(false), transparent: make(true) };
+    const swapped: [THREE.Mesh, THREE.Material | THREE.Material[]][] = [];
+    const ids = new Map<THREE.Object3D, number>();
+    scene.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const m = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+      ids.set(mesh, (m as unknown as { id: number }).id);
+      swapped.push([mesh, mesh.material]);
+      mesh.material = m.transparent ? counters.transparent : counters.opaque;
+    });
+    const measure = (only: 'opaque' | 'transparent' | 'all') => {
+      counters.opaque.visible = only !== 'transparent';
+      counters.transparent.visible = only !== 'opaque';
+      // Same order as three's default opaque sort, keyed on the original material.
+      renderer.setOpaqueSort((a, b) => a.groupOrder - b.groupOrder || a.renderOrder - b.renderOrder || (ids.get(a.object) ?? 0) - (ids.get(b.object) ?? 0) || a.z - b.z || a.id - b.id);
+      const background = scene.background;
+      scene.background = null;
+      renderer.setRenderTarget(target);
+      renderer.setClearColor(0x000000, 1);
+      renderer.clear();
+      renderer.render(scene, camera);
+      scene.background = background;
+      const px = new Uint8Array(size.x * size.y * 4);
+      renderer.readRenderTargetPixels(target, 0, 0, size.x, size.y, px);
+      let sum = 0;
+      let covered = 0;
+      const hist = [0, 0, 0, 0, 0];
+      for (let i = 0; i < px.length; i += 4) {
+        sum += px[i];
+        if (px[i] > 0) covered++;
+        hist[Math.min(4, px[i])]++;
+      }
+      const n = size.x * size.y;
+      return { fragmentsPerPixel: +(sum / n).toFixed(2), coverage: +(covered / n).toFixed(2), share: hist.map((h) => +(h / n).toFixed(3)) };
+    };
+    const out = { opaque: measure('opaque'), transparent: measure('transparent'), all: measure('all'), opaqueFrontToBack: { fragmentsPerPixel: 0 } };
+    renderer.setOpaqueSort((a, b) => a.z - b.z);
+    counters.opaque.visible = true;
+    counters.transparent.visible = false;
+    renderer.setRenderTarget(target);
+    renderer.clear();
+    renderer.render(scene, camera);
+    {
+      const px = new Uint8Array(size.x * size.y * 4);
+      renderer.readRenderTargetPixels(target, 0, 0, size.x, size.y, px);
+      let sum = 0;
+      for (let i = 0; i < px.length; i += 4) sum += px[i];
+      out.opaqueFrontToBack.fragmentsPerPixel = +(sum / (size.x * size.y)).toFixed(2);
+    }
+    renderer.setOpaqueSort(null);
+    for (const [mesh, m] of swapped) mesh.material = m;
+    renderer.setRenderTarget(null);
+    target.dispose();
+    counters.opaque.dispose();
+    counters.transparent.dispose();
+    return out;
+  }
+
   return {
     /**
      * Park the camera, then measure the frame and each pass/feature. `aoLive` forces AO to
      * recompute every frame, which is what turning the head costs.
      */
-    async run(pose: { p: number[]; t: number[]; fov: number; quick?: boolean; materials?: boolean }) {
+    async run(pose: { p: number[]; t: number[]; fov: number; quick?: boolean; materials?: boolean; overdraw?: boolean }) {
       ctx.pause(true);
       const saved = { pos: camera.position.clone(), quat: camera.quaternion.clone(), fov: camera.fov };
       camera.position.fromArray(pose.p);
@@ -136,6 +200,14 @@ export function createBench(ctx: BenchContext) {
         rows.push(await ab(`ALL transparent ×${transparent.length}`, idleFrame, () => transparent.forEach((x) => (x.visible = true)), () => transparent.forEach((x) => (x.visible = false)), 4, 10));
         results.materials = rows.sort((a, b) => b.cost - a.cost);
       }
+
+      // Depth complexity: every mesh drawn in its real order with a material that adds 1/255 per
+      // shaded fragment. Opaque keeps three's material-id-first sort (the original material's id).
+      if (pose.overdraw) results.overdraw = measureOverdraw();
+
+      const output = composer.passes[composer.passes.length - 1];
+      const outputTime = await time(() => output.render(renderer, composer.writeBuffer, composer.readBuffer, 0, false), 20);
+      results.outputPass = +outputTime.total.toFixed(2);
 
       const passes: unknown[] = [];
       for (const pass of composer.passes) {
