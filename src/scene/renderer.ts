@@ -121,17 +121,24 @@ const COMPOSITE_PARS = /* glsl */ `
   uniform sampler2D tAO, tAOPrevious, tScatter, tOutlineMask, tOutlineEdge;
   uniform sampler2D tBloom0, tBloom1, tBloom2, tBloom3, tBloom4;
   uniform float uAO, uAOFade, uScatter, uOutline, uOutlineStrength, uBloom;
+  // Screen NDC → the snapshot views AO (and the shafts) and the faded-from AO were computed for.
+  uniform mat3 uAOView, uAOPreviousView;
+  vec2 snapshotUv( mat3 view, vec2 uv ) {
+    vec3 h = view * vec3( uv * 2.0 - 1.0, 1.0 );
+    return h.xy / h.z * 0.5 + 0.5;
+  }
   uniform vec3 uBloomWeights[5];
 `;
 
 /** Everything the image receives after the scene render, in the order the old pass chain applied it. */
 const COMPOSITE_BODY = /* glsl */ `
   if ( uAO > 0.0 ) {
-    vec3 ao = texture2D( tAO, vUv ).rgb;
-    if ( uAOFade < 1.0 ) ao = mix( texture2D( tAOPrevious, vUv ).rgb, ao, uAOFade );
+    vec2 aoUv = snapshotUv( uAOView, vUv );
+    vec3 ao = texture2D( tAO, aoUv ).rgb;
+    if ( uAOFade < 1.0 ) ao = mix( texture2D( tAOPrevious, snapshotUv( uAOPreviousView, vUv ) ).rgb, ao, uAOFade );
     gl_FragColor.rgb *= mix( vec3( 1.0 ), ao, uAO );
   }
-  if ( uScatter > 0.0 ) gl_FragColor.rgb += texture2D( tScatter, vUv ).rgb;
+  if ( uScatter > 0.0 ) gl_FragColor.rgb += texture2D( tScatter, snapshotUv( uAOView, vUv ) ).rgb;
   if ( uOutline > 0.0 ) {
     vec4 edge = uOutlineStrength * texture2D( tOutlineMask, vUv ).r * texture2D( tOutlineEdge, vUv );
     gl_FragColor.rgb += edge.rgb * edge.a;
@@ -146,6 +153,7 @@ const COMPOSITE_BODY = /* glsl */ `
 `;
 
 export interface CompositeInputs {
+  camera: THREE.PerspectiveCamera;
   scene: () => THREE.Texture;
   ao: CachedGTAOPass;
   volumetric: VolumetricLightPass;
@@ -191,6 +199,8 @@ class GradedOutputPass extends OutputPass {
       uOutlineStrength: { value: 1 },
       uBloom: { value: 0 },
       uBloomWeights: { value: [0, 0, 0, 0, 0].map(() => new THREE.Vector3()) },
+      uAOView: { value: new THREE.Matrix3() },
+      uAOPreviousView: { value: new THREE.Matrix3() },
     });
     const material = (this as unknown as { material: THREE.RawShaderMaterial }).material;
     const source = material.fragmentShader;
@@ -219,6 +229,8 @@ class GradedOutputPass extends OutputPass {
     u.tAO.value = ao.texture;
     u.tAOPrevious.value = ao.previousTexture;
     u.uAOFade.value = ao.fadeProgress;
+    ao.view.reprojection(this.inputs.camera, u.uAOView.value as THREE.Matrix3);
+    if (ao.fadeProgress < 1) ao.previousView.reprojection(this.inputs.camera, u.uAOPreviousView.value as THREE.Matrix3);
     u.uScatter.value = volumetric.enabled && volumetric.active ? 1 : 0;
     u.tScatter.value = volumetric.texture;
     u.uOutline.value = outline.enabled && outline.selectedObjects.length > 0 ? 1 : 0;
@@ -295,12 +307,25 @@ export function createRenderer(
   gtao.enabled = !aoOff;
   composer.addPass(gtao);
 
-  const volumetric = new VolumetricLightPass(camera, sun, lamp, () => gtao.depthTexture ?? null);
+  // The shafts are marched for AO's snapshot view, from its depth, and reprojected with it.
+  const volumetric = new VolumetricLightPass(
+    () => gtao.view.camera,
+    () => gtao.computedThisFrame,
+    sun,
+    lamp,
+    () => gtao.depthTexture ?? null,
+  );
   volumetric.enabled = volumetricEnabled;
   volumetric.resolutionScale = () => (volScaleParam > 0 ? volScaleParam : 0.4 / pixelRatio);
   composer.addPass(volumetric);
 
-  const outline = new SharedDepthOutlinePass(new THREE.Vector2(w, h), scene, camera, () => (gtao.enabled ? gtao.depthTexture : null));
+  const outline = new SharedDepthOutlinePass(
+    new THREE.Vector2(w, h),
+    scene,
+    camera,
+    () => (gtao.enabled ? gtao.depthTexture : null),
+    () => gtao.view.camera,
+  );
   outline.edgeStrength = 2.4;
   outline.edgeGlow = 0;
   outline.edgeThickness = 1;
@@ -345,7 +370,7 @@ export function createRenderer(
   // Debug: ?aoview=ao shows the occlusion on its own.
   const output = new GradedOutputPass(
     params.get('grade') !== '0',
-    { scene: () => scenePass.texture, ao: gtao, volumetric, outline, bloom },
+    { camera, scene: () => scenePass.texture, ao: gtao, volumetric, outline, bloom },
     params.get('aoview') === 'ao',
   );
   composer.addPass(output);
@@ -591,6 +616,8 @@ export function createRenderer(
     applyLight,
     resize,
     render(dt: number, time: number, animateGrain: boolean) {
+      // A redrawn shadow map changes the shafts; they are otherwise reused (see volumetric.ts).
+      if (sun.shadow.needsUpdate || lamp.shadow.needsUpdate) volumetric.invalid = true;
       lampShadow?.update();
       stepCapture();
       output.grade.uTime.value = animateGrain ? time : 0;

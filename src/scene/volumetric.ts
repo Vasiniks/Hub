@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
+import { GUARD_SCALE } from './ao';
 
 /**
  * Light scattering in room air, for both the sun and the desk lamp.
@@ -17,6 +18,7 @@ import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
  * tracing; it is the honest name for what it does.
  */
 const STEPS = 28;
+const _sunDir = new THREE.Vector3();
 const BLACK = new THREE.Color(0, 0, 0);
 
 const marchShader = {
@@ -148,7 +150,9 @@ export class VolumetricLightPass extends Pass {
   readonly scatter = new THREE.Color(0, 0, 0);
   /** Lamp scattering colour × strength. Zero for both disables the pass entirely. */
   readonly lampScatter = new THREE.Color(0, 0, 0);
-  private readonly camera: THREE.PerspectiveCamera;
+  private readonly getCamera: () => THREE.PerspectiveCamera;
+  /** True on frames where the depth/view snapshot was recomputed (shafts are recomputed with it). */
+  private readonly snapshotChanged: () => boolean;
   private readonly sun: THREE.DirectionalLight;
   private readonly lamp: THREE.SpotLight;
   private readonly getDepth: () => THREE.Texture | null;
@@ -158,19 +162,28 @@ export class VolumetricLightPass extends Pass {
   private readonly targetA = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
   private readonly targetB = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
   private frame = 0;
+  /** Set by the owner when a shadow map the shafts sample has been redrawn. */
+  invalid = true;
+  private readonly lastScatter = new THREE.Color(-1, -1, -1);
+  private readonly lastLampScatter = new THREE.Color(-1, -1, -1);
+  private readonly lastSunDir = new THREE.Vector3();
+  /** True on frames where the shafts were actually marched (for tests and the bench). */
+  computedThisFrame = false;
   /** True when the last render produced scattered light (`texture` holds it); false means add nothing. */
   active = false;
   /** Fraction of the drawing buffer the shafts render at. */
   resolutionScale: () => number = () => 0.4;
 
   constructor(
-    camera: THREE.PerspectiveCamera,
+    getCamera: () => THREE.PerspectiveCamera,
+    snapshotChanged: () => boolean,
     sun: THREE.DirectionalLight,
     lamp: THREE.SpotLight,
     getDepth: () => THREE.Texture | null,
   ) {
     super();
-    this.camera = camera;
+    this.getCamera = getCamera;
+    this.snapshotChanged = snapshotChanged;
     this.sun = sun;
     this.lamp = lamp;
     this.getDepth = getDepth;
@@ -183,7 +196,8 @@ export class VolumetricLightPass extends Pass {
 
   setSize(width: number, height: number) {
     // Shafts are low-frequency and blurred: a fraction of the buffer is enough.
-    const k = this.resolutionScale();
+    // The depth snapshot this reads carries a guard band (see ao.ts); so does this buffer.
+    const k = this.resolutionScale() * GUARD_SCALE;
     const w = Math.max(1, Math.round(width * k));
     const h = Math.max(1, Math.round(height * k));
     this.targetA.setSize(w, h);
@@ -198,8 +212,25 @@ export class VolumetricLightPass extends Pass {
     const spotOn = this.lampScatter.r + this.lampScatter.g + this.lampScatter.b > 1e-4 && spotTex !== null;
     const active = (sunOn || spotOn) && depth !== null;
     this.active = active;
+    this.computedThisFrame = false;
+    const sunDir = _sunDir.subVectors(this.sun.position, this.sun.target.position).normalize();
+    // The shafts depend on the eye, the depth snapshot, the lights and their shadow maps — not on
+    // which way the head is turned. Reprojected with the snapshot, they are recomputed only when one
+    // of those changes.
+    const changed =
+      this.invalid ||
+      this.snapshotChanged() ||
+      !this.lastScatter.equals(this.scatter) ||
+      !this.lastLampScatter.equals(this.lampScatter) ||
+      sunDir.angleTo(this.lastSunDir) > 1e-4;
 
-    if (active) {
+    if (active && changed) {
+      this.invalid = false;
+      this.computedThisFrame = true;
+      this.lastScatter.copy(this.scatter);
+      this.lastLampScatter.copy(this.lampScatter);
+      this.lastSunDir.copy(sunDir);
+      const camera = this.getCamera();
       this.frame++;
       const u = this.march.uniforms;
       u.tDepth.value = depth;
@@ -208,9 +239,9 @@ export class VolumetricLightPass extends Pass {
       u.tShadow.value = sunTex ?? spotTex;
       u.tSpotShadow.value = spotTex ?? sunTex;
       u.uShadowMatrix.value.copy(this.sun.shadow.matrix);
-      u.uProjInv.value.copy(this.camera.projectionMatrixInverse);
-      u.uCamWorld.value.copy(this.camera.matrixWorld);
-      u.uCamPos.value.setFromMatrixPosition(this.camera.matrixWorld);
+      u.uProjInv.value.copy(camera.projectionMatrixInverse);
+      u.uCamWorld.value.copy(camera.matrixWorld);
+      u.uCamPos.value.setFromMatrixPosition(camera.matrixWorld);
       u.uSunDir.value.subVectors(this.sun.position, this.sun.target.position).normalize();
       u.uScatter.value.copy(sunOn ? this.scatter : BLACK);
       u.uSpotScatter.value.copy(spotOn ? this.lampScatter : BLACK);

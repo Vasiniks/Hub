@@ -17,6 +17,14 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
  * Nothing is blended here: the final composite (renderer.ts) multiplies the result into the image,
  * so this pass writes no full-resolution buffer at all.
  *
+ * Turning the head does not invalidate it either. Occlusion belongs to surfaces, and from a fixed
+ * eye a rotation only changes where on screen each surface lands — so the result is computed for a
+ * slightly wider view than the screen (a guard band) and the final composite maps each pixel into
+ * it with one 3×3 homography. No history, no blending across frames: a single warp of a buffer
+ * computed moments ago for the same eye, so there is nothing to ghost. It is recomputed only when
+ * the eye translates, something on screen moves, the view turns past the guard band, or the
+ * resolution upgrades. The light shafts share the same snapshot (see volumetric.ts).
+ *
  * While the view is actually moving, occlusion is traced and denoised at half resolution (a
  * quarter of the pixels): depth and normals, trace and denoise together, ~1 ms instead of ~3.3 at
  * 1440×900. Half resolution softens thin geometry (the lamp's arms gain a faint halo),
@@ -33,12 +41,73 @@ const SETTLE_SECONDS = 0.12;
 const FADE_SECONDS = 0.2;
 /** Apparent view speed, in CSS pixels per frame, that counts as moving (idle breathing is well below). */
 const MOVING_PX_PER_FRAME = 0.6;
+/** Extra view on each side, as a fraction of the screen's half-extent, computed for reprojection. */
+export const GUARD_BAND = 0.14;
+export const GUARD_SCALE = 1 + GUARD_BAND;
+
+/** The view a buffer was computed for, and the map from the current screen into it. */
+export class ViewSnapshot {
+  readonly camera = new THREE.PerspectiveCamera();
+  private readonly viewFromWorld = new THREE.Matrix4();
+  private readonly _m = new THREE.Matrix4();
+  private readonly _a = new THREE.Matrix3();
+  private readonly _h = new THREE.Vector3();
+
+  /** Take the current camera's eye and orientation, widened by the guard band. */
+  capture(main: THREE.PerspectiveCamera) {
+    main.updateMatrixWorld();
+    this.camera.position.setFromMatrixPosition(main.matrixWorld);
+    this.camera.quaternion.setFromRotationMatrix(this._m.extractRotation(main.matrixWorld));
+    this.camera.aspect = main.aspect;
+    this.camera.near = main.near;
+    this.camera.far = main.far;
+    this.camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(main.fov) / 2) * GUARD_SCALE));
+    this.camera.updateProjectionMatrix();
+    this.camera.updateMatrixWorld(true);
+    this.viewFromWorld.copy(this.camera.matrixWorld).invert();
+  }
+
+  /**
+   * Homography from the current screen's NDC (x, y, 1) to this snapshot's NDC (after dividing by z).
+   * Rotation only: the eye translates by millimetres at most while a snapshot is in use.
+   */
+  reprojection(main: THREE.PerspectiveCamera, out: THREE.Matrix3) {
+    const tanY = Math.tan(THREE.MathUtils.degToRad(main.fov) / 2);
+    const tanX = tanY * main.aspect;
+    const snapTanY = Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2);
+    const snapTanX = snapTanY * this.camera.aspect;
+    // Rotation part of snapshot-view-from-current-view.
+    this._m.multiplyMatrices(this.viewFromWorld, main.matrixWorld);
+    const r = this._a.setFromMatrix4(this._m);
+    const e = r.elements; // column-major
+    // A = R · diag(tanX, tanY, -1); H = diag(1/snapTanX, 1/snapTanY, -1) · A
+    const cx = [tanX, tanY, -1];
+    const rs = [1 / snapTanX, 1 / snapTanY, -1];
+    const h = out.elements;
+    for (let col = 0; col < 3; col++) for (let row = 0; row < 3; row++) h[col * 3 + row] = rs[row] * e[col * 3 + row] * cx[col];
+    return out;
+  }
+
+  /** True while every corner of the current screen still lands inside this snapshot. */
+  covers(main: THREE.PerspectiveCamera, scratch: THREE.Matrix3) {
+    const H = this.reprojection(main, scratch);
+    for (const x of [-1, 1])
+      for (const y of [-1, 1]) {
+        const v = this._h.set(x, y, 1).applyMatrix3(H);
+        if (v.z <= 0) return false;
+        if (Math.abs(v.x / v.z) > 1 || Math.abs(v.y / v.z) > 1) return false;
+      }
+    return true;
+  }
+}
 
 
 interface TargetSet {
   gtao: THREE.WebGLRenderTarget;
   pd: THREE.WebGLRenderTarget;
   normal: THREE.WebGLRenderTarget;
+  /** The view the result in these targets was computed for. */
+  view: ViewSnapshot;
 }
 
 interface Internals {
@@ -80,33 +149,41 @@ export class CachedGTAOPass extends GTAOPass {
   private fade = 1;
   private readonly full: TargetSet;
   private readonly half: TargetSet;
+  /** The camera the room is actually seen through; this pass renders through snapshot cameras. */
+  private readonly main: THREE.PerspectiveCamera;
+  private current: TargetSet;
+  private readonly _corners = new THREE.Matrix3();
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, width: number, height: number) {
-    super(scene, camera, width, height);
-    // Blended in place (see render), so the composer must not swap buffers after this pass.
+    const fullView = new ViewSnapshot();
+    fullView.capture(camera);
+    super(scene, fullView.camera, width, height);
+    this.main = camera;
     this.needsSwap = false;
     const own = this as unknown as Internals;
-    this.full = { gtao: own.gtaoRenderTarget, pd: own.pdRenderTarget, normal: own.normalRenderTarget };
+    this.full = { gtao: own.gtaoRenderTarget, pd: own.pdRenderTarget, normal: own.normalRenderTarget, view: fullView };
     const halfNormal = new THREE.WebGLRenderTarget(1, 1, {
       minFilter: THREE.NearestFilter,
       magFilter: THREE.NearestFilter,
       type: THREE.HalfFloatType,
       depthTexture: new THREE.DepthTexture(1, 1, THREE.UnsignedInt248Type, undefined, undefined, undefined, undefined, undefined, undefined, THREE.DepthStencilFormat),
     });
-    this.half = { gtao: own.gtaoRenderTarget.clone(), pd: own.pdRenderTarget.clone(), normal: halfNormal };
+    this.half = { gtao: own.gtaoRenderTarget.clone(), pd: own.pdRenderTarget.clone(), normal: halfNormal, view: new ViewSnapshot() };
+    this.current = this.full;
     this.sizeHalf(width, height);
   }
 
+  /** Sizes are for the screen; the targets also hold the guard band. */
   setSize(width: number, height: number) {
     this.use(this.full, 1);
-    super.setSize(width, height);
+    super.setSize(Math.round(width * GUARD_SCALE), Math.round(height * GUARD_SCALE));
     if (this.half) this.sizeHalf(width, height);
     this.invalid = true;
   }
 
   private sizeHalf(width: number, height: number) {
-    const w = Math.max(1, width >> 1);
-    const h = Math.max(1, height >> 1);
+    const w = Math.max(1, Math.round(width * GUARD_SCALE) >> 1);
+    const h = Math.max(1, Math.round(height * GUARD_SCALE) >> 1);
     this.half.gtao.setSize(w, h);
     this.half.pd.setSize(w, h);
     this.half.normal.setSize(w, h);
@@ -140,6 +217,8 @@ export class CachedGTAOPass extends GTAOPass {
     }
     own.gtaoRenderTarget = set.gtao;
     own.pdRenderTarget = set.pd;
+    this.camera = set.view.camera;
+    this.current = set;
     own.gtaoMaterial.uniforms.resolution.value.set(set.gtao.width, set.gtao.height);
     own.pdMaterial.uniforms.resolution.value.set(set.pd.width, set.pd.height);
     own.pdMaterial.uniforms.tDiffuse.value = set.gtao.texture;
@@ -152,7 +231,7 @@ export class CachedGTAOPass extends GTAOPass {
 
   /** CSS pixels the view has shifted since the previous frame (for motion, not for cache validity). */
   private frameShiftPx() {
-    const camera = this.camera as THREE.PerspectiveCamera;
+    const camera = this.main;
     camera.matrixWorld.decompose(_p, _q, _s);
     const fovChanged = camera.fov !== this.frameFov;
     const angle = 2 * Math.acos(Math.min(1, Math.abs(_q.dot(this.frameQuat))));
@@ -164,14 +243,18 @@ export class CachedGTAOPass extends GTAOPass {
     return (angle + parallax) * (window.innerHeight / THREE.MathUtils.degToRad(camera.fov));
   }
 
-  private viewShiftPx() {
-    const camera = this.camera as THREE.PerspectiveCamera;
+  /**
+   * Whether the current result can still be reprojected: the eye has not translated by more than
+   * the tolerance in parallax, the lens is unchanged, and the view is still inside the guard band.
+   */
+  private reusable() {
+    const camera = this.main;
     camera.matrixWorld.decompose(_p, _q, _s);
-    if (camera.fov !== this.lastFov || camera.aspect !== this.lastAspect) return Infinity;
-    const angle = 2 * Math.acos(Math.min(1, Math.abs(_q.dot(this.lastQuat))));
+    if (camera.fov !== this.lastFov || camera.aspect !== this.lastAspect) return false;
     const parallax = _p.distanceTo(this.lastPos) / this.parallaxDepth;
     const pxPerRadian = window.innerHeight / THREE.MathUtils.degToRad(camera.fov);
-    return (angle + parallax) * pxPerRadian;
+    if (parallax * pxPerRadian > this.pixelTolerance) return false;
+    return this.current.view.covers(camera, this._corners);
   }
 
   /** The occlusion to multiply the image by (denoised, at whichever resolution was last computed). */
@@ -179,9 +262,18 @@ export class CachedGTAOPass extends GTAOPass {
     return (this as unknown as Internals).pdRenderTarget.texture;
   }
 
+  /** The snapshot `texture` and the depth were computed for. */
+  get view() {
+    return this.current.view;
+  }
+
   /** While fading up to full resolution: the half-resolution result being faded from, and progress. */
   get previousTexture() {
     return this.half.pd.texture;
+  }
+
+  get previousView() {
+    return this.half.view;
   }
 
   get fadeProgress() {
@@ -193,8 +285,7 @@ export class CachedGTAOPass extends GTAOPass {
    * the final composite multiplies it in, so no full-resolution buffer is written here.
    */
   render(renderer: THREE.WebGLRenderer, writeBuffer: THREE.WebGLRenderTarget, readBuffer: THREE.WebGLRenderTarget) {
-
-    const camera = this.camera as THREE.PerspectiveCamera;
+    const camera = this.main;
     const now = performance.now() / 1000;
     const dt = this.lastTime ? Math.min(0.1, now - this.lastTime) : 0;
     this.lastTime = now;
@@ -205,7 +296,7 @@ export class CachedGTAOPass extends GTAOPass {
     this.stillSeconds = moving ? 0 : this.stillSeconds + dt;
     const wantScale = this.adaptiveResolution && this.stillSeconds < SETTLE_SECONDS ? 0.5 : 1;
 
-    const stale = !this.caching || this.invalid || this.viewShiftPx() > this.pixelTolerance;
+    const stale = !this.caching || this.invalid || !this.reusable();
     // Settled after moving: the half-resolution result is still valid, but upgrade it.
     const upgrade = wantScale === 1 && this.lastScale === 0.5;
     this.computedThisFrame = stale || upgrade;
@@ -215,7 +306,9 @@ export class CachedGTAOPass extends GTAOPass {
         this.fade = 0;
       } else if (wantScale === 0.5) this.fade = 1;
       // (A full-resolution refresh mid-fade, from idle breathing, lets the fade run on.)
-      this.use(wantScale === 1 ? this.full : this.half, wantScale);
+      const set = wantScale === 1 ? this.full : this.half;
+      set.view.capture(camera);
+      this.use(set, wantScale);
       // `Off` makes the stock pass compute G-buffer, AO and denoise, and stop before output.
       this.output = GTAOPass.OUTPUT.Off;
       super.render(renderer, writeBuffer, readBuffer, 0, false);

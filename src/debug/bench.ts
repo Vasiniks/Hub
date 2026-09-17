@@ -163,7 +163,35 @@ export function createBench(ctx: BenchContext) {
 
       const look = await time(frame, 20);
       const idle = await time(idleFrame, 20);
-      results.frame = { look: +look.total.toFixed(2), lookCpu: +look.cpu.toFixed(2), idle: +idle.total.toFixed(2), idleCpu: +idle.cpu.toFixed(2) };
+      // Real turning: the camera yaws a fixed step every frame and oscillates, nothing forced, so
+      // every reuse path behaves as it does under the mouse. 0.25°/frame ≈ 30°/s at 120 Hz.
+      const baseQuat = camera.quaternion.clone();
+      const turnAt = (degPerFrame: number) => {
+        let angle = 0;
+        let dir = 1;
+        const q = new THREE.Quaternion();
+        return () => {
+          angle += dir * degPerFrame;
+          if (Math.abs(angle) > 20) dir = -dir;
+          q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(angle));
+          camera.quaternion.copy(q).multiply(baseQuat);
+          camera.updateMatrixWorld();
+          composer.render(0);
+        };
+      };
+      for (let i = 0; i < 30; i++) turnAt(0.25)();
+      const turnSlow = await time(turnAt(0.25), 60);
+      const turnFast = await time(turnAt(1), 60);
+      camera.quaternion.copy(baseQuat);
+      camera.updateMatrixWorld();
+      results.frame = {
+        look: +look.total.toFixed(2),
+        lookCpu: +look.cpu.toFixed(2),
+        idle: +idle.total.toFixed(2),
+        idleCpu: +idle.cpu.toFixed(2),
+        turnSlow: +turnSlow.total.toFixed(2),
+        turnFast: +turnFast.total.toFixed(2),
+      };
       renderer.info.reset();
       frame();
       results.calls = renderer.info.render.calls;

@@ -58,20 +58,32 @@ export class SharedDepthOutlinePass extends OutlinePass {
 
   private readonly getDepth: () => THREE.Texture | null;
 
+  private readonly getDepthCamera: () => THREE.PerspectiveCamera;
+
   constructor(
     resolution: THREE.Vector2,
     scene: THREE.Scene,
     camera: THREE.PerspectiveCamera,
     getDepth: () => THREE.Texture | null,
+    getDepthCamera: () => THREE.PerspectiveCamera,
   ) {
     super(resolution, scene, camera);
     this.getDepth = getDepth;
+    this.getDepthCamera = getDepthCamera;
     const mask = (this as unknown as Internals).prepareMaskMaterial;
-    // A real depth texture holds window depth in .x; no RGBA unpacking. The bias keeps the
-    // selection from occluding itself against depth sampled at a coarser resolution.
+    mask.uniforms.depthViewMatrix = { value: new THREE.Matrix4() };
+    // The depth was rendered for AO's snapshot camera (a slightly wider view, possibly a few frames
+    // old), so the test is done in that camera's space: project into its depth texture and compare
+    // against the fragment's depth along its axis. A real depth texture holds window depth in .x;
+    // no RGBA unpacking. The bias keeps the selection from occluding itself against depth sampled
+    // at a coarser resolution.
+    mask.vertexShader = mask.vertexShader
+      .replace('uniform mat4 textureMatrix;', 'uniform mat4 textureMatrix;\nuniform mat4 depthViewMatrix;\nvarying vec4 vDepthView;')
+      .replace('projTexCoord = textureMatrix * worldPosition;', 'projTexCoord = textureMatrix * worldPosition;\nvDepthView = depthViewMatrix * worldPosition;');
     mask.fragmentShader = mask.fragmentShader
+      .replace('varying vec4 vPosition;', 'varying vec4 vPosition;\nvarying vec4 vDepthView;')
       .replace('unpackRGBAToDepth(texture2DProj( depthTexture, projTexCoord ))', 'texture2DProj( depthTexture, projTexCoord ).x')
-      .replace('(-vPosition.z > viewZ)', '(-vPosition.z > viewZ + 0.012)');
+      .replace('(-vPosition.z > viewZ)', '(-vDepthView.z > viewZ + 0.012)');
     mask.needsUpdate = true;
   }
 
@@ -101,11 +113,14 @@ export class SharedDepthOutlinePass extends OutlinePass {
       scene.background = null;
 
       // Only the selected objects, depth-tested against the scene depth AO already rendered.
-      self._updateTextureMatrix();
+      const depthCamera = this.getDepthCamera();
+      self.textureMatrix.set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1);
+      self.textureMatrix.multiply(depthCamera.projectionMatrix).multiply(depthCamera.matrixWorldInverse);
       self._changeVisibilityOfNonSelectedObjects(false);
       scene.overrideMaterial = self.prepareMaskMaterial;
       const u = self.prepareMaskMaterial.uniforms;
-      u.cameraNearFar.value.set(self.renderCamera.near, self.renderCamera.far);
+      u.cameraNearFar.value.set(depthCamera.near, depthCamera.far);
+      u.depthViewMatrix.value.copy(depthCamera.matrixWorldInverse);
       u.depthTexture.value = depth;
       u.textureMatrix.value = self.textureMatrix;
       renderer.setRenderTarget(self.renderTargetMaskBuffer);

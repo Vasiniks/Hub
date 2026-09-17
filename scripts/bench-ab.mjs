@@ -19,7 +19,7 @@ for (let r = 0; r < rounds; r++) {
   for (const [name, q] of Object.entries(variants)) {
     const page = await browser.newPage({ viewport: { width: vw, height: vh }, deviceScaleFactor: 2 });
     const [origin, query] = q.includes('|') ? q.split('|') : ['http://127.0.0.1:5173', q];
-    await page.goto(`${origin}/?debug&hour=${hour}&pr=${pr}&${query}`, { waitUntil: 'load' });
+    await page.goto(`${origin}/?debug&hour=${hour}${/(^|&)pr=/.test(query) ? '' : `&pr=${pr}`}&${query}`, { waitUntil: 'load' });
     await page.waitForFunction(() => window.__room !== undefined, null, { timeout: 60000 });
     await wait(1500);
     for (const [i, pose] of poses.entries()) {
@@ -32,13 +32,14 @@ for (let r = 0; r < rounds; r++) {
 }
 await browser.close();
 const names = Object.keys(variants);
-console.log(`hour ${hour} pr ${pr}, ${rounds} interleaved rounds; look = AO recomputed every frame, idle = cached`);
+console.log(`hour ${hour} pr ${pr}, ${rounds} interleaved rounds; look = AO forced every frame, idle = still, turn = real yaw 0.25/1 deg per frame`);
 for (let i = 0; i < poses.length; i++) {
   const cells = names.map((n) => {
     const list = acc[`${n}|${i}`];
     const look = list.reduce((a, f) => a + f.look, 0) / list.length;
     const idle = list.reduce((a, f) => a + f.idle, 0) / list.length;
-    return `${n}: look ${look.toFixed(2)} idle ${idle.toFixed(2)}`;
+    const avg = (k) => (list.every((f) => f[k] !== undefined) ? (list.reduce((a, f) => a + f[k], 0) / list.length).toFixed(2) : '-');
+    return `${n}: look ${look.toFixed(2)} idle ${idle.toFixed(2)} turn ${avg('turnSlow')}/${avg('turnFast')}`;
   });
   console.log(`pose ${i}  ` + cells.join('   |   '));
 }
