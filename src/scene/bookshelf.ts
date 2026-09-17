@@ -214,6 +214,7 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
   const stripMat = new THREE.MeshStandardMaterial({ color: '#000000', emissive: '#ffeacc', emissiveIntensity: 2 });
   const strip = at(new THREE.Mesh(new THREE.BoxGeometry(W - 0.06, 0.004, 0.012), stripMat), 0, 0.306, -0.04, carcass);
   const shelfLight = new THREE.RectAreaLight('#ffeacc', 0, W - 0.06, D * 0.7);
+  shelfLight.name = 'shelfLight';
   at(shelfLight, 0, 0.3, -D / 2, carcass);
   // Tilted forward so it also catches the book that has slid out of the row.
   shelfLight.lookAt(group.localToWorld(new THREE.Vector3(0, -0.4, 0.28)));

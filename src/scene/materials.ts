@@ -115,7 +115,9 @@ const OFF: Range = [1e5, 1e5 + 1];
  * floor and the far ends of the walls, which fog alone leaves as hard silhouettes.
  */
 function applySetFade(mat: THREE.Material, o: { center?: [number, number]; radial?: Range; x?: Range; z?: Range; y?: Range }) {
-  mat.onBeforeCompile = (shader) => {
+  mat.onBeforeCompile = (shader, renderer) => {
+    // The class-wide hook (split environment, areaLights.ts) is installed after materials exist.
+    Object.getPrototypeOf(mat).onBeforeCompile.call(mat, shader, renderer);
     shader.uniforms.uFadeColor = { value: fadeColor };
     shader.uniforms.uFadeCenter = { value: new THREE.Vector2(...(o.center ?? [0, 0])) };
     shader.uniforms.uFadeR = { value: new THREE.Vector2(...(o.radial ?? OFF)) };

@@ -56,9 +56,10 @@ export async function loadSurfaceTextures(): Promise<SurfaceTextures> {
  * different tiles never share a compiled program by accident.
  */
 export function projectMaps(mat: THREE.MeshStandardMaterial, tile: number) {
-  const previous = mat.onBeforeCompile;
+  const own = Object.hasOwn(mat, 'onBeforeCompile') ? mat.onBeforeCompile : null;
   mat.onBeforeCompile = (shader, renderer) => {
-    previous.call(mat, shader, renderer);
+    // Resolved at compile time: the class-wide hook (areaLights.ts) is installed after materials exist.
+    (own ?? Object.getPrototypeOf(mat).onBeforeCompile).call(mat, shader, renderer);
     shader.uniforms.uTileScale = { value: 1 / tile };
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nuniform float uTileScale;')
@@ -83,7 +84,7 @@ export function projectMaps(mat: THREE.MeshStandardMaterial, tile: number) {
   };
   // The key must still distinguish whatever the previous hook injected (the walls' set fade):
   // two materials that only share this key would otherwise share one compiled program.
-  const previousKey = previous.toString();
+  const previousKey = own?.toString() ?? '';
   mat.customProgramCacheKey = () => `projected-maps|${previousKey}`;
   mat.needsUpdate = true;
 }

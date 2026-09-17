@@ -621,9 +621,15 @@ async function start() {
   let calibrating = true;
 
   let reportedError = false;
+  /** Debug bench: stops the loop from rendering while a measurement owns the GPU. */
+  let benchPaused = false;
   function frame(now: number) {
     // Schedule first: a runtime error in one frame must never freeze the room.
     requestAnimationFrame(frame);
+    if (benchPaused) {
+      last = now;
+      return;
+    }
     try {
       step(now);
     } catch (err) {
@@ -836,6 +842,18 @@ async function start() {
         calibration: () => calibration,
         pixelRatio: () => view.pixelRatio(),
         aoComputed: () => view.ao.computedThisFrame,
+        passSizes: () =>
+          view.composer.passes.map((p) => {
+            const o = p as unknown as Record<string, { width?: number; height?: number } | number>;
+            const t = Object.entries(o)
+              .filter(([, v]) => v && typeof v === 'object' && 'width' in (v as object) && 'height' in (v as object) && (v as { isWebGLRenderTarget?: boolean }).isWebGLRenderTarget)
+              .map(([k, v]) => `${k}:${(v as { width: number }).width}x${(v as { height: number }).height}`);
+            return `${p.constructor.name} ${t.join(' ')}`;
+          }),
+        bench: async (pose: { p: number[]; t: number[]; fov: number }) => {
+          const { createBench } = await import('./debug/bench');
+          return createBench({ renderer: view.renderer, composer: view.composer, scene, camera, pause: (on) => (benchPaused = on) }).run(pose);
+        },
         startupMarks: () => loader.marks,
         pickingTrees: () => pickingTrees,
         programs: () => (view.renderer.info.programs ?? []).map((p) => p.name),

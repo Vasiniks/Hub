@@ -86,6 +86,7 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
 
   // Direct sun through the window. Its shadow map also shapes the light shafts.
   const sun = new THREE.DirectionalLight('#ffffff', 0);
+  sun.name = 'sun';
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -2.8, right: 2.8, top: 2.8, bottom: -2.8, near: 0.5, far: 18 });
@@ -99,15 +100,18 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
   // §8: the whole opening as one soft source. This is what makes the white desk glow toward
   // the window and fall away toward the visitor, which is most of the daylight read.
   const sky = new THREE.RectAreaLight('#ffffff', 0, room.windowSize.x, room.windowSize.y);
+  sky.name = 'sky';
   sky.position.copy(room.windowCenter).add(new THREE.Vector3(0, 0, 0.02));
   sky.lookAt(room.windowCenter.clone().add(new THREE.Vector3(0, -0.3, 1)));
   scene.add(sky);
 
   const hemi = new THREE.HemisphereLight('#ffffff', '#000000', 0);
+  hemi.name = 'hemi';
   scene.add(hemi);
 
   // Always present, sometimes dark: toggling `visible` would recompile every shader at dusk.
   const lamp = new THREE.SpotLight('#ffd2a0', 0, 3.0, LAMP_ANGLE, 0.85, 2);
+  lamp.name = 'lamp';
   lamp.castShadow = true;
   lamp.shadow.mapSize.set(1024, 1024);
   lamp.shadow.bias = -0.0006;
@@ -123,6 +127,7 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
   // §3: the monitor lights the room rather than just glowing. An area light the size of the
   // panel puts real screen light on the desk, the MacBook lid and the keyboard.
   const screenGlow = new THREE.RectAreaLight('#cfe0f2', 0, room.screenSize.x, room.screenSize.y);
+  screenGlow.name = 'screenGlow';
   room.screen.add(screenGlow);
   screenGlow.position.set(0, 0, 0.004);
   screenGlow.rotation.y = Math.PI;
@@ -136,6 +141,7 @@ export function createLighting(scene: THREE.Scene, room: RoomRefs, exterior: Ret
   // A rect light rather than a point — a point source this close to a smooth surface collapses
   // into a pinpoint specular, which is what the stray highlight in the window glass was.
   const underGlow = new THREE.RectAreaLight('#cfe0ff', 0, 0.22, 0.12);
+  underGlow.name = 'underGlow';
   underGlow.position.set(0.42, 0.79, -0.9);
   underGlow.lookAt(0.42, 0.7, -0.6);
   scene.add(underGlow);

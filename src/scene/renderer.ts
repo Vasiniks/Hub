@@ -9,8 +9,9 @@ import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { CopyShader } from 'three/addons/shaders/CopyShader.js';
 import type { LightState } from './lighting';
 import { fadeColor } from './materials';
-import { OVERLAY_LAYER } from './layers';
+import { OVERLAY_LAYER, REFLECTION_LAYER } from './layers';
 import { VolumetricLightPass } from './volumetric';
+import { createReflectionEmitters, environmentIrradiance, installDiffuseOnlyAreaLights, installSplitEnvironment } from './areaLights';
 import { CachedGTAOPass } from './ao';
 import { SharedDepthOutlinePass } from './outline';
 import { createGpuTimer } from '../debug/gpuTimer';
@@ -159,6 +160,9 @@ export function createRenderer(
   lamp: THREE.SpotLight,
 ) {
   const params = new URLSearchParams(location.search);
+  // Must precede every material compile (see areaLights.ts).
+  installDiffuseOnlyAreaLights();
+  installSplitEnvironment();
   // Profiling switches (A/B): ?ao=half|off  ?vol=0  ?msaa=0  ?bloom=0  ?pr=<ratio> (fixed, no fallback)
   const aoParam = params.get('ao');
   const volScaleParam = Number(params.get('volscale'));
@@ -183,10 +187,12 @@ export function createRenderer(
   // At retina density 2× MSAA is hard to tell from 4× and halves the largest buffers.
   const msaaParam = params.get('msaa');
   const msaaSamples = msaaParam !== null ? Number(msaaParam) : pixelRatio > 1.25 ? 2 : 4;
-  const target = new THREE.WebGLRenderTarget(w * pixelRatio, h * pixelRatio, { type: THREE.HalfFloatType });
-  const composer = new EffectComposer(renderer, target);
-  composer.setPixelRatio(pixelRatio);
-  composer.addPass(msaaSamples > 0 ? new MultisampleScenePass(scene, camera, msaaSamples) : new RenderPass(scene, camera));
+  // No render target passed in: EffectComposer takes a supplied target's size as its CSS size and
+  // multiplies by the pixel ratio again, so every buffer ran at ratio² (2250×1406 at "1.25") until
+  // the first window resize happened to correct it. Its own targets are half-float already.
+  const composer = new EffectComposer(renderer);
+  const scenePass = msaaSamples > 0 ? new MultisampleScenePass(scene, camera, msaaSamples) : new RenderPass(scene, camera);
+  composer.addPass(scenePass);
 
   const gtao = new CachedGTAOPass(scene, camera, w, h);
   gtao.caching = params.get('aocache') !== '0';
@@ -270,13 +276,46 @@ export function createRenderer(
   scene.add(cubeCamera);
   const pmrem = new THREE.PMREMGenerator(renderer);
   let envTarget: THREE.WebGLRenderTarget | null = null;
+  let irradianceTarget: THREE.WebGLRenderTarget | null = null;
   let captureFace = -1;
+  const reflectionEmitters = createReflectionEmitters(scene, REFLECTION_LAYER);
+  const splitEnvironment = reflectionEmitters !== null;
 
-  function swapEnvironment() {
+  /** Filter the room as captured: irradiance when the environment is split, both otherwise. */
+  function filterRoom() {
     const next = pmrem.fromCubemap(cubeTarget.texture);
+    if (!splitEnvironment) return swapEnvironment(next);
+    irradianceTarget?.dispose();
+    irradianceTarget = next;
+    environmentIrradiance.value = next.texture;
+  }
+
+  /** Draw the reflection-only emitters over the captured faces, then filter again for specular. */
+  function filterReflections() {
+    const background = scene.background;
+    const autoClear = renderer.autoClear;
+    const previous = renderer.getRenderTarget();
+    scene.background = null;
+    renderer.autoClear = false;
+    reflectionEmitters?.sync();
+    for (let face = 0; face < 6; face++) {
+      const cam = cubeCamera.children[face] as THREE.Camera;
+      cam.layers.set(REFLECTION_LAYER);
+      renderer.setRenderTarget(cubeTarget, face);
+      renderer.render(scene, cam);
+      cam.layers.set(0);
+    }
+    renderer.setRenderTarget(previous);
+    renderer.autoClear = autoClear;
+    scene.background = background;
+    swapEnvironment(pmrem.fromCubemap(cubeTarget.texture));
+  }
+
+  function swapEnvironment(next: THREE.WebGLRenderTarget) {
     envTarget?.dispose();
     envTarget = next;
     scene.environment = next.texture;
+    if (!splitEnvironment) environmentIrradiance.value = next.texture;
   }
 
   function captureEnvironmentNow() {
@@ -284,11 +323,12 @@ export function createRenderer(
     scene.environment = null;
     cubeCamera.update(renderer, scene);
     scene.environment = env;
-    swapEnvironment();
+    filterRoom();
+    if (splitEnvironment) filterReflections();
     captureFace = -1;
   }
 
-  /** Spread a capture over seven frames (one cube face each, then filtering) instead of one hitch. */
+  /** Spread a capture over frames (one cube face each, then filtering) instead of one hitch. */
   function requestEnvironmentCapture() {
     if (captureFace < 0) captureFace = 0;
   }
@@ -309,9 +349,10 @@ export function createRenderer(
       return;
     }
     gpu.begin('EnvPMREM');
-    swapEnvironment();
+    if (captureFace === 6) filterRoom();
+    else filterReflections();
     gpu.end();
-    captureFace = -1;
+    captureFace = splitEnvironment && captureFace === 6 ? 7 : -1;
   }
 
   function applyLight(state: LightState) {
@@ -417,6 +458,9 @@ export function createRenderer(
 
   return {
     renderer,
+    /** Debug/bench access to the post chain; not used by the room itself. */
+    composer,
+    scenePass,
     gpu,
     /** Ambient occlusion cache: flag `invalid` when something on screen moves. */
     ao: gtao,
