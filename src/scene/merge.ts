@@ -43,7 +43,8 @@ export function mergeStatic(root: THREE.Object3D): { before: number; after: numb
       !(mesh as THREE.InstancedMesh).isInstancedMesh &&
       !mesh.userData.noMerge &&
       !Array.isArray(mesh.material) &&
-      [...KEEP].every((k) => mesh.geometry.getAttribute(k) !== undefined);
+      mesh.geometry.getAttribute('position') !== undefined &&
+      mesh.geometry.getAttribute('normal') !== undefined;
     if (mergeable) {
       const material = mesh.material as THREE.Material;
       const indexed = mesh.geometry.index !== null;
@@ -54,6 +55,10 @@ export function mergeStatic(root: THREE.Object3D): { before: number; after: numb
       }
       const part = mesh.geometry.clone();
       for (const name of Object.keys(part.attributes)) if (!KEEP.has(name)) part.deleteAttribute(name);
+      // Models authored without texture coordinates (most Tier 2 props) still merge: a zero UV
+      // is exactly what WebGL feeds a shader for a missing attribute, so nothing renders
+      // differently — but without this, every bin, board and cable part was its own draw call.
+      if (!part.getAttribute('uv')) part.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(part.attributes.position.count * 2), 2));
       part.clearGroups();
       part.applyMatrix4(new THREE.Matrix4().multiplyMatrices(toRoot, mesh.matrixWorld));
       bucket.parts.push(part);
