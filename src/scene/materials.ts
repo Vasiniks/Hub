@@ -25,51 +25,6 @@ function rand(seed: number) {
   return () => ((s = (s * 16807) % 2147483647) / 2147483647);
 }
 
-/** Greyscale noise for roughness maps: `base` is the mean, `spread` the peak-to-peak variation. */
-function roughnessNoise(base: number, spread: number, seed: number, size = 256, blur = 6) {
-  return canvasTexture(
-    size,
-    (ctx, s) => {
-      const r = rand(seed);
-      const img = ctx.createImageData(s, s);
-      for (let i = 0; i < img.data.length; i += 4) {
-        const v = Math.max(0, Math.min(255, (base + (r() - 0.5) * spread) * 255));
-        img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
-        img.data[i + 3] = 255;
-      }
-      ctx.putImageData(img, 0, 0);
-      ctx.globalAlpha = 0.35;
-      ctx.filter = `blur(${blur}px)`;
-      ctx.drawImage(ctx.canvas, 0, 0);
-    },
-    false,
-  );
-}
-
-/** Fine directional streaks: reads as brushed aluminium once it drives roughness. */
-function brushedNoise(seed: number) {
-  return canvasTexture(
-    256,
-    (ctx, s) => {
-      const r = rand(seed);
-      ctx.fillStyle = '#6e6e6e';
-      ctx.fillRect(0, 0, s, s);
-      for (let i = 0; i < 900; i++) {
-        const y = r() * s;
-        const v = Math.round(90 + r() * 90);
-        ctx.strokeStyle = `rgba(${v},${v},${v},0.5)`;
-        ctx.lineWidth = r() * 1.4;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(s, y + (r() - 0.5) * 3);
-        ctx.stroke();
-      }
-    },
-    false,
-  );
-}
-
-/** Pale oak: warm floor tone that the lamp can pick up at night. */
 /** Board with a solder mask, traces and pads: PCBs should not read as green boxes. */
 function pcbTexture(base: string, seed: number) {
   return canvasTexture(256, (ctx, s) => {
@@ -170,13 +125,10 @@ function applySetFade(mat: THREE.Material, o: { center?: [number, number]; radia
 const standard = (p: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial(p);
 
 export function createMaterials(surfaces: SurfaceTextures) {
-  const brushed = brushedNoise(23);
-  brushed.repeat.set(3, 1);
-  // The desk is the largest light-catching surface in the frame: its roughness has to vary or
-  // the whole top reads as one flat value under the window.
-  const paintRough = roughnessNoise(0.54, 0.16, 91, 256, 10);
-  paintRough.repeat.set(2, 2);
-  const binRough = roughnessNoise(0.6, 0.3, 17, 256, 4);
+  // Roughness scalars multiply their map (three: roughness = scalar × texel), so each is set
+  // so scalar × map-mean lands on the response the material had while flat. Map means were
+  // measured off the processed files: desk 0.58, metal 0.47, paper 0.63, cardboard 0.68,
+  // plastic 0.40, dark plastic 0.36.
 
   // Scanned oak strip floor. The disc is 18 m across with 0–1 UVs, so twelve repeats puts one
   // texture tile at 1.5 m — the scale the boards were photographed at. The roughness map's
@@ -220,20 +172,44 @@ export function createMaterials(surfaces: SurfaceTextures) {
   });
   projectMaps(rug, 0.22);
 
+  // The desk top is the largest light-catching surface in the seated frame: painted-wood
+  // relief + roughness, one tile per metre. The paint colour stays the room's.
+  const deskWhite = standard({
+    color: '#e9eaea',
+    roughness: 0.9,
+    roughnessMap: surfaces.deskRough,
+    normalMap: surfaces.deskNormal,
+    normalScale: new THREE.Vector2(0.35, 0.35),
+    metalness: 0,
+    envMapIntensity: 0.55,
+  });
+  projectMaps(deskWhite, 1.0);
+  // Shelf carcass, desk rail: same white boards, same tile so the grain scale matches the desk.
+  const deskEdge = standard({
+    color: '#dcdee0',
+    roughness: 1.0,
+    roughnessMap: surfaces.deskRough,
+    normalMap: surfaces.deskNormal,
+    normalScale: new THREE.Vector2(0.3, 0.3),
+    metalness: 0,
+  });
+  projectMaps(deskEdge, 1.0);
+
   return {
-    /** §2: a clean white tabletop. Diffuse, with only enough sheen to read as painted. */
-    deskWhite: standard({ color: '#e9eaea', roughness: 0.52, roughnessMap: paintRough, metalness: 0, envMapIntensity: 0.55 }),
-    deskEdge: standard({ color: '#dcdee0', roughness: 0.6, metalness: 0 }),
-    steel: standard({ color: '#33373c', roughness: 0.44, metalness: 0.82 }),
-    aluminum: standard({ color: '#b7bcc2', roughness: 0.3, roughnessMap: brushed, metalness: 1, envMapIntensity: 1 }),
-    aluminumDark: standard({ color: '#4c5157', roughness: 0.42, roughnessMap: brushed, metalness: 1 }),
-    plasticBlack: standard({ color: '#15171a', roughness: 0.52 }),
-    plasticGrey: standard({ color: '#555b62', roughness: 0.62 }),
-    plasticWhite: standard({ color: '#eceef0', roughness: 0.44, envMapIntensity: 0.45 }),
-    keycap: standard({ color: '#e7e9eb', roughness: 0.56 }),
-    keycapAccent: standard({ color: '#cfd3d8', roughness: 0.58 }),
-    binBlue: standard({ color: '#aebdc8', roughness: 0.58, roughnessMap: binRough, envMapIntensity: 0.4 }),
-    binWarm: standard({ color: '#c8c2b4', roughness: 0.64, roughnessMap: binRough, envMapIntensity: 0.4 }),
+    deskWhite,
+    deskEdge,
+    /** Brushed steel: scanned roughness, metalness stays a scalar. */
+    steel: standard({ color: '#33373c', roughness: 0.9, roughnessMap: surfaces.metalRough, metalness: 0.82 }),
+    aluminum: standard({ color: '#b7bcc2', roughness: 0.64, roughnessMap: surfaces.metalRough, metalness: 1, envMapIntensity: 1 }),
+    aluminumDark: standard({ color: '#4c5157', roughness: 0.9, roughnessMap: surfaces.metalRough, metalness: 1 }),
+    /** Fine matte grain shared by every light plastic and keycap. */
+    plasticBlack: standard({ color: '#15171a', roughness: 1.3, roughnessMap: surfaces.plasticDarkRough }),
+    plasticGrey: standard({ color: '#555b62', roughness: 1.55, roughnessMap: surfaces.plasticDarkRough }),
+    plasticWhite: standard({ color: '#eceef0', roughness: 1.1, roughnessMap: surfaces.plasticRough, envMapIntensity: 0.45 }),
+    keycap: standard({ color: '#e7e9eb', roughness: 1.4, roughnessMap: surfaces.plasticRough }),
+    keycapAccent: standard({ color: '#cfd3d8', roughness: 1.45, roughnessMap: surfaces.plasticRough }),
+    binBlue: standard({ color: '#aebdc8', roughness: 1.6, roughnessMap: surfaces.plasticDarkRough, envMapIntensity: 0.4 }),
+    binWarm: standard({ color: '#c8c2b4', roughness: 1.75, roughnessMap: surfaces.plasticDarkRough, envMapIntensity: 0.4 }),
     pcbGreen: standard({ map: pcbTexture('#123322', 5), roughness: 0.42, metalness: 0.25 }),
     pcbBlue: standard({ map: pcbTexture('#11243c', 12), roughness: 0.42, metalness: 0.25 }),
     pcbBlack: standard({ map: pcbTexture('#14161a', 31), roughness: 0.46, metalness: 0.3 }),
@@ -245,11 +221,25 @@ export function createMaterials(surfaces: SurfaceTextures) {
     ribbonRed: standard({ color: '#7d2b2f', roughness: 0.88 }),
     ribbonGreen: standard({ color: '#2f5f48', roughness: 0.88 }),
     fabric,
-    rubber: standard({ color: '#0e0f11', roughness: 0.9 }),
-    paper: standard({ color: '#e8e6e0', roughness: 0.88 }),
-    /** Glazed ceramic: whiter and far glossier than the room's plastics. */
-    ceramic: standard({ color: '#f1f0ec', roughness: 0.18, envMapIntensity: 0.7 }),
-    cardboard: standard({ color: '#a98a64', roughness: 0.9 }),
+    rubber: standard({ color: '#0e0f11', roughness: 2.5, roughnessMap: surfaces.plasticDarkRough }),
+    paper: standard({
+      color: '#e8e6e0',
+      roughness: 1.4,
+      roughnessMap: surfaces.paperRough,
+      normalMap: surfaces.paperNormal,
+      normalScale: new THREE.Vector2(0.5, 0.5),
+    }),
+    /** Glazed ceramic: whiter and far glossier than the room's plastics. Fine grain only. */
+    ceramic: standard({ color: '#f1f0ec', roughness: 0.45, roughnessMap: surfaces.plasticRough, envMapIntensity: 0.7 }),
+    cardboard: standard({
+      map: surfaces.cardboardColor,
+      // Tint lands the kraft scan back on the cardboard's established tone (scan #ba904d).
+      color: '#e8f4ff',
+      roughness: 1.3,
+      roughnessMap: surfaces.cardboardRough,
+      normalMap: surfaces.cardboardNormal,
+      normalScale: new THREE.Vector2(0.6, 0.6),
+    }),
     wall,
     floor,
     rug,
