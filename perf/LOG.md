@@ -548,3 +548,63 @@ motion), -shelf, -shelf-a11y, -books and the new -ao-motion all pass with no con
 **Largest remaining cost**: the scene render itself — at 3.9 MP roughly 3.1 ms of a 5 ms frame, of
 which MSAA 2× is ~1.0 and the lamp, sun and environment about 1.6 between them. Then the final
 composite (0.9) and bloom (0.4). The next lever is the deferred irradiance buffer described above.
+
+# Perf workstream (ws/perf): reproduce first, then prebake
+
+Measured on the production build (`npm run build`, `vite preview --port 5190`),
+1728×1000 CSS at DPR 2 / pr 1.5 (3.9 MP) plus 2560×1440 CSS (8.3 MP) where noted.
+Full detail in `.claude/briefs/report-perf.md`. No code changed: every candidate
+below was measured and kept-as-is or rejected on its number.
+
+## Step 1: the lag is feel + one-off hitches, not the steady-state frame
+
+Headed real Chrome (`real-chrome.mjs` on the preview), hour 21: idle 120.1 fps /
+0 missed (frame p50 8.3, cpu 1.38), look 120.1 / 0 missed (max 13.4), hover
+119.7 (max 16.7), popup 103.5 fps / 8 missed / max 470 ms, time sweep 118.6 /
+1 missed / max 33.8. Hour 13 is the same except the popup max (2162 ms) and
+look/hover maxima (42–46 ms). No console errors; calibration holds pr 1.5.
+
+Fence bench (pr 1.5): 3.9 MP seated look/idle 6.06/5.64 (centre), 6.08/6.00,
+6.44/6.03 (standing); 8.3 MP 10.96/11.04, 14.29/10.76, 11.02/11.15 — ~1 ms
+above the second-pass tables for both builds (hot machine; interleaved only).
+Per-material max 0.77 ms, spread. 70 programs after load, zero after (hour-13
+24 h sweep, hovers, shelf). GC over a 10.5 s look sweep: 11 minor / 53.3 ms /
+max 8.95 ms. Sitting max 24 ms night / 42 ms day (shadow redraws every frame
+while the chair rolls, by design). Time sweep max 25–33 ms (spread env captures
++ shadow redraws). Startup stages: ready 1096 ms (assets 331, room 100, capture
+249, compile 75, warmup 226, measure 99).
+
+First focus popup is intermittent: 40–550 ms render-stage, CPU-bound, zero new
+programs, first-open only, day worse than night (one 1331 ms outlier, one rerun
+at 42 ms). Not a compile, not steady-state GPU — left as a traced follow-up.
+
+The "lag" feel is the camera spring (`rig.ts updateLook`, ω = 4.2, critically
+damped): step response 1−(1+ωt)e^(−ωt) = 27% at 0.24 s, 62% at 0.5 s, 92% at
+1 s; Playwright edge-step measured 25% / 63% / ~90%, full settle ~2.3 s.
+Retune needs design approval; not changed here.
+
+## Step 2: measured, kept or rejected
+
+- **Particles: already baked (kept, no change).** `dust.ts` is the brief's
+  target state: position + seed(phase/speed) buffers written once, never
+  re-uploaded; wander/cone/twinkle/near-fade/size all in the vertex shader;
+  per-frame CPU is a visibility toggle + three uniform writes, zero by day
+  (hidden at lamp ≤ 0.04). 190 points; night-vs-day bench idle is noise.
+- **Deferred irradiance buffer: rejected, too invasive for ~1 ms.**
+  Rect diffuse is already baked (96³ volumes, 0.22–0.56 mean vs the integral);
+  remaining per-light diffuse is 0.2–0.6 ms each on a display-limited 120 fps
+  frame. The scheme needs per-snapshot evaluation + forward-pass reprojection
+  + a forward path with a per-geometry flag for all dynamic content (carriage,
+  RSL, chair, books, polyhedron, dust, Lorenz, dots, outline), while sun and
+  lamp must stay dynamic for the time-of-day sweep — leaving only hemi/env to
+  freeze. The Blender-lightmap fallback fails the same way (UV2 unwrap for
+  procedural geometry, same ~1 ms). Revisit if the scene gets more expensive.
+- **MSAA / blocker / env capture: measured, kept.** MSAA 2× A/B on prod was
+  drift-dominated and cannot overturn the kept 0.8 ms-for-edges verdict.
+  The 512 px blocker is already gated on shadow redraw (sitting dirties by
+  design). Env capture is already spread; its 1–2 missed frames per 6 s
+  time-scrub at 120 Hz are accepted (inside budget at 60 Hz).
+
+Same-build frozen-grain repeat on prod (13+21, 4 views): 0.11–0.35 mean —
+noise floor. All suites green on prod (room, a11y, shelf, shelf-a11y, gesture,
+books, motion, ao-motion), `tsc` clean.
