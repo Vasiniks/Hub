@@ -203,9 +203,11 @@ export class CameraRig {
       this.targetPitch = sy > 0 ? sy * pitchRange[1] : sy * pitchRange[0];
     }
     // Critically damped spring: the head gathers speed rather than jumping, so a cursor that lands on
-    // an object registers before the view turns away from it.
-    const stiffness = 4.2 * 4.2;
-    const damping = 2 * 4.2;
+    // an object registers before the view turns away from it. At 4.2 rad/s a cursor jump was only
+    // 25% turned after 0.23 s and took ~2.3 s to settle, which read as lag rather than weight;
+    // 6.0 keeps the gather but reaches ~40% at 0.23 s, ~80% at 0.5 s and settles in ~1.5 s.
+    const stiffness = 6.0 * 6.0;
+    const damping = 2 * 6.0;
     if (this.holding) {
       const decay = Math.exp(-14 * dt);
       this.lookVelYaw *= decay;
