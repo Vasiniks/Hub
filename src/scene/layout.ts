@@ -54,15 +54,25 @@ export const LAMP = {
   /**
    * Rotation about Y. The asset's beam leaves along -Z, so this is what turns the arm — and
    * therefore the light — toward the working half of the desk.
+   *
+   * -2.11 (was -2.19): the owner-STL twin-bar head sits 223mm left and 87mm behind the
+   * old spring-arm head in asset space, so the yaw is opened 4.7° to bring the pool
+   * back over the working half (cube/mug/MacBook) instead of the back-left corner.
+   * Measured: new head (-0.789,-0.965) to old pool (-0.161,-0.594) wants beam dir
+   * (0.861,0.509); yaw = atan2(-0.861,-0.509) = -2.108.
    */
-  yaw: -2.19,
+  yaw: -2.11,
   scale: 0.92,
   /**
    * Where the medals hang, in the asset's own space: two points along the lower arm. Taken
    * from the build rather than from a bounding box, which put them out in the air.
+   *
+   * Updated for the owner-STL twin-bar (back-leaning, not forward): lower arm at
+   * 0.17m is 134mm left of the old spring arm, upper at 0.40m is 249mm behind it.
+   * From blender/scripts/build_lamp.py (stem top -> tip interpolation).
    */
-  medalFrom: [0.012, 0.17, -0.06] as [number, number, number],
-  medalTo: [0.034, 0.40, -0.17] as [number, number, number],
+  medalFrom: [-0.12179, 0.17, -0.01837] as [number, number, number],
+  medalTo: [0.00841, 0.4, 0.07871] as [number, number, number],
 };
 
 export const CAMERA = {
