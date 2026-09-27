@@ -449,12 +449,136 @@ def build_chair():
     return coll, [(chair, meta)]
 
 
+# --------------------------------------------------------------------------- DESK
+# Local frame: origin on the floor under the desk centre, X = width, +Y = back
+# (Blender +Y exports to world -Z, the window side), top surface at z = DESK.top.
+# Runtime instances it at (DESK.centerX, 0, DESK.centerZ) with no rotation, so every
+# dimension below is copied from src/scene/layout.ts DESK — no layout change.
+
+DESK_DIMS = {'width': 2.04, 'depth': 0.78, 'top': 0.735, 'thickness': 0.032,
+             'legInset': 0.13}
+
+DESK_MATS = {
+    'desk_white': ('#e9eaea', 0.6, 0.0),
+    'desk_edge': ('#dcdee0', 0.65, 0.0),
+    'desk_steel': ('#33373c', 0.4, 0.85),
+    'desk_dark': ('#15171a', 0.6, 0.0),
+    'desk_rubber': ('#0e0f11', 0.9, 0.0),
+}
+
+
+def build_desk():
+    coll = new_collection('Desk')
+    W, D, TOP, T, INSET = (DESK_DIMS[k] for k in ('width', 'depth', 'top', 'thickness',
+                                                 'legInset'))
+    MAT = {k: lib.material(k, lib.hex_rgb(c), roughness=r, metallic=m)
+           for k, (c, r, m) in DESK_MATS.items()}
+    PARTS = []
+
+    def fin(bm, name, mat, smooth=40):
+        return finish(coll, PARTS, bm, name, MAT[mat], smooth)
+
+    # ---- top: 32 mm slab with a 4 mm edge break that catches the window highlight ----
+    top_bm = box_bm(W, D, T, loc=(0, 0, TOP - T / 2), bevel=0.004)
+    top = finish(coll, PARTS, top_bm, 'desk_top_tmp', MAT['desk_white'])
+    lib.set_materials(top, [MAT['desk_white'], MAT['desk_edge']])
+    lib.assign_slot(top, lambda c, n: abs(n.z) < 0.5, 1)
+    top.name = 'desk_top'
+
+    # ---- apron rails: what gives the slab visible thickness from a seated eyeline ----
+    fin(box_bm(W - 0.30, 0.024, 0.085, loc=(0, -(D / 2 - 0.075), TOP - T - 0.045), bevel=0.004),
+        'desk_apron_front', 'desk_edge')
+    fin(box_bm(W - 0.30, 0.024, 0.085, loc=(0, D / 2 - 0.075, TOP - T - 0.045), bevel=0.004),
+        'desk_apron_back', 'desk_edge')
+
+    # ---- T leg frames with joinery that reads: tapered foot, collar, column, bracket ----
+    for s in (-1, 1):
+        lx = s * (W / 2 - INSET)
+        leg = bmesh.new()
+        # Foot: long low extrusion with tapered ends + end caps.
+        steps, rings = 5, []
+        for i in range(steps + 1):
+            t = i / steps
+            y = -((D - 0.12) / 2) + t * (D - 0.12)
+            taper = 1.0 - 0.35 * (abs(t - 0.5) * 2) ** 2
+            w, h = 0.070 * taper, 0.030
+            rings.append([leg.verts.new((lx + sx * w / 2, y, 0.023 + sz * h / 2))
+                          for sx, sz in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
+        for i in range(steps):
+            a_, b_ = rings[i], rings[i + 1]
+            for q in range(4):
+                leg.faces.new((a_[q], a_[(q + 1) % 4], b_[(q + 1) % 4], b_[q]))
+        leg.faces.new(list(reversed(rings[0])))
+        leg.faces.new(rings[-1])
+        join_bm(leg, box_bm(0.078, 0.058, 0.022, loc=(lx, 0.02, 0.040), bevel=0.005))  # weld collar
+        join_bm(leg, box_bm(0.064, 0.046, TOP - T - 0.055, loc=(lx, 0.02, (TOP - T + 0.045) / 2),
+                            bevel=0.006))  # column
+        join_bm(leg, box_bm(0.16, 0.13, 0.010, loc=(lx, 0.0, TOP - T - 0.006), bevel=0.003))
+        for dx, dy in ((-0.06, -0.045), (0.06, -0.045), (-0.06, 0.045), (0.06, 0.045)):
+            join_bm(leg, tube(0.0042, (lx + dx, dy, TOP - T - 0.011),
+                              (lx + dx, dy, TOP - T - 0.001), verts=10))  # screws
+        for gy in (-(D / 2 - 0.10), D / 2 - 0.10):
+            join_bm(leg, tube(0.008, (lx, gy, 0.008), (lx, gy, 0.024), verts=10))  # glide stem
+            join_bm(leg, tube(0.026, (lx, gy, 0.0), (lx, gy, 0.008), verts=16))  # glide disc
+        bmesh.ops.bevel(leg, geom=list(leg.edges), offset=0.003, segments=2,
+                        affect='EDGES', clamp_overlap=True)
+        fin(leg, f'desk_leg_{"L" if s < 0 else "R"}', 'desk_steel')
+
+    # ---- perforated cable tray under the back + articulated cable spine ----
+    tray = bmesh.new()
+    join_bm(tray, box_bm(W - 0.50, 0.20, 0.008, loc=(0, D / 2 - 0.14, TOP - 0.125), bevel=0.002))
+    join_bm(tray, box_bm(W - 0.50, 0.008, 0.055, loc=(0, D / 2 - 0.245, TOP - 0.10), bevel=0.002))
+    join_bm(tray, box_bm(W - 0.50, 0.008, 0.055, loc=(0, D / 2 - 0.035, TOP - 0.10), bevel=0.002))
+    tray_obj = finish(coll, PARTS, tray, 'desk_tray_tmp', MAT['desk_steel'])
+    cutters = []
+    for i in range(12):
+        x = -(W - 0.62) / 2 + i * (W - 0.62) / 11
+        bpy.ops.mesh.primitive_cube_add(size=1.0, location=(x, D / 2 - 0.14, TOP - 0.125))
+        c = bpy.context.object
+        c.scale = (0.030, 0.10, 0.012)
+        lib.apply_transforms(c)
+        cutters.append(c)
+    for c in cutters:
+        m = tray_obj.modifiers.new('slot', 'BOOLEAN')
+        m.operation = 'DIFFERENCE'
+        m.object = c
+        m.solver = 'EXACT'
+    lib.apply_modifiers(tray_obj)
+    lib.drop(cutters)
+    tray_obj.name = 'desk_tray'
+
+    spine = bmesh.new()
+    for i in range(8):
+        t = i / 7
+        join_bm(spine, box_bm(0.055 - 0.008 * t, 0.045 - 0.006 * t, 0.045,
+                              loc=(0.55, D / 2 - 0.10, TOP - 0.16 - i * 0.062), bevel=0.008))
+    fin(spine, 'desk_spine', 'desk_dark')
+
+    # ---- grommets: dark ring + recessed throat at the back corners ----
+    for gx in (-0.85, 0.85):
+        fin(tube(0.034, (gx, D / 2 - 0.09, TOP - 0.004), (gx, D / 2 - 0.09, TOP + 0.001),
+                 verts=24), f'desk_grommet_ring_{"-" if gx < 0 else "+"}', 'desk_dark')
+        fin(tube(0.026, (gx, D / 2 - 0.09, TOP - 0.006), (gx, D / 2 - 0.09, TOP - 0.002),
+                 verts=20), f'desk_grommet_throat_{"-" if gx < 0 else "+"}', 'desk_rubber')
+
+    for o in PARTS:
+        prep(o)
+    desk = lib.join(PARTS, 'desk')
+    lib.apply_transforms(desk)
+    lo, hi = lib.world_bounds([desk])
+    print(f'  desk: {lib.tri_count(desk)} tris, {len(desk.data.materials)} materials, '
+          f'bounds {tuple(round(v, 3) for v in lo)} {tuple(round(v, 3) for v in hi)}')
+    meta = {'width': W, 'depth': D, 'top': TOP, 'thickness': T,
+            'origin': 'floor under desk centre, +Y = back (window side)', 'instanceAt': [-0.02, 0, -0.74]}
+    return coll, [(desk, meta)]
+
+
 # --------------------------------------------------------------------------- studio + export
 
 CAMERAS = {
     'chair': {'loc': (1.5, 1.9, 1.05), 'target': (0, 0, 0.55)},
-    'desk': {'loc': (1.9, 1.6, 1.7), 'target': (-0.02, 0.735, -0.74)},
-    'shelf': {'loc': (-0.6, 1.35, -0.75), 'target': (-1.72, 1.15, -0.85)},
+    'desk': {'loc': (1.7, -1.7, 1.45), 'target': (0, 0.05, 0.42)},
+    'shelf': {'loc': (0.75, 0.35, 1.05), 'target': (0, 0.0, 0.10)},
     'trim': {'loc': (1.3, 1.7, 1.4), 'target': (-0.15, 1.5, -1.25)},
 }
 
@@ -480,17 +604,17 @@ def setup_studio(names):
         co.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()
     try:
         key = bpy.data.lights.new('key', 'AREA')
-        key.energy, key.size = 400, 2.0
+        key.energy, key.size = 1500, 2.5
         ko = bpy.data.objects.new('key', key)
         ko.location = (3, 2, 4)
         bpy.context.scene.collection.objects.link(ko)
         fill = bpy.data.lights.new('fill', 'AREA')
-        fill.energy, fill.size = 120, 2.5
+        fill.energy, fill.size = 500, 2.5
         fo = bpy.data.objects.new('fill', fill)
         fo.location = (-3, 2.5, 2)
         bpy.context.scene.collection.objects.link(fo)
         rim = bpy.data.lights.new('rim', 'SUN')
-        rim.energy = 2.0
+        rim.energy = 3.0
         ro = bpy.data.objects.new('rim', rim)
         ro.rotation_euler = (math.radians(50), 0, math.radians(-140))
         bpy.context.scene.collection.objects.link(ro)
@@ -511,7 +635,10 @@ def main():
     if ONLY in ('chair', 'all'):
         coll, meshes = build_chair()
         built['chair'] = meshes
-    if ONLY in ('desk', 'shelf', 'trim', 'all') and ONLY != 'all':
+    if ONLY in ('desk', 'all'):
+        coll, meshes = build_desk()
+        built['desk'] = meshes
+    if ONLY in ('shelf', 'trim') and ONLY != 'all':
         print(f'  {ONLY} builder not added yet')
     setup_studio(list(built))
     os.makedirs(os.path.dirname(BLEND_OUT) or '.', exist_ok=True)

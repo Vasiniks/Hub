@@ -66,6 +66,7 @@ async function start() {
     { name: 'book', file: 'book.glb', meta: true },
     { name: 'robot', file: 'robot.glb', meta: true },
     { name: 'chair', file: 'chair.glb' },
+    { name: 'desk', file: 'desk.glb' },
     { name: 'bin', file: 'bin.glb', meta: true },
     { name: 'tote', file: 'tote.glb', meta: true },
     { name: 'organizer', file: 'organizer.glb', meta: true },

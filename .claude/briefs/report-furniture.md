@@ -68,8 +68,34 @@ now catch light instead of a black slab. Seated view unchanged (chair out of fra
 Frame cost: deferred to the final interleaved A/B (chair is frustum-culled seated; standing cost
 scales with pixels, geometry +7k is ~5% of the scene).
 
-## 2. Desk
-(TODO)
+## 2. Desk — done, committed
+
+Built in `build_furniture.py::build_desk`, local frame origin on the floor under the desk
+centre, +Y = back (exports to world −Z, the window side), every dimension copied from
+`layout.ts` DESK (W 2.04, D 0.78, top 0.735, T 0.032, legInset 0.13) — no layout change.
+5 materials (`desk_white/edge/steel/dark/rubber`) retinted to the room palette in `desk.ts`;
+the old procedural `buildDesk` (slab + rail + 2 leg groups + tray rboxes) is replaced by one
+`assets.instance('desk')` at (centerX, 0, centerZ). The cable-bundle curve stays code.
+`main.ts` loads `desk.glb`.
+
+What it adds over the slab: 32 mm top with a real 4 mm edge break + darker edge band
+(assign_slot by normal); front/back apron rails; T leg frames — tapered feet, weld collars,
+columns, top brackets with 4 screws each, levelling glides (stem + disc); perforated cable
+tray (12 real boolean slots); articulated 8-link cable spine; 2 grommets (ring + recessed
+throat) at the back corners. UVMap + reserved Lightmap channel per part.
+
+Measured: **9260 tris** (procedural desk it replaced was ~2–3k; +~6.5k). Bounds exact:
+±1.02 / ±0.39 / 0..0.736. Files: source 584 KB → public 216 KB. Sidecar `desk.json` (dims).
+
+Fix after looking: foot loft bottom sat at −0.011 (sank through floor) — re-based to 0.008
+with glide discs as the contact (0..0.008).
+
+Verifies: `tsc` clean; room/shelf/gesture(PASS)/books(PASS)/motion/ao-motion/a11y(PASS)/
+shelf-a11y all green, no console errors. Screenshots `tmp/desk-new/` (h13/h21 all views) +
+`tmp/desk-detail/` (leg joint, perforated tray + spine, grommet): desktop objects all sit at
+the same height, edge band + leg joinery + tray slots read. `furniture.blend` not recommitted
+here (this run built desk-only; the committed blend stays the chair one until the final
+all-groups run).
 
 ## 3. Shelf
 (TODO)

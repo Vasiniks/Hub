@@ -27,27 +27,26 @@ export interface DeskRefs {
   leds: THREE.Mesh[];
 }
 
-/** Work surface: a thick white slab on a slim steel frame, not a box on four sticks. */
-function buildDesk(root: THREE.Group, m: Materials) {
-  const { width: W, depth: D, top: Y, thickness: T, centerX: CX, centerZ: CZ, legInset } = DESK;
-
-  // Top: a 4 mm bevel is what catches the window highlight along the front edge.
-  at(rbox(W, T, D, m.deskWhite, 0.005), CX, Y - T / 2, CZ, root);
-  // Underside rail: gives the slab visible thickness from a seated eyeline.
-  at(rbox(W - 0.04, 0.018, D - 0.05, m.deskEdge, 0.003), CX, Y - T - 0.008, CZ, root);
-
-  for (const s of [-1, 1]) {
-    const x = CX + s * (W / 2 - legInset);
-    const leg = at(new THREE.Group(), x, 0, CZ, root);
-    // Inverted-U frame: foot, two uprights, top rail.
-    at(rbox(0.055, 0.022, D - 0.1, m.steel, 0.008), 0, 0.011, 0, leg);
-    at(rbox(0.05, 0.016, 0.07, m.rubber, 0.004), 0, 0.03, -(D / 2 - 0.09), leg);
-    at(rbox(0.05, 0.016, 0.07, m.rubber, 0.004), 0, 0.03, D / 2 - 0.09, leg);
-    at(rbox(0.038, Y - T - 0.03, 0.05, m.steel, 0.006), 0, (Y - T) / 2, -0.04, leg);
-    at(rbox(0.048, 0.022, D - 0.14, m.steel, 0.006), 0, Y - T - 0.02, 0, leg);
-  }
-  // Rear cable tray, and the bundle that drops off it.
-  at(rbox(W - 0.5, 0.05, 0.026, m.steel, 0.005), CX, Y - 0.12, CZ - D / 2 + 0.05, root);
+/** Work surface + leg frames + cable tray, modelled in Blender (build_furniture.py).
+ *
+ * Geometry from `assets/processed/desk.glb`: a 32 mm top with a real 4 mm edge break and a
+ * darker edge band, apron rails, T leg frames with tapered feet / weld collars / columns /
+ * top brackets with screws / levelling glides, a perforated cable tray, an articulated cable
+ * spine and grommets — in `DESK` dimensions exactly, instanced at (centerX, 0, centerZ).
+ * The cable bundle that drops off the tray stays a code curve (it is genuinely procedural).
+ */
+function buildDesk(root: THREE.Group, m: Materials, assets: Assets) {
+  const { centerX: CX, centerZ: CZ, top: Y, depth: D } = DESK;
+  const desk = assets.instance('desk');
+  assets.retint(desk, {
+    desk_white: m.deskWhite,
+    desk_edge: m.deskEdge,
+    desk_steel: m.steel,
+    desk_dark: m.plasticBlack,
+    desk_rubber: m.rubber,
+  });
+  castShadows(desk);
+  at(desk, CX, 0, CZ, root);
   const bundle = new THREE.CatmullRomCurve3([
     new THREE.Vector3(CX + 0.2, Y - 0.1, CZ - D / 2 + 0.05),
     new THREE.Vector3(CX + 0.38, Y - 0.26, CZ - D / 2 + 0.02),
@@ -428,7 +427,7 @@ function castShadows(root: THREE.Object3D) {
 }
 
 export function buildDeskSet(root: THREE.Group, m: Materials, assets: Assets): DeskRefs {
-  buildDesk(root, m);
+  buildDesk(root, m, assets);
   const monitor = buildMonitor(root, m, assets);
   buildMacBook(root, m, assets);
   const kbLeds = buildKeyboard(root, m, assets);
