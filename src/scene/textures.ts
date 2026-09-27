@@ -1,23 +1,48 @@
 import * as THREE from 'three';
 
 /**
- * Scanned surface textures (ambientCG, CC0 — see assets/MANIFEST.md) for the three surfaces
- * that cover the most screen: floor, walls, chair fabric.
+ * Scanned surface textures (ambientCG, CC0 — see assets/MANIFEST.md) plus a
+ * procedural desk albedo.
+ *
+ * The first set covers the most screen (floor, walls, chair fabric); the second set covers
+ * the next tier: the white desk/shelf boards (painted-wood relief + roughness, paint colour
+ * stays the room's), brushed metal (roughness only, metalness stays scalar), paper, kraft
+ * cardboard, and fine matte plastic (roughness only).
+ *
+ * Visible-material pass: every large surface also carries a very-low-contrast albedo
+ * (near-white, 3–5% luminance variation) so it reads as a material at seated distance
+ * without changing the established palette — desk (procedural painted-wood grain, 1 m
+ * tile), walls (plaster mottling from the same scan's colour), fabric/rug (weave from the
+ * same scan's colour). Diffuse = room colour × albedo, so the tone stays the room's.
  *
  * Sizes follow how many pixels each can occupy: the floor fills much of the standing view at a
- * grazing angle, so its colour and normal are 1K; plaster roughness is low-frequency, so 512;
- * the fabric weave is tiled small on a chair, so 512 normal and 256 roughness. Seven maps,
- * ~680 KB. They are decoded off the main thread as ImageBitmaps and loaded behind the loading
- * screen, so nothing arrives flat and pops in later.
+ * grazing angle, so its colour and normal are 1K; the desk is the largest light-catching
+ * surface in the seated frame, so its colour + normal are 512; walls are large in the
+ * standing/shelf views, so their colour is 512; fabric weave needs resolution, so its
+ * colour is 512. Twenty maps, ~1 MB. They are decoded off the main thread as ImageBitmaps
+ * and loaded behind the loading screen, so nothing arrives flat and pops in later.
  */
 export interface SurfaceTextures {
   floorColor: THREE.Texture;
   floorNormal: THREE.Texture;
   floorRough: THREE.Texture;
+  wallColor: THREE.Texture;
   wallNormal: THREE.Texture;
   wallRough: THREE.Texture;
+  fabricColor: THREE.Texture;
   fabricNormal: THREE.Texture;
   fabricRough: THREE.Texture;
+  deskColor: THREE.Texture;
+  deskNormal: THREE.Texture;
+  deskRough: THREE.Texture;
+  metalRough: THREE.Texture;
+  paperNormal: THREE.Texture;
+  paperRough: THREE.Texture;
+  cardboardColor: THREE.Texture;
+  cardboardRough: THREE.Texture;
+  cardboardNormal: THREE.Texture;
+  plasticRough: THREE.Texture;
+  plasticDarkRough: THREE.Texture;
 }
 
 export async function loadSurfaceTextures(): Promise<SurfaceTextures> {
@@ -35,16 +60,55 @@ export async function loadSurfaceTextures(): Promise<SurfaceTextures> {
     tex.needsUpdate = true;
     return tex;
   };
-  const [floorColor, floorNormal, floorRough, wallNormal, wallRough, fabricNormal, fabricRough] = await Promise.all([
+  const [floorColor, floorNormal, floorRough, wallColor, wallNormal, wallRough, fabricColor, fabricNormal, fabricRough] = await Promise.all([
     load('floor_color.jpg', true, 8),
     load('floor_normal.jpg', false, 8),
     load('floor_rough.jpg', false, 8),
+    load('wall_color.jpg', true),
     load('wall_normal.jpg'),
     load('wall_rough.jpg'),
+    load('fabric_color.jpg', true),
     load('fabric_normal.jpg'),
     load('fabric_rough.jpg'),
   ]);
-  return { floorColor, floorNormal, floorRough, wallNormal, wallRough, fabricNormal, fabricRough };
+  // Second tier: small on screen or low-frequency, so 512 at most. The desk trio gets extra
+  // anisotropy — the seated view sees the top at a grazing angle, like the floor.
+  const [deskColor, deskNormal, deskRough, metalRough, paperNormal, paperRough, cardboardColor, cardboardRough, cardboardNormal, plasticRough, plasticDarkRough] =
+    await Promise.all([
+      load('desk_color.jpg', true, 8),
+      load('desk_normal.jpg', false, 8),
+      load('desk_rough.jpg', false, 8),
+      load('metal_rough.jpg', false, 8),
+      load('paper_normal.jpg'),
+      load('paper_rough.jpg'),
+      load('cardboard_color.jpg', true),
+      load('cardboard_rough.jpg'),
+      load('cardboard_normal.jpg'),
+      load('plastic_rough.jpg'),
+      load('plasticdark_rough.jpg'),
+    ]);
+  return {
+    floorColor,
+    floorNormal,
+    floorRough,
+    wallColor,
+    wallNormal,
+    wallRough,
+    fabricColor,
+    fabricNormal,
+    fabricRough,
+    deskColor,
+    deskNormal,
+    deskRough,
+    metalRough,
+    paperNormal,
+    paperRough,
+    cardboardColor,
+    cardboardRough,
+    cardboardNormal,
+    plasticRough,
+    plasticDarkRough,
+  };
 }
 
 /**
