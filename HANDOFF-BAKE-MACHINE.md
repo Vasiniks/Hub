@@ -35,13 +35,16 @@ exactly the ones the other machine measured and verified. Any edit here silently
 
 | requirement | value |
 |---|---|
-| Blender | 5.0.1 (what the sources were authored in; a different minor version may shift bakes) |
+| Blender | 5.0.x preferred, **5.2 LTS is fine**. The rule is that *all five states come from the same build* — mixing versions within a set is what breaks it. The version is recorded in `manifest.json`. |
 | GPU | Cycles with GPU compute enabled is strongly preferred; CPU works but is hours slower |
 | Disk | ~2–4 GB free for intermediate EXRs |
 | Git | push access to `origin`, on the bake branch only |
 | Clone | a fresh clone or a pull to the exact commit named in the work order below |
 
-Check Blender first: `blender --version` must print 5.0.1. If it does not, stop and report.
+Check Blender first: `blender --version`. Anything in 5.0.x–5.2.x is fine; note the exact version in
+your log. On Windows the binary is typically
+`C:\Program Files\Blender Foundation\Blender 5.2\blender.exe` and is not on PATH — call it by full
+path, or add it to PATH for the session. Below 5.0 or above 5.2, stop and report.
 
 ---
 

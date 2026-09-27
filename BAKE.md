@@ -11,13 +11,13 @@ page is only about producing them.
 - This repo checked out on branch `ws/bake` (or whatever branch the bake lands on),
   at the commit whose `.blend` hashes you want recorded — the script hashes
   `blender/source/*.blend` into `manifest.json` so a stale bake is detectable.
-- Blender **5.0.1**, CLI on PATH as `blender` (the script was developed against
-  `~/.local/bin/blender`, Blender 5.0.1, Darwin; any 5.0.x should work — see
-  "API notes" below if it does not).
-- CPU is enough. No GPU, no display needed: everything runs
-  `blender --background --factory-startup`.
-- Disk: ~1.5 GB free for EXR masters (see "Output sizes"). The bake writes only
-  under the `outDir` you pass; it never touches `src/`, models, or materials.
+- Blender **5.0.x preferred, 5.2 LTS acceptable**. The script was developed against
+  Blender 5.0.1 (`~/.local/bin/blender`, Darwin). What matters is not matching 5.0.1
+  exactly but that **every state in a bake set is produced by the same Blender build**
+  — Cycles changes between versions shift the look slightly, and a set mixed across
+  versions would light one group differently from another. The version is recorded in
+  `manifest.json`; run the `neutral` smoke test first and look at it before committing
+  to the long states.
 
 ## Commands
 
