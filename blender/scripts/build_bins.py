@@ -78,6 +78,7 @@ def to_object(bm, name, mats):
     o = bpy.data.objects.new(name, me)
     bpy.context.collection.objects.link(o)
     lib.shade_auto(o, 35)
+    lib.uv_unwrap(o)
     return o
 
 
@@ -89,6 +90,14 @@ def box(size, loc, bevel=0.0):
     if bevel:
         lib.bevel(o, width=bevel, segments=2, angle_deg=60)
         lib.apply_modifiers(o)
+    return o
+
+
+def cyl(r, depth, loc, axis='z', verts=16):
+    rot = {'z': (0, 0, 0), 'x': (0, math.pi / 2, 0), 'y': (math.pi / 2, 0, 0)}[axis]
+    bpy.ops.mesh.primitive_cylinder_add(vertices=verts, radius=r, depth=depth, location=loc, rotation=rot)
+    o = bpy.context.object
+    lib.apply_transforms(o)
     return o
 
 
@@ -104,6 +113,8 @@ def cut(target, cutters):
 
 
 def export(objs, name, meta=None):
+    for o in objs:
+        lib.uv_unwrap(o)
     lib.recentre(objs, 'base')
     path = os.path.join(OUT_DIR, f'{name}.glb')
     lib.export(path, objs)
@@ -130,18 +141,34 @@ def scoop(y):
 
 
 bm = bmesh.new()
-shell(bm, W, D, H, T, draft=0.003, rc=0.008, lip=0.0025, top_z=scoop)
+shell(bm, W, D, H, T, draft=0.003, rc=0.008, lip=0.004, top_z=scoop)
 bin_obj = to_object(bm, 'bin', [plastic])
-# Label plate in the front, where the scoop leaves a flat wall.
+bin_obj.name = 'bin'
+# Label plate on the front, where the scoop leaves a flat wall.
 plate = box((W * 0.46, 0.0012, H * 0.2), (0, FRONT - 0.0012, H * 0.26), bevel=0.0004)
+plate.name = 'bin_label'
 lib.set_materials(plate, [label])
-export([bin_obj, plate], 'bin', {'width': W, 'depth': D, 'height': H})
+# Stacking rails down both flanks + a hanger lip across the back top.
+rails = []
+for s in (-1, 1):
+    rails.append(box((0.0035, D * 0.8, 0.004), (s * (W / 2 + 0.0035), 0.0, H * 0.62), bevel=0.0012))
+rails = lib.join(rails, 'bin_rails')
+lib.set_materials(rails, [plastic])
+hanger = box((W * 0.9, 0.006, 0.005), (0, D / 2 + 0.001, H - 0.004), bevel=0.0012)
+hanger.name = 'bin_hanger'
+lib.set_materials(hanger, [plastic])
+feet = lib.join([box((0.016, 0.012, 0.003), (sx * (W / 2 - 0.014), sy * (D / 2 - 0.012), 0.0015),
+                     bevel=0.001)
+                 for sx in (-1, 1) for sy in (-1, 1)], 'bin_feet')
+lib.set_materials(feet, [plastic])
+export([bin_obj, plate, rails, hanger, feet], 'bin', {'width': W, 'depth': D, 'height': H})
 
 # --------------------------------------------------------------------------- tote
 W, D, H, T = 0.32, 0.24, 0.17, 0.004
 bm = bmesh.new()
-shell(bm, W, D, H, T, draft=0.008, rc=0.018, lip=0.007)
+shell(bm, W, D, H, T, draft=0.008, rc=0.018, lip=0.009)
 tote = to_object(bm, 'tote', [plastic])
+tote.name = 'tote'
 # Hand-holds through both short ends, and stacking ribs down the long sides.
 holds = []
 for s in (-1, 1):
@@ -158,9 +185,35 @@ for sy in (-1, 1):
         r.rotation_euler = (sy * 0.047, 0, 0)
         lib.apply_transforms(r)
         ribs.append(r)
+# Corner posts: stacking strength reads at the corners.
+for sx in (-1, 1):
+    for sy in (-1, 1):
+        r = box((0.012, 0.012, H * 0.9),
+                (sx * (W / 2 + 0.008 / 2 - 0.002), sy * (D / 2 + 0.008 / 2 - 0.002), H * 0.45),
+                bevel=0.002)
+        r.rotation_euler = (sy * 0.047, 0, sx * 0.05)
+        lib.apply_transforms(r)
+        ribs.append(r)
 ribs = lib.join(ribs, 'tote_ribs')
 lib.set_materials(ribs, [plastic])
-export([tote, ribs], 'tote', {'width': W, 'depth': D, 'height': H})
+# Internal stacking ledge: the next tote nests onto this, not into the void.
+ledge = []
+for s in (-1, 1):
+    ledge.append(box((W * 0.92, 0.008, 0.006), (0, s * (D / 2 - 0.004), H - 0.035), bevel=0.0015))
+    ledge.append(box((0.008, D * 0.9, 0.006), (s * (W / 2 - 0.004), 0, H - 0.035), bevel=0.0015))
+ledge = lib.join(ledge, 'tote_ledge')
+lib.set_materials(ledge, [plastic])
+# Removable divider with a finger notch, reaching near the floor.
+div = box((W * 0.9, 0.003, H * 0.55), (0, 0, H * 0.30), bevel=0.0012)
+notch = cyl(0.012, 0.01, (0, 0, H * 0.575), verts=16)
+cut(div, [notch])
+div.name = 'tote_divider'
+lib.set_materials(div, [plastic])
+feet = lib.join([box((0.02, 0.016, 0.006), (sx * (W / 2 - 0.03), sy * (D / 2 - 0.025), 0.003),
+                     bevel=0.002)
+                 for sx in (-1, 1) for sy in (-1, 1)], 'tote_feet')
+lib.set_materials(feet, [plastic])
+export([tote, ribs, ledge, div, feet], 'tote', {'width': W, 'depth': D, 'height': H})
 
 # --------------------------------------------------------------------------- organiser
 W, D, H, WALL = 0.19, 0.125, 0.042, 0.0032
@@ -181,5 +234,19 @@ for i in range(cols):
 tray = cut(block, pockets)
 tray.name = 'organizer'
 lib.set_materials(tray, [plastic])
+pull = box((0.05, 0.01, 0.012), (0, D / 2 - 0.002, H * 0.32))
+cut(tray, [pull])
 lib.shade_auto(tray, 35)
-export([tray], 'organizer', {'width': W, 'depth': D, 'height': H})
+lib.uv_unwrap(tray)
+# Hinge knuckles across the back (lid-ready), a clasp on the front, and rubber
+# feet — the furniture that says organiser, not tray.
+knuckles = lib.join([cyl(0.004, 0.03, (x, -D / 2 - 0.001, H - 0.004), axis='x', verts=12)
+                     for x in (-0.06, 0.0, 0.06)], 'organizer_hinges')
+lib.set_materials(knuckles, [plastic])
+clasp = box((0.03, 0.006, 0.02), (0, D / 2 + 0.001, H * 0.55), bevel=0.002)
+clasp.name = 'organizer_clasp'
+lib.set_materials(clasp, [plastic])
+ofeat = lib.join([cyl(0.006, 0.002, (sx * (W / 2 - 0.015), sy * (D / 2 - 0.012), 0.001), verts=12)
+                  for sx in (-1, 1) for sy in (-1, 1)], 'organizer_feet')
+lib.set_materials(ofeat, [plastic])
+export([tray, knuckles, clasp, ofeat], 'organizer', {'width': W, 'depth': D, 'height': H})
