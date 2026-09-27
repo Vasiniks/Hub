@@ -23,7 +23,7 @@ import lib
 OUT = lib.argv()[0]
 
 W, L, H = 0.063, 0.117, 0.038
-NZ, NX = 34, 24
+NZ, NX = 40, 28
 
 
 def half_width(t):
@@ -119,7 +119,7 @@ lib.apply_modifiers(shell)
 lib.clean(shell)
 # Subdivision buys smooth curvature, then most of it is given back: at desk distance the
 # silhouette survives a heavy decimation and the frame budget does not.
-lib.decimate(shell, 0.42)
+lib.decimate(shell, 0.45)
 lib.apply_modifiers(shell)
 lib.shade_auto(shell, 38)
 
@@ -159,19 +159,69 @@ for bt in (0.36, 0.47):
     lib.shade_auto(b, 34)
     thumbs.append(b)
 
-# --- Materials ---------------------------------------------------------------------------
+# --- Wheel ribs, DPI button, feet, sensor, nose port --------------------------------------
 white = lib.material('mouse_shell_mat', lib.hex_rgb('#eceef0'), roughness=0.42)
 grey = lib.material('mouse_grey_mat', lib.hex_rgb('#9ba2aa'), roughness=0.62)
 dark = lib.material('mouse_dark_mat', lib.hex_rgb('#15171a'), roughness=0.7)
-lib.set_materials(shell, [white])
+# Grip ribs around the wheel: five thin tori on the wheel's axle (X after the
+# Y-90 rotation), so the wheel catches a highlight per rib in close-up.
+ribs = []
+for i in range(5):
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.0086, minor_radius=0.00055,
+                                     major_segments=16, minor_segments=6,
+                                     location=(-0.0024 + i * 0.0012, wheel_y, wheel_z - 0.0055),
+                                     rotation=(0, math.pi / 2, 0))
+    r = bpy.context.object
+    r.name = f'wheel_rib{i}'
+    ribs.append(r)
 lib.set_materials(wheel, [grey])
+for r in ribs:
+    lib.set_materials(r, [grey])
+wheel = lib.join([wheel] + ribs, 'mouse_wheel')
+
+# DPI button on the top centerline, just behind the cross groove.
+dpi = blade('mouse_dpi', (0.006, 0.009, 0.0022),
+            (0, -L / 2 + 0.63 * L, height(0.63) - 0.0001))
+lib.bevel(dpi, width=0.0006, segments=2)
+lib.apply_modifiers(dpi)
+lib.shade_auto(dpi, 34)
+lib.set_materials(dpi, [grey])
+
+# PTFE feet on the flat underside (the shell's bottom fill sits at z = 0).
+skates = [blade(f'skate{i}', (sx, sy, 0.0008), (px, py, 0.0004))
+          for i, (sx, sy, px, py) in enumerate([(0.02, 0.012, 0, -L / 2 + 0.18 * L),
+                                                (0.016, 0.010, -0.018, -L / 2 + 0.80 * L),
+                                                (0.016, 0.010, 0.018, -L / 2 + 0.80 * L)])]
+for s in skates:
+    lib.set_materials(s, [grey])
+
+# Sensor window + lens, recessed in the underside.
+sensor = blade('mouse_sensor', (0.012, 0.012, 0.001), (0, -L / 2 + 0.60 * L, 0.0003))
+bpy.ops.mesh.primitive_cylinder_add(vertices=14, radius=0.003, depth=0.0012,
+                                    location=(0, -L / 2 + 0.60 * L, 0.0004))
+lens = bpy.context.object
+lens.name = 'mouse_lens'
+lib.set_materials(sensor, [dark])
+lib.set_materials(lens, [dark])
+
+# USB-C charging port on the nose front (wireless shell, wired charging).
+nose_port = blade('mouse_port', (0.009, 0.004, 0.003), (0, -L / 2 + 0.008, 0.004))
+nose_tongue = blade('mouse_port_tongue', (0.006, 0.002, 0.001), (0, -L / 2 + 0.008, 0.004))
+lib.set_materials(nose_port, [dark])
+lib.set_materials(nose_tongue, [grey])
+
+# --- Materials (created above, assigned here) ------------------------------------------------
+lib.set_materials(shell, [white])
 lib.set_materials(recess, [dark])
 for b in thumbs:
     lib.set_materials(b, [grey])
 
-body = lib.join([shell] + thumbs, 'mouse_body')
-group = [body, wheel, recess]
+body = lib.join([shell] + thumbs + [dpi] + skates + [nose_tongue], 'mouse_body')
+sensor_o = lib.join([sensor, lens, nose_port], 'mouse_sensor')
+lib.set_materials(sensor_o, [dark])
+group = [body, wheel, recess, sensor_o]
 lib.recentre(group, 'base')
+lib.unwrap_all(group)
 
 for o in group:
     blo, bhi = lib.world_bounds([o])

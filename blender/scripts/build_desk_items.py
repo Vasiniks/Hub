@@ -109,6 +109,7 @@ def export(objs, name, recentre=True):
         lib.uv_unwrap(o)
     if recentre:
         lib.recentre(objs, 'base')
+    lib.unwrap_all(objs)
     lib.export(os.path.join(OUT_DIR, f'{name}.glb'), objs)
     for o in list(bpy.data.objects):
         bpy.data.objects.remove(o, do_unlink=True)
@@ -275,12 +276,19 @@ led_blue = mat('hub_led_blue', '#000000', 0.5)
 led_green = mat('hub_led_green', '#000000', 0.5)
 W, D, HH = 0.088, 0.042, 0.016
 hub = box((W, D, HH), (0, 0, HH / 2), bevel=0.004)
-groove = box((W * 0.7, 0.008, 0.002), (0, 0.008, HH))
-ports = [box((0.0125, 0.014, 0.0052), (x, -D / 2 + 0.001, HH * 0.5)) for x in (-0.03, -0.01, 0.01)]
-cut(hub, ports + [groove])
+ports = [box((0.0125, 0.012, 0.0052), (x, -D / 2, HH * 0.5)) for x in (-0.03, -0.01, 0.01)]
+# Side USB-C on the right flank + rear power barrel + shallow vent grooves on top.
+side_cut = box((0.008, 0.010, 0.0032), (W / 2, 0.005, HH * 0.5))
+barrel_cut = cyl(0.0028, 0.008, (-0.02, D / 2, HH * 0.4), rot=(math.pi / 2, 0, 0), verts=12)
+vents = [box((0.02, 0.0022, 0.003), (-0.022 + i * 0.022, 0.008, HH + 0.0005)) for i in range(3)]
+cut(hub, ports + [side_cut, barrel_cut] + vents)
 hub.name = 'hub_body'
 lib.set_materials(hub, [alu])
-tongues = [box((0.0112, 0.008, 0.0018), (x, -D / 2 + 0.004, HH * 0.5 - 0.0008)) for x in (-0.03, -0.01, 0.01)]
+tongues = [box((0.0112, 0.006, 0.0018), (x, -D / 2 + 0.004, HH * 0.5 - 0.0008)) for x in (-0.03, -0.01, 0.01)]
+tongues.append(box((0.004, 0.007, 0.0012), (W / 2 - 0.002, 0.005, HH * 0.5)))
+tongues.append(cyl(0.002, 0.006, (-0.02, D / 2 - 0.002, HH * 0.4), rot=(math.pi / 2, 0, 0), verts=12))
+tongues += [cyl(0.003, 0.001, (sx * (W / 2 - 0.008), sy * (D / 2 - 0.008), -0.0005), verts=10)
+            for sx in (-1, 1) for sy in (-1, 1)]
 tongues = lib.join(tongues, 'hub_tongues')
 lib.set_materials(tongues, [black])
 lb = box((0.010, 0.0022, 0.0012), (0.028, 0.006, HH - 0.0004), bevel=0.0005)
@@ -315,9 +323,13 @@ cut(rings, hole_inner)
 lib.set_materials(rings, [metal])
 parts = [box((0.016, 0.016, 0.0022), (-0.008, 0.002, T + 0.0011), bevel=0.0003),
          box((0.006, 0.004, 0.0012), (0.014, -0.012, T + 0.0006)),
-         box((0.0032, 0.0016, 0.001), (0.008, 0.014, T + 0.0005)),
-         box((0.0032, 0.0016, 0.001), (0.013, 0.014, T + 0.0005))]
-parts = lib.join(parts, 'board_parts')
+         box((0.051, 0.005, 0.0025), (-0.004, D / 2 - 0.0045, T + 0.00125)),
+         # 0402 passives row + reset button + two electrolytic caps.
+         *[box((0.001, 0.0005, 0.0004), (0.004 + i * 0.002, 0.016, T + 0.0002)) for i in range(6)],
+         box((0.003, 0.003, 0.0016), (0.024, -0.004, T + 0.0008), bevel=0.0003)]
+caps = [cyl(0.0025, 0.005, (cx, -0.018, T + 0.0025), verts=14) for cx in (-0.02, -0.014)]
+cap_tops = [cyl(0.0023, 0.0004, (cx, -0.018, T + 0.005), verts=14) for cx in (-0.02, -0.014)]
+parts = lib.join(parts + caps, 'board_parts')
 lib.set_materials(parts, [chip])
 cap = cyl(0.0025, 0.005, (-0.022, -0.014, T + 0.0025), verts=16)
 cap.name = 'board_cap'
@@ -335,6 +347,24 @@ usb_tongue = box((0.006, 0.005, 0.0008), (W / 2 - 0.004, 0.006, T + 0.0012))
 usb_tongue.name = 'board_usb_tongue'
 lib.set_materials(usb_tongue, [chip])
 crystal = box((0.0035, 0.0012, 0.0012), (0.018, 0.012, T + 0.0006), bevel=0.0004)
-metal_parts = lib.join(pins + [crystal], 'board_metal')
+rings = []
+for sx in (-1, 1):
+    for sy in (-1, 1):
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.0022, minor_radius=0.0006,
+                                         major_segments=12, minor_segments=6,
+                                         location=(sx * (W / 2 - 0.0035), sy * (D / 2 - 0.0035), T))
+        rings.append(bpy.context.object)
+metal_parts = lib.join(pins + [usb, crystal] + rings + cap_tops, 'board_metal')
 lib.set_materials(metal_parts, [metal])
-export([board, rings, parts, cap, header_base, usb_shell, usb_tongue, metal_parts], 'board')
+# Silkscreen: border outline, pin-1 marker, refdes ticks. Wired in desk.ts as board_silk.
+silk = mat('board_silk', '#e8e8e6', 0.6)
+sw, sd = W / 2 - 0.005, D / 2 - 0.005
+silk_parts = [box((2 * sw, 0.0008, 0.0002), (0, sd, T + 0.0001)),
+              box((2 * sw, 0.0008, 0.0002), (0, -sd, T + 0.0001)),
+              box((0.0008, 2 * sd, 0.0002), (sw, 0, T + 0.0001)),
+              box((0.0008, 2 * sd, 0.0002), (-sw, 0, T + 0.0001)),
+              box((0.002, 0.002, 0.0002), (-0.0265, D / 2 - 0.009, T + 0.0001)),
+              *[box((0.002, 0.0006, 0.0002), (0.004 + i * 0.002, 0.019, T + 0.0001)) for i in range(6)]]
+silk_o = lib.join(silk_parts, 'board_silk')
+lib.set_materials(silk_o, [silk])
+export([board, parts, metal_parts, silk_o], 'board')

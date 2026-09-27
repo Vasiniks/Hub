@@ -181,7 +181,9 @@ chamf = cube('kb_chamf', (CASE_W * 1.1, 0.010, 0.010),
              (0, -CASE_D / 2, CASE_H), rot=(math.radians(34), 0, 0))
 # USB-C recess, centred at the back.
 port = cube('kb_port', (0.0094, 0.008, 0.0034), (0, CASE_D / 2, FLOOR_Z - 0.0035))
-cut(case, [well, chamf, port])
+# Two-piece read: a thin groove line right around the case sides.
+groove = cube('kb_groove', (CASE_W + 0.002, CASE_D + 0.002, 0.0012), (0, 0, 0.0045))
+cut(case, [well, chamf, port, groove])
 lib.bevel(case, width=0.0011, segments=2, angle_deg=38)
 lib.apply_modifiers(case)
 lib.shade_auto(case, 34)
@@ -203,6 +205,56 @@ for f in feet:
     lib.apply_modifiers(f)
 
 caps_alpha, caps_mod, stabs = build_caps()
+
+# Homing nubs on F and J (home row = ROWS[2], a 1.75u Caps followed by eleven 1u
+# keys; F is the 4th 1u, J the 7th). Tiny bars on the dished top, only visible in
+# close-up — which is exactly where a keyboard is examined.
+_home_y = -KEY_D / 2 + 2.5 * U
+for _n, _k in enumerate((3.5, 6.5)):
+    _cx = -KEY_W / 2 + 1.75 * U + _k * U
+    _nub = cube(f'kb_nub{_n}', (0.0035, 0.0012, 0.0006),
+                (_cx, _home_y, PLATE_Z + CAP_H - 0.0011 + 0.0002))
+    lib.bevel(_nub, width=0.0002, segments=1)
+    lib.apply_modifiers(_nub)
+    caps_alpha = lib.join([caps_alpha, _nub], 'keyboard_alpha')
+    caps_alpha.name = 'keyboard_alpha'
+
+
+def _tube(name, points, radius):
+    cu = bpy.data.curves.new(name, 'CURVE')
+    cu.dimensions = '3D'
+    cu.bevel_depth = radius
+    cu.bevel_resolution = 1
+    sp = cu.splines.new('BEZIER')
+    sp.bezier_points.add(len(points) - 1)
+    for bp, p in zip(sp.bezier_points, points):
+        bp.co = p
+        bp.handle_left_type = bp.handle_right_type = 'AUTO'
+    cu.use_fill_caps = True
+    o = bpy.data.objects.new(name, cu)
+    bpy.context.collection.objects.link(o)
+    lib.activate(o)
+    bpy.ops.object.convert(target='MESH')
+    o = bpy.context.view_layer.objects.active
+    o.name = name
+    return o
+
+
+# USB-C cable: exits the back port through a strain-relief boot, bows right and
+# lies down on the desk behind the board, ending in a Type-C plug.
+_cable = _tube('keyboard_cable',
+               [(0, CASE_D / 2 - 0.006, FLOOR_Z - 0.003),
+                (0, CASE_D / 2 + 0.018, 0.006),
+                (0.035, CASE_D / 2 + 0.055, 0.0025),
+                (0.070, CASE_D / 2 + 0.095, 0.0022)], 0.0018)
+lib.shade_auto(_cable, 50)
+_boot = cube('keyboard_boot', (0.007, 0.012, 0.005), (0, CASE_D / 2 + 0.002, FLOOR_Z - 0.0025))
+lib.bevel(_boot, width=0.0012, segments=2)
+lib.apply_modifiers(_boot)
+_plug_dir = 0.35
+_plug = cube('keyboard_plug', (0.0085, 0.011, 0.0032),
+             (0.070 + math.sin(_plug_dir) * 0.006, CASE_D / 2 + 0.095 + math.cos(_plug_dir) * 0.006,
+              0.0022), rot=(0, 0, _plug_dir))
 
 # Stabiliser housings, peeking out of the plate beside every wide key.
 bars = []
@@ -238,8 +290,11 @@ lib.set_materials(caps_alpha, [cap_white])
 lib.set_materials(caps_mod, [cap_dark])
 led = lib.join(leds, 'keyboard_led')
 lib.set_materials(led, [led_mat])
+lib.set_materials(_cable, [white])
+lib.set_materials(_boot, [white])
+lib.set_materials(_plug, [dark])
 
-group = [shell, plate, bottom, caps_alpha, caps_mod, led]
+group = [shell, plate, bottom, caps_alpha, caps_mod, led, _cable, _boot, _plug]
 
 # The incline. Built in, rather than left for the runtime to tilt, so the feet and the front
 # chamfer are at the angle they are modelled for.
@@ -248,6 +303,7 @@ for o in group:
     o.rotation_euler = (TILT, 0, 0)
     lib.apply_transforms(o)
 lib.recentre(group, 'base')
+lib.unwrap_all(group)
 
 for o in group:
     print(f'  {o.name}: {lib.tri_count(o)} tris')

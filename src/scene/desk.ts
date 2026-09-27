@@ -396,7 +396,7 @@ function buildWorkClutter(root: THREE.Group, m: Materials, assets: Assets) {
   const board = (x: number, y: number, z: number, mask: THREE.Material, rot: [number, number, number]) => {
     const b = at(assets.instance('board'), x, y, z, root);
     b.rotation.set(...rot);
-    assets.retint(b, { board_pcb: mask, board_chip: m.plasticBlack, board_metal: m.aluminum });
+    assets.retint(b, { board_pcb: mask, board_chip: m.plasticBlack, board_metal: m.aluminum, board_silk: m.paper });
     castShadows(b);
     return b;
   };

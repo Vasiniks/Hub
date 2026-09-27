@@ -50,15 +50,39 @@ def cut(target, cutters):
 
 # --- Body -------------------------------------------------------------------------------
 body = cube('mb_body', (W, D, T), (0, 0, T / 2))
-# Port recesses on the left flank and the finger notch under the front edge.
+# Port recesses on the left flank, an HDMI recess on the right, and the finger
+# notch under the front edge.
 cut(body, [
     *[cube(f'port{i}', (0.006, 0.016, 0.0038), (-W / 2, pz, T * 0.52))
       for i, pz in enumerate((-0.03, 0.006, 0.042))],
+    cube('port_hdmi', (0.006, 0.018, 0.0042), (W / 2, -0.02, T * 0.52)),
     cube('notch', (0.058, 0.008, 0.0045), (0, D / 2, T * 0.5)),
 ])
 lib.bevel(body, width=0.0016, segments=3, angle_deg=35)
 lib.apply_modifiers(body)
 lib.shade_auto(body, 28)
+
+# Lid inset: a hair-proud panel on the lid top, so the hero specular surface has
+# an edge that catches the window along its whole length.
+lid = cube('mb_lid', (W - 0.012, D - 0.012, 0.0008), (0, 0, T + 0.0002))
+lib.bevel(lid, width=0.0004, segments=2, angle_deg=35)
+lib.apply_modifiers(lid)
+lib.shade_auto(lid, 28)
+
+# Bottom gasket + rubber feet + screws: what a closed laptop actually shows
+# from a low seated angle.
+gasket = cube('mb_gasket', (W - 0.02, D - 0.02, 0.0006), (0, 0, 0.0003))
+rb_feet = [cube(f'mb_foot{sx}{sy}', (0.024, 0.008, 0.0015),
+                (sx * (W / 2 - 0.03), sy * (D / 2 - 0.02), -0.0005))
+           for sx in (-1, 1) for sy in (-1, 1)]
+screws = [cube(f'mb_screw{i}', (0.0024, 0.0024, 0.0005),
+               (sx * (W / 2 - 0.012), sy * (D / 2 - 0.010), 0.0002))
+          for sx in (-1, 1) for sy in (-1, 1)
+          for i in (0,)][:8]
+# Port tongues inside the recesses, so the ports read as connectors, not holes.
+tongues = ([cube(f'mb_tongue{i}', (0.004, 0.012, 0.0015), (-W / 2 + 0.0005, pz, T * 0.52))
+            for i, pz in enumerate((-0.03, 0.006, 0.042))] +
+           [cube('mb_tongue_hdmi', (0.004, 0.014, 0.0018), (W / 2 - 0.0005, -0.02, T * 0.52))])
 
 # The lid/base seam, cut just deep enough to read as a line at arm's length.
 seam = cube('mb_seam', (W + 0.01, D + 0.01, 0.0009), (0, 0, T * 0.52))
@@ -72,6 +96,16 @@ bpy.ops.mesh.primitive_cylinder_add(vertices=20, radius=T * 0.5, depth=W - 0.03,
 hinge = bpy.context.object
 hinge.name = 'mb_hinge'
 lib.shade_auto(hinge, 30)
+# Hinge end caps: dark plugs closing the barrel ends.
+hinge_caps = []
+for s in (-1, 1):
+    bpy.ops.mesh.primitive_cylinder_add(vertices=14, radius=T * 0.5 * 0.92, depth=0.003,
+                                        location=(s * (W - 0.03) / 2, -D / 2 + T * 0.42, T / 2),
+                                        rotation=(0, math.pi / 2, 0))
+    c = bpy.context.object
+    c.name = f'mb_hingecap{s}'
+    lib.shade_auto(c, 30)
+    hinge_caps.append(c)
 
 # --- Riser ------------------------------------------------------------------------------
 # Side profile: back post, deck line falling toward the visitor, short front lip.
@@ -122,7 +156,7 @@ grips = [cube(f'grip{i}', (0.2, 0.014, 0.0022), (0, gy, deck_z(gy) - 0.0018), (T
 # --- Seat the body on the deck ------------------------------------------------------------
 deck_mid_y = (BACK_Y + FRONT_Y) / 2
 deck_mid_z = (BACK_Z + FRONT_Z) / 2
-laptop = lib.join([body, hinge], 'macbook_body')
+laptop = lib.join([body, hinge, lid, gasket] + rb_feet + screws + tongues + hinge_caps, 'macbook_body')
 laptop.rotation_euler = (TILT, 0, 0)
 laptop.location = (0, deck_mid_y, deck_mid_z - 0.0012)
 lib.apply_transforms(laptop)
@@ -135,10 +169,17 @@ dark = lib.material('mb_dark', lib.hex_rgb('#4c5157'), roughness=0.42, metallic=
 rubber = lib.material('mb_rubber', lib.hex_rgb('#0e0f11'), roughness=0.9)
 lib.set_materials(laptop, [alu, dark])
 lib.assign_slot(laptop, lambda c, n: abs(n.z) < 0.55 and c.z < deck_mid_z + T * 0.9, 1)
+# Underside hardware: bottom faces near the base plane go dark, rubber feet to rubber.
+lib.assign_slot(laptop, lambda c, n: n.z < -0.9 and c.z < 0.002, 1)
+# Rubber feet keep the housing's dark side-band assignment (vertical faces read
+# dark via the predicate above); their undersides face the stand and are never
+# seen, so the laptop stays a two-slot object exactly like the original.
+laptop.data.update()
 lib.set_materials(stand, [alu, rubber])
 lib.assign_slot(stand, lambda c, n: c.z < 0.008, 1)
 
 group = [laptop, stand]
 lib.recentre(group, 'base')
+lib.unwrap_all(group)
 print(f'macbook {lib.tri_count(laptop)} + stand {lib.tri_count(stand)} tris')
 lib.export(OUT, group)
