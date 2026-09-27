@@ -27,7 +27,7 @@ const SPINE_U = [0.62, 0.74] as const;
 const BAND_U = [0.745, 0.775] as const;
 const PAGE_U = [0.78, 1.0] as const;
 
-function bookAtlas(def: BookDef) {
+function bookAtlas(def: BookDef, cloth: boolean) {
   const S = 384;
   const c = document.createElement('canvas');
   c.width = c.height = S;
@@ -65,8 +65,9 @@ function bookAtlas(def: BookDef) {
   ctx.fillText(def.author, x0 + cw / 2, S * 0.76, cw - 44);
   ctx.globalAlpha = 1;
 
-  // Spine: same field, title running vertically, with a faint cloth weave so spines
-  // read as cloth/paper at shelf distance rather than flat colour.
+  // Spine: same field, title running vertically, with a cloth or paper weave so spines
+  // read as material at shelf distance rather than flat colour. Cloth-bound books get a
+  // stronger cross-hatch (matte), paperbacks a fainter one (smoother, slight sheen).
   const sx = SPINE_U[0] * S;
   const sw = (SPINE_U[1] - SPINE_U[0]) * S;
   ctx.fillStyle = def.color;
@@ -75,7 +76,7 @@ function bookAtlas(def: BookDef) {
   ctx.beginPath();
   ctx.rect(sx, 0, sw, S);
   ctx.clip();
-  ctx.globalAlpha = 0.14;
+  ctx.globalAlpha = cloth ? 0.2 : 0.08;
   ctx.strokeStyle = '#000000';
   ctx.lineWidth = 1;
   for (let yy = 0; yy < S; yy += 3) {
@@ -84,7 +85,7 @@ function bookAtlas(def: BookDef) {
     ctx.lineTo(sx + sw, yy);
     ctx.stroke();
   }
-  ctx.globalAlpha = 0.1;
+  ctx.globalAlpha = cloth ? 0.12 : 0.05;
   ctx.strokeStyle = '#ffffff';
   for (let xx = sx; xx < sx + sw; xx += 2) {
     ctx.beginPath();
@@ -262,7 +263,10 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
 
   for (const def of books) {
     const geo = sliceBook(bookSource, bookMeta, def.thickness, def.height);
-    const material = new THREE.MeshStandardMaterial({ map: bookAtlas(def), roughness: 0.78, metalness: 0 });
+    // Alternate cloth-bound (matte, stronger weave) and paperback (smoother, slight sheen)
+    // so the row reads as mixed materials, not one flat response.
+    const cloth = books.indexOf(def) % 2 === 0;
+    const material = new THREE.MeshStandardMaterial({ map: bookAtlas(def, cloth), roughness: cloth ? 0.85 : 0.6, metalness: 0 });
     const mesh = shadowed(new THREE.Mesh(geo, material));
     const holder = at(new THREE.Group(), cursor + def.thickness / 2, 0, 0, group);
     // Marked dynamic so the static merge leaves each book its own transform.

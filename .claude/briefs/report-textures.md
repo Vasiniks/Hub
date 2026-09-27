@@ -178,3 +178,138 @@ MANIFEST records the three albedo derivations + the bump-reuse decision.
 - Rug is dark by palette, so its pile is subtle except in raking light.
 - `tmp/visible-before|after*|diff*` + `tmp/macros-*.mjs` + `tmp/dev-519*.log`
   are scratch, not committed. Baseline worktree removed.
+
+---
+
+# Follow-up: material contrast, not micro-detail (material-contrast.md)
+
+Dev server: `npx vite --port 5192 --strictPort --host 127.0.0.1` (this worktree).
+Baseline for A/B: `tmp/baseline` worktree at HEAD served on 5193, removed after.
+Before captures in `tmp/contrast-before/` (HEAD code), after in `tmp/contrast-after/`,
+diffs + pair sheets in `tmp/contrast-diff/`, 40 cm macros in
+`tmp/contrast-after/macros/` + `tmp/contrast-diff/chair-pair.png`
+(all scratch, not committed).
+
+## What was added
+
+One new CC0 scan (ambientCG, verified by thumbnail + full-download inspection
+before use); everything else is scalar/tile/bump re-fitting of already-loaded maps
+(zero new downloads, zero new GPU beyond the desk trio):
+
+| file | source | size | on |
+|---|---|---|---|
+| `desk_color.jpg` 1024 | Wood052 pine, 80 cm scan at a 1 m tile (grain along the desk's long axis at near-true scale) | 171 KB | deskWhite + deskEdge (desk top, rail, shelf boards) |
+| `desk_normal.jpg` 512 | Wood052 NormalGL downsized | 45 KB | same |
+| `desk_rough.jpg` 512 | Wood052 roughness downsized (mean 0.53) | 56 KB | same, scalar 1.0/1.1 |
+
+Material split (all re-fit, no new textures):
+- Desk/shelf: white laminate → warm pine, diffuse = white × wood albedo
+  (mid-tone lum ~55%). Shelf carcass + desk rail share the maps/tile, so the set matches.
+- Chair fabric: tile 9→12 cm, normalScale 0.8→1.0, roughness 1.3→1.1 + env 0.8
+  (larger weave, more grazing sheen); rug 22→28 cm, normal 0.9→1.1, rough 1.35→1.15.
+- Metals: the Metal009 roughness already carries horizontal brushing — bumpScale
+  0.03→0.06 so legs/arm/lamp catch the window directionally; steel rough 0.9→0.8,
+  aluminum 0.64→0.6, dark 0.9→0.85. No new BRDF.
+- Plastics: keycaps matte (rough 1.5/1.55, env 0.3, grain kept), bins satin
+  (rough 1.15/1.25, bump 0.02, env 0.65), monitor shell darker satin
+  (plasticBlack rough 1.3→1.0, bump 0.02, env 0.7), mouse/case/plate satin
+  (rough 1.0–1.2, env 0.5), rubber dead matte (rough 2.5, bump perturbation 0, env 0.15).
+- Walls: unchanged maps, normalScale 0.5→0.65 (tooth for raking window light).
+- Books: even = cloth-bound (rough 0.85, stronger cross-hatch), odd = paperback
+  (rough 0.6, fainter weave) — procedural `bookAtlas`, no GPU cost.
+
+Totals: `public/assets/textures` ~1029 → ~1197 KB (+168 KB disk).
+GPU w×h×4×4/3: 27.0 → **32.0 MB** (+5.0: colour 512→1K, rough 256→512),
+under the 40 MB budget. MANIFEST records Wood052 + the reuse decisions;
+Wood066/Wood027 (too dark, lum 22%/15%) and Wood061 (whitewash) recorded as rejected.
+
+## Measured
+
+- Frozen-grain diffs vs HEAD (`compare-variants`, parked views, hours 13 / 18.5 / 20 / 21.5),
+  mean / pixels >8: 13 — seated **6.89**/127394, deskRight **22.50**/306319,
+  shelf **11.01**/91497, standing **5.89**/82705; 18.5 — 7.58/122950, 21.55/304242,
+  6.81/90684, 5.77/80201; 20 — 9.59/132970, 25.60/327886, 9.07/91432, 6.95/81089;
+  21.5 — 9.02/145436, 23.80/345426, 9.25/98382, 6.54/81503.
+  Noise floor 0.3–0.6. Everything is far over where the treated surfaces fill the
+  frame. Pair sheets judged honestly (below): the change reads as *material*
+  everywhere, with no tiling repeat in the widest (standing) view — the 80 cm scan
+  at a 1 m tile is stochastic with no distinctive features.
+- 40 cm macros (hour 13, plus chair at 13/21.5): desk PASS (pine grain along the
+  long axis, no dents at normalScale 0.6); keys PASS (matte caps vs satin hub vs
+  reflective riser — three responses where there was one); metal PASS with caveat
+  (window highlight with directional break-up; brushing lines stay sub-resolution
+  in stills, as before); shelf boards PASS (grain matches the desk); wall PASS
+  (plaster tooth in raking light); rug improved (pile in the sun strip); chair seat
+  PASS (weave + sheen at 40 cm, satin armrest separates); mug unchanged (gloss gap
+  to plastics kept). Books: per-book colours + cloth/paper roughness split read
+  under the shelf light; within-spine weave stays sub-pixel in daylight stills —
+  honest limit, same physics as the last pass (see Left).
+- Desk value at 13 / 18.5 / 21 (+20 / 21.5 captured): white MacBook/keyboard/mug
+  read against the lum-140 pine at every hour; the lamp pool pops on the wood
+  rather than dying (night pairs). The wood makes both lights more legible, as briefed.
+- Bloom guard (`bloom-score.mjs` + `.py`, before vs after): daylight cube-sat
+  **0.652 → 0.705** — the warm bounce does not wash the speedcube out (saturation
+  slightly up). Whole-frame day/dusk/night diffs 5.05/5.58/6.32 are the desk
+  recolour itself, as expected.
+- Frame time, `bench-ab`, `VIEWPORT=1728x1000`, pr 1.5, hour 13, 3 rounds, both
+  orders (5193 baseline vs 5192 worktree). Order 1 (before first): pose 0 look
+  6.69 → 6.59 (−0.10), pose 1 −0.05, pose 2 +0.22; idle +0.24/+0.37/+0.30.
+  Order 2 (after first): pose 0 +0.11/+0.26, pose 1 −0.06/+0.10, pose 2 +0.02/−0.04.
+  Seated look (pose 0) averages **+0.00 ms** — no regression; idle averages +0.25 ms
+  (1K desk sampling over 35–60% of pixels, plausible). Worst cell +0.37, inside the
+  **+0.5 ms** budget. (Absolute times drift ±0.5 between runs on this machine;
+  interleaving both orders is what makes the delta trustworthy.)
+- Startup: interleaved `stages-contrast.mjs` (alternating 5193/5192, 3 rounds,
+  hour 21): before assets=676 building=805 light=1111 shaders=1222 warming=1495
+  measuring=1614; after **561/676/1028/1141/1460/1591** — after ≤ before at every
+  stage. Attributable desk-trio fetch+ImageBitmap decode (settled page, 3×):
+  before ~5–6 ms, after ~14–16 ms (Δ ≈ +9 ms), swamped by ±500 ms vite dev variance.
+  Inside the 15% budget with margin.
+- Green: `tsc`, verify-room (ERRORS []), verify-shelf / gesture (PASS) / books
+  (PASS) / motion / a11y / shelf-a11y (errors []), verify-ao-motion
+  (idle 121/121 full, moving 84/109 half — identical to the last pass),
+  `compile-watch` **76 programs**, zero after-load compiles.
+- Programs note (verified by toggle, not guessed): deleting rubber's bumpMap
+  compiles **+3 program variants** (79 vs 76 — the new keys differ from existing
+  ones only in one map-UV flag). Kept `bumpScale: 0` instead: pixel-identical
+  dead matte (perturbation no-ops) at 76 programs. All pair/macro pixels were
+  captured with the zero-perturbation rubber, so they stand as-is.
+
+## Judgement (looked at all four hours × seated/standing/deskRight/shelf)
+
+- Same designed room: yes. Walls, floor, lighting and palette are untouched; the
+  desk + shelf are now a pine set at mid-tone, not a brown office. Cool daylight +
+  warm lamp intact — and more legible, since the warm desk answers both.
+- Each surface now reads as a material: wood (grain + satin response), fabric
+  (weave + grazing sheen), brushed metal (directional highlights), matte keycaps
+  vs satin bins/monitor shell vs dead rubber, plaster walls, wood shelf + mixed books.
+- What may have gone too far: the pine grain is the strongest pattern in the room
+  in deskRight close-ups — it reads as real wood, but it is the first thing I
+  would soften if the owner disagrees. The chair at standing distance is still
+  silhouette-led (dark fabric, backlit) — better in macro/raking light than in
+  thumbnails, by physics. Book weave stays subtle in daylight stills by design
+  (stronger read as stripes; rejected again).
+
+## Rejected (with reason)
+
+- `Wood066` / `Wood027` for the desk — lum 22%/15%: 35–60% of the seated frame
+  goes brown; warm mid-tone `Wood052` (lum ~55%) used instead.
+- `Wood061` — whitewashed near-white; the same monochrome problem in brown.
+- New downloads for fabric/metals/plastics/walls — tile/normal/bump/scalar
+  re-fits on the loaded scans (zero new memory); Metal009 brushing was already
+  directional, it just needed strength (bump 0.06).
+- Rubber bumpMap deletion — pixel-identical to `bumpScale: 0` but +3 programs
+  (verified 76↔79 toggle); kept scale-0.
+- Stronger book spine weave — reads as stripes past alpha ~0.2; kept the
+  cloth 0.20/0.12 vs paper 0.08/0.05 split + roughness split instead.
+
+## Left
+
+- Book spine weave remains sub-pixel in daylight stills; the cloth/paper split
+  shows mostly via roughness under the shelf strip at night.
+- Chair weave at standing distance is sheen + silhouette, not resolved grain
+  (dark fabric physics); resolved at 40 cm and in raking light.
+- Rug stays dark-pile subtle except in raking light (unchanged).
+- `tmp/contrast-before|after|diff` + `tmp/*-5192.mjs` + `tmp/chair-macro*.mjs` +
+  `tmp/stages-contrast.mjs` + `tmp/dev-519*.log` are scratch, not committed.
+  Baseline worktree removed.
