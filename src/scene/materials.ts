@@ -126,9 +126,9 @@ const standard = (p: THREE.MeshStandardMaterialParameters) => new THREE.MeshStan
 
 export function createMaterials(surfaces: SurfaceTextures) {
   // Roughness scalars multiply their map (three: roughness = scalar × texel), so each is set
-  // so scalar × map-mean lands on the response the material had while flat. Map means were
-  // measured off the processed files: desk 0.58, metal 0.47, paper 0.63, cardboard 0.68,
-  // plastic 0.40, dark plastic 0.36.
+  // so scalar × map-mean lands on the response the material needs. Map means were
+  // measured off the processed files: desk wood 0.53, metal 0.47, paper 0.63,
+  // cardboard 0.68, plastic 0.40, dark plastic 0.36, wall 0.51, fabric 0.73.
 
   // Scanned oak strip floor. The disc is 18 m across with 0–1 UVs, so twelve repeats puts one
   // texture tile at 1.5 m — the scale the boards were photographed at. The roughness map's
@@ -153,71 +153,78 @@ export function createMaterials(surfaces: SurfaceTextures) {
     roughness: 1.8,
     roughnessMap: surfaces.wallRough,
     normalMap: surfaces.wallNormal,
-    normalScale: new THREE.Vector2(0.5, 0.5),
+    normalScale: new THREE.Vector2(0.65, 0.65),
   });
   applySetFade(wall, { x: [2.3, 3.5], z: [0.55, 1.45], y: [2.7, 3.3] });
   projectMaps(wall, 1.6);
   const fabric = standard({
     color: '#24272c',
     map: surfaces.fabricColor,
-    roughness: 1.3,
+    roughness: 1.1,
     roughnessMap: surfaces.fabricRough,
     normalMap: surfaces.fabricNormal,
-    normalScale: new THREE.Vector2(0.8, 0.8),
+    normalScale: new THREE.Vector2(1.0, 1.0),
+    envMapIntensity: 0.8,
   });
-  projectMaps(fabric, 0.09);
+  projectMaps(fabric, 0.12);
   // The rug reuses the fabric scans at a coarser tile: pile texture for no extra download.
   const rug = standard({
     color: '#33363a',
     map: surfaces.fabricColor,
-    roughness: 1.35,
+    roughness: 1.15,
     roughnessMap: surfaces.fabricRough,
     normalMap: surfaces.fabricNormal,
-    normalScale: new THREE.Vector2(0.9, 0.9),
+    normalScale: new THREE.Vector2(1.1, 1.1),
+    envMapIntensity: 0.8,
   });
-  projectMaps(rug, 0.22);
+  projectMaps(rug, 0.28);
 
-  // The desk top is the largest light-catching surface in the seated frame: laminate grain
-  // in the albedo (very low contrast, 3% variation) + relief + roughness, one tile per
-  // metre. The paint colour stays the room's (diffuse = room colour × near-white albedo).
+  // The desk top is the hero surface: warm pine (Wood052, 80 cm scan at a 1 m tile so
+  // the grain runs along the desk's long axis at near-true scale), satin varnish response.
+  // Colour is the scan's own (diffuse = white × wood albedo, mid-tone lum ~55%) so white
+  // props read against it and both the cool window and the warm lamp stay legible on it.
   const deskWhite = standard({
-    color: '#e9eaea',
-    map: surfaces.deskColor,
-    roughness: 0.9,
-    roughnessMap: surfaces.deskRough,
-    normalMap: surfaces.deskNormal,
-    normalScale: new THREE.Vector2(0.5, 0.5),
-    metalness: 0,
-    envMapIntensity: 0.55,
-  });
-  projectMaps(deskWhite, 1.0);
-  // Shelf carcass, desk rail: same white boards, same tile so the grain scale matches the desk.
-  const deskEdge = standard({
-    color: '#dcdee0',
+    color: '#ffffff',
     map: surfaces.deskColor,
     roughness: 1.0,
     roughnessMap: surfaces.deskRough,
     normalMap: surfaces.deskNormal,
-    normalScale: new THREE.Vector2(0.45, 0.45),
+    normalScale: new THREE.Vector2(0.6, 0.6),
     metalness: 0,
+    envMapIntensity: 0.6,
+  });
+  projectMaps(deskWhite, 1.0);
+  // Shelf carcass, desk rail: same pine boards, same tile so the grain scale matches the desk.
+  const deskEdge = standard({
+    color: '#ffffff',
+    map: surfaces.deskColor,
+    roughness: 1.1,
+    roughnessMap: surfaces.deskRough,
+    normalMap: surfaces.deskNormal,
+    normalScale: new THREE.Vector2(0.55, 0.55),
+    metalness: 0,
+    envMapIntensity: 0.5,
   });
   projectMaps(deskEdge, 1.0);
 
   return {
     deskWhite,
     deskEdge,
-    /** Brushed steel: scanned roughness + bump from the same scan, so the brushing catches the window. */
-    steel: standard({ color: '#33373c', roughness: 0.9, roughnessMap: surfaces.metalRough, bumpMap: surfaces.metalRough, bumpScale: 0.03, metalness: 0.82 }),
-    aluminum: standard({ color: '#b7bcc2', roughness: 0.64, roughnessMap: surfaces.metalRough, bumpMap: surfaces.metalRough, bumpScale: 0.03, metalness: 1, envMapIntensity: 1 }),
-    aluminumDark: standard({ color: '#4c5157', roughness: 0.9, roughnessMap: surfaces.metalRough, bumpMap: surfaces.metalRough, bumpScale: 0.03, metalness: 1 }),
-    /** Fine matte grain shared by every light plastic and keycap; bump reuses the same scan. */
-    plasticBlack: standard({ color: '#15171a', roughness: 1.3, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.04 }),
-    plasticGrey: standard({ color: '#555b62', roughness: 1.55, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.04 }),
-    plasticWhite: standard({ color: '#eceef0', roughness: 1.1, roughnessMap: surfaces.plasticRough, bumpMap: surfaces.plasticRough, bumpScale: 0.04, envMapIntensity: 0.45 }),
-    keycap: standard({ color: '#e7e9eb', roughness: 1.4, roughnessMap: surfaces.plasticRough, bumpMap: surfaces.plasticRough, bumpScale: 0.04 }),
-    keycapAccent: standard({ color: '#cfd3d8', roughness: 1.45, roughnessMap: surfaces.plasticRough, bumpMap: surfaces.plasticRough, bumpScale: 0.04 }),
-    binBlue: standard({ color: '#aebdc8', roughness: 1.6, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.04, envMapIntensity: 0.4 }),
-    binWarm: standard({ color: '#c8c2b4', roughness: 1.75, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.04, envMapIntensity: 0.4 }),
+    /** Brushed steel: the Metal009 roughness already carries horizontal brushing; bump from
+     * the same scan makes the highlights directional so legs/arm/lamp catch the window. */
+    steel: standard({ color: '#33373c', roughness: 0.8, roughnessMap: surfaces.metalRough, bumpMap: surfaces.metalRough, bumpScale: 0.06, metalness: 0.82 }),
+    aluminum: standard({ color: '#b7bcc2', roughness: 0.6, roughnessMap: surfaces.metalRough, bumpMap: surfaces.metalRough, bumpScale: 0.06, metalness: 1, envMapIntensity: 1 }),
+    aluminumDark: standard({ color: '#4c5157', roughness: 0.85, roughnessMap: surfaces.metalRough, bumpMap: surfaces.metalRough, bumpScale: 0.06, metalness: 1 }),
+    /** Monitor shell, darker satin: smoother + more reflective than keycaps so it separates. */
+    plasticBlack: standard({ color: '#15171a', roughness: 1.0, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.02, envMapIntensity: 0.7 }),
+    plasticGrey: standard({ color: '#555b62', roughness: 1.2, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.03, envMapIntensity: 0.5 }),
+    plasticWhite: standard({ color: '#eceef0', roughness: 1.0, roughnessMap: surfaces.plasticRough, bumpMap: surfaces.plasticRough, bumpScale: 0.03, envMapIntensity: 0.5 }),
+    /** Keycaps, matte with fine moulding grain: rough, low sheen, grain kept. */
+    keycap: standard({ color: '#e7e9eb', roughness: 1.5, roughnessMap: surfaces.plasticRough, bumpMap: surfaces.plasticRough, bumpScale: 0.04, envMapIntensity: 0.3 }),
+    keycapAccent: standard({ color: '#cfd3d8', roughness: 1.55, roughnessMap: surfaces.plasticRough, bumpMap: surfaces.plasticRough, bumpScale: 0.04, envMapIntensity: 0.3 }),
+    /** Parts bins, slightly satin: smoother + more sheen than keycaps so they separate. */
+    binBlue: standard({ color: '#aebdc8', roughness: 1.15, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.02, envMapIntensity: 0.65 }),
+    binWarm: standard({ color: '#c8c2b4', roughness: 1.25, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.02, envMapIntensity: 0.65 }),
     pcbGreen: standard({ map: pcbTexture('#123322', 5), roughness: 0.42, metalness: 0.25 }),
     pcbBlue: standard({ map: pcbTexture('#11243c', 12), roughness: 0.42, metalness: 0.25 }),
     pcbBlack: standard({ map: pcbTexture('#14161a', 31), roughness: 0.46, metalness: 0.3 }),
@@ -229,7 +236,10 @@ export function createMaterials(surfaces: SurfaceTextures) {
     ribbonRed: standard({ color: '#7d2b2f', roughness: 0.88 }),
     ribbonGreen: standard({ color: '#2f5f48', roughness: 0.88 }),
     fabric,
-    rubber: standard({ color: '#0e0f11', roughness: 2.5, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.04 }),
+    /** Rubber, dead matte: bump scale 0 keeps the shared program (verified: removing the
+     * bump map instead compiles 3 extra program variants) while the perturbation no-ops,
+     * so cables/grips/feet stay flat black with minimal sheen. */
+    rubber: standard({ color: '#0e0f11', roughness: 2.5, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0, envMapIntensity: 0.15 }),
     paper: standard({
       color: '#e8e6e0',
       roughness: 1.4,

@@ -5,15 +5,14 @@ import * as THREE from 'three';
  * procedural desk albedo.
  *
  * The first set covers the most screen (floor, walls, chair fabric); the second set covers
- * the next tier: the white desk/shelf boards (painted-wood relief + roughness, paint colour
- * stays the room's), brushed metal (roughness only, metalness stays scalar), paper, kraft
- * cardboard, and fine matte plastic (roughness only).
+ * the hero desk/shelf boards (warm pine Wood052 colour + normal + roughness, grain along
+ * the desk's long axis at a 1 m tile), brushed metal (roughness only, metalness stays
+ * scalar), paper, kraft cardboard, and fine matte plastic (roughness only).
  *
- * Visible-material pass: every large surface also carries a very-low-contrast albedo
- * (near-white, 3–5% luminance variation) so it reads as a material at seated distance
- * without changing the established palette — desk (procedural painted-wood grain, 1 m
- * tile), walls (plaster mottling from the same scan's colour), fabric/rug (weave from the
- * same scan's colour). Diffuse = room colour × albedo, so the tone stays the room's.
+ * Material-contrast pass: the desk is real wood (mid-tone pine, not white laminate), walls
+ * keep their plaster mottling with more tooth, fabric/rug carry a larger weave with more
+ * sheen so the chair reads at seated distance. Diffuse for painted surfaces is still
+ * room colour × near-white albedo; the desk is white × wood albedo (its own tone).
  *
  * Sizes follow how many pixels each can occupy: the floor fills much of the standing view at a
  * grazing angle, so its colour and normal are 1K; the desk is the largest light-catching
