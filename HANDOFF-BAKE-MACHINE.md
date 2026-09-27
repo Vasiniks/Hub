@@ -53,7 +53,7 @@ path, or add it to PATH for the session. Below 5.0 or above 5.2, stop and report
 ```
 repo:     <this repository>
 branch:   bake/20260927            # created from main; pull it, do not create or merge branches
-commit:   FILLED_BELOW
+commit:   0500a0a
 states:   day, golden, evening, night, neutral
 command:  see BAKE.md
 output:   public/assets/lightmaps/<state>/*.exr + *.png, public/assets/lightmaps/manifest.json
