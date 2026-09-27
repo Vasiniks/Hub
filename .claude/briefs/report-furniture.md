@@ -145,4 +145,67 @@ z-fight, no white band) + `tmp/trim-detail/` (sill nose highlight, skirting boar
 layered reveal liner/frame/glass).
 
 ## Final numbers
-(TODO)
+
+All four groups land in one script (`blender/scripts/build_furniture.py`, `all` = 26,006 tris
+across chair 13,846 / desk 9,260 / shelf 1,144 / trim 1,756), one source
+(`blender/source/furniture.blend`, 625 KB, collections Chair/Desk/Shelf/Trim + 4 cameras +
+3-point lights + `//render/` path, each camera preview-rendered to `blender/source/render/`),
+four GLBs + sidecars through `optimize-glb.mjs`. No `layout.ts` change; no third-party
+geometry (MANIFEST notes the script).
+
+| object | tris before → after | source GLB | public GLB |
+|---|---|---|---|
+| chair | 6,620 → 13,846 | 195.5 → 727 KB | 118.8 → 276.9 KB |
+| desk (was procedural ~2–3k) | → 9,260 | → 584 KB | → 215.5 KB |
+| shelf (was procedural ~1–2k) | → 1,144 | → 92 KB | → 33.4 KB |
+| trim (new) | → 1,756 | → 148 KB | → 53.3 KB |
+
+Seated scene (interleaved base/now page loads, 1728×1000 CSS DPR2, pr 1.5, hour 21, `perf.snapshot`
+over 3 s idle): **66,218 → 72,034 tris (+5.8k, +8.8%)**, draw calls 87 → 86 p50, merge
+151→68 (was 171→69 — GLBs arrive pre-joined). Ceiling was ~300k; we sit at ~72k seated.
+(Absolute differs from the perf LOG's 131k — different viewport/conditions; only interleaved
+pairs count.)
+Public models total +~460 KB (chair +158, desk +216, shelf +33, trim +53).
+
+Frame (`bench-ab.mjs`, VIEWPORT=1728x1000, pr 1.5, hour 21, 3 rounds × both orders, fence-timed):
+base-first: pose0 look +0.14/idle −0.07, pose1 +0.12/−0.09, pose2 +0.03/−0.01;
+now-first: pose0 −0.01/−0.20, pose1 −0.07/+0.04, pose2 −0.07/+0.18.
+Combined mean ≈ **+0.02 ms look, −0.03 ms idle — noise, no regression**. (Absolute ~6.2–6.4 ms
+pose0-look on this hot machine for both builds; LOG cool was 5.0. The 6 ms budget is met in
+cool conditions, symmetric before/after.)
+
+Image (frozen-grain `compare-variants`, base worktree 5196 vs now 5195, 4 views × 13/21):
+13: seated 2.06, deskRight 1.35, shelf 1.27, standing 1.91;
+21: seated 0.66, deskRight 0.45, shelf 2.05, standing 0.82 — all intended geometry
+(desk edge/legs, shelf grooves/brackets/channel, trim beads/casing/skirting, chair mass).
+Pair sheets `tmp/cmp-both/pair-now-{13,21}.png`: no dark/missing light, no broken shadows,
+no floating parts, no z-fight.
+
+Startup (`startup-trace`, interleaved): base 1517/1498 vs now 1601/1490 ms — parity (+2.5%,
+noise; inside the +15% guard). `compile-watch 13`: 76 programs after load, zero after
+(baseline chair re-measured here: also 76 — the old report's 70 is stale).
+Suites green on the final tree: room, a11y, shelf, shelf-a11y, gesture (PASS), books (PASS),
+motion, ao-motion; `tsc` clean.
+
+## Rejected / noted along the way
+
+- Smart-project UVs headless: `bpy.ops.uv.smart_project` poll fails with `--background`
+  (no image-editor context; `build_lamp.py` already try/excepts it). `lib.uv_unwrap` now falls
+  back to a deterministic per-face cube projection — the runtime projects PBR maps in object
+  space anyway (`textures.ts projectMaps`), so shipped UVs only need to exist until an
+  interactive session does the bake unwrap. `Lightmap` channel still reserved on every part.
+- Chair at 18.8k first (piping curve `resolution_u=4` cost 2.5k alone; a `R @ T` transform bug
+  flung parts 0.3 m under the floor) → fixed order to `T @ R`, trimmed resolution/steps →
+  13.8k with correct bounds.
+- Desk foot loft sat 11 mm under the floor → re-based so glide discs are the contact.
+- Shelf/desk/trim dimensions copied exactly from `layout.ts`/builders — no gameplay change by
+  construction; bookshelf gesture/books verifies confirm.
+- Headrest for the chair: skipped (changes the silhouette the sit animation was framed for;
+  lumbar pad + ribs carry the backrest detail instead).
+
+## Left
+
+- `furniture.blend` is render-ready (open → F12 renders the chair cam; switch cameras for
+  desk/shelf/trim). Lightmap bake is future work — UV channels are reserved.
+- Tri headroom used: ~5.8k of ~170k. Monitor stand cable detail / bin latches from the models
+  report remain untouched, still fine at camera distance.
