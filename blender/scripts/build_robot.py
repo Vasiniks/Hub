@@ -121,7 +121,7 @@ def tube(length, axis, centre, w=RAIL_W, h=RAIL_H, holes=True, hole_r=0.0085, pi
         for i in range(n):
             t = (i - (n - 1) / 2) * pitch
             loc = {'x': (cx + t, cy, cz), 'y': (cx, cy + t, cz), 'z': (cx, cy, cz + t)}[axis]
-            cutters.append(cyl(hole_r, w * 3 + 0.01, loc, axis=bore, verts=10))
+            cutters.append(cyl(hole_r, w * 3 + 0.01, loc, axis=bore, verts=8))
     return cut(o, cutters)
 
 
@@ -137,7 +137,7 @@ keep(tube(2 * FH - 2 * RAIL_W, 'x', (0, 0.17, rail_z)), 'robot_alu')
 for sx in (-1, 1):
     for sy in (-1, 1):
         g = box((0.07, 0.07, 0.0032), (sx * (FH - 0.035), sy * (FH - 0.035), RAIL_Z0 + RAIL_H + 0.0016), bevel=0.001)
-        bolts = [cyl(0.0028, 0.02, (sx * (FH - 0.035) + dx, sy * (FH - 0.035) + dy, RAIL_Z0 + RAIL_H), verts=10)
+        bolts = [cyl(0.0028, 0.02, (sx * (FH - 0.035) + dx, sy * (FH - 0.035) + dy, RAIL_Z0 + RAIL_H), verts=8)
                  for dx, dy in ((-0.02, -0.02), (0.02, -0.02), (-0.02, 0.02), (0.02, 0.02))]
         keep(cut(g, bolts), 'robot_alu')
 
@@ -309,7 +309,7 @@ for sx in (-1, 1):
             keep(cut(fp, [tri]), 'robot_alu')
         # Top plate, bolted to the frame corner, with the steering bearing bore.
         tp = box((0.125, 0.125, 0.00635), (cx, cy, PLATE_Z + 0.0032), bevel=0.002)
-        keep(cut(tp, [cyl(0.004, 0.02, (cx + dx, cy + dy, PLATE_Z), verts=10)
+        keep(cut(tp, [cyl(0.004, 0.02, (cx + dx, cy + dy, PLATE_Z), verts=8)
                       for dx, dy in ((-0.05, -0.05), (0.05, -0.05), (-0.05, 0.05), (0.05, 0.05))]), 'robot_alu')
         # Drive motor: finned body, orange end cap. Steer motor: smaller, beside it.
         keep(castellated(0.0305, 0.0285, 12, 0.052, (cx + 0.024, cy - 0.004, PLATE_Z + 0.032), 'z'), 'robot_black')
@@ -319,6 +319,12 @@ for sx in (-1, 1):
         keep(cyl(0.0175, 0.006, (cx - 0.028, cy + 0.022, PLATE_Z + 0.051), verts=16), 'robot_grey')
         # Absolute encoder on the steering axis.
         keep(box((0.028, 0.028, 0.012), (cx - 0.03, cy - 0.03, PLATE_Z + 0.012), bevel=0.002), 'robot_black')
+        # Hub bolts: five hex heads on the wheel's outer hub face, so the hub reads
+        # bolted rather than pressed. Kept before the yaw transform below.
+        for b in range(5):
+            a = 2 * math.pi * b / 5
+            keep(cyl(0.0032, 0.006, (cx + 0.017, cy + 0.018 * math.cos(a), WHEEL_R + 0.018 * math.sin(a)),
+                     axis='x', verts=6), 'robot_alu')
         # A swerve drive at rest rarely has its wheels lined up.
         rot = Matrix.Translation((cx, cy, 0)) @ Matrix.Rotation(yaw, 4, 'Z') @ Matrix.Translation((-cx, -cy, 0))
         for o in PARTS['body'][start:]:
@@ -412,6 +418,14 @@ for x in (-0.13, 0.13):
 keep(tube(0.3, 'x', (0, 0.17, EZ0 + 0.62 + RAIL_H / 2), holes=False), 'robot_alu')
 for x in (-0.13, 0.13):
     keep(box((0.012, 0.045, 0.075), (x + (0.019 if x < 0 else -0.019), 0.17, EZ0 + 0.04), bevel=0.001), 'robot_alu')
+# Chain drive up each outer rail: two strands + sprockets, so the second stage
+# reads driven rather than floating.
+for x in (-0.13, 0.13):
+    for dx in (-0.012, 0.012):
+        keep(box((0.008, 0.004, 0.52), (x + dx, 0.186, EZ0 + 0.35)), 'robot_black')
+    for z in (EZ0 + 0.09, EZ0 + 0.61):
+        keep(cyl(0.02, 0.006, (x, 0.186, z), axis='y', verts=16), 'robot_grey')
+        keep(cyl(0.006, 0.012, (x, 0.186, z), axis='y', verts=10), 'robot_alu')
 
 # Carriage: a pocketed plate on the second stage, carrying the roller intake.
 CZ = EZ0 + 0.46
@@ -433,9 +447,17 @@ for z in (CZ - 0.04, CZ + 0.05):
         keep(castellated(0.024, 0.0205, 6, 0.022, (x, CY - 0.07, z), 'x', hub=(0.009, 0.003)),
              'robot_orange', 'carriage')
 
-# Robot signal light on the elevator top.
-keep(box((0.036, 0.036, 0.05), (0.13, 0.17 - 0.03, EZ0 + 0.62 + RAIL_H + 0.027), bevel=0.008, seg=3),
-     'robot_rsl', 'rsl')
+# Robot signal light: a real tower light — base, amber dome — on the elevator
+# top, not a plain brick. Single robot_rsl material; the runtime blinks it.
+rsl_x, rsl_y, rsl_z = 0.13, 0.17 - 0.03, EZ0 + 0.62 + RAIL_H
+keep(cyl(0.019, 0.008, (rsl_x, rsl_y, rsl_z + 0.004), verts=16), 'robot_rsl', 'rsl')
+keep(cyl(0.015, 0.030, (rsl_x, rsl_y, rsl_z + 0.023), verts=16), 'robot_rsl', 'rsl')
+bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=0.015,
+                                     location=(rsl_x, rsl_y, rsl_z + 0.038))
+dome = bpy.context.object
+dome.scale = (1.0, 1.0, 0.75)
+lib.apply_transforms(dome)
+keep(dome, 'robot_rsl', 'rsl')
 
 # --------------------------------------------------------------------------- export
 
@@ -452,6 +474,9 @@ groups = []
 for name, objs in PARTS.items():
     if objs:
         groups.append(lib.join(objs, f'robot_{name}'))
+for o in groups:
+    lib.shade_auto(o, 32)
+    lib.uv_unwrap(o)
 lib.recentre(groups, 'base')
 for o in groups:
     print(f'  {o.name}: {lib.tri_count(o)} tris, {len(o.data.materials)} materials')
