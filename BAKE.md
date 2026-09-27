@@ -11,13 +11,17 @@ page is only about producing them.
 - This repo checked out on branch `ws/bake` (or whatever branch the bake lands on),
   at the commit whose `.blend` hashes you want recorded — the script hashes
   `blender/source/*.blend` into `manifest.json` so a stale bake is detectable.
-- Blender **5.0.x preferred, 5.2 LTS acceptable**. The script was developed against
-  Blender 5.0.1 (`~/.local/bin/blender`, Darwin). What matters is not matching 5.0.1
-  exactly but that **every state in a bake set is produced by the same Blender build**
-  — Cycles changes between versions shift the look slightly, and a set mixed across
-  versions would light one group differently from another. The version is recorded in
-  `manifest.json`; run the `neutral` smoke test first and look at it before committing
-  to the long states.
+- Blender **5.0.x–5.2.x LTS** (one build per bake set — do not mix versions
+  within a set), CLI on PATH as `blender` (the script was developed against
+  `~/.local/bin/blender`, Blender 5.0.1, Darwin; verified there and on the
+  bake-fix pass — see "API notes" below if it does not).
+- GPU strongly preferred, CPU works: `--device auto` (default) enables the best
+  available backend (OptiX, then CUDA, then HIP/Metal) and falls back to CPU
+  with a warning; `--device gpu|cpu` forces it. Works under
+  `blender --background --factory-startup`; no display needed. The chosen
+  device/backend is printed and recorded in `manifest.json` per state.
+- Disk: ~1.5 GB free for EXR masters (see "Output sizes"). The bake writes only
+  under the `outDir` you pass; it never touches `src/`, models, or materials.
 
 ## Commands
 
@@ -26,7 +30,7 @@ One state (production quality):
 ```sh
 blender --background --factory-startup \
   --python blender/scripts/bake_lighting.py -- \
-  day public/assets/lightmaps --samples 256 --res 1024
+  day public/assets/lightmaps --samples 256 --res 1024 --device auto
 ```
 
 All five states (the real run — takes hours, parallelize, see below):
@@ -35,7 +39,7 @@ All five states (the real run — takes hours, parallelize, see below):
 for s in day golden evening night neutral; do
   blender --background --factory-startup \
     --python blender/scripts/bake_lighting.py -- \
-    $s public/assets/lightmaps --samples 256 --res 1024
+    $s public/assets/lightmaps --samples 256 --res 1024 --device auto
 done
 ```
 
@@ -51,7 +55,7 @@ Re-bake a single group (resume / fix one blotchy object without redoing all):
 ```sh
 blender --background --factory-startup \
   --python blender/scripts/bake_lighting.py -- \
-  day public/assets/lightmaps --samples 256 --res 1024 --only chair
+  day public/assets/lightmaps --samples 256 --res 1024 --only chair --device auto
 ```
 
 Per-state runs merge into the same `manifest.json` (read-merge-write), so a
@@ -118,7 +122,10 @@ Full bake ≈ **~1.1 GB of EXR + ~20–100 MB of PNG**. See "What to commit".
 - ✅ `public/assets/lightmaps/<state>/*.png` + `public/assets/lightmaps/manifest.json`
 - ❌ Do **not** commit the `*.exr` masters (~1.1 GB). Archive them with the build
   (release artifact / shared drive) so the PNGs can be regenerated, but keep them
-  out of git.
+  out of git. They are ignored via `public/assets/lightmaps/**/*.exr` in
+  `.gitignore`. The manifest still records each EXR filename and byte size even
+  though the files themselves are not committed (same rule lives in
+  `HANDOFF-BAKE-MACHINE.md` on the bake branch).
 - ❌ `tmp/` is scratch (smoke tests). Never commit it.
 
 ## If something goes wrong
@@ -151,6 +158,15 @@ Full bake ≈ **~1.1 GB of EXR + ~20–100 MB of PNG**. See "What to commit".
 - Bake passes live on `scene.render.bake` (`use_pass_direct=False,
   use_pass_indirect=True, use_pass_color=False`); `scene.cycles` only carries
   `bake_type`. Margin lives on `scene.render.bake.margin`.
-- A float-buffer image cannot `save()` to PNG — the script writes EXR with
-  `save()` and the PNG preview with `save_render()` (display-referred). Keep it
-  that way: EXR is the master, PNG is the preview.
+- A float-buffer image cannot `save()` to PNG — the script writes the EXR
+  master with bare `img.save()` after setting `filepath_raw` to the absolute
+  path (`OPEN_EXR`, linear float) and the PNG preview with `save_render()`
+  (display-referred `PNG / 8-bit / RGB`). (Both `save(filepath=...)` and
+  `save_render()` were tried for EXR and write header-only files on 5.0.1 —
+  296–597 B for content that `save()` writes as 13–49 KB — so EXR stays on
+  bare `save()`.) It `mkdir`s the state dir first, uses absolute paths
+  throughout (Windows-safe, no `//`-relative, no mixed separators), and
+  stat-checks both files (missing or zero bytes raises, so Blender exits 1).
+  Keep it that way: EXR is the master, PNG is the preview.
+- Any Python exception prints the traceback and `sys.exit(1)` — Blender
+  otherwise exits 0 after a script error, which makes batch loops lie.
