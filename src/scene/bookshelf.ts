@@ -65,11 +65,35 @@ function bookAtlas(def: BookDef) {
   ctx.fillText(def.author, x0 + cw / 2, S * 0.76, cw - 44);
   ctx.globalAlpha = 1;
 
-  // Spine: same field, title running vertically.
+  // Spine: same field, title running vertically, with a faint cloth weave so spines
+  // read as cloth/paper at shelf distance rather than flat colour.
   const sx = SPINE_U[0] * S;
   const sw = (SPINE_U[1] - SPINE_U[0]) * S;
   ctx.fillStyle = def.color;
   ctx.fillRect(sx, 0, sw, S);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(sx, 0, sw, S);
+  ctx.clip();
+  ctx.globalAlpha = 0.14;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 1;
+  for (let yy = 0; yy < S; yy += 3) {
+    ctx.beginPath();
+    ctx.moveTo(sx, yy);
+    ctx.lineTo(sx + sw, yy);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 0.1;
+  ctx.strokeStyle = '#ffffff';
+  for (let xx = sx; xx < sx + sw; xx += 2) {
+    ctx.beginPath();
+    ctx.moveTo(xx, 0);
+    ctx.lineTo(xx, S);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
   ctx.fillStyle = def.accent;
   ctx.globalAlpha = 0.45;
   ctx.fillRect(sx + 4, 16, sw - 8, 2);

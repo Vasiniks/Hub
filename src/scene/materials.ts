@@ -144,27 +144,32 @@ export function createMaterials(surfaces: SurfaceTextures) {
     envMapIntensity: 0.5,
   });
   applySetFade(floor, { center: [-0.1, -0.4], radial: [2.3, 4.6] });
-  // Painted plaster: surface relief and roughness only — the paint colour stays the room's.
+  // Painted plaster: mottled albedo + relief + roughness — the paint colour stays the
+  // room's (diffuse = room colour × near-white albedo, so the tone is unchanged and only
+  // 3–4% luminance variation is added). Tile 1.6 m, no repeat visible at seated distance.
   const wall = standard({
     color: '#94969a',
+    map: surfaces.wallColor,
     roughness: 1.8,
     roughnessMap: surfaces.wallRough,
     normalMap: surfaces.wallNormal,
-    normalScale: new THREE.Vector2(0.35, 0.35),
+    normalScale: new THREE.Vector2(0.5, 0.5),
   });
   applySetFade(wall, { x: [2.3, 3.5], z: [0.55, 1.45], y: [2.7, 3.3] });
   projectMaps(wall, 1.6);
   const fabric = standard({
     color: '#24272c',
+    map: surfaces.fabricColor,
     roughness: 1.3,
     roughnessMap: surfaces.fabricRough,
     normalMap: surfaces.fabricNormal,
     normalScale: new THREE.Vector2(0.8, 0.8),
   });
   projectMaps(fabric, 0.09);
-  // The rug reuses the fabric scan at a coarser tile: pile texture for no extra download.
+  // The rug reuses the fabric scans at a coarser tile: pile texture for no extra download.
   const rug = standard({
     color: '#33363a',
+    map: surfaces.fabricColor,
     roughness: 1.35,
     roughnessMap: surfaces.fabricRough,
     normalMap: surfaces.fabricNormal,
@@ -172,14 +177,16 @@ export function createMaterials(surfaces: SurfaceTextures) {
   });
   projectMaps(rug, 0.22);
 
-  // The desk top is the largest light-catching surface in the seated frame: painted-wood
-  // relief + roughness, one tile per metre. The paint colour stays the room's.
+  // The desk top is the largest light-catching surface in the seated frame: laminate grain
+  // in the albedo (very low contrast, 3% variation) + relief + roughness, one tile per
+  // metre. The paint colour stays the room's (diffuse = room colour × near-white albedo).
   const deskWhite = standard({
     color: '#e9eaea',
+    map: surfaces.deskColor,
     roughness: 0.9,
     roughnessMap: surfaces.deskRough,
     normalMap: surfaces.deskNormal,
-    normalScale: new THREE.Vector2(0.35, 0.35),
+    normalScale: new THREE.Vector2(0.5, 0.5),
     metalness: 0,
     envMapIntensity: 0.55,
   });
@@ -187,10 +194,11 @@ export function createMaterials(surfaces: SurfaceTextures) {
   // Shelf carcass, desk rail: same white boards, same tile so the grain scale matches the desk.
   const deskEdge = standard({
     color: '#dcdee0',
+    map: surfaces.deskColor,
     roughness: 1.0,
     roughnessMap: surfaces.deskRough,
     normalMap: surfaces.deskNormal,
-    normalScale: new THREE.Vector2(0.3, 0.3),
+    normalScale: new THREE.Vector2(0.45, 0.45),
     metalness: 0,
   });
   projectMaps(deskEdge, 1.0);
@@ -198,18 +206,18 @@ export function createMaterials(surfaces: SurfaceTextures) {
   return {
     deskWhite,
     deskEdge,
-    /** Brushed steel: scanned roughness, metalness stays a scalar. */
-    steel: standard({ color: '#33373c', roughness: 0.9, roughnessMap: surfaces.metalRough, metalness: 0.82 }),
-    aluminum: standard({ color: '#b7bcc2', roughness: 0.64, roughnessMap: surfaces.metalRough, metalness: 1, envMapIntensity: 1 }),
-    aluminumDark: standard({ color: '#4c5157', roughness: 0.9, roughnessMap: surfaces.metalRough, metalness: 1 }),
-    /** Fine matte grain shared by every light plastic and keycap. */
-    plasticBlack: standard({ color: '#15171a', roughness: 1.3, roughnessMap: surfaces.plasticDarkRough }),
-    plasticGrey: standard({ color: '#555b62', roughness: 1.55, roughnessMap: surfaces.plasticDarkRough }),
-    plasticWhite: standard({ color: '#eceef0', roughness: 1.1, roughnessMap: surfaces.plasticRough, envMapIntensity: 0.45 }),
-    keycap: standard({ color: '#e7e9eb', roughness: 1.4, roughnessMap: surfaces.plasticRough }),
-    keycapAccent: standard({ color: '#cfd3d8', roughness: 1.45, roughnessMap: surfaces.plasticRough }),
-    binBlue: standard({ color: '#aebdc8', roughness: 1.6, roughnessMap: surfaces.plasticDarkRough, envMapIntensity: 0.4 }),
-    binWarm: standard({ color: '#c8c2b4', roughness: 1.75, roughnessMap: surfaces.plasticDarkRough, envMapIntensity: 0.4 }),
+    /** Brushed steel: scanned roughness + bump from the same scan, so the brushing catches the window. */
+    steel: standard({ color: '#33373c', roughness: 0.9, roughnessMap: surfaces.metalRough, bumpMap: surfaces.metalRough, bumpScale: 0.03, metalness: 0.82 }),
+    aluminum: standard({ color: '#b7bcc2', roughness: 0.64, roughnessMap: surfaces.metalRough, bumpMap: surfaces.metalRough, bumpScale: 0.03, metalness: 1, envMapIntensity: 1 }),
+    aluminumDark: standard({ color: '#4c5157', roughness: 0.9, roughnessMap: surfaces.metalRough, bumpMap: surfaces.metalRough, bumpScale: 0.03, metalness: 1 }),
+    /** Fine matte grain shared by every light plastic and keycap; bump reuses the same scan. */
+    plasticBlack: standard({ color: '#15171a', roughness: 1.3, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.04 }),
+    plasticGrey: standard({ color: '#555b62', roughness: 1.55, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.04 }),
+    plasticWhite: standard({ color: '#eceef0', roughness: 1.1, roughnessMap: surfaces.plasticRough, bumpMap: surfaces.plasticRough, bumpScale: 0.04, envMapIntensity: 0.45 }),
+    keycap: standard({ color: '#e7e9eb', roughness: 1.4, roughnessMap: surfaces.plasticRough, bumpMap: surfaces.plasticRough, bumpScale: 0.04 }),
+    keycapAccent: standard({ color: '#cfd3d8', roughness: 1.45, roughnessMap: surfaces.plasticRough, bumpMap: surfaces.plasticRough, bumpScale: 0.04 }),
+    binBlue: standard({ color: '#aebdc8', roughness: 1.6, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.04, envMapIntensity: 0.4 }),
+    binWarm: standard({ color: '#c8c2b4', roughness: 1.75, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.04, envMapIntensity: 0.4 }),
     pcbGreen: standard({ map: pcbTexture('#123322', 5), roughness: 0.42, metalness: 0.25 }),
     pcbBlue: standard({ map: pcbTexture('#11243c', 12), roughness: 0.42, metalness: 0.25 }),
     pcbBlack: standard({ map: pcbTexture('#14161a', 31), roughness: 0.46, metalness: 0.3 }),
@@ -221,7 +229,7 @@ export function createMaterials(surfaces: SurfaceTextures) {
     ribbonRed: standard({ color: '#7d2b2f', roughness: 0.88 }),
     ribbonGreen: standard({ color: '#2f5f48', roughness: 0.88 }),
     fabric,
-    rubber: standard({ color: '#0e0f11', roughness: 2.5, roughnessMap: surfaces.plasticDarkRough }),
+    rubber: standard({ color: '#0e0f11', roughness: 2.5, roughnessMap: surfaces.plasticDarkRough, bumpMap: surfaces.plasticDarkRough, bumpScale: 0.04 }),
     paper: standard({
       color: '#e8e6e0',
       roughness: 1.4,
@@ -230,7 +238,7 @@ export function createMaterials(surfaces: SurfaceTextures) {
       normalScale: new THREE.Vector2(0.5, 0.5),
     }),
     /** Glazed ceramic: whiter and far glossier than the room's plastics. Fine grain only. */
-    ceramic: standard({ color: '#f1f0ec', roughness: 0.45, roughnessMap: surfaces.plasticRough, envMapIntensity: 0.7 }),
+    ceramic: standard({ color: '#f1f0ec', roughness: 0.45, roughnessMap: surfaces.plasticRough, bumpMap: surfaces.plasticRough, bumpScale: 0.035, envMapIntensity: 0.7 }),
     cardboard: standard({
       map: surfaces.cardboardColor,
       // Tint lands the kraft scan back on the cardboard's established tone (scan #ba904d).
