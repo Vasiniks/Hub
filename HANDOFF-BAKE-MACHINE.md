@@ -52,8 +52,8 @@ path, or add it to PATH for the session. Below 5.0 or above 5.2, stop and report
 
 ```
 repo:     <this repository>
-branch:   bake/<date>            # created from main by the other machine; pull it, do not create it
-commit:   <filled in by the other machine when the branch is pushed>
+branch:   bake/20260927            # created from main; pull it, do not create or merge branches
+commit:   FILLED_BELOW
 states:   day, golden, evening, night, neutral
 command:  see BAKE.md
 output:   public/assets/lightmaps/<state>/*.exr + *.png, public/assets/lightmaps/manifest.json
