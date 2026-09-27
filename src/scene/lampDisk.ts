@@ -29,10 +29,10 @@ const FILTER_SAMPLES = 12;
 /** Largest blocker search radius, in shadow-map UV: occluders right at the diffuser cast no shadow worth finding. */
 const MAX_SEARCH_UV = 0.05;
 
-const lampDiskRadius = { value: 0.065 };
+const lampDiskRadius = { value: 0.04 };
 const lampBlockerMap: { value: THREE.Texture | null } = { value: null };
 /** near, far, tan(fov/2) of the shadow camera, and the disk radius. */
-const lampShadowParams = { value: new THREE.Vector4(0.1, 3, 0.5, 0.065) };
+const lampShadowParams = { value: new THREE.Vector4(0.1, 3, 0.5, 0.04) };
 
 export function installDiskLamp() {
   if (!diskLamp) return;
