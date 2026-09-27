@@ -573,12 +573,108 @@ def build_desk():
     return coll, [(desk, meta)]
 
 
+# --------------------------------------------------------------------------- SHELF
+# Local frame = the bookshelf carcass group frame in src/scene/bookshelf.ts: +x along the
+# wall, +z into the room, origin at the book-row level. Every plane below copies the code
+# it replaces (bottom-board top at y=0, top-board underside at 0.312, back/ends/brackets
+# clear of the book volume), so the slot geometry, row math and gesture springs are
+# untouched — the books never know the carcass changed.
+
+SHELF_DIMS = {'width': 0.74, 'depth': 0.2}
+
+SHELF_MATS = {
+    'shelf_board': ('#dcdee0', 0.65, 0.0),
+    'shelf_steel': ('#33373c', 0.4, 0.85),
+}
+
+
+def build_shelf():
+    # Shelf-local (x along wall, y up, z into room) -> Blender (x, -z, y), because the
+    # glTF export maps Blender (x, y, z) to Y-up (x, z, -y).
+    coll = new_collection('Shelf')
+    W, D = SHELF_DIMS['width'], SHELF_DIMS['depth']
+    MAT = {k: lib.material(k, lib.hex_rgb(c), roughness=r, metallic=m)
+           for k, (c, r, m) in SHELF_MATS.items()}
+    PARTS = []
+
+    def fin(bm, name, mat, smooth=40):
+        return finish(coll, PARTS, bm, name, MAT[mat], smooth)
+
+    def sbox(w, d, h, lx, ly, lz, bevel=0.0):
+        return box_bm(w, d, h, loc=(lx, -lz, ly), bevel=bevel)
+
+    def stube(r, p0, p1, verts=12):
+        f = lambda p: (p[0], -p[2], p[1])
+        return tube(r, f(p0), f(p1), verts=verts)
+
+    # ---- boards with a 3 mm edge break ----
+    fin(sbox(W, D, 0.022, 0, -0.011, -D / 2, bevel=0.003), 'shelf_bottom', 'shelf_board')
+    fin(sbox(W, D - 0.03, 0.02, 0, 0.322, -D / 2 - 0.012, bevel=0.003),
+        'shelf_top', 'shelf_board')
+    for s in (-1, 1):
+        fin(sbox(0.017, D, 0.38, s * (W / 2 + 0.0085), 0.155, -D / 2, bevel=0.004),
+            f'shelf_end_{"L" if s < 0 else "R"}', 'shelf_board')
+
+    # ---- back panel with 5 real vertical grooves ----
+    back_bm = sbox(W + 0.034, 0.009, 0.36, 0, 0.15, -D + 0.0045, bevel=0.002)
+    back = finish(coll, PARTS, back_bm, 'shelf_back_tmp', MAT['shelf_board'])
+    cutters = []
+    for i in range(5):
+        x = -(W - 0.10) / 2 + i * (W - 0.10) / 4
+        bpy.ops.mesh.primitive_cube_add(size=1.0, location=(x, D - 0.0045, 0.15))
+        c = bpy.context.object
+        c.scale = (0.004, 0.012, 0.34)
+        lib.apply_transforms(c)
+        cutters.append(c)
+    for c in cutters:
+        m = back.modifiers.new('groove', 'BOOLEAN')
+        m.operation = 'DIFFERENCE'
+        m.object = c
+        m.solver = 'EXACT'
+    lib.apply_modifiers(back)
+    lib.drop(cutters)
+    back.name = 'shelf_back'
+
+    # ---- folded-steel L brackets: wall plate + screws, arm, gusset ----
+    for s in (-1, 1):
+        bx = s * (W / 2 - 0.09)
+        br = bmesh.new()
+        join_bm(br, sbox(0.012, D - 0.03, 0.012, bx, -0.028, -D / 2, bevel=0.002))  # arm
+        join_bm(br, sbox(0.012, 0.030, 0.055, bx, -0.05, -0.03, bevel=0.002))  # drop plate
+        join_bm(br, sbox(0.016, 0.009, 0.075, bx, -0.05, -D + 0.009, bevel=0.002))  # wall plate
+        gus = sbox(0.010, 0.045, 0.045, bx, -0.038, -0.052, bevel=0.002)
+        bmesh.ops.rotate(gus, verts=gus.verts, cent=(bx, 0.052, -0.038),
+                         matrix=Matrix.Rotation(-math.pi / 4, 3, 'X'))
+        join_bm(br, gus)
+        for sy in (-0.072, -0.028):
+            join_bm(br, stube(0.004, (bx, sy, -D + 0.0135),
+                              (bx, sy, -D + 0.009), verts=10))  # screw heads
+        fin(br, f'shelf_bracket_{"L" if s < 0 else "R"}', 'shelf_steel')
+
+    # ---- LED channel rails under the top board (the code strip + light drop in) ----
+    for dz in (-0.050, -0.030):
+        fin(sbox(W - 0.06, 0.008, 0.006, 0, 0.309, dz, bevel=0.001),
+            f'shelf_channel_{"-" if dz < -0.04 else "+"}', 'shelf_steel')
+
+    for o in PARTS:
+        prep(o)
+    shelf = lib.join(PARTS, 'shelf')
+    lib.apply_transforms(shelf)
+    lo, hi = lib.world_bounds([shelf])
+    print(f'  shelf: {lib.tri_count(shelf)} tris, {len(shelf.data.materials)} materials, '
+          f'bounds {tuple(round(v, 3) for v in lo)} {tuple(round(v, 3) for v in hi)}')
+    meta = {'width': W, 'depth': D,
+            'origin': 'book-row level, +x along wall, +z into room',
+            'rowInset': 0.07}
+    return coll, [(shelf, meta)]
+
+
 # --------------------------------------------------------------------------- studio + export
 
 CAMERAS = {
     'chair': {'loc': (1.5, 1.9, 1.05), 'target': (0, 0, 0.55)},
     'desk': {'loc': (1.7, -1.7, 1.45), 'target': (0, 0.05, 0.42)},
-    'shelf': {'loc': (0.75, 0.35, 1.05), 'target': (0, 0.0, 0.10)},
+    'shelf': {'loc': (0.8, -1.05, 0.55), 'target': (0, 0.10, 0.08)},
     'trim': {'loc': (1.3, 1.7, 1.4), 'target': (-0.15, 1.5, -1.25)},
 }
 
@@ -638,7 +734,10 @@ def main():
     if ONLY in ('desk', 'all'):
         coll, meshes = build_desk()
         built['desk'] = meshes
-    if ONLY in ('shelf', 'trim') and ONLY != 'all':
+    if ONLY in ('shelf', 'all'):
+        coll, meshes = build_shelf()
+        built['shelf'] = meshes
+    if ONLY in ('trim',) and ONLY != 'all':
         print(f'  {ONLY} builder not added yet')
     setup_studio(list(built))
     os.makedirs(os.path.dirname(BLEND_OUT) or '.', exist_ok=True)

@@ -97,8 +97,29 @@ the same height, edge band + leg joinery + tray slots read. `furniture.blend` no
 here (this run built desk-only; the committed blend stays the chair one until the final
 all-groups run).
 
-## 3. Shelf
-(TODO)
+## 3. Shelf — done, committed
+
+Built in `build_furniture.py::build_shelf`. Local frame = the bookshelf group frame (+x along
+wall, +z into room); a mapping helper converts to Blender coords for the glTF Y-up export.
+Every plane copies `bookshelf.ts` exactly (bottom-board top y=0, top-board underside 0.312 /
+top 0.332, ends/back clear of the book volume), so row math, springs, gestures and the LED
+strip + RectAreaLight (still code, dropping into the new channel rails) are untouched.
+2 materials (`shelf_board/steel`) retinted to `deskEdge/steel`; `main.ts` loads `shelf.glb`.
+
+What it adds over rboxes: 3 mm edge breaks on all boards; back panel with 5 real boolean
+V-grooves; folded-steel L brackets with diagonal gusset, wall plate and 2 screw heads each
+(the old tabs floated mid-air — the new plates reach the back panel); LED channel rails the
+code strip sits between. UVMap + reserved Lightmap channel per part.
+
+Measured: **1144 tris**, 2 materials; bounds match the code planes. Files: source 92 KB →
+public 33 KB. Sidecar `shelf.json` (dims + rowInset).
+
+Verifies: `tsc` clean; shelf (enter/step/inspect/Esc ×2)/gesture(PASS)/books(PASS)/room/
+motion/ao-motion/a11y(PASS)/shelf-a11y all green, no console errors. Screenshots
+`tmp/shelf-new-shots/` (night: hover/enter/step/inspect) + `tmp/shelf-day/` (hour 13):
+books slot cleanly, presented book clears the row, grooves + brackets + channel read;
+the night-black presented cover is night lighting (daylight shows the cover fine; books
+are untouched code).
 
 ## 4. Room shell trim
 (TODO)
