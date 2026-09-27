@@ -9,18 +9,22 @@ headband peeks out at the top and bottom of the spine.
 
 The case is one U-shaped profile — back board, spine arc, front board, grooves included —
 extruded to height, so it is a single clean solid with no intersecting parts. The page block
-is a second profile. UVs are laid out here, per face corner, into the regions of the shelf's
-per-book atlas (cover, spine, page edges, and two swatches added for board edges and the
-headband), so every book is still one mesh and one draw call.
+is built as a stack of thin leaves with alternating micro-insets plus a seeded jitter, so the
+fore-edge carries real geometric page variation instead of texture lines alone. UVs are laid
+out here, per face corner, into the regions of the shelf's per-book atlas (cover, spine, page
+edges, and two swatches added for board edges and the headband), so every book is still one
+mesh and one draw call.
 
 Sizes vary per book. The runtime 9-slices this model: vertices within `slice` of a face keep
 their distance to it and only the interior stretches, so boards, squares and grooves stay the
 same real thickness on a 18 mm paperback-thin book and a 44 mm one. Written to the sidecar.
+Keep T/H/D, the slice margins and every atlas region stable: `bookshelf.ts` depends on them.
 """
 import bpy
 import bmesh
 import math
 import os
+import random
 import sys
 from mathutils import Vector
 
@@ -59,31 +63,42 @@ def lerp(r, k):
 
 def case_profile():
     j = S0 + JOINT
-    pts = [(t, F), (t, j + GW / 2), (t - GD, j + GW / 4), (t - GD, j - GW / 4), (t, j - GW / 2), (t, S0)]
+    ch = 0.0009  # fore-edge corner chamfer: boards are cut card, not razor extrusions
+    pts = [(t - ch, F), (t, F - ch), (t, j + GW / 2), (t - GD, j + GW / 4), (t - GD, j - GW / 4),
+           (t, j - GW / 2), (t, S0)]
     for s in range(1, ARC):
         a = math.pi * s / ARC
         pts.append((t * math.cos(a), S0 - BULGE * math.sin(a)))
-    pts += [(-t, S0), (-t, j - GW / 2), (-t + GD, j - GW / 4), (-t + GD, j + GW / 4), (-t, j + GW / 2),
-            (-t, F), (-t + BT, F), (-t + BT, S0)]
+    pts += [(-t, S0), (-t, j - GW / 2), (-t + GD, j - GW / 4), (-t + GD, j + GW / 4),
+            (-t, j + GW / 2), (-t, F - ch), (-t + ch, F), (-t + BT + ch, F),
+            (-t + BT, F - ch), (-t + BT, S0)]
     ib = BULGE - BT
     for s in range(ARC - 1, 0, -1):
         a = math.pi * s / ARC
         pts.append(((t - BT) * math.cos(a), S0 - ib * math.sin(a)))
-    pts += [(t - BT, S0), (t - BT, F)]
+    pts += [(t - BT, S0), (t - BT, F - ch), (t - BT + ch, F)]
     return pts
 
 
-def pages_profile():
-    p = t - BT - 0.0005
+LEAVES = 10  # page-block layers: real geometric page variation on the fore-edge
+
+
+def pages_outline(inset):
+    """Plan-view outline of the page block, pushed inward by `inset` metres."""
+    p = t - BT - 0.0005 - inset
     pts = []
     for s in range(0, ARC + 1):
         a = math.pi * s / ARC
         pts.append((p * math.cos(a), S0 + 0.0009 - 0.0006 * math.sin(a)))
     for s in range(0, 11):
         x = -p + 2 * p * s / 10
-        pts.append((x, F - OV - 0.0012 * (1 - (x / p) ** 2)))
+        pts.append((x, F - OV - inset - 0.0012 * (1 - (x / p) ** 2)))
     # The fore-edge's first and last samples duplicate the arc ends' x; nudge to keep it simple.
     return pts
+
+
+def pages_profile():
+    return pages_outline(0.0)
 
 
 def prism(bm, profile, z0, z1):
@@ -94,6 +109,24 @@ def prism(bm, profile, z0, z1):
         bm.faces.new((lo[i], lo[(i + 1) % n], hi[(i + 1) % n], hi[i]))
     bm.faces.new(list(reversed(lo)))
     bm.faces.new(hi)
+
+
+def leaves(bm, z0, z1, count):
+    """Stacked page leaves: alternating micro-insets + seeded jitter per leaf."""
+    rng = random.Random(4177)
+    rings = []
+    for l in range(count + 1):
+        z = z0 + (z1 - z0) * l / count
+        inset = 0.00012 * (1 if l % 2 == 0 else -1) + rng.uniform(-0.00005, 0.00005)
+        rings.append([bm.verts.new((x, y, z)) for x, y in pages_outline(inset)])
+    n = len(rings[0])
+    faces = []
+    for a_, b_ in zip(rings, rings[1:]):
+        for k in range(n):
+            faces.append(bm.faces.new((a_[k], a_[(k + 1) % n], b_[(k + 1) % n], b_[k])))
+    faces.append(bm.faces.new(list(reversed(rings[0]))))
+    faces.append(bm.faces.new(rings[-1]))
+    return faces
 
 
 def band(bm, z):
@@ -109,8 +142,7 @@ def band(bm, z):
 bm = bmesh.new()
 prism(bm, case_profile(), 0.0, H)
 case_faces = set(bm.faces)
-prism(bm, pages_profile(), OV, H - OV)
-page_faces = set(bm.faces) - case_faces
+page_faces = set(leaves(bm, OV, H - OV, LEAVES))
 before = set(bm.faces)
 band(bm, OV + 0.0006)
 band(bm, H - OV - 0.0006)
@@ -154,6 +186,8 @@ bm.free()
 obj = bpy.data.objects.new('book', me)
 bpy.context.collection.objects.link(obj)
 lib.shade_auto(obj, 40)
+# Atlas UVs above are the shelf's contract — keep them, only reserve Lightmap.
+lib.uv_unwrap(obj, redo_base=False)
 
 # Base on the shelf, centred in thickness and depth.
 lib.recentre([obj], 'base')
