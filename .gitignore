@@ -6,3 +6,7 @@ dist/
 
 # performance suite raw output
 perf/*.json
+
+# Lightmap EXR masters stay local (~1.1 GB): PNG previews + manifest.json
+# are committed, EXRs are archived off-git (see BAKE.md).
+public/assets/lightmaps/**/*.exr

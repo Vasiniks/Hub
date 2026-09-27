@@ -67,6 +67,62 @@
 - Full bake here: explicitly forbidden by the brief; only 32-spp/256-px smokes ran.
 - `tmp/bake-smoke/` outputs are scratch, not committed.
 
+## Bake-fix pass (this machine, Blender 5.0.1, M2 Pro, `ws/bake`)
+
+Fixes `.claude/briefs/bake-fix.md` items 1–5, verified by real smokes into
+`tmp/bake-fix-smoke/` (scratch, not committed):
+
+1. **Save path (the crash).** Root cause was a *relative* `filepath_raw`
+   (`public/...` + `os.path.join` → mixed `/` + `\` on Windows, resolved
+   against the unsaved factory-startup blend instead of cwd), so nothing was
+   on disk when `getsize()` ran. Now: `outDir` resolved once to an absolute
+   `Path`, state dir `mkdir`'d before the bake, `filepath_raw` absolute,
+   `save()` then `save_render()` for the PNG, both stat-checked (missing or
+   zero bytes raises). Tried `save(filepath=...)` and `save_render()` for the
+   EXR per the brief — both write header-only files on 5.0.1 (296–597 B for
+   content `save()` writes as 13–49 KB; `save(filepath=...)` additionally
+   leaves the image with "no image data"), so EXR stays on bare `save()`.
+2. **Windows paths.** Every output path via `pathlib.Path.resolve()`
+   (absolute, separator-consistent); absolute paths passed to both saves.
+3. **Exit code.** `main()` wrapped: any exception prints the traceback and
+   `sys.exit(1)` (verified: `NotADirectoryError` outDir → traceback,
+   Blender exit 1; unknown state → exit 1). Batch loops no longer see 0.
+4. **Cycles device.** `--device auto|gpu|cpu` (default `auto`): probes OptiX →
+   CUDA → HIP → METAL/ONEAPI via `get_device_types`, activates the GPUs,
+   sets `scene.cycles.device`, prints `CYCLES device: GPU via METAL: ...`,
+   falls back to CPU with a warning (`--device gpu` with no GPU raises).
+   Works under `--factory-startup`; recorded per state as `device` in the
+   manifest. This machine: `GPU/METAL` selected.
+5. **EXR question.** Decided: PNG previews + `manifest.json` committed, EXR
+   masters local. `.gitignore` gains `public/assets/lightmaps/**/*.exr`;
+   `BAKE.md` ("What to commit", prereqs, API notes) says it; the manifest
+   keeps recording each EXR filename + byte size. Note:
+   `HANDOFF-BAKE-MACHINE.md` (on `bake/20260927`, not on this branch — its
+   "output" and "Committing" lines still list `*.exr`) needs the same one-line
+   update where it lives; `BAKE.md` now points at it.
+
+Verification (wall clock measured, `--device auto` → METAL):
+
+- `neutral tmp/bake-fix-smoke --samples 16 --res 128 --only mug` — 89 s wall
+  (first run: kernel compile + 19-group assembly), EXR 199,070 B
+  (= 128²×3×4 + header ✓), PNG 34,319 B, PNG mean 98.0 grey, not black.
+- Same for `--only cube` — 5 s wall, EXR 199,070 B, PNG 35,566 B, mean 77.5.
+- Moderate (save path at size): `golden --samples 64 --res 256 --only mug`
+  — 7 s, EXR 790,942 B (= 256² EXR measured in the original smoke ✓), PNG
+  153,559 B, warm tint mean R137/G98/B71 vs neutral grey 98/98/98 (state
+  variation correct). Same for `cube` — 6 s, EXR 790,942 B, PNG 163,223 B,
+  mean R108/G82/B65. None uniformly black (PIL check).
+- Known limitation (pre-existing, unchanged): manifest merges per *state*,
+  so two `--only` runs into one outDir leave the last group's entry in that
+  state's list; both files remain on disk. Cross-state merge verified.
+
+Operator estimate: first group of a fresh process pays minutes of one-time
+kernel/assembly cost; steady-state ≈ 5–7 s per small group at 64 spp/256 px
+on this M2 Pro GPU. Production 256 spp/1024 px is ~32× pixels×samples over
+the moderate smoke — budget ~1–3 min per small group per state as before,
+unchanged by this fix (device auto/GPU is faster than the CPU the script
+silently used before).
+
 ## Left for the bake machine / next pass
 
 1. Run the real bake per `BAKE.md` (5 states × 19 groups, `--samples 256 --res 1024`).

@@ -10,10 +10,16 @@ manifest.json.
 Headless, re-runnable from scratch:
     ~/.local/bin/blender --background --factory-startup \\
         --python blender/scripts/bake_lighting.py -- \\
-        <state> <outDir> [--samples N] [--res N] [--only group] [--help]
+        <state> <outDir> [--samples N] [--res N] [--only group] \\
+        [--device auto|gpu|cpu] [--help]
 
     state:  day | golden | evening | night | neutral | all
     outDir: e.g. public/assets/lightmaps  (smoke test: tmp/bake-smoke)
+    --device auto (default): best GPU backend (OptiX, CUDA, HIP, METAL),
+      else CPU with a warning. All output paths are resolved absolute via
+      pathlib (filepath_raw + save_render get absolute paths); EXR master
+      via save() + PNG preview via save_render, both stat-checked (missing
+      or zero bytes raises) before the manifest.
 
 Examples:
     # Smoke test only (do NOT run a full bake on this machine):
@@ -85,6 +91,8 @@ import json
 import math
 import os
 import sys
+import traceback
+from pathlib import Path
 
 import bpy
 import mathutils
@@ -554,7 +562,68 @@ def file_hash(path):
     return h.hexdigest()[:12]
 
 
-def bake_state(state_name, out_dir, samples, res, only):
+def setup_cycles_device(preference):
+    """Select the Cycles compute device. Survives --factory-startup.
+
+    preference: 'auto' (default) | 'gpu' | 'cpu'.
+    Tries OptiX, then CUDA, then HIP, then METAL/ONEAPI; activates the
+    GPUs in preferences, sets scene.cycles.device, prints what is in use.
+    Falls back to CPU with a printed warning (auto/cpu). With 'gpu' and
+    no GPU backend available, raises RuntimeError.
+    Returns a short device string for the manifest/log.
+    """
+    scene = bpy.context.scene
+    if preference == "cpu":
+        scene.cycles.device = "CPU"
+        print("CYCLES device: CPU (forced --device cpu)")
+        return "CPU"
+    try:
+        prefs = bpy.context.preferences.addons["cycles"].preferences
+    except KeyError as err:
+        print(f"! cycles preferences unavailable ({err}), using CPU")
+        scene.cycles.device = "CPU"
+        return "CPU"
+    try:
+        available = {t[0] for t in prefs.get_device_types(bpy.context)}
+    except Exception:
+        available = {"OPTIX", "CUDA", "HIP", "METAL", "ONEAPI", "NONE"}
+    for backend in ("OPTIX", "CUDA", "HIP", "METAL", "ONEAPI"):
+        if backend not in available:
+            continue
+        try:
+            prefs.compute_device_type = backend
+            prefs.get_devices()
+        except Exception as err:
+            print(f"  - backend {backend} failed: {err}")
+            continue
+        gpus = [d for d in prefs.devices if d.type != "CPU"]
+        if not gpus:
+            print(f"  - backend {backend}: no GPU devices")
+            continue
+        for d in prefs.devices:
+            d.use = (d.type != "CPU")
+        scene.cycles.device = "GPU"
+        names = ", ".join(f"{d.name} ({d.type})" for d in prefs.devices if d.use)
+        print(f"CYCLES device: GPU via {backend}: {names}")
+        return f"GPU/{backend}"
+    msg = "no GPU backend available, falling back to CPU"
+    if preference == "gpu":
+        raise RuntimeError(f"--device gpu requested but {msg}")
+    print(f"! {msg}")
+    try:
+        scene.cycles.device = "CPU"
+    except Exception:
+        pass
+    try:
+        for d in prefs.devices:
+            if d.type == "CPU":
+                d.use = True
+    except Exception:
+        pass
+    return "CPU"
+
+
+def bake_state(state_name, out_dir, samples, res, only, device_label="CPU"):
     st = LIGHT_STATES[state_name]
     # Cycles setup
     scene = bpy.context.scene
@@ -594,8 +663,12 @@ def bake_state(state_name, out_dir, samples, res, only):
         if f.endswith(".blend"):
             blend_hashes[f] = file_hash(os.path.join(SOURCE_DIR, f))
 
-    state_dir = os.path.join(out_dir, state_name)
-    os.makedirs(state_dir, exist_ok=True)
+    # All output paths absolute via pathlib: Blender on Windows chokes on
+    # //-relative paths and mixed separators, so never pass it a relative
+    # path. Create the directory BEFORE the bake so save_render cannot fail
+    # on a missing folder.
+    state_dir = Path(out_dir).resolve() / state_name
+    state_dir.mkdir(parents=True, exist_ok=True)
     entries = []
     targets = [only] if only else [k for k, v in GROUPS.items() if v is not None]
     for name in targets:
@@ -626,18 +699,36 @@ def bake_state(state_name, out_dir, samples, res, only):
         except TypeError:
             # Blender 5 moved margin to scene.render.bake (set above).
             bpy.ops.object.bake(type="DIFFUSE", use_clear=True)
-        exr_path = os.path.join(state_dir, f"{name}.exr")
-        png_path = os.path.join(state_dir, f"{name}.png")
-        img.filepath_raw = exr_path
+        exr_path = state_dir / f"{name}.exr"
+        png_path = state_dir / f"{name}.png"
+        # Absolute paths for Blender (Windows-safe, no mixed separators,
+        # no //-relative): the bake-machine failure was a RELATIVE path in
+        # filepath_raw ('public/...\\neutral\\trim.exr', mixed separators),
+        # resolved against the unsaved factory-startup blend instead of cwd,
+        # so nothing was written before getsize() ran.
+        # NOTE (Blender 5.0.1 quirks, verified by smoke test): EXR must use
+        # bare img.save() with filepath_raw set -- save(filepath=...) writes
+        # a 296 B header-only file and leaves "no image data" behind, and
+        # save_render() writes header-only EXRs too (597 B for a 32 px grey
+        # test vs 13 KB via save). PNG preview uses save_render() (works).
+        exr_abs = str((state_dir.resolve() / f"{name}.exr").absolute())
+        png_abs = str((state_dir.resolve() / f"{name}.png").absolute())
+        # EXR master: linear float via save() to the absolute filepath.
+        # (Image.save_render() was tried for EXR: header-only files on 5.0.1.)
+        img.filepath_raw = exr_abs
         img.file_format = "OPEN_EXR"
         img.save()
+        if not exr_path.is_file() or exr_path.stat().st_size == 0:
+            raise RuntimeError(f"EXR save failed: {exr_abs} missing or empty")
         # Tone-safe PNG preview: display-referred 8-bit through the view
         # transform. A float buffer cannot save directly to PNG, so go
         # through save_render (EXR above stays the linear master).
         scene.render.image_settings.file_format = "PNG"
         scene.render.image_settings.color_depth = "8"
         scene.render.image_settings.color_mode = "RGB"
-        img.save_render(png_path)
+        img.save_render(png_abs)
+        if not png_path.is_file() or png_path.stat().st_size == 0:
+            raise RuntimeError(f"PNG save failed: {png_abs} missing or empty")
         lo, hi = world_bounds(meshes)
         ext = hi - lo
         tris = sum(sum(len(p.vertices) - 2 for p in m.data.polygons) for m in meshes)
@@ -654,10 +745,12 @@ def bake_state(state_name, out_dir, samples, res, only):
             "tris": tris,
             "bakeType": "DIFFUSE indirect-only (direct off, color off), denoised",
             "blenderVersion": bpy.app.version_string,
-            "files": {os.path.basename(exr_path): os.path.getsize(exr_path),
-                      os.path.basename(png_path): os.path.getsize(png_path)},
+            "device": device_label,
+            "files": {exr_path.name: exr_path.stat().st_size,
+                      png_path.name: png_path.stat().st_size},
         })
-        print(f"  SAVED {exr_path} + {png_path}")
+        print(f"  SAVED {exr_abs} ({exr_path.stat().st_size} B) + "
+              f"{png_abs} ({png_path.stat().st_size} B)")
     return entries, blend_hashes, light_note
 
 
@@ -671,7 +764,12 @@ def main():
     ap.add_argument("--samples", type=int, default=256)
     ap.add_argument("--res", type=int, default=1024)
     ap.add_argument("--only", default=None, help="bake a single group, e.g. mug")
+    ap.add_argument("--device", default="auto", choices=("auto", "gpu", "cpu"),
+                    help="Cycles device: auto (best GPU, else CPU), gpu, cpu")
     args = ap.parse_args(raw)
+    # Resolve outDir once so every downstream join is absolute and
+    # separator-consistent (Windows-safe, no mixed / and \\).
+    args.outDir = str(Path(args.outDir).resolve())
 
     if args.state == "all":
         states = ["day", "golden", "evening", "night", "neutral"]
@@ -681,6 +779,7 @@ def main():
         states = [args.state]
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    device_label = setup_cycles_device(args.device)
 
     # Assemble the whole room first (occluders matter even with --only).
     build_shell()
@@ -699,9 +798,10 @@ def main():
         except RuntimeError as err:
             print(f"  ! {name}: import failed, skipping ({err})")
 
-    manifest_path = os.path.join(args.outDir, "manifest.json")
+    manifest_path = str(Path(args.outDir).resolve() / "manifest.json")
+    Path(args.outDir).resolve().mkdir(parents=True, exist_ok=True)
     manifest = None
-    if os.path.exists(manifest_path):
+    if Path(manifest_path).exists():
         # Merge: per-state runs (or a resumed `all`) must not clobber states
         # baked by an earlier invocation into the same outDir.
         try:
@@ -719,14 +819,25 @@ def main():
                     "uvChannel": "Lightmap"}
     # Bake each state with its own lights (world/lights rebuilt per state).
     for s in states:
-        entries, hashes, note = bake_state(s, args.outDir, args.samples, args.res, args.only)
-        manifest["states"][s] = {"lights": note, "sourceBlendHashes": hashes,
+        entries, hashes, note = bake_state(s, args.outDir, args.samples,
+                                           args.res, args.only,
+                                           device_label=device_label)
+        manifest["states"][s] = {"lights": note, "device": device_label,
+                                 "sourceBlendHashes": hashes,
                                  "entries": entries}
         manifest["blenderVersion"] = bpy.app.version_string
-        os.makedirs(args.outDir, exist_ok=True)
+        Path(args.outDir).resolve().mkdir(parents=True, exist_ok=True)
         with open(manifest_path, "w") as f:
             json.dump(manifest, f, indent=2)
         print(f"MANIFEST {manifest_path} (state {s} done)")
 
 
-main()
+# Blender exits 0 even after a Python exception, which makes a batch loop
+# report every state as success. Fail loudly so the operator stops.
+try:
+    main()
+except SystemExit:
+    raise
+except Exception:
+    traceback.print_exc()
+    sys.exit(1)
