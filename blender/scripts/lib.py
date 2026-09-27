@@ -246,6 +246,43 @@ def tri_count(obj):
     return sum(len(p.vertices) - 2 for p in obj.data.polygons)
 
 
+def uv_unwrap(obj, method='SMART', angle_deg=66, island_margin=0.02):
+    """
+    UV unwrap into `UVMap` (material detail) and reserve an empty `Lightmap` channel
+    for a future lightmap bake, per the remodel convention.
+
+    Texel density is consistent within an object because every island comes from the
+    same projection settings; SMART project keeps hard-surface faces whole while
+    splitting only at sharp angles.
+    """
+    me = obj.data
+    if 'UVMap' not in me.uv_layers:
+        me.uv_layers.new(name='UVMap')
+    me.uv_layers.active = me.uv_layers['UVMap']
+    activate(obj)
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    try:
+        if method == 'SMART':
+            bpy.ops.uv.smart_project(angle_limit=math.radians(angle_deg),
+                                     island_margin=island_margin)
+        else:
+            bpy.ops.uv.cube_project(cube_size=1.0, correct_aspect=True,
+                                    clip_to_bounds=False, scale_to_bounds=False)
+    except RuntimeError as err:
+        print(f'  ! uv unwrap failed on {obj.name}: {err}')
+    bpy.ops.object.mode_set(mode='OBJECT')
+    if 'Lightmap' not in me.uv_layers:
+        me.uv_layers.new(name='Lightmap')
+    me.update()
+
+
+def unwrap_all(objs, method='SMART'):
+    for o in objs:
+        if o.type == 'MESH':
+            uv_unwrap(o, method=method)
+
+
 # --------------------------------------------------------------------------- materials
 
 
