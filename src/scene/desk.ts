@@ -241,6 +241,32 @@ function buildLamp(root: THREE.Group, m: Materials, assets: Assets): Omit<DeskRe
 }
 
 /**
+ * Woven ribbon: base colour with darker selvedge edges and a pale centre
+ * stripe, the way competition ribbons read at a glance.
+ */
+function ribbonTexture(base: THREE.Color) {
+  const c = document.createElement('canvas');
+  c.width = 64;
+  c.height = 16;
+  const ctx = c.getContext('2d')!;
+  const hex = `#${base.getHexString()}`;
+  ctx.fillStyle = hex;
+  ctx.fillRect(0, 0, 64, 16);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(0, 0, 7, 16);
+  ctx.fillRect(57, 0, 7, 16);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillRect(29, 0, 6, 16);
+  // Weave: faint horizontal ribbing so the strap is not a flat gradient.
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  for (let y = 0; y < 16; y += 2) ctx.fillRect(0, y, 64, 1);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+/**
  * §12: medals hung over the lamp's arm. Lengths, lean and facing all differ, so they read as
  * things that were dropped there rather than an arrangement.
  */
@@ -263,12 +289,18 @@ function buildMedals(lamp: THREE.Group, m: Materials, model: THREE.Object3D) {
     g.rotation.z = s.lean;
     g.rotation.y = s.turn;
 
+    // One woven material per ribbon colour: same response as the flat ribbon,
+    // with selvedge edges and a centre stripe in the map.
+    const woven = new THREE.MeshStandardMaterial({
+      map: ribbonTexture(ribbons[i].color),
+      roughness: 0.88,
+    });
     const bottom = -s.drop;
     for (const side of [-1, 1]) {
-      const strap = at(rbox(0.009, s.drop, 0.0016, ribbons[i], 0.0006), side * 0.011, bottom / 2, 0, g);
+      const strap = at(rbox(0.009, s.drop, 0.0016, woven, 0.0006), side * 0.011, bottom / 2, 0, g);
       strap.rotation.z = side * 0.05 + (r() - 0.5) * 0.04;
     }
-    at(rbox(0.026, 0.006, 0.0022, ribbons[i], 0.0008), 0, bottom + 0.004, 0, g);
+    at(rbox(0.026, 0.006, 0.0022, woven, 0.0008), 0, bottom + 0.004, 0, g);
     const ring = at(shadowed(new THREE.Mesh(new THREE.TorusGeometry(0.006, 0.0016, 6, 12), metals[i])), 0, bottom - 0.002, 0, g);
     ring.rotation.y = Math.PI / 2;
     const disc = at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.023, 0.023, 0.0035, 22), metals[i])), 0, bottom - 0.028, 0, g);
@@ -276,6 +308,9 @@ function buildMedals(lamp: THREE.Group, m: Materials, model: THREE.Object3D) {
     disc.rotation.z = (r() - 0.5) * 0.5;
     at(shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.0042, 22), metals[i])), 0, bottom - 0.028, 0.0004, g).rotation.x =
       Math.PI / 2;
+    // Reeded rim: a thin torus around the disc edge catches the lamp pool.
+    // (Torus and disc both face ±Z; no rotation needed.)
+    at(shadowed(new THREE.Mesh(new THREE.TorusGeometry(0.023, 0.0012, 6, 40), metals[i])), 0, bottom - 0.028, 0, g);
   });
 }
 
