@@ -136,3 +136,60 @@ turns), but it is what "lags" feels like — the GPU frame does not.
 - Env-cube 128 → 64 px if 120 Hz time-scrub misses matter. Measure first.
 - `startup-trace` cold outlier (4.1 s vs staged 1.1 s). Re-run cold/warm pair
   if startup regresses.
+
+---
+
+# Follow-up: the first-focus hitch (branch ws/perf, no code change)
+
+Brief: `focus-hitch.md`. Full evidence in `perf/LOG.md` § "Focus-hitch
+follow-up". Headed Chrome, production preview on 5190, hour 13 + 21.
+
+## Repro (deterministic loop, `tmp/focus-hitch-repro.mjs`)
+
+Fresh page + GL context per attempt: load → sit → hover `dev-board` →
+`perf.reset()` → click → 3 s window → max frame. Ten attempts per hour.
+
+- Headless uncapped: hour 13 min 23.9 / med 26.5 / max 59.7; hour 21
+  24.7 / 26.1 / 28.8. A later 30-run hunt: 14.2–27.5, med ~21, nothing over 60.
+- Headed (visitor condition): hour 13 max 10.3–11.7, hour 21 max 10.3–11.0,
+  **zero missed frames in all 20 attempts**; `real-chrome.mjs` 120 fps
+  everywhere, popup max 10.4/16.9 ms. The described hitch (40–550 ms, worst
+  2162 ms) does not reproduce — its earlier outliers also hit idle sweeps,
+  i.e. hot-machine tail, not focus-specific.
+
+## Cause, with evidence (all interleaved A/B)
+
+Focus med max 22.4 vs idle 11.4 (+11 ms); with `?ao=off`, +2.2 ms. The ~9 ms
+is the AO motion chain (half-res recompute every flight frame as fov sweeps
+54→45 and the eye travels 0.3–1 m, volumetric re-march, one full-res upgrade
+after arrival, one sun redraw per flight). Spike sits in the scene pass,
+CPU-blocked on GPU back-pressure (`uniformMatrix4fv`/program/draw), programs
+70→70. Rejected with numbers: first-only (first≈second over 8 pairs), GC
+(max 2.3 ms), BVH (same after trees built), panel (shelf, panel-less, hitches
+the same), outline (~1 ms), target choice, pre-click idle length, steady
+close-up cost (fence 8.8 vs 7.1 ms).
+
+## Fixes attempted, both reverted
+
+1. Arrival-pose warm-up in `warmUp` (brief's prescription). Late parking
+   (1 frame at the arrival view 0.8 s pre-click) halved the max (22→11 med),
+   view-specific, outline-independent — but loading-time rendering showed
+   zero benefit interleaved before/after (h13 22.3→22.0, h21 17.7→23.0).
+   The warmed driver/GPU residency is overwritten by calibration + sit +
+   idle before the click 7 s later. Reverted; bundle hash-identical.
+2. Fov tolerance 0.1° in AO `reusable()`. No benefit on max (10×/hour both
+   hours) — max is contention on recompute frames, not recompute count.
+   Reverted uncommitted.
+
+## Done state
+
+No code change (motion-path AO already optimal: half-res + reprojection +
+cache + single upgrade). Verifies on prod 5190 all green with no console
+errors (room, a11y, shelf, shelf-a11y, gesture, books, motion, ao-motion),
+`tsc` clean, `compile-watch 13` 70 programs then zero, startup-trace loader
+hidden 1671 ms with nothing over 16.8 ms after reveal, startup stages ready
+1029 ms. Diagnostic scripts kept in `./tmp/` (repro, bisect, dose, outlier
+hunt). Left: outlier hunt (`tmp/focus-outlier-hunt.mjs`) if the tail
+returns; quarter-res motion AO (needs visual sign-off); GPU-power-state
+forensics for the late-parking effect — loading-time warming is proven
+futile and post-reveal warming has no invisible slot.

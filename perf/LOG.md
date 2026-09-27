@@ -608,3 +608,102 @@ Retune needs design approval; not changed here.
 Same-build frozen-grain repeat on prod (13+21, 4 views): 0.11–0.35 mean —
 noise floor. All suites green on prod (room, a11y, shelf, shelf-a11y, gesture,
 books, motion, ao-motion), `tsc` clean.
+
+# Focus-hitch follow-up (ws/perf): measured, not fixed in code
+
+Brief: `.claude/briefs/focus-hitch.md`. Question: the first-focus hitch
+(40–550 ms, worst 2162 ms headed day, 8–10 missed frames, first-open only,
+CPU-bound render stage, zero new programs). Production preview on 5190,
+1728×1000 CSS at DPR 2 / pr 1.5 unless noted. Fresh page load per attempt
+(new page + GL context each time; one browser profile per session).
+
+## Repro: 10 loaded-fresh clicks per hour, dev-board
+
+`tmp/focus-hitch-repro.mjs`: load → sit → hover dev-board → `perf.reset()` →
+click → 3 s window → max frame. Headless uncapped (no vsync, frame time is
+cost) plus headed (vsync, missed frames).
+
+Headless, hour 13 (n=10): min 23.9 / median 26.5 / max 59.7 frame max;
+hour 21: 24.7 / 26.1 / 28.8. A 30-run hunt later (cool machine):
+14.2–27.5, median ~21, no outlier over 60 — the 100–2000 ms tail of the
+earlier sessions did not reproduce; it also hit idle sweeps, so it reads as
+hot-machine/thermal tail, not focus-specific.
+
+Headed (the visitor condition), hour 13 (n=10): frame max 10.3–11.7,
+median 10.4, **zero missed frames** in all 10; hour 21: 10.3–11.0, zero
+missed. `real-chrome.mjs` headed: 120–120.4 fps everywhere, popup open max
+10.4 (h13) / 16.9 (h21), 0 missed, cpu 1–1.9 ms. The hitch, as described,
+does not reproduce headed right now.
+
+## Bisection (all interleaved A/B in-session; headless unless noted)
+
+- **AO chain is the deterministic cost.** Focus med max 22.4 vs idle 11.4
+  (+11 ms). With `?ao=off`: focus 12.8 vs idle 10.6 (+2.2). So ~9 ms of the
+  max frame is AO half-res recompute every flight frame (fov sweeps 54→45,
+  eye translates 0.3–1 m) + volumetric re-march + one full-res upgrade after
+  arrival + one sun shadow redraw per flight. Per-pass CPU timing (temporary
+  instrumentation, reverted) put the spike in `MultisampleScenePass`
+  (scene render, 21–76 ms incl. GPU back-pressure); JS profiles show the
+  main thread blocked in `uniformMatrix4fv`/program/draw — back-pressure,
+  same signature as the baseline LOG.
+- **Not first-only.** First vs second click on the same page, 8 pairs:
+  medians identical (~20 vs ~20); either can be the larger. The "first-open
+  only" in the earlier report was small-sample intermittency.
+- **Programs stable** 70 → 70 on every click (both hours). Not a compile.
+- **GC rejected.** Trace during flight: 3 minor GCs, max 2.3 ms.
+- **BVH rejected.** Click after `pickingTrees()` resolved (104 geometries)
+  hitches the same as immediate (interleaved 8×2).
+- **Panel rejected.** Shelf focus (no panel) med 23 vs dev-board 26
+  (interleaved) — same hitch without any panel DOM.
+- **Outline ~1 ms.** Suppressed-outline A/B med 21.4 vs 22.7 base.
+- **Target-independent.** dev-board / notebooks / polyhedron all 14–24 ms;
+  frc-robot and parts-crate have no seated hit-position (behind the camera).
+- **Pre-click idle time flat.** 1 s vs 4 s vs 8 s idle before click: no
+  pattern (stale-baseline theory dead).
+- **Steady close-up is cheap.** Fence-timed arrival pose 8.8 ms vs seated
+  7.1 ms — the spike is transition-only, not view cost.
+
+## Attempted fixes, both reverted with numbers
+
+1. **Arrival-pose warm-up behind the loading bar** (the brief's prescription:
+   render each focus target's arrival pose at focusFov once in `warmUp`,
+   `focusPose()` helper extracted from `rig.focus`). Rationale: parking the
+   camera at the arrival view for 1–14 frames 0.8 s before click halved the
+   max (22 → 11 med, 6-round dose test; even 1 frame sufficed), view-specific
+   (3-frame elsewhere-park: no benefit), outline-independent. But served as
+   interleaved before/after (two builds, two servers, 10×/hour, rotating
+   order): hour 13 med 22.3 → 22.0 (−0.3, noise), hour 21 med 17.7 → 23.0
+   (+5, hotter later half). Loading-time rendering does not reproduce the
+   late-parking effect — the warmed state (driver/GPU residency, not
+   programs/textures/snapshots, all ruled out) is overwritten by
+   calibration + sit + idle before the click 7 s later. Reverted
+   (commit 477cae9 removed; bundle hash-identical to before).
+2. **Fov tolerance in AO reuse** (`reusable()`: exact `!==` → 0.1° tolerance,
+   so the sweeping lens reuses snapshots across 2–3 frames instead of
+   recomputing every frame). A/B 10×/hour: hour 13 med 21.8 → 22.9, hour 21
+   med 22.2 → 22.9 — no benefit. Max is set by contention on recompute
+   frames, not by recompute count. Reverted (uncommitted).
+
+## Standing conclusion (no code change)
+
+The deterministic focus cost (+11 ms headless max over idle) is the motion
+floor of the already-optimized AO path (half-res while moving, snapshot
+reprojection, cache, one upgrade) — the same cost any camera motion pays,
+with no safe cheap lever left (quarter-res motion AO would need visual
+sign-off for ~2 ms; freezing shafts/shadows during flight would visibly
+detach). The 40–2000 ms headed monsters are unreproducible thermal/background
+tails. Headed here and now: 120 fps, zero missed frames, popup max ≤17 ms.
+
+Left for follow-up: (a) if the tail returns, hunt it with
+`tmp/focus-outlier-hunt.mjs` (hires per-frame ao/shadow/program context,
+breaks on frameMax > 60); (b) quarter-res AO while moving, with
+mid-flight screenshot comparison; (c) the late-parking effect
+(`tmp/focus-clock-test.mjs`, `tmp/focus-dose1.mjs`) needs GPU-power-state
+forensics before any lazy-warming scheme — loading-time warming is proven
+futile, and post-reveal warming has no invisible slot.
+
+No-code-change verification on prod 5190: `tsc` clean; room, a11y, shelf,
+shelf-a11y, gesture (PASS one-book-per-gesture), books (PASS never-overlap),
+motion, ao-motion (PASS) all green, no console errors; `compile-watch 13`:
+70 programs after load, zero after; startup-trace: loader hidden 1671 ms,
+no frame over 16.8 ms after reveal.
