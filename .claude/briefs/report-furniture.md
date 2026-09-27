@@ -121,8 +121,28 @@ books slot cleanly, presented book clears the row, grooves + brackets + channel 
 the night-black presented cover is night lighting (daylight shows the cover fine; books
 are untouched code).
 
-## 4. Room shell trim
-(TODO)
+## 4. Room shell trim — done, committed
+
+Built in `build_furniture.py::build_trim`, authored in world coords (Blender (x,−z,y) mapping).
+Replaces the flat frame bars + sill + apron rboxes in `room.ts` with one `trim.glb` instance
+at the origin; floor disc, wall slabs and glass stay procedural. 3 materials
+(`trim_frame/sill/wall`) retinted to `windowFrame/sill/wall`; `main.ts` loads `trim.glb`.
+
+What it adds: stepped window bars with room-side glazing beads (same opening, so the code
+glass still fits); architrave casing on the room wall face; sill board with a real bullnose
+cylinder + apron with bead; reveal liners on left/right/top; skirting (board + cap) along
+all three walls, 1 mm proud. UVMap + reserved Lightmap channel per part.
+
+Measured: **1756 tris**. Files: source 148 KB → public 53 KB. Sidecar `trim.json` (window +
+glass opening, matches the code glass 2.25×1.71).
+
+Fix after looking: trim preview camera used world coords as Blender coords (inside the sill)
+— converted to Blender space.
+
+Verifies: `tsc` clean; room/shelf/gesture(PASS)/books(PASS)/motion/ao-motion/a11y(PASS)/
+shelf-a11y all green, no console errors. Screenshots `tmp/trim-new/` (h13/h21 all views, no
+z-fight, no white band) + `tmp/trim-detail/` (sill nose highlight, skirting board + cap line,
+layered reveal liner/frame/glass).
 
 ## Final numbers
 (TODO)

@@ -669,13 +669,113 @@ def build_shelf():
     return coll, [(shelf, meta)]
 
 
+# --------------------------------------------------------------------------- TRIM
+# Room-shell trim in WORLD coords (Blender (x, -z, y) maps to Y-up (x, y, z) on export):
+# stepped window frame + glazing beads, architrave casing, bullnose sill + beaded apron,
+# reveal liners with a shadow gap, skirting along all three walls. Floor disc, wall slabs
+# and glass stay procedural (set-fade shader, tiled PBR, image-lighting glass) — the trim
+# only replaces the flat bars. All planes copy src/scene/room.ts buildShell + layout ROOM.
+
+TRIM_MATS = {
+    'trim_frame': ('#23262a', 0.5, 0.55),
+    'trim_sill': ('#dcdedf', 0.56, 0.0),
+    'trim_wall': ('#94969a', 0.9, 0.0),
+}
+
+ROOM_DIMS = {'wallZ': -1.3, 'wallDepth': 0.24, 'x0': -1.32, 'x1': 1.02, 'y0': 0.7, 'y1': 2.5,
+             'frameInset': 0.11, 'leftFace': -1.78, 'rightFace': 1.66}
+
+
+def build_trim():
+    coll = new_collection('Trim')
+    wz, wd = ROOM_DIMS['wallZ'], ROOM_DIMS['wallDepth']
+    x0, x1, y0, y1 = (ROOM_DIMS[k] for k in ('x0', 'x1', 'y0', 'y1'))
+    fz = wz - ROOM_DIMS['frameInset']
+    W, H = x1 - x0, y1 - y0
+    fx, fy = (x0 + x1) / 2, (y0 + y1) / 2
+    t = 0.045
+    MAT = {k: lib.material(k, lib.hex_rgb(c), roughness=r, metallic=m)
+           for k, (c, r, m) in TRIM_MATS.items()}
+    PARTS = []
+
+    def fin(bm, name, mat, smooth=40):
+        return finish(coll, PARTS, bm, name, MAT[mat], smooth)
+
+    # ---- window frame: stepped bars (main + room-side glazing bead) ----
+    def bar(w, h, x, y, bead=True):
+        fin(box_bm(w, 0.06, h, loc=(x, -fz, y), bevel=0.003), f'trim_frame_{x:.2f}_{y:.2f}',
+            'trim_frame')
+        if bead:
+            fin(box_bm(w - 0.012 if w > h else 0.012, 0.014,
+                       (h - 0.012) if w > h else h, loc=(x, -(fz + 0.032), y), bevel=0.002),
+                f'trim_bead_{x:.2f}_{y:.2f}', 'trim_frame')
+    bar(W, t, fx, y0 + t / 2)
+    bar(W, t, fx, y1 - t / 2)
+    bar(t, H, x0 + t / 2, fy)
+    bar(t, H, x1 - t / 2, fy)
+    bar(t * 0.7, H - t * 2, fx, fy)
+    bar(W - t * 2, t * 0.7, fx, y1 - 0.46)
+
+    # ---- architrave casing: flat band + stepped inner band, on the room wall face ----
+    cw, cz = 0.095, wz + 0.007
+    for cx, cy, w, h in ((fx, y1 + cw / 2, W + 2 * cw, cw), (fx, y0 - cw / 2, W + 2 * cw, cw),
+                         (x0 - cw / 2, fy, cw, H), (x1 + cw / 2, fy, cw, H)):
+        fin(box_bm(w, 0.014, h, loc=(cx, -cz, cy), bevel=0.002),
+            f'trim_case_{cx:.2f}_{cy:.2f}', 'trim_wall')
+
+    # ---- sill: board + bullnose + apron with bead ----
+    fin(box_bm(W + 0.16, 0.30, 0.038, loc=(fx, -(wz - 0.06), y0 - 0.019), bevel=0.004),
+        'trim_sill', 'trim_sill')
+    nose = bmesh.new()
+    ret = bmesh.ops.create_cone(nose, cap_ends=True, segments=20, radius1=0.019,
+                                radius2=0.019, depth=W + 0.16)
+    bmesh.ops.transform(nose, verts=ret['verts'],
+                        matrix=Matrix.Translation((fx, -(wz - 0.06) + 0.15, y0 - 0.019)) @
+                        Matrix.Rotation(math.pi / 2, 4, 'Y'))
+    fin(nose, 'trim_nose', 'trim_sill')
+    fin(box_bm(W + 0.06, 0.03, 0.045, loc=(fx, -(wz + 0.085), y0 - 0.058), bevel=0.003),
+        'trim_apron', 'trim_sill')
+    fin(box_bm(W + 0.06, 0.012, 0.012, loc=(fx, -(wz + 0.085) + 0.012, y0 - 0.040), bevel=0.002),
+        'trim_apron_bead', 'trim_sill')
+
+    # ---- reveal liners (left/right/top) with a recessed shadow gap at the room edge ----
+    for lx, lw in ((x0, 0.012), (x1, 0.012)):
+        fin(box_bm(lw, wd, H, loc=(lx, -(wz - wd / 2), fy), bevel=0.002),
+            f'trim_reveal_{lx:.2f}', 'trim_wall')
+    fin(box_bm(W, wd, 0.012, loc=(fx, -(wz - wd / 2), y1), bevel=0.002), 'trim_reveal_top',
+        'trim_wall')
+
+    # ---- skirting: main board + cap, 1 mm proud of each wall face ----
+    def skirt(length, x, z, along_x=True):
+        w, d = (length, 0.015) if along_x else (0.015, length)
+        fin(box_bm(w, d, 0.09, loc=(x, -z, 0.045), bevel=0.002), f'trim_skirt_{x:.2f}_{z:.2f}',
+            'trim_wall')
+        fin(box_bm(w if along_x else 0.020, d if not along_x else 0.020, 0.014,
+                   loc=(x, -z, 0.083), bevel=0.002), f'trim_skirtcap_{x:.2f}_{z:.2f}',
+            'trim_wall')
+    skirt(3.0, ROOM_DIMS['leftFace'] + 0.0075, -0.1, along_x=False)
+    skirt(3.0, ROOM_DIMS['rightFace'] - 0.0075, -0.1, along_x=False)
+    skirt(6.8, 1.0, wz + 0.0075, along_x=True)
+
+    for o in PARTS:
+        prep(o)
+    trim = lib.join(PARTS, 'trim')
+    lib.apply_transforms(trim)
+    lo, hi = lib.world_bounds([trim])
+    print(f'  trim: {lib.tri_count(trim)} tris, {len(trim.data.materials)} materials, '
+          f'bounds {tuple(round(v, 3) for v in lo)} {tuple(round(v, 3) for v in hi)}')
+    meta = {'window': [x0, x1, y0, y1], 'origin': 'world coords',
+            'glassOpening': [round(W - 2 * t, 4), round(H - 2 * t, 4)]}
+    return coll, [(trim, meta)]
+
+
 # --------------------------------------------------------------------------- studio + export
 
 CAMERAS = {
     'chair': {'loc': (1.5, 1.9, 1.05), 'target': (0, 0, 0.55)},
     'desk': {'loc': (1.7, -1.7, 1.45), 'target': (0, 0.05, 0.42)},
     'shelf': {'loc': (0.8, -1.05, 0.55), 'target': (0, 0.10, 0.08)},
-    'trim': {'loc': (1.3, 1.7, 1.4), 'target': (-0.15, 1.5, -1.25)},
+    'trim': {'loc': (1.3, -1.4, 1.7), 'target': (-0.15, 1.25, 1.5)},
 }
 
 
@@ -737,8 +837,9 @@ def main():
     if ONLY in ('shelf', 'all'):
         coll, meshes = build_shelf()
         built['shelf'] = meshes
-    if ONLY in ('trim',) and ONLY != 'all':
-        print(f'  {ONLY} builder not added yet')
+    if ONLY in ('trim', 'all'):
+        coll, meshes = build_trim()
+        built['trim'] = meshes
     setup_studio(list(built))
     os.makedirs(os.path.dirname(BLEND_OUT) or '.', exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=BLEND_OUT)

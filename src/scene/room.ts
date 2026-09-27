@@ -29,8 +29,20 @@ export interface RoomRefs extends DeskRefs {
  * §8: the window sits directly in front of the monitor, in the wall the desk faces.
  * The wall is thick, so the opening has a real reveal that catches raking light, and it runs
  * on well past the set so the exterior is only ever seen through the glass.
+ *
+ * Frame, casing, sill, apron, reveal liners and skirting come from
+ * `assets/processed/trim.glb` (`blender/scripts/build_furniture.py`) — stepped bars with
+ * glazing beads, architrave casing, bullnose sill — in ROOM dimensions exactly. Floor, wall
+ * slabs and glass stay procedural (set-fade, tiled PBR, image-lighting glass).
  */
-function buildShell(root: THREE.Group, m: Materials) {
+function buildShell(root: THREE.Group, m: Materials, assets: Assets) {
+  const trim = assets.instance('trim');
+  assets.retint(trim, { trim_frame: m.windowFrame, trim_sill: m.sill, trim_wall: m.wall });
+  trim.traverse((o) => {
+    if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;
+  });
+  root.add(trim);
+
   const floor = new THREE.Mesh(new THREE.CircleGeometry(ROOM.floorRadius, 56), m.floor);
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
@@ -56,21 +68,15 @@ function buildShell(root: THREE.Group, m: Materials) {
   at(rbox(ROOM.leftWallThickness, wallTop, 3.0, m.wall, 0.004), ROOM.leftWallX, wallTop / 2, -0.1, root);
   at(rbox(ROOM.leftWallThickness, wallTop, 3.0, m.wall, 0.004), ROOM.rightWallX, wallTop / 2, -0.1, root);
 
-  // Frame: slim bars at mid-reveal with one mullion and one transom, so the opening reads
-  // as a window rather than as a hole, and throws a recognisable shadow across the desk.
+  // Frame: stepped bars with glazing beads, one mullion and one transom (in trim.glb),
+  // so the opening reads as a window rather than as a hole, and throws a recognisable
+  // shadow across the desk.
   const W = win.x1 - win.x0;
   const H = win.y1 - win.y0;
   const fx = (win.x0 + win.x1) / 2;
   const fy = (win.y0 + win.y1) / 2;
   const fz = wallZ - ROOM.frameInset;
   const t = 0.045;
-  const bar = (w: number, h: number, x: number, y: number) => at(rbox(w, h, 0.06, m.windowFrame, 0.004), x, y, fz, root);
-  bar(W, t, fx, win.y0 + t / 2);
-  bar(W, t, fx, win.y1 - t / 2);
-  bar(t, H, win.x0 + t / 2, fy);
-  bar(t, H, win.x1 - t / 2, fy);
-  bar(t * 0.7, H - t * 2, fx, fy);
-  bar(W - t * 2, t * 0.7, fx, win.y1 - 0.46);
 
   const glass = new THREE.Mesh(new THREE.PlaneGeometry(W - t * 2, H - t * 2), m.windowGlass);
   glass.position.set(fx, fy, fz + 0.012);
@@ -79,11 +85,7 @@ function buildShell(root: THREE.Group, m: Materials) {
   glass.renderOrder = 2;
   root.add(glass);
 
-  // Sill: a board capping the wall under the opening, running the full reveal depth and
-  // projecting a nose into the room. Its top face is the window's bottom edge exactly.
-  at(rbox(W + 0.16, 0.038, 0.3, m.sill, 0.006), fx, win.y0 - 0.019, wallZ - 0.06, root);
-  // Apron tucked under the nose, overlapping it so there is no coincident face.
-  at(rbox(W + 0.06, 0.045, 0.03, m.sill, 0.004), fx, win.y0 - 0.058, wallZ + 0.085, root);
+  // Sill board + bullnose + beaded apron live in trim.glb (same planes as the old rboxes).
 
   return { windowGlass: glass, windowCenter: new THREE.Vector3(fx, fy, wallZ), windowSize: new THREE.Vector2(W, H) };
 }
@@ -114,7 +116,7 @@ export function buildRoom(m: Materials, reducedMotion: boolean, assets: Assets):
   const root = new THREE.Group();
   root.name = 'room';
 
-  const shell = buildShell(root, m);
+  const shell = buildShell(root, m, assets);
   const desk = buildDeskSet(root, m, assets);
   const shelf = createBookshelf(root, m, reducedMotion, assets);
 
