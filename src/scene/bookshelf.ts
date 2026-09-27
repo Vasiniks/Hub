@@ -219,20 +219,17 @@ export function createBookshelf(root: THREE.Group, m: Materials, reducedMotion: 
   // Local +x runs along the wall, local +z points into the room.
   group.rotation.y = Math.PI / 2;
 
+  // Carcass from `assets/processed/shelf.glb` (`blender/scripts/build_furniture.py`):
+  // boards with a real edge break, grooved back panel, folded-steel L brackets with
+  // gussets + screws, and the LED channel the strip drops into — in SHELF dims exactly.
   const W = SHELF.width;
   const D = SHELF.depth;
-  const carcass = at(new THREE.Group(), 0, 0, 0, group);
-
-  // A real wall unit: browsing board, a board above, ends, back, and visible brackets.
-  at(rbox(W, 0.022, D, m.deskEdge, 0.003), 0, -0.011, -D / 2, carcass);
-  at(rbox(W, 0.02, D - 0.03, m.deskEdge, 0.003), 0, 0.322, -D / 2 - 0.012, carcass);
-  for (const s of [-1, 1]) at(rbox(0.017, 0.38, D, m.deskEdge, 0.003), s * (W / 2 + 0.0085), 0.155, -D / 2, carcass);
-  at(rbox(W + 0.034, 0.36, 0.009, m.wall, 0.002), 0, 0.15, -D + 0.0045, carcass);
-  for (const s of [-1, 1]) {
-    const bx = s * (W / 2 - 0.09);
-    at(rbox(0.012, 0.055, 0.03, m.steel, 0.002), bx, -0.05, -0.03, carcass);
-    at(rbox(0.012, 0.012, D - 0.03, m.steel, 0.002), bx, -0.028, -D / 2, carcass);
-  }
+  const carcass = assets.instance('shelf');
+  assets.retint(carcass, { shelf_board: m.deskEdge, shelf_steel: m.steel });
+  carcass.traverse((o) => {
+    if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;
+  });
+  group.add(carcass);
 
   // Under-shelf strip: the reason this corner is legible at night, and a fixture a person
   // with a workbench would actually have.

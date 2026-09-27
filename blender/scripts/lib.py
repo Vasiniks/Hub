@@ -207,6 +207,54 @@ def shade_auto(obj, angle_deg=32):
             obj.data.auto_smooth_angle = math.radians(angle_deg)
 
 
+def uv_unwrap(obj, angle_deg=66, margin=0.02):
+    """
+    Non-overlapping UVs for material detail today and a lightmap bake tomorrow.
+    Runs after modifiers are applied.
+
+    Headless background Blender has no image-editor context, so smart_project's poll
+    fails there (build_lamp.py already try/excepts around the same call). Fall back to
+    a deterministic per-face cube projection: the runtime projects its PBR maps in
+    object space anyway (textures.ts projectMaps), so these UVs only need to exist and
+    be sane until an interactive session does the bake unwrap.
+    """
+    activate(obj)
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    try:
+        bpy.ops.uv.smart_project(angle_limit=math.radians(angle_deg), island_margin=margin)
+    except (RuntimeError, TypeError):
+        me = obj.data
+        bm = bmesh.from_edit_mesh(me)
+        uv = bm.loops.layers.uv.verify()
+        for face in bm.faces:
+            n = face.normal
+            ax = max(range(3), key=lambda i: abs(n[i]))
+            uvw = [c for i, c in enumerate(face.calc_center_median()) if i != ax]
+            for loop in face.loops:
+                co = loop.vert.co
+                loop[uv].uv = (co[(ax + 1) % 3], co[(ax + 2) % 3])
+        bmesh.update_edit_mesh(me)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    me = obj.data
+    if me.uv_layers:
+        me.uv_layers.active.name = 'UVMap'
+
+
+def add_lightmap_uv(obj):
+    """
+    Reserve a second UV channel for a future lightmap bake. A copy of the material UVs,
+    so the bake has somewhere to land without touching the material parameterisation.
+    """
+    me = obj.data
+    src = me.uv_layers.get('UVMap') or (me.uv_layers[0] if me.uv_layers else None)
+    if src is None:
+        return
+    dst = me.uv_layers.get('Lightmap') or me.uv_layers.new(name='Lightmap')
+    for src_loop, dst_loop in zip(src.data, dst.data):
+        dst_loop.uv = (src_loop.uv[0], src_loop.uv[1])
+
+
 def bevel(obj, width=0.0012, segments=2, angle_deg=40, clamp=True):
     """A real bevel modifier. This is the single biggest reason Blender geometry reads better
     than primitive composition: every hard edge catches a highlight."""
