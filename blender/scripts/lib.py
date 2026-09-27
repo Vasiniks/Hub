@@ -297,6 +297,51 @@ def hex_rgb(h):
     return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in srgb)
 
 
+# --------------------------------------------------------------------------- uvs
+
+def uv_unwrap(obj, method='SMART_PROJECT', margin=0.015, angle=66, redo_base=True):
+    """
+    Give a mesh clean non-overlapping UVs plus a reserved second channel.
+
+    `UVMap` carries material detail; `Lightmap` is reserved for a future lighting bake
+    (remodel convention: every object ships both, texel density consistent within the
+    object via the angle-based unwrapper's own normalisation). Smart-project keeps
+    islands for bevelled hard-surface parts without hand-seaming every prop.
+    `redo_base=False` keeps an existing parameterisation (e.g. a curve tube's clean
+    wrap) and only fills the `Lightmap` channel.
+    """
+    activate(obj)
+    me = obj.data
+    base_missing = 'UVMap' not in me.uv_layers
+    if base_missing:
+        me.uv_layers.new(name='UVMap')
+    if 'Lightmap' not in me.uv_layers:
+        me.uv_layers.new(name='Lightmap')
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    jobs = []
+    if redo_base or base_missing:
+        jobs.append(('UVMap', margin))
+    jobs.append(('Lightmap', margin * 2.5))
+    for name, m in jobs:
+        me.uv_layers.active = me.uv_layers[name]
+        if method == 'SMART_PROJECT':
+            bpy.ops.uv.smart_project(angle_limit=math.radians(angle), island_margin=m,
+                                     area_weight=0.0, correct_aspect=True,
+                                     scale_to_bounds=False)
+        else:
+            bpy.ops.uv.cube_project(cube_size=1.0, correct_aspect=True,
+                                    clip_to_bounds=False, scale_to_bounds=True)
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+
+def finish(obj, smooth_angle=35, uv_method='SMART_PROJECT'):
+    """The tail of every prop build: shade, unwrap (both channels), report."""
+    shade_auto(obj, smooth_angle)
+    uv_unwrap(obj, method=uv_method)
+    return tri_count(obj)
+
+
 # --------------------------------------------------------------------------- export
 
 

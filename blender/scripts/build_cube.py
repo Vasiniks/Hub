@@ -31,11 +31,14 @@ OUT = lib.argv()[0]
 
 SIZE = 0.056                  # a 3x3 speedcube is 55-56 mm across
 CUBIE = SIZE / 3
-GAP = 0.0014                  # the seam between adjacent pieces
+GAP = 0.0018                  # the seam between adjacent pieces (reads at desk distance)
 BODY = CUBIE - GAP
-BEVEL = 0.0017                # the corner radius that is most of the GAN silhouette
+BEVEL = 0.0019                # the corner radius that is most of the GAN silhouette
+BEVEL_SEG = 3                 # smoother highlight rollover on the radius
 GROOVE_W = 0.0008             # the moulding line inset from each face's edge
-GROOVE_D = 0.00018
+GROOVE_D = 0.00022
+CAP_R = 0.0065                # centre-cap ring: every GAN face centre carries one
+CAP_D = 0.0004
 U_TURN = math.radians(31)     # the U layer, caught mid-turn
 PILLOW = 0.028
 
@@ -73,7 +76,7 @@ def layer(indices):
         verts = ret['verts']
         edges = [e for e in {e for v in verts for e in v.link_edges}
                  if all(x in verts for x in e.verts)]
-        bmesh.ops.bevel(bm, geom=edges, offset=BEVEL, segments=2, affect='EDGES',
+        bmesh.ops.bevel(bm, geom=edges, offset=BEVEL, segments=BEVEL_SEG, affect='EDGES',
                         profile=0.5, clamp_overlap=True)
         # Bevel first. Insetting first leaves a groove ring only GROOVE_W wide beside each
         # original edge, and clamp_overlap then shrinks the bevel to fit it — which is how the
@@ -138,9 +141,30 @@ def to_object(bm, name):
 
 body = lib.join([to_object(low, 'speedcube'), to_object(top, 'speedcube_top')], 'speedcube')
 
+# Centre-cap rings: a shallow circular groove on each face centre, the way a GAN
+# centre cap sits in its tile. Cut before pillowing so the rings follow the dome.
+lib.activate(body)
+cutters = []
+for d in DIRS:
+    dv = Vector(d)
+    loc = dv * (SIZE / 2 + 0.0002)
+    rot = (0, 0, 0) if abs(dv.z) > 0.5 else (0, math.pi / 2, 0) if abs(dv.x) > 0.5 else (math.pi / 2, 0, 0)
+    bpy.ops.mesh.primitive_torus_add(major_radius=CAP_R, minor_radius=CAP_D,
+                                     major_segments=24, minor_segments=6,
+                                     location=loc, rotation=rot)
+    cutters.append(bpy.context.object)
+for c in cutters:
+    m = body.modifiers.new('capcut', 'BOOLEAN')
+    m.operation = 'DIFFERENCE'
+    m.object = c
+    m.solver = 'EXACT'
+lib.apply_modifiers(body)
+lib.drop(cutters)
+
 # Pillow before recentring, so the sphere it pushes toward is the cube's own centre.
 lib.pillow([body], SIZE * 0.86, PILLOW)
 lib.shade_auto(body, 30)
+lib.uv_unwrap(body)
 lib.recentre([body], 'base')
 
 print(f'  {body.name}: {lib.tri_count(body)} tris')
