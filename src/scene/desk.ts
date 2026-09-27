@@ -193,9 +193,10 @@ function buildMouse(root: THREE.Group, m: Materials, assets: Assets) {
  * §12: the lamp.
  *
  * Geometry comes from `assets/processed/lamp.glb`, built by `blender/scripts/build_lamp.py`
- * from a CC0 Poly Haven spring arm whose cone shade and desk clamp are replaced by a flat
- * circular head and a weighted base. A spring arm with real knuckles and tension rods is not
- * worth approximating with cylinders, which is the whole reason the pipeline exists.
+ * from the owner-supplied STL (twin bars, round base, ball joint) with a remodelled flat
+ * blade head (300x80mm LED bar, diffuser underside) and a weighted base. A twin-bar arm
+ * with real knuckles is not worth approximating with cylinders, which is the whole reason
+ * the pipeline exists.
  *
  * The medals stay in code: they hang off the arm and are simple enough that this is the right
  * place for them.

@@ -43,7 +43,7 @@ export const DESKTOP = {
   macbook: { x: -0.06, z: -0.695, rotationY: 0.02, tilt: 0.2 },
   keyboard: { x: -0.05, z: -0.455, rotationY: 0.0 },
   mouse: { x: 0.33, z: -0.45, rotationY: -0.14 },
-  lamp: { x: -0.72, z: -1.03, headRadius: 0.085 },
+  lamp: { x: -0.72, z: -1.03, headRadius: 0.04 },
   cube: { x: -0.33, z: -0.62, rotationY: 0.42, size: 0.056 },
   mug: { x: -0.5, z: -0.5, rotationY: 0.5 },
 };
@@ -55,13 +55,13 @@ export const LAMP = {
    * Rotation about Y. The asset's beam leaves along -Z, so this is what turns the arm — and
    * therefore the light — toward the working half of the desk.
    *
-   * -2.11 (was -2.19): the owner-STL twin-bar head sits 223mm left and 87mm behind the
-   * old spring-arm head in asset space, so the yaw is opened 4.7° to bring the pool
-   * back over the working half (cube/mug/MacBook) instead of the back-left corner.
-   * Measured: new head (-0.789,-0.965) to old pool (-0.161,-0.594) wants beam dir
-   * (0.861,0.509); yaw = atan2(-0.861,-0.509) = -2.108.
+   * -2.23 (was -2.11): the blade head (300x80mm, centre 150mm forward of knuckle) sits
+   * right/forward of the old circular head, and the beam is flatter (0,0.80,-0.60 vs
+   * 0,0.72,-0.694) to throw further; yaw closed 6.9° to aim the flatter beam at the old
+   * central pool (-0.161,-0.594) instead of landing right-back. Measured: blade head
+   * (-0.623,-0.949) to old pool wants (0.462,0.355); yaw=atan2(-0.462,-0.355)=-2.226.
    */
-  yaw: -2.11,
+  yaw: -2.23,
   scale: 0.92,
   /**
    * Where the medals hang, in the asset's own space: two points along the lower arm. Taken
@@ -71,8 +71,8 @@ export const LAMP = {
    * 0.17m is 134mm left of the old spring arm, upper at 0.40m is 249mm behind it.
    * From blender/scripts/build_lamp.py (stem top -> tip interpolation).
    */
-  medalFrom: [-0.12179, 0.17, -0.01837] as [number, number, number],
-  medalTo: [0.00841, 0.4, 0.07871] as [number, number, number],
+  medalFrom: [-0.06992, 0.17, -0.00073] as [number, number, number],
+  medalTo: [-0.01005, 0.4, 0.01422] as [number, number, number],
 };
 
 export const CAMERA = {

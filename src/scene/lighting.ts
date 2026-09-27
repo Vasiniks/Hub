@@ -57,9 +57,9 @@ const KEYS: LightKey[] = [
 ];
 
 /** Lamp cone half-angle. Shared with the dust so the motes light exactly where the beam is. */
-export const LAMP_ANGLE = 0.52;
+export const LAMP_ANGLE = 0.55;
 /** Radius of the lamp's diffuser: it lights as a disk this size (see lampDisk.ts). */
-export const LAMP_DISK_RADIUS = 0.065;
+export const LAMP_DISK_RADIUS = 0.04;
 /** See the note where lampScatter is computed. */
 const LAMP_SCATTER_GAIN = 12;
 
