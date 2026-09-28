@@ -13,3 +13,8 @@ public/assets/lightmaps/**/*.exr
 
 # Baked lightmaps: parked. The five-state bake lives on branch bake/20260927 if we resume.
 public/assets/lightmaps/
+
+# Agent scratch and tool caches
+tmp/
+.serena/
+__pycache__/
