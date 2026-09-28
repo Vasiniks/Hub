@@ -10,3 +10,6 @@ perf/*.json
 # Lightmap EXR masters stay local (~1.1 GB): PNG previews + manifest.json
 # are committed, EXRs are archived off-git (see BAKE.md).
 public/assets/lightmaps/**/*.exr
+
+# Baked lightmaps: parked. The five-state bake lives on branch bake/20260927 if we resume.
+public/assets/lightmaps/
