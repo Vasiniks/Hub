@@ -46,7 +46,7 @@ K = 1.2                   # owner: medals 20% bigger (ribbons, clasps, medals)
 RIBBON_W = 0.0225 * K     # 27 mm lanyard
 ROW_STEP = 0.003          # ribbon rows every 3 mm
 Z = Vector((0, 0, 1))
-CLOTH = dict(quality=16, time_scale=1.0, mass=0.0015, air=2.0, tension=60.0, shear=25.0, bend=0.25, damp=8.0, bend_damp=0.8,
+CLOTH = dict(quality=16, time_scale=1.0, mass=0.0004, air=2.0, tension=500.0, shear=25.0, bend=1.0, damp=8.0, bend_damp=0.8,
              pin=3.0, coldist=0.001, colq=10, selfcol=False, selfdist=0.0004, selffric=6.0, friction=8.0)
 
 
@@ -203,12 +203,14 @@ def slerp_vec(a, b, t):
 
 
 def ribbon_rows(ctrl):
-    """ctrl: [(pos Vector3, width Vector3)] -> resampled rows [(pos, width_unit, s)]."""
+    """ctrl: [(pos, width_vec[, width_scale])] -> resampled rows [pos, width_unit, s, width_scale]."""
     P = [c[0] for c in ctrl]
     W = [c[1].normalized() for c in ctrl]
+    S = [c[2] if len(c) > 2 else 1.0 for c in ctrl]
     dense = []
     for pos, i, t in cr_chain(P):
-        dense.append((pos, slerp_vec(W[i], W[min(i + 1, len(W) - 1)], t)))
+        j2 = min(i + 1, len(W) - 1)
+        dense.append((pos, slerp_vec(W[i], W[j2], t), S[i] + (S[j2] - S[i]) * t))
     L = [0.0]
     for i in range(1, len(dense)):
         L.append(L[-1] + (dense[i][0] - dense[i - 1][0]).length)
@@ -221,7 +223,8 @@ def ribbon_rows(ctrl):
             j += 1
         t = (s - L[j]) / (L[j + 1] - L[j]) if L[j + 1] > L[j] else 0.0
         rows.append([dense[j][0].lerp(dense[j + 1][0], t),
-                     slerp_vec(dense[j][1], dense[j + 1][1], t), s])
+                     slerp_vec(dense[j][1], dense[j + 1][1], t), s,
+                     dense[j][2] + (dense[j + 1][2] - dense[j][2]) * t])
     for k in range(len(rows)):
         a = rows[max(k - 1, 0)][0]
         b = rows[min(k + 1, len(rows) - 1)][0]
@@ -233,25 +236,20 @@ def ribbon_rows(ctrl):
 
 
 # =============================================================================== specs
-# d: exit direction in collar frame ('b' = long face toward the seat, 'a' = far round end)
-_TS = [float(a.split('=')[1]) for a in ARGS if a.startswith('tstag=')]
-T_STAG = _TS[0] if _TS else 0.0
+# All four on the lamp's short neck, stacked on the same spot. layer: 1 = innermost loop ... 4 = outermost
+# (on top). plane: final depth of the lanyard's flat V relative to the neck centre (+ toward the seat).
+# t: lateral offset of the crimp; drop: crimp top below the neck axis. Blue+gold is on top and in front.
 _AK = [float(a.split('=')[1]) for a in ARGS if a.startswith('ampk=')]
-AMP_K = _AK[0] if _AK else 0.5          # half swing: neighbours on the 30 mm pitch stay >= 1.7 mm apart
-T_M1, T_M2, T_M3, T_M4 = T_STAG, -T_STAG, T_STAG, -T_STAG
+AMP_K = _AK[0] if _AK else 1.0
 SPECS = [
-    # On the lamp's short neck (145 mm between the knuckle and the head rim): s = centre along the neck
-    # from the knuckle surface, 30 mm pitch for the 27 mm ribbons (3 mm gaps; crimps sit at different
-    # heights so their 29 mm width never meets). Each medal (49 mm, facing the seat) reaches ~20 mm along
-    # the neck, so drops step down toward the head: every neighbour's crimp ends above the next medal.
-    dict(name='m1', s=0.1255, t=T_M1, drop=0.148, R=0.0205 * 1.2, metal='gold', relief='blank',
-         cols=[0, .34, .66, 1], bands=['blue', 'blue', 'blue'], twA=6, twB=-4, rot90=False),
-    dict(name='m2', s=0.0955, t=T_M2, drop=0.122, R=0.0195 * 1.2, metal='silver', relief='blank',
-         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], twA=-5, twB=7, rot90=False),
-    dict(name='m3', s=0.0655, t=T_M3, drop=0.096, R=0.0195 * 1.2, metal='silver', relief='blank',
-         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], twA=7, twB=-5, rot90=False),
-    dict(name='m4', s=0.0355, t=T_M4, drop=0.070, R=0.0195 * 1.2, metal='silver', relief='blank',
-         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], twA=-6, twB=4, rot90=False),
+    dict(name='m1', layer=4, plane=+0.0120, t=0.000, drop=0.112, R=0.0205 * 1.2, metal='gold', relief='blank',
+         cols=[0, .34, .66, 1], bands=['blue', 'blue', 'blue'], rot90=False),
+    dict(name='m2', layer=3, plane=+0.0040, t=-0.007, drop=0.098, R=0.0195 * 1.2, metal='silver', relief='blank',
+         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], rot90=False),
+    dict(name='m3', layer=2, plane=-0.0040, t=+0.007, drop=0.084, R=0.0195 * 1.2, metal='silver', relief='blank',
+         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], rot90=False),
+    dict(name='m4', layer=1, plane=-0.0120, t=0.000, drop=0.070, R=0.0195 * 1.2, metal='silver', relief='blank',
+         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], rot90=False),
 ]
 RIBBON_HEX = dict(blue='#1d3a8a', white='#e9e7e0', red='#a81c26', gold='#d9a92e', green='#17613a')
 
@@ -691,55 +689,100 @@ def build():
     prox = [proxy]
 
     # ------------------------------------------------------------------ lanyard paths
+    # All four lanyards are stacked on the same spot of the lamp's short neck (loops layered radially,
+    # gathered to fit its 15 mm length). Just below the neck each side's bundle of tails twists 90 deg
+    # together (a rigid rotation of the layered stack, so layers never cross), after which every lanyard
+    # hangs as a flat V in its own depth plane, like a lanyard on a chest: outermost loop (blue) in
+    # front, the others 7 mm behind each other. The medals, crimps and chains are all sheets in those
+    # planes, so they overlap in depth without touching.
     W = RIBBON_W
+    NR = LM['neck_r']
+    s_c = neck_span / 2
+    neck_c = Vector(LM['neck_start']).z
+    L_LAYER = 0.0028
+    T_MID = NR + 0.0012 + 1.5 * L_LAYER
+    T_END = 0.0155
+    Z_T0, Z_T1 = neck_c - 0.010, neck_c - 0.042          # twist zone
+    Z_FAN = neck_c - 0.057                                 # planes reach their final depth here
+    WS_G = 0.013 / W                                       # gathered width over the neck
+    AB = 0.00055 * K                                       # tail A behind / tail B in front at the crimp
+    t_hat, s_hat = b3, a3
+
+    def sm(x):
+        x = max(0.0, min(1.0, x))
+        return x * x * (3 - 2 * x)
     rib_data = []
     for spec in SPECS:
-        s0 = spec['s']
-        sec = section(s0, W / 2 + 0.002)
-        zbot = min(p.y for p in sec)
-        ztop = max(p.y for p in sec)
-        outline = resample_closed(offset_poly(sec, 0.0032), 0.0012)
-        zc = zbot - spec['drop']
-        Q = Vector((spec['t'], zc - 0.0026 * K))
-        angs = [math.atan2(p.y - Q.y, p.x - Q.x) for p in outline]
-        i_r = min(range(len(outline)), key=lambda i: angs[i])      # +t side tangent point
-        i_l = max(range(len(outline)), key=lambda i: angs[i])      # -t side tangent point
-        N = len(outline)
-        i_top = max(range(N), key=lambda i: outline[i].y)
-        arc, i = [], i_l
-        while True:                                                # -t tangent -> over top -> +t tangent
-            arc.append(i)
-            if i == i_r:
-                break
-            i = (i - 1) % N
-        if i_top not in arc:
-            arc, i = [], i_l
-            while True:
-                arc.append(i)
-                if i == i_r:
-                    break
-                i = (i + 1) % N
+        k = spec['layer']
+        d_k = (k - 2.5) * L_LAYER
+        r_k = T_MID + d_k
+        zc = neck_c - spec['drop']
+        s_k = s_c + spec['plane']
+        t_k = spec['t']
+        loop = []
+        for i in range(13):
+            ph = math.pi * (1 - i / 12)                        # -t side, over the top, to +t side
+            loop.append((to_w(s_c, r_k * math.cos(ph), neck_c + r_k * math.sin(ph)), s_hat.copy(), WS_G))
 
-        def P3(t, z):
-            return to_w(s0, t, z)
-        legs = {}
-        for side, tw, tan_i in ((-1, spec['twA'], i_l), (1, spec['twB'], i_r)):
-            QA = P3(spec['t'] + side * 0.00055 * K, Q.y)
-            Q2 = QA + Z * 0.011 * K
-            T = P3(outline[tan_i].x, outline[tan_i].y)
-            mid = Q2.lerp(T, 0.5)
-            wm = Quaternion((T - Q2).normalized(), math.radians(tw)) @ a3
-            legs[side] = [(QA, a3), (Q2, a3), (mid, wm)]
-        over = [(P3(outline[k].x, outline[k].y), a3) for k in arc[::2]]
-        if arc[-1] != arc[::2][-1]:
-            over.append((P3(outline[arc[-1]].x, outline[arc[-1]].y), a3))
-        ctrl = legs[-1] + over + list(reversed(legs[1]))
+        def tail(sg):
+            """Control points from the loop end down to the crimp end, for side sg (-1 = A, +1 = B)."""
+            off = sg * AB
+            pts = [(to_w(s_c, sg * r_k, neck_c), s_hat.copy(), WS_G),
+                   (to_w(s_c, sg * r_k, neck_c - 0.006), s_hat.copy(), WS_G)]
+            n_tw = 7
+            for i in range(n_tw + 1):
+                u = i / n_tw
+                th = math.pi / 2 * sm(u)
+                z = Z_T0 + (Z_T1 - Z_T0) * u
+                t_ax = sg * (T_MID + (T_END - T_MID) * sm(u))
+                s_pos = s_c + d_k * math.sin(th) + off * math.sin(th)
+                t_pos = t_ax + sg * d_k * math.cos(th)
+                w = (-math.sin(th) * sg) * t_hat + math.cos(th) * s_hat
+                ws = WS_G + (1 - WS_G) * sm((u - 0.45) / 0.55)
+                pts.append((to_w(s_pos, t_pos, z), w, ws))
+            # fan: every plane moves from its twist-end depth to its final depth over the same heights
+            q_end = Vector((s_k + off, t_k + off * 0, zc - 0.0026 * K))
+            q2 = Vector((q_end.x, q_end.y, q_end.z + 0.011 * K))
+            te = Vector((s_c + d_k + off, sg * T_END, Z_T1))
+            for zf in (Z_T1 - 0.006, Z_FAN):
+                f = sm((Z_T1 - zf) / (Z_T1 - Z_FAN))
+                u_line = (Z_T1 - zf) / (Z_T1 - q2.z)
+                t_line = te.y + (q2.y - te.y) * u_line
+                pts.append((to_w(te.x + (s_k + off - te.x) * f, t_line, zf), -sg * t_hat, 1.0))
+            pts.append((to_w(q2.x, q2.y, q2.z), -sg * t_hat, 1.0))
+            pts.append((to_w(q_end.x, q_end.y, q_end.z), -sg * t_hat, 1.0))
+            return pts
+        A = tail(-1)
+        B = tail(+1)
+        ctrl = list(reversed(A)) + loop[1:-1] + B
         rows, length = ribbon_rows(ctrl)
-        crimp = P3(spec['t'], zc)
-        rib_data.append(dict(spec=spec, rows=rows, length=length, d=b3.copy(), e=a3.copy(),
-                             crimp=crimp, pivot=P3(spec['t'], zbot - 0.004), zbot=zbot, zk=ztop))
-        print(f'RIBBON {spec["name"]} s={s0:.3f} t={spec["t"]:.3f} len={length * 100:.1f}cm rows={len(rows)} '
-              f'bar z[{zbot:.4f},{ztop:.4f}] crimp z {zc:.4f}')
+        # exact geometry: in the twist zone every row is the rigidly rotated stack layer at that height;
+        # below it every row stays in its lanyard's depth plane (width = s_hat x tangent)
+        for i_r, r_ in enumerate(rows):
+            p = r_[0]
+            q = p.to_2d() - hc
+            sg = -1.0 if q.dot(b2) < 0 else 1.0
+            off = sg * AB
+            if Z_T1 <= p.z <= Z_T0:
+                u = (Z_T0 - p.z) / (Z_T0 - Z_T1)
+                th = math.pi / 2 * sm(u)
+                t_ax = sg * (T_MID + (T_END - T_MID) * sm(u))
+                r_[0] = to_w(s_c + (d_k + off) * math.sin(th), t_ax + sg * d_k * math.cos(th), p.z)
+                r_[1] = (-math.sin(th) * sg) * t_hat + math.cos(th) * s_hat
+                r_[3] = WS_G + (1 - WS_G) * sm((u - 0.45) / 0.55)
+            elif p.z < Z_T1:
+                a_ = rows[max(i_r - 1, 0)][0]
+                b_ = rows[min(i_r + 1, len(rows) - 1)][0]
+                wn = s_hat.cross((b_ - a_).normalized()).normalized()
+                if wn.dot(r_[1]) < 0:
+                    wn = -wn
+                r_[1] = wn
+        crimp = to_w(s_k, t_k, zc)
+        rib_data.append(dict(spec=spec, rows=rows, length=length, d=s_hat.copy(), e=t_hat.copy(),
+                             crimp=crimp, pivot=to_w(s_c, 0.0, neck_c - 0.008), zbot=neck_c - NR,
+                             zk=neck_c + NR, z_pin=Z_T1 - 0.001))
+        print(f'RIBBON {spec["name"]} layer {k} plane {spec["plane"] * 1000:+.1f}mm t {t_k * 1000:+.1f}mm '
+              f'len={length * 100:.1f}cm rows={len(rows)} crimp z {zc:.4f}')
 
     # ------------------------------------------------------------------ strips
     verts, faces, fmats, uvs, pinw = [], [], [], [], []
@@ -750,13 +793,13 @@ def build():
         v0 = len(verts)
         f0 = len(faces)
         nr, nc = len(rd['rows']), len(cols)
-        for (pos, w, s) in rd['rows']:
+        for (pos, w, s, ws) in rd['rows']:
             for u in cols:
-                verts.append(pos + w * ((u - 0.5) * W))
+                verts.append(pos + w * ((u - 0.5) * W * ws))
                 ds = min(s, rd['length'] - s)
                 w_end = 1.0 if ds < 0.0045 else max(0.0, 1.0 - (ds - 0.0045) / 0.008)
                 # the patch lying flat on top of the bar is held; edges and tails drape freely
-                w_top = 1.0 if pos.z > rd['zk'] - 0.001 else 0.0
+                w_top = 1.0 if pos.z > rd['z_pin'] else 0.0      # loop, gather and twist are held
                 pinw.append(max(w_end, w_top))
         for r in range(nr - 1):
             for c in range(nc - 1):
@@ -884,7 +927,7 @@ def build():
         top_wire = last - Z * (Rj - mj - me_)
         Ec = top_wire - Z * re
         Mc = Ec - Z * (re + spec['R'] - 0.0007 * K)
-        n_front = cam_dir.copy()
+        n_front = d3.copy() if d3.dot(cam_dir) >= 0 else -d3.copy()
         hw_info.append(dict(L0=L0, centers=centers, axes=axes, Ec=Ec, Mc=Mc, n=n_front))
         rs = meas['base_top']
         low = Mc.z - spec['R']
@@ -1029,10 +1072,10 @@ def build():
     # ------------------------------------------------------------------ sway animation
     rig.animation_data_create()
     # neighbours sway nearly together (a shared draft), so adjacent medals never close on each other
-    phases = [0.0, 0.45, 0.9, 1.35]
+    phases = [0.0, 1.6, 3.1, 4.7]
     # (swing about the across-bar axis, swing about the bar axis, medal twist, medal lag) in degrees
-    amp = {'m1': (0.25, 1.6, 5.0, 0.5), 'm2': (0.2, 1.4, 4.5, 0.4), 'm3': (0.25, 1.7, 5.5, 0.5),
-           'm4': (0.2, 1.4, 5.0, 0.4)}
+    amp = {'m1': (1.6, 0.8, 2.0, 0.8), 'm2': (1.6, 0.8, 2.0, 0.8), 'm3': (1.6, 0.8, 2.0, 0.8),
+           'm4': (1.6, 0.8, 2.0, 0.8)}
     for pb in rig.pose.bones:
         pb.rotation_mode = 'QUATERNION'
     for f in range(0, LOOP_FRAMES + 1, 2):
@@ -1042,8 +1085,9 @@ def build():
             A_side, A_io, A_tw, A_lag = amp[nm]
             A_io, A_tw, A_lag = A_io * AMP_K, A_tw * AMP_K, A_lag * AMP_K
             ph = phases[i]
-            side = A_side * (math.sin(t + ph) + 0.22 * math.sin(2 * t + 1.3 * ph + 0.7))
-            io = A_io * math.sin(t + ph + 1.1)
+            # identical for every lanyard: the stacked tails are layered 1-3 mm apart and move together
+            side = A_side * (math.sin(t) + 0.22 * math.sin(2 * t + 0.7))
+            io = A_io * math.sin(t + 1.1)
             Rw = Quaternion(rd['d'], math.radians(side)) @ Quaternion(rd['e'], math.radians(io))
             pb = rig.pose.bones['tail_' + nm]
             B = pb.bone.matrix_local.to_3x3()
@@ -1066,8 +1110,7 @@ def build():
 
     # clearance to the lamp arm (lamp003 = arm bars, collar, stem) across the sway loop
     from mathutils.bvhtree import BVHTree
-    fixed_parts = ('lamp_column', 'lamp_knuckle', 'lamp_head', 'lamp_diffuser_bezel', 'lamp_diffuser_disc',
-                   'lamp_base')
+    fixed_parts = tuple(n for n in meas['ref'] if n != 'lamp_neck')
     av, af = [], []
     for n in fixed_parts:
         lv = meas['ref'][n]
