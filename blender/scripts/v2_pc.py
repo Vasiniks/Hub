@@ -166,17 +166,16 @@ def glass_mat():
     return m
 
 
-def perforated_mat():
-    """White steel with a staggered 3 mm hole grid (alpha), in object XY (the top panel is horizontal)."""
-    m = new_mat('pc_perforated', (0.86, 0.86, 0.85), 0.42, bump=0.02, bscale=600)
+def perforated_mat(name='pc_perforated', ax=('X', 'Y'), P=0.0045):
+    """White steel with a staggered hole grid (alpha) in the object-coord plane `ax`."""
+    m = new_mat(name, (0.86, 0.86, 0.85), 0.42, bump=0.02, bscale=600)
     nt = m.node_tree
     p = pr(m)
     tc = nt.nodes.new('ShaderNodeTexCoord')
     sep = nt.nodes.new('ShaderNodeSeparateXYZ')
     nt.links.new(tc.outputs['Object'], sep.inputs[0])
-    P = 0.0045
-    u = math_node(nt, 'DIVIDE', sep.outputs['X'], P)
-    v = math_node(nt, 'DIVIDE', sep.outputs['Y'], P * 0.866)
+    u = math_node(nt, 'DIVIDE', sep.outputs[ax[0]], P)
+    v = math_node(nt, 'DIVIDE', sep.outputs[ax[1]], P * 0.866)
     row = math_node(nt, 'FLOOR', v)
     odd = math_node(nt, 'MODULO', row, 2.0)
     odd = math_node(nt, 'ABSOLUTE', odd)
@@ -187,6 +186,25 @@ def perforated_mat():
     d = math_node(nt, 'SQRT', math_node(nt, 'ADD', math_node(nt, 'MULTIPLY', fu, fu), math_node(nt, 'MULTIPLY', fv, fv)))
     alpha = math_node(nt, 'GREATER_THAN', d, 0.33)
     nt.links.new(alpha, p.inputs['Alpha'])
+    return m
+
+
+def filter_mat():
+    """Fine black nylon dust-filter mesh (woven grid bump) in object XY."""
+    m = new_mat('pc_filter_mesh', (0.035, 0.035, 0.038), 0.6, rvar=0.0)
+    nt = m.node_tree
+    p = pr(m)
+    tc = nt.nodes.new('ShaderNodeTexCoord')
+    sep = nt.nodes.new('ShaderNodeSeparateXYZ')
+    nt.links.new(tc.outputs['Object'], sep.inputs[0])
+    a = math_node(nt, 'SINE', math_node(nt, 'MULTIPLY', sep.outputs['X'], 2 * math.pi / 0.0009))
+    b = math_node(nt, 'SINE', math_node(nt, 'MULTIPLY', sep.outputs['Y'], 2 * math.pi / 0.0009))
+    h = math_node(nt, 'MAXIMUM', a, b)
+    bp = nt.nodes.new('ShaderNodeBump')
+    bp.inputs['Strength'].default_value = 0.5
+    bp.inputs['Distance'].default_value = 0.0002
+    nt.links.new(h, bp.inputs['Height'])
+    nt.links.new(bp.outputs['Normal'], p.inputs['Normal'])
     return m
 
 
@@ -333,7 +351,24 @@ def make_materials():
     si(pr(m), 'Emission Color', (1.0, 1.0, 1.0, 1))
     si(pr(m), 'Emission Strength', 4.0)
     glass_mat()
+    m = new_mat('pc_glass_edge', (0.55, 0.80, 0.70), 0.04, rvar=0.0)
+    si(pr(m), 'Transmission Weight', 1.0)
+    si(pr(m), 'IOR', 1.52)
     perforated_mat()
+    perforated_mat('pc_perforated_uz', ('X', 'Z'), 0.0038)
+    filter_mat()
+    new_mat('pc_riser', (0.80, 0.80, 0.79), 0.30, bump=0.01, bscale=1500)
+    new_mat('pc_ssd', (0.03, 0.03, 0.035), 0.35, metal=0.5)
+    new_mat('pc_gold', (0.85, 0.62, 0.28), 0.25, metal=1.0)
+    new_mat('pc_rubber_dark', (0.03, 0.03, 0.03), 0.8, bump=0.05, bscale=2000)
+    new_mat('pc_tie', (0.80, 0.80, 0.78), 0.45)
+    for nm, col in (('pc_led_green', (0.1, 1.0, 0.2)), ('pc_led_amber', (1.0, 0.45, 0.05))):
+        m = new_mat(nm, (0.2, 0.2, 0.2), 0.3, rvar=0.0)
+        si(pr(m), 'Emission Color', (*col, 1))
+        si(pr(m), 'Emission Strength', 6.0)
+    for nm, col in (('pc_jack_green', (0.05, 0.45, 0.08)), ('pc_jack_pink', (0.8, 0.2, 0.4)),
+                    ('pc_jack_blue', (0.05, 0.2, 0.7)), ('pc_jack_orange', (0.8, 0.3, 0.03))):
+        new_mat(nm, col, 0.4, rvar=0.0)
     rad_core_mat()
     sleeve_mat('pc_sleeve_white', (0.83, 0.83, 0.82))
     sleeve_mat('pc_tube_white', (0.84, 0.84, 0.83), 0.5)
@@ -555,6 +590,65 @@ def ribbon(mb, ctrl, nw, nt, pw, pt, r, w_axis, mat, sides=7, step=0.003, end_le
             mb.merge(tube_bm(wp, r, sides, fr[0][1]), mat)
 
 
+def offset2d(pts, d):
+    n = len(pts)
+    out = []
+    for i in range(n):
+        p0, p1, p2 = V(pts[i - 1]), V(pts[i]), V(pts[(i + 1) % n])
+        e0, e1 = (p1 - p0).normalized(), (p2 - p1).normalized()
+        n0, n1 = V((e0.y, -e0.x)), V((e1.y, -e1.x))
+        m = (n0 + n1).normalized()
+        out.append(p1 + m * (d / max(m.dot(n0), 0.3)))
+    return out
+
+
+def prism(mb, pts, M, z0, z1, mat, ch=0.0):
+    """Extrude a CCW 2D outline (local XY of M) from z0 to z1, optional chamfer ch on both caps."""
+    pts = [V(p) for p in pts]
+    inset = offset2d(pts, -ch) if ch else pts
+    if ch:
+        secs = [(z0, inset), (z0 + ch, pts), (z1 - ch, pts), (z1, inset)]
+    else:
+        secs = [(z0, pts), (z1, pts)]
+    bm = bmesh.new()
+    rings = [[bm.verts.new((p.x, p.y, z)) for p in ring] for z, ring in secs]
+    N = len(pts)
+    for i in range(len(rings) - 1):
+        for j in range(N):
+            bm.faces.new((rings[i][j], rings[i][(j + 1) % N], rings[i + 1][(j + 1) % N], rings[i + 1][j]))
+    bm.faces.new(rings[0][::-1])
+    bm.faces.new(rings[-1])
+    mb.merge(bm, mat, M)
+
+
+def star(n, r0, r1):
+    return [((r0 if k % 2 == 0 else r1) * math.cos(math.pi * k / n), (r0 if k % 2 == 0 else r1) * math.sin(math.pi * k / n))
+            for k in range(2 * n)]
+
+
+def band(mb, ctrl, w, t, w_axis, mat, step=0.003, per=10):
+    """Flat ribbon (w wide along the transported w_axis, t thick) swept along a smooth centreline."""
+    pts = resample(cr(ctrl, per), step)
+    fr = transport(pts, w_axis)
+    bm = bmesh.new()
+    prof = [(-w / 2, -t / 2), (w / 2, -t / 2), (w / 2, t / 2), (-w / 2, t / 2)]
+    rings = [[bm.verts.new(p + N * a + B * b) for a, b in prof] for p, (tt, N, B) in zip(pts, fr)]
+    for i in range(len(rings) - 1):
+        for j in range(4):
+            bm.faces.new((rings[i][j], rings[i][(j + 1) % 4], rings[i + 1][(j + 1) % 4], rings[i + 1][j]))
+    bm.faces.new(rings[0][::-1])
+    bm.faces.new(rings[-1])
+    mb.merge(bm, mat)
+
+
+def thumbscrew(mb, p, axis, mat='pc_white_alu', r=0.0048, L=0.0055):
+    """Knurled thumbscrew head standing on a surface at p, pointing along axis."""
+    M = frame(p, axis)
+    prism(mb, star(18, r, r - 0.00035), M, 0.0008, L, mat, ch=0.0003)
+    lathe(mb, [(0.0, 0.0), (r * 0.8, 0.0), (r * 0.8, 0.0009), (0.0, 0.0009)], mat, M, seg=20)
+    lathe(mb, [(0.0, L), (r * 0.55, L), (r * 0.5, L + 0.0004), (0.0, L + 0.0004)], mat, M, seg=20)
+
+
 def rsq(dx, dy, h, r):
     lo, hi = 0.0, h * 1.6
     for _ in range(40):
@@ -576,6 +670,10 @@ def rotor(mb, M, r0, r1, z0, z1, nbl, blade_mat, hub_mat, cap_mat=None, nr=6, ns
            (r0 - 0.0018, z1), (r0 * 0.62, z1)]
     lathe(mb, hub, hub_mat, M, seg=40)
     lathe(mb, [(r0 * 0.62, z1), (r0 * 0.6, z1 + 0.0003), (0.0, z1 + 0.0004)], cap_mat or hub_mat, M, seg=40)
+    # hub cap trim ring + centre dimple (no logo)
+    lathe(mb, [(r0 * 0.66, z1 - 0.0001), (r0 * 0.66, z1 + 0.0005), (r0 * 0.74, z1 + 0.0005), (r0 * 0.74, z1 - 0.0001)],
+          'pc_gpu_accent' if cap_mat else 'pc_white_alu', M, seg=40)
+    lathe(mb, [(0.0026, z1 + 0.0004), (0.0020, z1 + 0.0001), (0.0, z1 + 0.0001)], hub_mat, M, seg=20)
     depth = (z1 - z0)
     for bi in range(nbl):
         phi = 2 * math.pi * bi / nbl
@@ -636,16 +734,26 @@ def case_fan(mbF, mbR, M, size=0.120, depth=0.025):
     Wt, LED = mbF.i('pc_white_plastic'), mbF.i('pc_rgb_led')
     prof = [(I(0), -d2 + ch), (I(ch), -d2), (I(0.0056), -d2), (O(e), -d2), (O(0), -d2 + e), (O(0), d2 - e),
             (O(e), d2), (I(0.0056), d2), (I(ch), d2), (I(0), d2 - ch), (I(0), 0.0050), (I(0), -0.0050)]
-    mis = [LED, Wt, Wt, Wt, Wt, Wt, Wt, LED, Wt, Wt, LED, Wt]
+    mis = [Wt, Wt, Wt, Wt, Wt, Wt, Wt, Wt, Wt, Wt, LED, Wt]
     rings = [ring(f, z) for f, z in prof]
     mbF.merge(loft_bm(rings, mis))
-    # 4 corner mounting-hole bosses (dark holes) on both faces
+    # frosted diffuser rings standing proud of both faces around the opening
+    for sz in (-1, 1):
+        lathe(mbF, [(Ri + 0.0009, 0.0), (Ri + 0.0009, 0.0006), (Ri + 0.0020, 0.0011), (Ri + 0.0042, 0.0011),
+                    (Ri + 0.0052, 0.0005), (Ri + 0.0052, 0.0)], 'pc_rgb_diffuser',
+              M @ frame((0, 0, sz * d2), (0, 0, sz), (1, 0, 0)), seg=64)
+    # anti-vibration rubber corner pads (L-shaped wrap over the corner) with the screw hole, both faces
     for sx in (-1, 1):
         for sy in (-1, 1):
             for sz in (-1, 1):
-                c = V((sx * (h - 0.0075), sy * (h - 0.0075), sz * (d2 + 0.00005)))
-                lathe(mbF, [(0.0, 0.0), (0.0022, 0.0), (0.0022, 0.0002), (0.0, 0.0002)], 'pc_port_dark',
-                      M @ frame(c, (0, 0, sz)), seg=12)
+                Mc = M @ Matrix.Translation((sx * (h - 0.0071), sy * (h - 0.0071), sz * d2))
+                box(mbF, (-0.0071, -0.0071, -0.0004 if sz > 0 else -0.0008), (0.0071, 0.0071, 0.0008 if sz > 0 else 0.0004),
+                    'pc_white_rubber', r=0.0025, seg=1, M=Mc)
+                lathe(mbF, [(0.0, 0.0), (0.0021, 0.0), (0.0021, 0.0002), (0.0, 0.0002)], 'pc_port_dark',
+                      Mc @ frame((0, 0, sz * 0.00085), (0, 0, sz)), seg=12)
+    # daisy-chain connector nub on the +Y edge
+    box(mbF, (-0.011, h - 0.0005, -0.006), (0.011, h + 0.0028, 0.006), 'pc_white_plastic', r=0.0008, seg=1, M=M)
+    box(mbF, (-0.008, h + 0.0027, -0.0035), (0.008, h + 0.0031, 0.0035), 'pc_port_dark', M=M)
     # motor stator + 4 struts on the -Z face
     lathe(mbF, [(0.0, -d2), (0.021, -d2), (0.0212, -d2 + 0.0015), (0.020, -d2 + 0.004), (0.0, -d2 + 0.004)],
           'pc_white_plastic', M, seg=40)
@@ -653,7 +761,7 @@ def case_fan(mbF, mbR, M, size=0.120, depth=0.025):
         a = math.radians(45 + 90 * k + 8)
         Mr = M @ Matrix.Rotation(a, 4, 'Z')
         box(mbF, (0.019, -0.002, -d2), (Ri + 0.001, 0.002, -d2 + 0.0035), 'pc_white_plastic', r=0.0008, seg=1, M=Mr)
-    rotor(mbR, M, 0.0205, 0.0562, -d2 + 0.0045, d2 - 0.0015, 9, 'pc_fan_blade', 'pc_white_plastic')
+    rotor(mbR, M, 0.0205, 0.0562, -d2 + 0.0045, d2 - 0.0015, 7, 'pc_fan_blade', 'pc_white_plastic', nr=6, ns=7, sweep=26)
 
 
 # ============================================================================== build

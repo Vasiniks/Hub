@@ -891,6 +891,7 @@ def build():
     root.empty_display_type = 'PLAIN_AXES'
     root.empty_display_size = 0.03
     root.location = root_loc
+    root['parent_to'] = 'NEW_lamp_pivot'      # parent (keep transform) to the lamp's tilt pivot in the room
     coll.objects.link(root)
     arm_data = bpy.data.armatures.new('NEW_medals_rig')
     rig = bpy.data.objects.new('NEW_medals_rig', arm_data)

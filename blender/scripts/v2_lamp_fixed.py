@@ -39,12 +39,24 @@ Z = Vector((0, 0, 1))
 # ---- original base (lamp003_1, measured)
 BASE_C = Vector((-0.7138, 1.0381))
 BASE_R = 0.087
-BASE_Z0, BASE_Z1 = 0.735, 0.7669
+BASE_Z0, BASE_Z1 = 0.735, 0.749      # slimmer weighted disc: 14 mm (owner), same diameter
 
 # ---- stem / branches (original twin members: 36.6 mm apart along the lean, lean 12.6 deg)
 COL_R = 0.013
 COL_BACK = 0.030               # column axis sits this far behind the base centre (head reaches forward)
-SPLIT_Z0, SPLIT_Z1 = 0.940, 0.970   # junction block (the split), about mid-height of the lamp
+SPLIT_Z0, SPLIT_Z1 = 0.940, 0.970   # (kept: the branches' bend starts at SPLIT_Z1 + BR_RISE0 as before)
+# ---- column + clevis joint (owner: column as wide as the bar pair; bars jointed into its top)
+COL_W = 0.037 + 0.016          # along the plane of movement: bar spacing + bar diameter = 53 mm
+COL_D = 0.026                  # across
+COL_CORNER = 0.005
+SLOT_W = 0.016 + 2 * 0.0008    # bar/hub thickness + 0.8 mm clearance each side
+AXLE_Z = 0.945                 # pivot axle height
+HUB_R = 0.024                  # rotating hub that carries both bar roots (Ø48, 16 thick)
+HUB_T = 0.016
+FLOOR_GAP = 0.0015             # hub to slot floor
+CHEEK_R = COL_W / 2            # cheek tops are arcs about the axle
+AXLE_R = 0.004
+KNOB_R = 0.0105
 BR_R = 0.008                   # Ã˜16 branches
 BR_SPACING = 0.037             # centre-to-centre, along the plane of movement
 BR_LEAN = math.radians(12.6)
@@ -224,26 +236,113 @@ def build():
 
     # ---- base (same footprint): foot ring, rounded top edge, shallow top groove
     R, z0, z1 = BASE_R, BASE_Z0, BASE_Z1
-    prof = [(0.0, z0), (R - 0.009, z0), (R - 0.0075, z0 + 0.0008), (R - 0.0070, z0 + 0.0040),
-            (R - 0.0030, z0 + 0.0048), (R - 0.0006, z0 + 0.0062), (R, z0 + 0.0085),
-            (R, z1 - 0.0045), (R - 0.0012, z1 - 0.0013), (R - 0.0040, z1),
-            (0.056, z1), (0.0555, z1 - 0.0004), (0.0525, z1 - 0.0004), (0.052, z1), (0.0, z1)]
+    prof = [(0.0, z0), (R - 0.008, z0), (R - 0.0068, z0 + 0.0008), (R - 0.0062, z0 + 0.0022),
+            (R - 0.0030, z0 + 0.0026), (R - 0.0009, z0 + 0.0036), (R - 0.0001, z0 + 0.0055),
+            (R, z0 + 0.0070), (R - 0.0004, z1 - 0.0028), (R - 0.0015, z1 - 0.0010), (R - 0.0040, z1),
+            (0.066, z1), (0.0655, z1 - 0.0004), (0.0625, z1 - 0.0004), (0.062, z1), (0.0, z1)]
     parts['lamp_base'] = (lathe([(r, h - z0) for r, h in prof], Matrix.Translation(Vector((BASE_C.x, BASE_C.y, z0))), 96), WP, 40)
 
-    # ---- lower column: one straight vertical cylinder, boot at the base, into the junction block
-    cprof = [(0.0, -0.006), (COL_R + 0.0035, -0.006), (COL_R + 0.0035, 0.0012), (COL_R + 0.0029, 0.0026),
-             (COL_R + 0.0014, 0.0036), (COL_R + 0.0002, 0.0042), (COL_R, 0.0050),
-             (COL_R, SPLIT_Z0 + 0.006 - z1), (0.0, SPLIT_Z0 + 0.006 - z1)]
-    parts['lamp_column'] = (lathe(cprof, Matrix.Translation(Vector((col_xy.x, col_xy.y, z1))), 48), WP, 40)
-
-    # ---- junction (the split): stadium block holding the two branch roots, centred on the column
+    # ---- lower column: one straight vertical rounded-rectangle prism as wide as the bar pair
     half = BR_SPACING / 2
-    parts['lamp_split'] = (stadium_block(col_xy, half, BLOCK_R, SPLIT_Z0, SPLIT_Z1, 0.005, F2), WP, 40)
+    t2 = T3.to_2d()
+
+    def rrect(off, n=6):
+        """Plan outline (CCW) of the column section grown by `off`: COL_W along F, COL_D across."""
+        a, b = COL_W / 2 + off, COL_D / 2 + off
+        r = COL_CORNER + off
+        pts = []
+        for cf, ct, a0 in ((a - r, -b + r, -math.pi / 2), (a - r, b - r, 0.0), (-a + r, b - r, math.pi / 2),
+                           (-a + r, -b + r, math.pi)):
+            for k in range(n + 1):
+                ang = a0 + math.pi / 2 * k / n
+                pts.append(col_xy + F2 * (cf + r * math.cos(ang)) + t2 * (ct + r * math.sin(ang)))
+        return pts
+    floor_z = AXLE_Z - HUB_R - FLOOR_GAP
+    levels = [(z1 - 0.004, 0.0024), (z1 + 0.0004, 0.0024), (z1 + 0.0018, 0.0017), (z1 + 0.0030, 0.0008),
+              (z1 + 0.0040, 0.0), (floor_z, 0.0)]
+    bm = bmesh.new()
+    rings = [[bm.verts.new((q.x, q.y, zz)) for q in rrect(off)] for zz, off in levels]
+    n = len(rings[0])
+    for r_ in range(len(rings) - 1):
+        for j in range(n):
+            bm.faces.new([rings[r_][j], rings[r_][(j + 1) % n], rings[r_ + 1][(j + 1) % n], rings[r_ + 1][j]])
+    bm.faces.new(list(reversed(rings[0])))
+    bm.faces.new(rings[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    parts['lamp_column'] = (bm, WP, 40)
+
+    # ---- clevis: the column's top continues as two cheeks either side of a slot, tops arched about the axle
+    def cheek(sign):
+        """One clevis cheek: the column section clipped to |t| >= slot/2, top arched about the axle."""
+        bm = bmesh.new()
+        t_in, t_out = SLOT_W / 2, COL_D / 2
+        a, b, r = COL_W / 2, COL_D / 2, COL_CORNER
+
+        def f_lim(tt):
+            e_ = max(0.0, tt - (b - r))
+            return a - r + math.sqrt(max(r * r - e_ * e_, 0.0))
+
+        def arch(f_):
+            f_ = max(-CHEEK_R, min(CHEEK_R, f_))
+            return AXLE_Z + math.sqrt(max(CHEEK_R ** 2 - f_ ** 2, 0.0))
+        m, nt = 40, 5
+        grid_b, grid_t = [], []
+        for i in range(nt + 1):
+            tt = t_in + (t_out - t_in) * i / nt
+            fl = f_lim(tt)
+            rowb, rowt = [], []
+            for k in range(m + 1):
+                f_ = -fl + 2 * fl * k / m
+                q = col_xy + F2 * f_ + t2 * (sign * tt)
+                rowb.append(bm.verts.new((q.x, q.y, floor_z)))
+                rowt.append(bm.verts.new((q.x, q.y, arch(f_))))
+            grid_b.append(rowb)
+            grid_t.append(rowt)
+        for i in range(nt):
+            for k in range(m):
+                bm.faces.new([grid_t[i][k], grid_t[i][k + 1], grid_t[i + 1][k + 1], grid_t[i + 1][k]])
+                bm.faces.new([grid_b[i][k + 1], grid_b[i][k], grid_b[i + 1][k], grid_b[i + 1][k + 1]])
+        for k in range(m):
+            for i_face in (0, nt):
+                bm.faces.new([grid_b[i_face][k], grid_b[i_face][k + 1], grid_t[i_face][k + 1], grid_t[i_face][k]])
+        for i in range(nt):
+            for k_end in (0, m):
+                bm.faces.new([grid_b[i][k_end], grid_b[i + 1][k_end], grid_t[i + 1][k_end], grid_t[i][k_end]])
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        return bm
+    cl = bmesh.new()
+    for sg in (1, -1):
+        cb = cheek(sg)
+        me_tmp = bpy.data.meshes.new('tmp')
+        cb.to_mesh(me_tmp)
+        cb.free()
+        cl.from_mesh(me_tmp)
+        bpy.data.meshes.remove(me_tmp)
+    parts['lamp_clevis'] = (cl, WP, 40)
+    # ---- axle through both cheeks with knob caps on the outside (static, belongs to the column)
+    axle_c = Vector((col_xy.x, col_xy.y, AXLE_Z))
+    ab = lathe([(0.0, -COL_D / 2 - 0.001), (AXLE_R, -COL_D / 2 - 0.001), (AXLE_R, COL_D / 2 + 0.001),
+                (0.0, COL_D / 2 + 0.001)], frame(axle_c, T3), 24)
+    for sgn in (1, -1):
+        fr = frame(axle_c + T3 * (sgn * COL_D / 2), T3 * sgn)
+        kprof = [(0.0, 0.0042), (0.0030, 0.0042), (0.0034, 0.0038), (0.0038, 0.0042), (KNOB_R - 0.0015, 0.0042),
+                 (KNOB_R - 0.0003, 0.0034), (KNOB_R, 0.0022), (KNOB_R, 0.0), (0.0, 0.0)]
+        kb = lathe(kprof, fr, 48)
+        me_tmp = bpy.data.meshes.new('tmp')
+        kb.to_mesh(me_tmp)
+        kb.free()
+        ab.from_mesh(me_tmp)
+        bpy.data.meshes.remove(me_tmp)
+    parts['lamp_axle'] = (ab, WP, 40)
+    # ---- hub: round disc on the axle between the cheeks, carries both bar roots (rotates with the arm)
+    hprof_h = [(0.0, -HUB_T / 2), (HUB_R - 0.0012, -HUB_T / 2), (HUB_R, -HUB_T / 2 + 0.0012),
+               (HUB_R, HUB_T / 2 - 0.0012), (HUB_R - 0.0012, HUB_T / 2), (0.0, HUB_T / 2)]
+    parts['lamp_hub'] = (lathe(hprof_h, frame(axle_c, T3), 64), WP, 40)
 
     # ---- two identical parallel branches: vertical run, one smooth forward arc, straight lean
     def branch_path(root_xy, z_top):
         pts = []
-        z_start = SPLIT_Z1 - 0.006
+        z_start = AXLE_Z + 0.004                              # rooted inside the hub
         z_bend = SPLIT_Z1 + BR_RISE0
         root = Vector((root_xy.x, root_xy.y, 0))
         for k in range(3):
@@ -309,6 +408,19 @@ def build():
     root.location = Vector((BASE_C.x, BASE_C.y, BASE_Z0))
     coll.objects.link(root)
     inv = Matrix.Translation(-root.location)
+    pivot = bpy.data.objects.new('NEW_lamp_pivot', None)
+    pivot.empty_display_type = 'ARROWS'
+    pivot.empty_display_size = 0.04
+    coll.objects.link(pivot)
+    bpy.context.view_layer.update()
+    pivot.parent = root
+    pivot.matrix_parent_inverse = Matrix.Identity(4)
+    pivot.location = axle_c - root.location                 # root has no rotation/scale
+    pivot.rotation_mode = 'AXIS_ANGLE'
+    pivot.rotation_axis_angle = (0.0, T3.x, T3.y, T3.z)   # tilt = change the angle (rad) about the axle
+    bpy.context.view_layer.update()
+    ARM = {'lamp_hub', 'lamp_branch_rear', 'lamp_branch_front', 'lamp_yoke', 'lamp_pivot_l', 'lamp_pivot_r',
+           'lamp_neck', 'lamp_head', 'lamp_diffuser_bezel', 'lamp_diffuser_disc'}
     tris, objs = {}, {}
     for name, (bm, mat, ang) in parts.items():
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-7)
@@ -321,7 +433,9 @@ def build():
         me.set_sharp_from_angle(angle=math.radians(ang))
         o = bpy.data.objects.new(name, me)
         coll.objects.link(o)
-        o.parent = root
+        par = pivot if name in ARM else root
+        o.parent = par
+        o.matrix_parent_inverse = par.matrix_world.inverted() @ root.matrix_world
         objs[name] = o
         tris[name] = sum(len(p.vertices) - 2 for p in me.polygons)
     ld = bpy.data.lights.new('LAMP_disk', 'AREA')
@@ -332,7 +446,7 @@ def build():
     ld.spread = DISK_SPREAD
     lo = bpy.data.objects.new('LAMP_disk', ld)
     coll.objects.link(lo)
-    lo.parent = root
+    lo.parent = pivot
     lo.matrix_world = Matrix.Translation(head_c - Z * 0.0034)
     bpy.context.view_layer.update()
 
@@ -341,11 +455,44 @@ def build():
         return [o.matrix_world @ v.co for v in o.data.vertices]
     checks = {}
     checks['world_scales'] = sorted({tuple(round(x, 6) for x in o.matrix_world.to_scale()) for o in coll.objects})
-    cv = [v for v in wv(objs['lamp_column']) if abs((v.to_2d() - col_xy).length - COL_R) < 2e-5 and v.z > z1 + 0.0045]
-    zs = sorted({round(v.z, 6) for v in cv})
-    c_lo = sum((v.to_2d() for v in cv if round(v.z, 6) == zs[0]), Vector((0, 0))) / len([v for v in cv if round(v.z, 6) == zs[0]])
-    c_hi = sum((v.to_2d() for v in cv if round(v.z, 6) == zs[-1]), Vector((0, 0))) / len([v for v in cv if round(v.z, 6) == zs[-1]])
-    checks['column_tilt_deg'] = round(math.degrees(math.atan2((c_hi - c_lo).length, zs[-1] - zs[0])), 5)
+    cvv = wv(objs['lamp_column'])
+    zs = sorted({round(v.z, 6) for v in cvv})
+    ring = lambda zz: [v for v in cvv if abs(v.z - zz) < 1e-6]
+    c_lo = sum((v.to_2d() for v in ring(zs[4])), Vector((0, 0))) / len(ring(zs[4]))
+    c_hi = sum((v.to_2d() for v in ring(zs[-1])), Vector((0, 0))) / len(ring(zs[-1]))
+    checks['column_tilt_deg'] = round(math.degrees(math.atan2((c_hi - c_lo).length, zs[-1] - zs[4])), 5)
+    w_f = max(v.to_2d().dot(F2) for v in ring(zs[-1])) - min(v.to_2d().dot(F2) for v in ring(zs[-1]))
+    w_t = max(v.to_2d().dot(T3.to_2d()) for v in ring(zs[-1])) - min(v.to_2d().dot(T3.to_2d()) for v in ring(zs[-1]))
+    checks['column_section_mm'] = (round(w_f * 1000, 2), round(w_t * 1000, 2))
+    checks['bar_pair_outer_width_mm'] = round((BR_SPACING + 2 * BR_R) * 1000, 2)
+    bv = wv(objs['lamp_base'])
+    checks['base_thickness_mm'] = round((max(v.z for v in bv) - min(v.z for v in bv)) * 1000, 2)
+    from mathutils.bvhtree import BVHTree
+
+    def tree(names):
+        V, Fc = [], []
+        dg = bpy.context.evaluated_depsgraph_get()
+        for nm_ in names:
+            ev = objs[nm_].evaluated_get(dg)
+            m_ = ev.to_mesh()
+            base_i = len(V)
+            V += [ev.matrix_world @ v.co for v in m_.vertices]
+            Fc += [tuple(i + base_i for i in p_.vertices) for p_ in m_.polygons]
+            ev.to_mesh_clear()
+        return V, BVHTree.FromPolygons(V, Fc)
+    joint = {}
+    for ang_deg in (0.0, -15.0, 15.0):
+        pivot.rotation_axis_angle = (math.radians(ang_deg), T3.x, T3.y, T3.z)
+        bpy.context.view_layer.update()
+        mv, mt = tree(['lamp_hub', 'lamp_branch_rear', 'lamp_branch_front'])
+        sv, st_ = tree(['lamp_clevis', 'lamp_column', 'lamp_axle'])
+        # the axle passes through the hub by design: measure hub/bars against cheeks + column only
+        sv2, st2 = tree(['lamp_clevis', 'lamp_column'])
+        d = min(st2.find_nearest(v)[3] for v in mv)
+        joint[ang_deg] = round(d * 1000, 3)
+    pivot.rotation_axis_angle = (0.0, T3.x, T3.y, T3.z)
+    bpy.context.view_layer.update()
+    checks['joint_clearance_mm_at_0_-15_+15deg'] = joint
     # branch straight runs: axis direction of each, angle between them, straightness (ring-centre deviation)
     def run_axis(path, n_run=6):
         run = path[-(n_run + 1):]
@@ -378,18 +525,19 @@ def build():
     checks['neck_level_mm'] = round((max(v.z for v in nv) - min(v.z for v in nv) - 2 * NECK_R) * 1000, 4)
     print('CHECKS', checks)
 
-    meta = dict(neck_start=list(neck0), neck_end=list(neck1), neck_dir=list(F3), neck_across=list(T3),
+    meta = dict(pivot=list(axle_c), pivot_axis=list(T3), neck_start=list(neck0), neck_end=list(neck1), neck_dir=list(F3), neck_across=list(T3),
                 neck_r=NECK_R, head_centre=list(head_c), head_r=HEAD_R, head_t=HEAD_T,
                 yoke_centre=[yoke_xy.x, yoke_xy.y, head_mid], block_r=BLOCK_R, branch_r=BR_R,
                 diffuser_r=DIFF_R)
     with open(OUT_META, 'w') as f:
         json.dump(meta, f, indent=1)
-    print(f'LAYOUT column {tuple(round(x, 4) for x in col_xy)} split z [{SPLIT_Z0},{SPLIT_Z1}] '
+    print(f'LAYOUT column {tuple(round(x, 4) for x in col_xy)} axle z {AXLE_Z} '
           f'yoke {tuple(round(x, 4) for x in yoke_xy)} neck {tuple(round(x, 4) for x in neck0)} -> '
           f'{tuple(round(x, 4) for x in neck1)} head {tuple(round(x, 4) for x in head_c)} travel {travel * 1000:.1f}mm')
     total = sum(tris.values())
     print('TRIS', total, tris)
     return dict(scene=scene, coll=coll, head_c=head_c, col_xy=col_xy, tris=tris, total=total, checks=checks,
+                pivot=pivot, axle=axle_c,
                 yoke=Vector((yoke_xy.x, yoke_xy.y, head_mid)))
 
 
@@ -460,11 +608,35 @@ def previews(b):
         print('PREVIEW', name)
     # side view: looking across the plane of movement (along T3)
     shot(mid + T3 * 1.4, mid, 50, 'lamp_side.png', (1000, 1100), ortho=0.56)
-    # front view: looking back along the plane of movement (from the head side)
-    shot(mid + F3 * 1.4, mid, 50, 'lamp_front.png', (1000, 1100), ortho=0.56)
-    three_q = (F3 * 0.55 + T3 * 0.85).normalized()
-    shot(mid + three_q * 0.95 + Vector((0, 0, 0.25)), mid, 40, 'lamp_34.png', (900, 1100))
+    # close-up of the clevis joint (3/4 so the slot, hub, axle and knob read)
+    ax = b['axle']
+    shot(ax + (T3 * 0.75 + F3 * 0.35).normalized() * 0.23 + Vector((0, 0, 0.07)), ax + Vector((0, 0, 0.004)), 50,
+         'lamp_joint.png', (1100, 900))
     shot(SEAT, mid + Vector((0, 0, 0.06)), 40, 'lamp_seat.png')
+    # tilt proof: rotate NEW_lamp_pivot -15 deg about the axle, medals attached to it
+    med_objs = []
+    mb = os.path.join(PARTS, 'medals.blend')
+    if os.path.exists(mb):
+        with bpy.data.libraries.load(mb, link=False) as (src, dst):
+            dst.objects = list(src.objects)
+        for o in dst.objects:
+            if o is not None:
+                scene.collection.objects.link(o)
+                med_objs.append(o)
+        bpy.context.view_layer.update()
+        mr = bpy.data.objects.get('NEW_medals_root')
+        if mr:
+            mw = mr.matrix_world.copy()
+            mr.parent = b['pivot']
+            mr.matrix_world = mw
+    pv = b['pivot']
+    ang0 = pv.rotation_axis_angle[:]
+    pv.rotation_axis_angle = (math.radians(-15), ang0[1], ang0[2], ang0[3])
+    bpy.context.view_layer.update()
+    shot(mid + T3 * 1.4, mid, 50, 'lamp_tilt_-15.png', (1000, 1100), ortho=0.60)
+    pv.rotation_axis_angle = ang0
+    for o in med_objs:
+        bpy.data.objects.remove(o, do_unlink=True)
     for o in tmp:
         bpy.data.objects.remove(o, do_unlink=True)
     bpy.data.materials.remove(dm)
