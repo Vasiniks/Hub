@@ -20,7 +20,7 @@ SEAT = V((0.0, -0.16, 1.175))
 scene = bpy.context.scene
 old = bpy.data.collections.get('NEW_bambu')
 if old is not None:
-    for o in old.all_objects:
+    for o in [x for x in old.all_objects if x is not None]:
         o.hide_render = True
 with bpy.data.libraries.load(os.path.join(PARTS, 'bambu.blend'), link=False) as (src, dst):
     dst.collections = ['NEW_bambu']
@@ -103,4 +103,4 @@ def shot(loc, target, lens, name, res=(1280, 800)):
 if not ONLY or 'seat' in ONLY:
     shot(SEAT, V((-1.9, 1.1, 1.0)), 35, 'bambu_seat.png')
 if not ONLY or 'wide' in ONLY:
-    shot(V((-0.3, -0.9, 1.5)), V((-1.75, 0.9, 0.85)), 24, 'bambu_room_wide.png')
+    shot(V((-0.3, -0.9, 1.5)), V((-1.55, 0.9, 0.8)), 24, 'bambu_room_wide.png')
