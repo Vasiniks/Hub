@@ -17,11 +17,17 @@ SPP = int(next((a.split('=')[1] for a in ARGS if a.startswith('--samples=')), 48
 SEAT = V((0.0, -0.16, 1.175))
 
 scene = bpy.context.scene
+# room.blend may already hold an integrated (older) NEW_pc: hide it so only the fresh parts/pc.blend renders
+old = bpy.data.collections.get('NEW_pc')
+if old is not None:
+    for o in [x for x in old.all_objects if x is not None]:
+        o.hide_render = True
+        o.hide_viewport = True
 with bpy.data.libraries.load(os.path.join(PARTS, 'pc.blend'), link=False) as (src, dst):
     dst.collections = ['NEW_pc']
 scene.collection.children.link(dst.collections[0])
-tote = bpy.data.objects['Node_380']
-for o in [tote] + list(tote.children_recursive):
+tote = bpy.data.objects.get('Node_380')
+for o in ([tote] + list(tote.children_recursive)) if tote else []:
     o.hide_render = True
     o.hide_viewport = True
 scene.render.engine = 'CYCLES'
@@ -41,7 +47,7 @@ cam = bpy.data.objects.new('pc_ctx_cam', bpy.data.cameras.new('pc_ctx_cam'))
 scene.collection.objects.link(cam)
 scene.camera = cam
 bpy.context.view_layer.update()
-root = bpy.data.objects['NEW_pc_root']
+root = next(o for o in dst.collections[0].all_objects if o.name.startswith('NEW_pc_root'))
 mid = root.matrix_world @ V((0, 0, 0.24))
 
 
