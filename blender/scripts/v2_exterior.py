@@ -35,8 +35,8 @@ WIN = (-1.32, 1.02, 0.70, 2.50)
 S0 = 16.5                # main street centreline
 FRONT = 32.0             # house front walls across the street
 LOT = 15.0
-HAZE_L = 190.0           # haze e-folding distance (m)
-HAZE_D0 = 6.0            # haze starts this far from the camera
+HAZE_L = 260.0           # haze e-folding distance (m)
+HAZE_D0 = 10.0           # haze starts this far from the camera
 
 rnd = random.Random(1360)
 
@@ -201,26 +201,33 @@ def haze_group():
     d = math_n(nt, 'MAXIMUM', d, 0.0)
     d = math_n(nt, 'MULTIPLY', d, -1.0 / HAZE_L)
     tr = math_n(nt, 'EXPONENT', d)
-    fac = math_n(nt, 'SUBTRACT', 1.0, tr)
-    fac = math_n(nt, 'MULTIPLY', fac, 0.97)
-    # in-scatter colour = the world's own sky, looked up just above the horizon in the view direction
+    f1 = math_n(nt, 'SUBTRACT', 1.0, tr)
+    fac = math_n(nt, 'MULTIPLY', math_n(nt, 'POWER', f1, 1.7), 0.97)   # clear near, dense only far away
+    # in-scatter colour = the world's own sky just above the horizon in the view direction (so the far
+    # distance melts into the horizon); at mid distances use the dimmer anti-sun horizon tone instead
     geo = nd(nt, 'ShaderNodeNewGeometry')
     dv = vscale(nt, geo.outputs['Incoming'], -1.0)
     c = xyz(nt, dv)
     zc = math_n(nt, 'MAXIMUM', c[2], 0.035)
-    dirn = nd(nt, 'ShaderNodeVectorMath', operation='NORMALIZE')
-    lk(nt, comb(nt, c[0], c[1], zc), dirn.inputs[0])
-    sky = nd(nt, 'ShaderNodeTexSky')
-    for attr, val in (('sky_type', 'MULTIPLE_SCATTERING'), ('sun_disc', False), ('sun_elevation', 0.3735004663467407),
-                      ('sun_rotation', 0.0), ('altitude', 100.0), ('air_density', 1.0), ('aerosol_density', 1.0),
-                      ('ozone_density', 1.0), ('sun_intensity', 1.0)):
-        try:
-            setattr(sky, attr, val)
-        except (TypeError, AttributeError):
-            pass
-    lk(nt, dirn.outputs[0], sky.inputs['Vector'])
+
+    def skylook(yv):
+        dirn = nd(nt, 'ShaderNodeVectorMath', operation='NORMALIZE')
+        lk(nt, comb(nt, c[0], yv, zc), dirn.inputs[0])
+        sky = nd(nt, 'ShaderNodeTexSky')
+        for attr, val in (('sky_type', 'MULTIPLE_SCATTERING'), ('sun_disc', False), ('sun_elevation', 0.3735004663467407),
+                          ('sun_rotation', 0.0), ('altitude', 100.0), ('air_density', 1.0), ('aerosol_density', 1.0),
+                          ('ozone_density', 1.0), ('sun_intensity', 1.0)):
+            try:
+                setattr(sky, attr, val)
+            except (TypeError, AttributeError):
+                pass
+        lk(nt, dirn.outputs[0], sky.inputs['Vector'])
+        return sky.outputs[0]
+    s_true = skylook(c[1])
+    s_anti = skylook(math_n(nt, 'MULTIPLY', c[1], -1.0))
+    col = mixc(nt, math_n(nt, 'POWER', fac, 1.5), s_anti, s_true)
     em = nd(nt, 'ShaderNodeEmission')
-    lk(nt, sky.outputs[0], em.inputs['Color'])
+    lk(nt, col, em.inputs['Color'])
     sv(em, 'Strength', 0.35)              # = world Background strength in room.blend
     mix = nd(nt, 'ShaderNodeMixShader')
     lk(nt, fac, mix.inputs[0])
@@ -551,8 +558,8 @@ def mat_leaf(name, c0, c1, c2):
     col = mixc(nt, math_n(nt, 'MULTIPLY', n, 0.4), col, tuple(x * 0.65 for x in c0))
     tr = nd(nt, 'ShaderNodeBsdfTranslucent')
     lk(nt, mulc(nt, col, (1.2, 1.35, 0.8)), tr.inputs['Color'])
-    p = principled(nt, col, 0.55, bump(nt, noise(nt, P, 60, 3, 0.5).outputs['Fac'], 0.2, 0.002),
-                   **{'Specular IOR Level': 0.45})
+    p = principled(nt, col, 0.6, bump(nt, noise(nt, P, 60, 3, 0.5).outputs['Fac'], 0.2, 0.002),
+                   **{'Specular IOR Level': 0.3})
     mix = nd(nt, 'ShaderNodeMixShader')
     sv(mix, 0, 0.3)
     lk(nt, p.outputs[0], mix.inputs[1])
@@ -625,7 +632,7 @@ simple('ext_chrome', (0.6, 0.6, 0.6), 0.15, Metallic=1.0)
 simple('ext_taillight', (0.30, 0.01, 0.01), 0.1, **{'Transmission Weight': 0.3})
 simple('ext_headlight', (0.55, 0.55, 0.55), 0.05, Metallic=0.6)
 simple('ext_luminaire', (0.72, 0.72, 0.7), 0.15, **{'Transmission Weight': 0.5})
-simple('ext_sealant', (0.012, 0.012, 0.012), 0.32, 0.1, 40.0, 0.2)
+simple('ext_sealant', (0.02, 0.02, 0.019), 0.8, 0.1, 40.0, 0.2, **{'Specular IOR Level': 0.15})
 simple('ext_crack', (0.02, 0.02, 0.018), 0.9)
 simple('ext_lamp_off', (0.32, 0.30, 0.26), 0.2, **{'Transmission Weight': 0.6})
 simple('ext_grate', (0.05, 0.045, 0.04), 0.6, 0.3, 15.0, 0.3, Metallic=0.7)
@@ -635,7 +642,7 @@ mat_concrete('ext_concrete')
 mat_concrete('ext_concrete_old', (0.36, 0.35, 0.33))
 mat_concrete('ext_foundation', (0.33, 0.32, 0.30), broom=False)
 mat_concrete('ext_pavers', (0.32, 0.29, 0.25), broom=False)
-mat_asphalt('ext_asphalt')
+mat_asphalt('ext_asphalt', 0.06)
 mat_asphalt('ext_asphalt_patch', 0.055, patch=True)
 mat_asphalt('ext_driveway', 0.05, patch=True)
 mat_grass('ext_grass')
@@ -1351,7 +1358,7 @@ def house_lod(seed):
 def leaf_shape(k):
     """Unit outline in the leaf plane: k='maple' five-lobed, 'clump' irregular rosette."""
     if k == 'maple':
-        rs = [1.0, 0.45, 0.8, 0.35, 0.55, 0.2, 0.55, 0.35, 0.8, 0.45]
+        rs = [1.0, 0.5, 0.8, 0.3, 0.45, 0.3, 0.8, 0.5]
         return [(r * math.sin(2 * math.pi * i / len(rs)), r * math.cos(2 * math.pi * i / len(rs))) for i, r in enumerate(rs)]
     return None
 
@@ -1417,8 +1424,9 @@ def tree(seed, H, crown_r, crown_z0, trunk_r, n_leaf, leaf_sz, leaf_mat, bark='e
             nv = len(pts)
             mb.raw([ctr] + pts, [(0, 1 + k, 1 + (k + 1) % nv) for k in range(nv)], leaf_mat)
         else:
-            nv = 7
-            pts = [p + (u * math.cos(2 * math.pi * k / nv) + w * math.sin(2 * math.pi * k / nv)) * s * r.uniform(0.55, 1.0) for k in range(nv)]
+            nv = 10       # serrated rosette: reads as a cluster of leaves, not one big leaf
+            pts = [p + (u * math.cos(2 * math.pi * k / nv) + w * math.sin(2 * math.pi * k / nv)) * s *
+                   (r.uniform(0.7, 1.0) if k % 2 == 0 else r.uniform(0.3, 0.5)) for k in range(nv)]
             ctr = p + nrm * 0.25 * s
             mb.raw([ctr] + pts, [(0, 1 + k, 1 + (k + 1) % nv) for k in range(nv)], leaf_mat)
     return mb
@@ -1445,7 +1453,7 @@ def spruce(seed, H, R, mat='ext_leaf_spruce'):
     return mb
 
 
-def shrub(seed, rx, ry, rz, n=110, sz=0.16, mat='ext_leaf_shrub'):
+def shrub(seed, rx, ry, rz, n=75, sz=0.19, mat='ext_leaf_shrub'):
     r = random.Random(seed)
     mb = MB()
     for i in range(n):
@@ -1941,12 +1949,12 @@ def lod_row(y_front, facing, xlim, skip_x=()):
 
 
 # our side of the street: neighbours (front faces +y), beyond our own facade
-lod_row(FY - 0.0, +1, 140, skip_x=[(-22.0, 28.0)])
+lod_row(FY - 0.0, +1, 70, skip_x=[(-22.0, 28.0)])
 place(LODS[1][0], 'EXT_house_lod_nbrL', (-8.5, FY - 0.3, G), math.pi, (1, 1, 1), SIDING_COLS[2])
 place(LODS[3][0], 'EXT_house_lod_nbrR', (13.6 + LODS[3][1] + 0.9, FY - 0.3, G), math.pi, (1, 1, 1), SIDING_COLS[5])
 # across row beyond the detailed lots
 lod_row(FRONT, -1, 170, skip_x=[(-76.0, 60.0)])
-for k in range(0, 4):
+for k in range(0, 3):
     s = S0 + 75 * k
     if k > 0:
         lod_row(s + 15.5, -1, 110 + 70 * k)
@@ -1954,23 +1962,23 @@ for k in range(0, 4):
 
 # =====================================================================================  trees / shrubs
 print('trees...')
-t_young = tree(11, 5.6, 1.9, 2.2, 0.075, 1500, 0.14, 'ext_leaf_maple', 'ext_bark_grey', depth=3, shape='maple', spread=0.75)
+t_young = tree(11, 5.6, 1.9, 2.2, 0.075, 1400, 0.085, 'ext_leaf_maple', 'ext_bark_grey', depth=3, shape='maple', spread=0.75)
 m_young = t_young.build('EXT_tree_maple_src').data
 bpy.data.objects.remove(bpy.data.objects['EXT_tree_maple_src'])
 m_young.name = 'EXT_tree_maple_young'
-t_young2 = tree(12, 5.0, 1.6, 2.0, 0.065, 1200, 0.14, 'ext_leaf_maple', 'ext_bark_grey', depth=3, shape='maple', spread=0.75)
+t_young2 = tree(12, 5.0, 1.6, 2.0, 0.065, 1150, 0.085, 'ext_leaf_maple', 'ext_bark_grey', depth=3, shape='maple', spread=0.75)
 m_young2 = t_young2.build('EXT_tree_maple2_src').data
 bpy.data.objects.remove(bpy.data.objects['EXT_tree_maple2_src'])
 m_young2.name = 'EXT_tree_maple_young2'
-t_big = tree(21, 15.0, 5.5, 4.0, 0.32, 1300, 0.62, 'ext_leaf_mature', 'ext_bark', depth=4, shape='clump', spread=0.7)
+t_big = tree(21, 15.0, 5.5, 4.0, 0.32, 1250, 0.55, 'ext_leaf_mature', 'ext_bark', depth=4, shape='clump', spread=0.5)
 m_big = t_big.build('EXT_tree_big_src').data
 bpy.data.objects.remove(bpy.data.objects['EXT_tree_big_src'])
 m_big.name = 'EXT_tree_mature'
-t_big2 = tree(22, 12.0, 4.5, 3.2, 0.26, 1000, 0.6, 'ext_leaf_mature', 'ext_bark', depth=4, shape='clump', spread=0.7)
+t_big2 = tree(22, 12.0, 4.5, 3.2, 0.26, 950, 0.52, 'ext_leaf_mature', 'ext_bark', depth=4, shape='clump', spread=0.5)
 m_big2 = t_big2.build('EXT_tree_big2_src').data
 bpy.data.objects.remove(bpy.data.objects['EXT_tree_big2_src'])
 m_big2.name = 'EXT_tree_mature2'
-t_far = tree(31, 13.0, 5.0, 3.5, 0.3, 220, 1.4, 'ext_leaf_mature', 'ext_bark', depth=2, shape='clump', spread=0.7)
+t_far = tree(31, 13.0, 5.0, 3.5, 0.3, 90, 2.0, 'ext_leaf_mature', 'ext_bark', depth=2, shape='clump', spread=0.7)
 m_far = t_far.build('EXT_tree_far_src').data
 bpy.data.objects.remove(bpy.data.objects['EXT_tree_far_src'])
 m_far.name = 'EXT_tree_far'
@@ -1980,7 +1988,7 @@ m_spruce.name = 'EXT_tree_spruce'
 m_shrub = shrub(51, 0.55, 0.55, 0.45).build('EXT_shrub_src').data
 bpy.data.objects.remove(bpy.data.objects['EXT_shrub_src'])
 m_shrub.name = 'EXT_shrub'
-m_cedar = shrub(52, 0.45, 0.45, 1.1, n=160, sz=0.18).build('EXT_cedar_src').data
+m_cedar = shrub(52, 0.45, 0.45, 1.1, n=95, sz=0.22).build('EXT_cedar_src').data
 bpy.data.objects.remove(bpy.data.objects['EXT_cedar_src'])
 m_cedar.name = 'EXT_shrub_cedar'
 
@@ -1999,11 +2007,9 @@ def put(mesh, x, y, z=None, s=1.0, name='tree'):
 put(m_young, -5.6, 10.75, G, 1.0, 'maple')
 put(m_young2, 9.0, 10.8, G, 1.05, 'maple')
 put(m_young2, -21.0, 10.8, G, 0.95, 'maple')
-put(m_young, 24.0, 10.7, G, 1.0, 'maple')
 put(m_young2, -21.5, 22.5, G, 1.1, 'maple')
 put(m_young, -9.8, 22.4, G, 0.9, 'maple')
 put(m_young2, 17.5, 22.6, G, 1.0, 'maple')
-put(m_young, 36.5, 22.5, G, 1.0, 'maple')
 # backyard canopy trees + spruces behind the houses across
 for x, y, m, s in ((-24.0, 49.0, m_big, 1.0), (-7.5, 51.0, m_big2, 1.0), (7.5, 47.5, m_big, 0.85), (21.0, 50.5, m_big2, 1.1),
                    (37.0, 48.0, m_big, 0.95), (-2.0, 60.5, m_big, 1.05), (14.0, 62.0, m_big2, 1.0), (-17.0, 61.0, m_big2, 0.9),
@@ -2012,7 +2018,7 @@ for x, y, m, s in ((-24.0, 49.0, m_big, 1.0), (-7.5, 51.0, m_big2, 1.0), (7.5, 4
 for x, y, s in ((-12.5, 45.0, 1.0), (27.0, 44.0, 0.85), (-27.0, 26.8, 0.55), (3.0, 56.0, 1.2)):
     put(m_spruce, x, y, None, s, 'spruce')
 # far trees scattered through the rows
-for i in range(95):
+for i in range(55):
     y = tr_.uniform(75, 330)
     x = tr_.uniform(-(0.9 * y + 40), 0.9 * y + 40)
     if SIDE_X0 < x < SIDE_X1:

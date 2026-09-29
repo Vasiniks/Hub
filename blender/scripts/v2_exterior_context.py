@@ -28,6 +28,13 @@ with bpy.data.libraries.load(os.path.join(PARTS, 'exterior.blend'), link=False) 
     dst.collections = ['NEW_exterior']
 scene.collection.children.link(dst.collections[0])
 
+HZ = next((float(a.split('=')[1]) for a in ARGS if a.startswith('--haze=')), None)
+if HZ is not None:
+    g = bpy.data.node_groups['EXT_haze']
+    for n in g.nodes:
+        if n.type == 'MATH' and n.operation == 'MULTIPLY' and abs(n.inputs[1].default_value - 0.97) < 1e-3:
+            n.inputs[1].default_value = HZ
+SUF = next((a.split('=')[1] for a in ARGS if a.startswith('--suffix=')), '')
 scene.render.engine = 'CYCLES'
 prefs = bpy.context.preferences.addons['cycles'].preferences
 prefs.compute_device_type = 'CUDA'
@@ -47,7 +54,7 @@ scene.render.resolution_percentage = 100
 
 def shot(cam, name):
     scene.camera = cam
-    scene.render.filepath = os.path.join(PARTS, name)
+    scene.render.filepath = os.path.join(PARTS, name.replace('.png', SUF + '.png'))
     t = time.time()
     bpy.ops.render.render(write_still=True)
     print('PREVIEW', name, '%.1fs' % (time.time() - t))
