@@ -192,8 +192,8 @@ def make_materials():
     base_mat('strip_recess_grey', (0.46, 0.46, 0.45), 0.55)
     base_mat('strip_rocker_red', (0.55, 0.02, 0.01), 0.25, coat=0.5)
     base_mat('strip_hole_black', (0.004, 0.004, 0.004), 0.9)
-    m = base_mat('velcro_black', (0.012, 0.012, 0.013), 0.9, sheen=0.15, spec=0.3)
-    add_noise_bump(m, 6000, 0.5, 0.0003, detail=4.0)
+    m = base_mat('velcro_black', (0.010, 0.010, 0.011), 0.95, sheen=0.1, spec=0.12)
+    add_noise_bump(m, 6000, 0.35, 0.0002, detail=4.0)
     base_mat('ziptie_nylon_black', (0.02, 0.02, 0.02), 0.35)
     base_mat('monitor_inlet_dark', (0.012, 0.012, 0.013), 0.6)
     m = base_mat('magsafe_aluminium', (0.72, 0.73, 0.74), 0.32, metal=1.0)
@@ -1508,7 +1508,7 @@ REPLACES = ['monitor_cable', 'Mesh_31', 'cable_coil', 'cable_tie', 'cable_boot',
 
 VIEWS = {
     # name: (camera, target, lens)
-    'seat_rear': ((-0.12, 0.60, 0.99), (0.0, 1.12, 0.73), 22),
+    'seat_rear': ((-0.30, 0.50, 1.02), (-0.06, 1.12, 0.73), 22),
     'under':     ((0.20, 0.52, 0.30), (0.24, 1.20, 0.22), 18),
     'brick':     ((0.200, 1.075, 0.105), (0.082, 1.188, 0.012), 38),
     'magsafe':   ((-0.262, 0.728, 0.852), (-0.2175, 0.7875, 0.8155), 58),
@@ -1518,7 +1518,7 @@ VIEWS = {
     'io':        ((0.175, 1.175, 1.075), (0.105, 0.985, 0.995), 40),
     'magsafe_side': ((-0.36, 0.66, 0.86), (-0.245, 0.80, 0.785), 38),
     'magsafe_top':  ((-0.228, 0.772, 0.868), (-0.2140, 0.7872, 0.8175), 70),
-    'drop':      ((0.50, 1.27, 0.66), (0.39, 1.10, 0.58), 30),
+    'drop':      ((0.30, 1.215, 0.50), (0.40, 1.10, 0.645), 22),
 }
 
 
@@ -1556,6 +1556,8 @@ def preview(names):
         pass
     sc.render.resolution_x, sc.render.resolution_y = 1280, 800
     sc.view_settings.view_transform = 'AgX' if 'AgX' in [i.identifier for i in sc.view_settings.bl_rna.properties['view_transform'].enum_items] else sc.view_settings.view_transform
+    sc.view_settings.exposure = 0.0          # room.blend runs at +1 EV; previews judge materials neutrally
+    sc.view_settings.look = 'None'
     cam = bpy.data.objects.new('prev_cam', bpy.data.cameras.new('prev_cam'))
     sc.collection.objects.link(cam)
     cam.data.clip_start = 0.004
