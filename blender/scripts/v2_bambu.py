@@ -418,8 +418,8 @@ for sx in (-1, 1):
     for sy in (-1, 1):
         cyl('bambu_foot_%d%d' % (sx, sy), 13, (sx * 150, sy * 170, 0), (sx * 150, sy * 170, 5), 'rubber', verts=24)
 # dark skirt + light grey body with a rounded top edge
-rbox('bambu_base_skirt', (-181, -196, 4), (181, 196, 16), 10, 'body_dark')
-rbox('bambu_base_body', (-185, -200, 13), (185, 200, 70), 14, 'body', segs=4)
+rbox('bambu_base_skirt', (-181, -194, 4), (181, 194, 16), 10, 'body_dark')
+rbox('bambu_base_body', (-185, -198, 13), (185, 198, 70), 14, 'body', segs=4)
 # shallow top recess strip where the Y carriage runs (dark) + aluminium Y rail
 rbox('bambu_base_ychannel', (-44, -190, 67.5), (44, 190, 70.6), 4, 'body_dark')
 rbox('bambu_y_rail', (-11, -185, 70.6), (11, 185, 77.0), 1.2, 'alu')
@@ -427,23 +427,23 @@ rbox('bambu_y_rail_slot', (-3, -186, 74.5), (3, 186, 77.2), 0.4, 'body_dark')
 # front ventilation slots on the left of the base front
 for k in range(6):
     z0 = 28 + k * 5.5
-    rbox('bambu_base_vent_%d' % k, (-160, -201.2, z0), (-80, -199.0, z0 + 2.4), 1.0, 'body_dark')
+    rbox('bambu_base_vent_%d' % k, (-160, -199.2, z0), (-80, -197.0, z0 + 2.4), 1.0, 'body_dark')
 # rear: power inlet + switch block
-rbox('bambu_base_inlet', (-140, 199.0, 24), (-100, 201.5, 50), 2.0, 'body_dark')
-rbox('bambu_base_switch', (-92, 199.0, 30), (-80, 202.0, 44), 1.5, 'rubber')
+rbox('bambu_base_inlet', (-140, 196.0, 24), (-100, 198.5, 50), 2.0, 'body_dark')
+rbox('bambu_base_switch', (-92, 196.0, 30), (-80, 198.8, 44), 1.5, 'rubber')
 
-# touchscreen pod on the front right (tilted back 18 deg)
-tilt = Matrix.Rotation(math.radians(-18), 3, 'X')
-rbox('bambu_screen_pod', (82, -212, 16), (182, -196, 72), 8, 'body_dark', rot=tilt, pivot=(132, -204, 16))
+# touchscreen pod on the front right, standing proud of the base front and tilted back 8 deg
+tilt = Matrix.Rotation(math.radians(-8), 3, 'X')
+rbox('bambu_screen_pod', (80, -212, 10), (184, -186, 69), 7, 'body_dark', rot=tilt, pivot=(132, -212, 10))
 bm = bmesh.new()
-sw, sh = 74.0, 50.0
+sw, sh = 73.0, 48.5
 co = [(-sw / 2, -sh / 2), (sw / 2, -sh / 2), (sw / 2, sh / 2), (-sw / 2, sh / 2)]
-vs = [bm.verts.new((132 + x, -212.35, 44 + z)) for x, z in co]
+vs = [bm.verts.new((132 + x, -212.3, 39.5 + z)) for x, z in co]
 f = bm.faces.new(vs)
 uv = bm.loops.layers.uv.new('UVMap')
 for loop, (x, z) in zip(f.loops, co):
     loop[uv].uv = (x / sw + 0.5, z / sh + 0.5)
-bmesh.ops.rotate(bm, verts=bm.verts, cent=V((132, -204, 16)), matrix=tilt)
+bmesh.ops.rotate(bm, verts=bm.verts, cent=V((132, -212, 10)), matrix=tilt)
 for v in bm.verts:
     v.co = P(*v.co)
 bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
@@ -468,8 +468,8 @@ for s in (-1, 1):
     xa, xb = sorted((s * TW_X0, s * TW_X1))
     rbox('bambu_tower_%s' % ('L' if s < 0 else 'R'), (xa, GY0, 10), (xb, GY1, 402), 6, 'body', segs=3)
     # tower foot block where it meets the base
-    rbox('bambu_tower_foot_%s' % ('L' if s < 0 else 'R'), (xa - 1.5, GY0 - 7, 4), (xb + 1.5, GY1 + 7, 34), 7, 'body', segs=3)
-    rbox('bambu_tower_foot_seam_%s' % ('L' if s < 0 else 'R'), (xa - 0.8, GY0 - 6.3, 33.4), (xb + 0.8, GY1 + 6.3, 34.6), 1.0, 'body_dark')
+    rbox('bambu_tower_foot_%s' % ('L' if s < 0 else 'R'), (xa - 1.5 * (s > 0), GY0 - 7, 4), (xb + 1.5 * (s < 0), GY1 + 7, 34), 7, 'body', segs=3)
+    rbox('bambu_tower_foot_seam_%s' % ('L' if s < 0 else 'R'), (xa - 0.8 * (s > 0), GY0 - 6.3, 33.4), (xb + 0.8 * (s < 0), GY1 + 6.3, 34.6), 1.0, 'body_dark')
     # inner face: dark Z slot strip
     xi = s * TW_X0
     rbox('bambu_tower_slot_%s' % ('L' if s < 0 else 'R'), (xi - 1.2, GY0 + 12, 60), (xi + 1.2, GY1 - 12, 396), 1.0, 'body_dark')
@@ -584,6 +584,13 @@ tube('bambu_power_cable', [
     (-2.052, plug_y, 0.272), (-2.050, plug_y + 0.02, 0.18), (-2.064, plug_y + 0.08, 0.121), (-2.062, plug_y + 0.13, 0.03), (-2.058, plug_y + 0.18, 0.0035),
     (-2.050, 1.200, 0.0035), (-1.86, 1.215, 0.004), (-1.805, 1.19, 0.10), (-1.795, 1.165, 0.45), (-1.790, 1.150, 0.69),
     (-1.786, 1.135, 0.727), (-1.782, 1.100, 0.748), (-1.7775, 1.072, 0.750)], 0.0028, 'cable', local=False, res=10, bev=6)
+# keep the cable on (not in) the floor and off the baseboard face (its toe is at x=-2.0675, top z=0.114)
+pc = bpy.data.objects['bambu_power_cable']
+for v in pc.data.vertices:
+    v.co.z = max(v.co.z, 0.0002)
+    if v.co.z < 0.115:
+        v.co.x = max(v.co.x, -2.0668)
+pc.data.update()
 
 # ============================================================================== parent + stats
 bpy.context.view_layer.update()
