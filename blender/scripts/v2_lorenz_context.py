@@ -9,7 +9,17 @@ import bpy
 import os
 import sys
 from mathutils import Vector
+import bmesh
 from mathutils.bvhtree import BVHTree
+
+
+def world_tree(o, dg):
+    bm = bmesh.new()
+    bm.from_object(o, dg)
+    bm.transform(o.matrix_world)
+    t = BVHTree.FromBMesh(bm)
+    bm.free()
+    return t
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PARTS = os.path.abspath(os.path.join(HERE, '..', 'scene', 'parts'))
@@ -22,6 +32,13 @@ while stack:
     o.hide_render = True
     o.hide_viewport = True
     stack.extend(o.children)
+
+# drop any copy of NEW_lorenz already integrated into room.blend (in memory only; never saved)
+old_coll = bpy.data.collections.get('NEW_lorenz')
+if old_coll:
+    for o in list(old_coll.all_objects):
+        bpy.data.objects.remove(o, do_unlink=True)
+    bpy.data.collections.remove(old_coll)
 
 with bpy.data.libraries.load(os.path.join(PARTS, 'lorenz.blend')) as (src, dst):
     dst.collections = ['NEW_lorenz']
@@ -39,18 +56,25 @@ def bb(o):
 lo = Vector((min(bb(o)[0].x for o in mine), min(bb(o)[0].y for o in mine), min(bb(o)[0].z for o in mine)))
 hi = Vector((max(bb(o)[1].x for o in mine), max(bb(o)[1].y for o in mine), max(bb(o)[1].z for o in mine)))
 print('LORENZ_BBOX', tuple(round(v, 3) for v in lo), tuple(round(v, 3) for v in hi))
-my_trees = {o.name: BVHTree.FromObject(o, dg) for o in mine}
+my_trees = {o.name: world_tree(o, dg) for o in mine}
 for o in bpy.data.objects:
     if o.type != 'MESH' or o in mine or o.hide_render or not o.visible_get():
         continue
     a, b = bb(o)
     if a.x > hi.x or b.x < lo.x or a.y > hi.y or b.y < lo.y or a.z > hi.z or b.z < lo.z:
         continue
-    t = BVHTree.FromObject(o, dg)
-    for n, mt in my_trees.items():
+    t = world_tree(o, dg)
+    near = 9.0
+    for m in mine:
+        mt = my_trees[m.name]
         if mt.overlap(t):
-            print('OVERLAP', n, 'x', o.name)
-    print('NEAR_CHECKED', o.name)
+            print('OVERLAP', m.name, 'x', o.name)
+        me = m.data
+        for v in list(me.vertices)[::7]:
+            hit = t.find_nearest(m.matrix_world @ v.co)
+            if hit[0] is not None:
+                near = min(near, hit[3])
+    print(f'NEAR_CHECKED {o.name} min_dist={near * 1000:.1f}mm')
 
 if '--no-render' not in ARGS:
     scene = bpy.context.scene
@@ -58,9 +82,9 @@ if '--no-render' not in ARGS:
     cam = bpy.data.objects.new('ctx_cam', cam_d)
     scene.collection.objects.link(cam)
     cam.location = Vector((0.0, -0.16, 1.175))
-    tgt = Vector((-0.8, 0.8, 0.8))
+    tgt = Vector((-0.66, 0.66, 0.77))
     cam.rotation_euler = (tgt - cam.location).to_track_quat('-Z', 'Y').to_euler()
-    cam_d.lens = 35
+    cam_d.lens = 38
     scene.camera = cam
     scene.render.engine = 'CYCLES'
     prefs = bpy.context.preferences.addons['cycles'].preferences

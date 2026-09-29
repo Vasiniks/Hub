@@ -1,9 +1,14 @@
 """
-v2 lorenz: desk sculpture of the Lorenz attractor on loose sheets of paper.
+v2 lorenz: desk sculpture of the Lorenz attractor, plus the owner's paper (main.pdf) stapled
+and lying at the desk's front-left.
 
-Replaces the small wire icosahedron on a stand at the desk's front-left (room.blend: empty
-Node_305 at (-0.98, 0.86) with Mesh_204 = dark round base, Mesh_205 = post, and Node_308 holding
-the wire frame Mesh_206..Mesh_247 plus the inner piece Mesh_248).
+Replaces the small wire icosahedron on a stand (room.blend: empty Node_305 at (-0.98, 0.86) with
+Mesh_204 = dark round base, Mesh_205 = post, and Node_308 holding the wire frame
+Mesh_206..Mesh_247 plus the inner piece Mesh_248).
+
+Placement: the root sits where the orchestrator put the sculpture in room.blend,
+(-0.4525, 0.9291, 0.735). The paper stack is a child placed ~0.53 m from it, at the desk's
+front-left, left of the notepad / sticky notes.
 
 Construction
   * The Lorenz system (sigma=10, rho=28, beta=8/3) is integrated with RK4, dt=0.005, from
@@ -12,23 +17,22 @@ Construction
   * The trajectory is scaled so its largest extent is 13 cm, then resampled along arc length
     with curvature-adaptive spacing (denser on tight turns) and swept as a Ø1.4 mm, 8-sided
     polished-brass wire with rotation-minimising frames (no twist, no kinks) and rounded ends.
-  * It is carried at its lowest point (where the trajectory dips toward the origin between the
-    wings) by a Ø3 mm brass rod rising from a turned brass collar on a Ø70 mm black-granite disc
-    on a felt pad. A small solder bead joins wire and rod.
-  * Four loose A5 sheets (0.1 mm thick) lie slightly fanned under the base. Each sheet's height
-    field rests on the sheets below it (plus a gap), is pressed flat under the base and lifts a
-    few mm toward the free edges and corners, with a faint cockle. Pages are drawn in numpy and
-    packed into the .blend: printed text, graph paper with a pencilled x(t) plot, ruled paper
-    with ballpoint handwriting, and on top a pencil sketch of the attractor's x-z projection.
+  * It is carried at a low point of the dip between the wings by a Ø3 mm brass rod rising from a
+    turned brass collar on a Ø70 mm black-granite disc on a felt pad; a solder bead joins them.
+  * Paper: pages 1-4 of the owner's paper (US Letter 215.9 x 279.4 mm, 0.1 mm), pre-rendered at
+    200 dpi to blender/scene/parts/paper_page<N>.png (git-ignored) and packed into the .blend.
+    Stapled at the top-left corner (steel staple, diagonal); pages 2-4 are fanned a few degrees
+    about the staple underneath page 1. Each sheet's height field rests on the sheets below it
+    (plus a gap), is flat at the staple and lifts a few mm toward the free corners, with a
+    faint cockle.
 
-Usage:  blender -b --factory-startup --python v2_lorenz.py -- [--no-render] [--only=34,seat]
+Usage:  blender -b --factory-startup --python v2_lorenz.py -- [--no-render] [--only=seat,close,34]
 """
 import bpy
 import bmesh
 import math
 import os
 import sys
-import tempfile
 import numpy as np
 from mathutils import Vector, Matrix
 
@@ -43,8 +47,11 @@ PARTS = os.path.join(REPO, 'blender', 'scene', 'parts')
 OUT_BLEND = os.path.join(PARTS, 'lorenz.blend')
 NAME = 'lorenz'
 
-OLD_SPOT = (-0.98, 0.86)          # Node_305 (old icosahedron stand) in room.blend
-ROOM_LOC = (-0.93, 0.86, 0.735)   # base centre on the desk top
+OLD_SPOT = (-0.98, 0.86)                  # Node_305 (old icosahedron stand) in room.blend
+ROOM_LOC = (-0.4525, 0.9291, 0.735)       # sculpture base centre = root (as placed in room.blend)
+STACK_W = (-0.878, 0.588)                 # paper stack centre (page 1) in room xy
+STACK_YAW = math.radians(13.0)            # page 1 turned a little toward the seated viewer
+FAN_DEG = [-8.5, -5.5, -2.5]              # pages 4, 3, 2 rotated about the staple
 VIEWER = Vector((0.0, -0.16, 1.175))
 DESK_X_MIN = -1.04
 
@@ -58,8 +65,9 @@ WIRE_R = 0.0007        # Ø1.4 mm
 WIRE_SIDES = 8
 N_RINGS = 1850
 # The wings lie along Lorenz (1,1,0); yaw ~0 puts that axis across the seated viewer's line of
-# sight (viewer is at ~-47 deg from the sculpture), a few degrees more turns one wing forward.
-YAW = math.radians(8)
+# sight (viewer is at ~-68 deg from the sculpture here); yaw -22 would be square on, -14 turns
+# one wing slightly forward.
+YAW = math.radians(-14)
 
 BASE_R = 0.035
 BASE_H = 0.018
@@ -70,11 +78,13 @@ COLLAR_R = 0.0045
 COLLAR_H = 0.007
 ROD_GAP = 0.042        # rod length visible between collar top and the attractor's low point
 
-A5 = (0.148, 0.210)
+LETTER = (0.2159, 0.2794)
 PAPER_T = 0.0001
 PAPER_GAP = 0.00012
 PAPER_Z0 = 0.00004
-PNX, PNY = 14, 20
+PNX, PNY = 16, 20
+STAPLE_IN = 0.011        # staple point inset from the top-left corner (both directions)
+PAGE_DIR = os.path.join(PARTS, 'paper_page{}.png')
 
 
 # ----------------------------------------------------------------------------- Lorenz
@@ -391,323 +401,27 @@ def mat_paper(name, img):
     return m
 
 
-# ----------------------------------------------------------------------------- page drawing
-PW, PH = 1024, 1448
-PXM = PW / A5[0]
+def mat_steel():
+    m = bpy.data.materials.new('lorenz_staple_steel')
+    m.use_nodes = True
+    nt = m.node_tree
+    b = bsdf_of(m)
+    b.inputs['Base Color'].default_value = (0.62, 0.63, 0.64, 1)
+    b.inputs['Metallic'].default_value = 1.0
+    tc = rough_var(nt, b, 0.28, 0.06, 900.0)
+    fine_bump(nt, b, tc, 8000.0, 0.1)
+    return m
 
 
-def mm(v):
-    return v * PXM / 1000.0
-
-
-def gblur(a, s):
-    if s <= 0:
-        return a
-    r = max(1, int(math.ceil(3 * s)))
-    x = np.arange(-r, r + 1)
-    w = np.exp(-x * x / (2 * s * s))
-    w /= w.sum()
-    p = np.pad(a, ((r, r), (0, 0)), mode='edge')
-    a = sum(w[i] * p[i:i + a.shape[0]] for i in range(2 * r + 1))
-    p = np.pad(a, ((0, 0), (r, r)), mode='edge')
-    a = sum(w[i] * p[:, i:i + a.shape[1]] for i in range(2 * r + 1))
-    return a
-
-
-def splat(acc, x, y, w):
-    x0 = np.floor(x).astype(np.int64)
-    y0 = np.floor(y).astype(np.int64)
-    fx, fy = x - x0, y - y0
-    for dx, dy, ww in ((0, 0, (1 - fx) * (1 - fy)), (1, 0, fx * (1 - fy)),
-                       (0, 1, (1 - fx) * fy), (1, 1, fx * fy)):
-        xi, yi = x0 + dx, y0 + dy
-        m = (xi >= 0) & (xi < PW) & (yi >= 0) & (yi < PH)
-        np.add.at(acc, (yi[m], xi[m]), (w * ww)[m])
-
-
-class Layer:
-    def __init__(self, sigma, colour, opacity=1.0, grain=0.0, graphite=False):
-        self.acc = np.zeros((PH, PW))
-        self.sigma, self.colour, self.opacity = sigma, np.array(colour), opacity
-        self.grain, self.graphite = grain, graphite
-
-    def stroke(self, pts, pressure=1.0):
-        pts = np.asarray(pts, float)
-        seg = np.linalg.norm(np.diff(pts, axis=0), axis=1)
-        s = np.concatenate([[0.0], np.cumsum(seg)])
-        if s[-1] < 1e-6:
-            return
-        n = max(2, int(s[-1] / 0.45))
-        ss = np.linspace(0, s[-1], n)
-        x = np.interp(ss, s, pts[:, 0])
-        y = np.interp(ss, s, pts[:, 1])
-        if np.ndim(pressure):
-            w = np.interp(ss, s, pressure)
-        else:
-            w = np.full(n, float(pressure))
-        splat(self.acc, x, y, w * (s[-1] / n))
-
-    def density(self, grain_field):
-        a = gblur(self.acc, self.sigma) * math.sqrt(2 * math.pi) * self.sigma
-        d = 1.0 - np.exp(-2.4 * a)
-        if self.grain:
-            d *= np.clip(1.0 - self.grain + self.grain * grain_field, 0, 1)
-        return np.clip(d * self.opacity, 0, 1)
-
-
-class Page:
-    def __init__(self, seed):
-        self.rng = np.random.default_rng(seed)
-        self.rgb = np.ones((PH, PW, 3))
-        self.gloss = np.zeros((PH, PW))
-        g = gblur(self.rng.random((PH, PW)), 0.8)
-        self.grain = np.clip((g - g.mean()) / (g.std() + 1e-9) * 0.35 + 0.6, 0, 1)
-
-    def apply(self, d, colour, graphite=False):
-        self.rgb *= 1.0 - d[..., None] * (1.0 - np.asarray(colour)[None, None, :])
-        if graphite:
-            self.gloss = np.maximum(self.gloss, d)
-
-    def layer(self, L):
-        self.apply(L.density(self.grain), L.colour, L.graphite)
-
-    def image(self, name):
-        rgba = np.concatenate([self.rgb, np.ones((PH, PW, 1))], axis=2).astype(np.float32)
-        img = bpy.data.images.new(name, PW, PH, alpha=False)
-        img.pixels.foreach_set(rgba.ravel())
-        path = os.path.join(tempfile.gettempdir(), f'{name}.png')
-        img.filepath_raw = path
-        img.file_format = 'PNG'
-        img.save()
-        bpy.data.images.remove(img)
-        img = bpy.data.images.load(path)
-        img.name = name
-        img.alpha_mode = 'NONE'
-        img.pack()
-        return img
-
-
-def wobble(rng, n, amp, smooth=40):
-    w = rng.normal(0, 1, n + 2 * smooth)
-    k = np.exp(-np.linspace(-2.5, 2.5, 2 * smooth + 1) ** 2)
-    w = np.convolve(w, k / k.sum(), mode='same')[smooth:smooth + n]
-    return w / (np.abs(w).max() + 1e-9) * amp
-
-
-def hand_line(rng, p0, p1, amp=0.8):
-    n = max(8, int(np.linalg.norm(np.subtract(p1, p0)) / 3))
-    t = np.linspace(0, 1, n)[:, None]
-    pts = np.asarray(p0) * (1 - t) + np.asarray(p1) * t
-    d = np.subtract(p1, p0)
-    nrm = np.array([-d[1], d[0]]) / (np.linalg.norm(d) + 1e-9)
-    return pts + nrm[None, :] * wobble(rng, n, amp, smooth=max(3, n // 6))[:, None]
-
-
-def cursive_word(rng, x0, y0, nl, xh, slant=0.28):
-    adv = xh * rng.uniform(0.78, 0.98)
-    amps = rng.choice([1.0, 1.0, 1.0, 0.8, 2.3, -1.5], size=nl)
-    amps[0] = rng.choice([1.0, 2.3])
-    ts = np.linspace(0, nl, nl * 22)
-    j = np.clip(np.floor(ts).astype(int), 0, nl - 1)
-    f = ts - j
-    y = xh * amps[j] * (1 - np.cos(2 * np.pi * f)) / 2
-    x = adv * ts + 0.3 * adv * np.sin(2 * np.pi * f)
-    y = y + wobble(rng, len(ts), xh * 0.08, smooth=12)
-    x = x + slant * y
-    pts = np.stack([x0 + x, y0 + y], axis=1)
-    return pts, x0 + adv * nl
-
-
-def handwriting(L, rng, x0, y0, width, xh, pressure=0.85, words=None):
-    x = x0
-    base = y0
-    count = 0
-    while x < x0 + width - 3 * xh:
-        if words is not None and count >= words:
-            break
-        nl = int(rng.integers(2, 8))
-        nl = min(nl, max(2, int((x0 + width - x) / xh) - 1))
-        pts, xe = cursive_word(rng, x, base, nl, xh)
-        pr = pressure * (0.85 + 0.3 * rng.random()) * (0.8 + 0.2 * np.sin(np.linspace(0, 3, len(pts))))
-        L.stroke(pts, pr)
-        if rng.random() < 0.25:  # a t-cross / i-dot
-            cx = x + (xe - x) * rng.uniform(0.2, 0.8)
-            L.stroke(hand_line(rng, (cx - xh * 0.5, base + xh * 1.6), (cx + xh * 0.6, base + xh * 1.7), 0.3), pressure)
-        x = xe + xh * rng.uniform(1.0, 1.7)
-        base = y0 + rng.normal(0, xh * 0.06)
-        count += 1
-    return x
-
-
-def equation(L, rng, x0, y0, xh, pressure=0.9):
-    """word = word(word) style line with an '=' sign."""
-    pts, xe = cursive_word(rng, x0, y0, 2, xh)
-    L.stroke(pts, pressure)
-    x = xe + xh * 0.9
-    L.stroke(hand_line(rng, (x, y0 + xh * 0.35), (x + xh * 1.1, y0 + xh * 0.38), 0.2), pressure)
-    L.stroke(hand_line(rng, (x, y0 + xh * 0.8), (x + xh * 1.1, y0 + xh * 0.82), 0.2), pressure)
-    x += xh * 2.0
-    return handwriting(L, rng, x, y0, xh * 14, xh, pressure, words=2)
-
-
-def page_printed(seed):
-    pg = Page(seed)
-    rng = pg.rng
-    d = np.zeros((PH, PW))
-    left, right = mm(16), PW - mm(16)
-    y = PH - mm(20)
-
-    def glyph_run(x, y, n, xh, dens):
-        for _ in range(n):
-            w = mm(rng.uniform(0.7, 1.0))
-            h = xh * (1.45 if rng.random() < 0.3 else 1.0)
-            y0 = y - (xh * 0.45 if rng.random() < 0.08 else 0.0)
-            d[int(y0):int(y + h), int(x):int(x + w)] = dens
-            x += w + mm(0.25)
-        return x
-
-    # title + author line
-    x = left + mm(8)
-    for _ in range(5):
-        x = glyph_run(x, y, int(rng.integers(3, 9)), mm(2.4), 0.95) + mm(2.2)
-    y -= mm(7)
-    x = left + mm(24)
-    for _ in range(3):
-        x = glyph_run(x, y, int(rng.integers(4, 8)), mm(1.4), 0.75) + mm(1.6)
-    y -= mm(9)
-    fig_top, fig_bot = PH * 0.46, PH * 0.26
-    para_left = 0
-    while y > mm(18):
-        if fig_bot < y < fig_top:
-            y = fig_bot - mm(4)
-            continue
-        indent = mm(4) if para_left == 0 else 0
-        last = para_left == 7
-        x = left + indent
-        xmax = right - (rng.uniform(0.3, 0.7) * (right - left) if last else 0)
-        while x < xmax - mm(6):
-            n = int(rng.integers(2, 10))
-            n = min(n, int((xmax - x) / mm(1.1)))
-            if n < 1:
-                break
-            x = glyph_run(x, y, n, mm(1.5), 0.8) + mm(1.5)
-        y -= mm(4.4)
-        para_left = 0 if last else para_left + 1
-        if last:
-            y -= mm(2.0)
-    d = gblur(d, 0.6)
-    pg.apply(d, (0.12, 0.12, 0.13))
-    # printed figure: axes + a thin x(t) trace
-    L = Layer(0.55, (0.15, 0.15, 0.2))
-    fx0, fx1 = left + mm(10), right - mm(10)
-    L.stroke([(fx0, fig_bot + mm(4)), (fx1, fig_bot + mm(4))])
-    L.stroke([(fx0, fig_bot + mm(4)), (fx0, fig_top - mm(4))])
-    xs = LORENZ[:1600, 0]
-    u = np.linspace(fx0 + mm(1), fx1, len(xs))
-    v = (fig_bot + fig_top) / 2 + xs / 20.0 * (fig_top - fig_bot) * 0.36
-    L.stroke(np.stack([u, v], axis=1), 0.9)
-    pg.layer(L)
-    return pg
-
-
-def page_graph(seed):
-    pg = Page(seed)
-    rng = pg.rng
-    d = np.zeros((PH, PW))
-    step = mm(5)
-    for i in range(1, int(PW / step) + 1):
-        d[:, int(i * step)] = 0.35 if i % 2 == 0 else 0.2
-    for i in range(1, int(PH / step) + 1):
-        d[int(i * step), :] = np.maximum(d[int(i * step), :], 0.35 if i % 2 == 0 else 0.2)
-    d = gblur(d, 0.5)
-    pg.apply(np.clip(d * 1.6, 0, 1), (0.55, 0.78, 0.82))
-    # pencilled time series x(t) and z(t)
-    P = Layer(1.2, (0.28, 0.28, 0.3), 0.8, grain=0.6, graphite=True)
-    for row, comp, sc, off in ((0.34, 0, 20.0, 0.0), (0.7, 2, 25.0, 25.0)):
-        vals = LORENZ[200:1400, comp]
-        u = np.linspace(mm(14), PW - mm(10), len(vals))
-        v = PH * row + (vals - off) / sc * mm(26)
-        pts = np.stack([u, v], axis=1)
-        pts[:, 1] += wobble(rng, len(pts), 0.8, smooth=30)
-        P.stroke(pts, 0.8 + 0.2 * np.sin(np.linspace(0, 9, len(pts))))
-        P.stroke(hand_line(rng, (mm(12), PH * row), (PW - mm(8), PH * row)), 0.7)
-        P.stroke(hand_line(rng, (mm(14), PH * row - mm(30)), (mm(14), PH * row + mm(30))), 0.7)
-        handwriting(P, rng, mm(18), PH * row + mm(31), mm(40), mm(2.2), 0.8, words=2)
-    handwriting(P, rng, mm(16), PH - mm(16), mm(100), mm(2.6), 0.9, words=4)
-    pg.layer(P)
-    return pg
-
-
-def page_ruled(seed):
-    pg = Page(seed)
-    rng = pg.rng
-    d = np.zeros((PH, PW))
-    pitch = mm(7.1)
-    y = PH - mm(24)
-    rows = []
-    while y > mm(10):
-        d[int(y), :] = 0.5
-        rows.append(y)
-        y -= pitch
-    pg.apply(gblur(d, 0.6) * 1.4, (0.55, 0.7, 0.9))
-    dm = np.zeros((PH, PW))
-    dm[:, int(mm(24)):int(mm(24)) + 2] = 0.55
-    pg.apply(gblur(dm, 0.5), (0.9, 0.35, 0.35))
-    ink = Layer(0.95, (0.12, 0.2, 0.5), 0.9)
-    handwriting(ink, rng, mm(30), rows[0] + mm(1.2), mm(80), mm(2.7), 0.95, words=3)
-    for i, yy in enumerate(rows[1:15]):
-        if i in (4, 10):
-            continue
-        x0 = mm(26) + (mm(4) if i in (5, 11) else 0)
-        if i % 5 == 2:
-            equation(ink, rng, x0 + mm(8), yy + mm(1.0), mm(2.2))
-        else:
-            handwriting(ink, rng, x0, yy + mm(1.0), PW - x0 - mm(8) - rng.uniform(0, mm(30)), mm(2.2))
-    pg.layer(ink)
-    return pg
-
-
-def page_sketch(seed):
-    pg = Page(seed)
-    rng = pg.rng
-    P = Layer(1.25, (0.26, 0.26, 0.28), 0.85, grain=0.7, graphite=True)
-    # axes
-    ox, oy = PW * 0.5, mm(14)
-    P.stroke(hand_line(rng, (mm(12), oy), (PW - mm(12), oy + 3)), 0.9)
-    P.stroke(hand_line(rng, (ox, oy - mm(4)), (ox + 2, mm(94))), 0.9)
-    for tip, d1, d2 in (((PW - mm(12), oy + 3), (-mm(3), mm(1.3)), (-mm(3), -mm(1.3))),
-                        ((ox + 2, mm(94)), (-mm(1.3), -mm(3)), (mm(1.3), -mm(3)))):
-        P.stroke([np.add(tip, d1), tip, np.add(tip, d2)], 0.9)
-    # the attractor, x-z projection, a few loops traced by hand
-    # a window of the trajectory that visits both wings about equally
-    st = min(range(0, 3900, 50), key=lambda k: abs(np.sign(LORENZ[k:k + 2600, 0]).mean()))
-    sub = LORENZ[st:st + 2600]
-    u = ox + sub[:, 0] / 20.0 * mm(54)
-    v = oy + (sub[:, 2] - 2.0) / 46.0 * mm(76)
-    pts = np.stack([u, v], axis=1)
-    pts += np.stack([wobble(rng, len(pts), 1.2, 25), wobble(rng, len(pts), 1.2, 25)], axis=1)
-    pr = 0.55 + 0.25 * (np.sin(np.linspace(0, 40, len(pts))) * 0.5 + 0.5)
-    P.stroke(pts, pr)
-    # fixed points C+ / C- circled
-    for sx in (1, -1):
-        cx = ox + sx * 8.485 / 20.0 * mm(54)
-        cy = oy + (27.0 - 2.0) / 46.0 * mm(76)
-        a = np.linspace(0, 2 * np.pi * 1.1, 60)
-        circ = np.stack([cx + mm(2.2) * np.cos(a), cy + mm(2.0) * np.sin(a)], axis=1)
-        P.stroke(circ + rng.normal(0, 0.4, circ.shape), 0.8)
-        P.stroke([(cx - 1.5, cy), (cx + 1.5, cy + 0.5)], 1.2)
-    # axis labels and notes
-    handwriting(P, rng, PW - mm(16), oy + mm(3), mm(8), mm(2.4), 0.9, words=1)
-    handwriting(P, rng, ox + mm(3), mm(90), mm(8), mm(2.4), 0.9, words=1)
-    handwriting(P, rng, mm(10), mm(4), mm(90), mm(2.3), 0.85, words=4)
-    yy = PH - mm(16)
-    for i in range(3):
-        equation(P, rng, mm(12), yy, mm(2.6), 0.9)
-        yy -= mm(8)
-    handwriting(P, rng, PW * 0.62, PH - mm(16), mm(45), mm(2.4), 0.85, words=2)
-    P.stroke(hand_line(rng, (PW * 0.62, PH - mm(17.5)), (PW * 0.62 + mm(34), PH - mm(17.2)), 0.6), 0.8)
-    pg.layer(P)
-    return pg
+def load_page(n):
+    path = PAGE_DIR.format(n)
+    if not os.path.exists(path):
+        raise SystemExit(f'missing {path}: render it from main.pdf at 200 dpi (PyMuPDF)')
+    img = bpy.data.images.load(path)
+    img.name = f'lorenz_paper_page{n}'
+    img.alpha_mode = 'NONE'
+    img.pack()
+    return img
 
 
 # ----------------------------------------------------------------------------- paper sheets
@@ -717,14 +431,14 @@ def smoothstep(e0, e1, x):
 
 
 class Sheet:
-    def __init__(self, kind, c, rot_deg, a_edge, a_corner, seed):
-        self.kind, self.c = kind, np.array(c)
-        self.th = math.radians(rot_deg)
+    def __init__(self, page, c, th, staple, a_edge, a_corner, seed):
+        self.page, self.c, self.th = page, np.array(c), th
+        self.staple = np.array(staple)
         self.a_edge, self.a_corner = a_edge, a_corner
         rng = np.random.default_rng(seed)
-        self.ck = [(rng.uniform(40, 90), rng.uniform(40, 90), rng.uniform(0, 6.28), rng.uniform(0, 6.28))
+        self.ck = [(rng.uniform(35, 80), rng.uniform(35, 80), rng.uniform(0, 6.28), rng.uniform(0, 6.28))
                    for _ in range(3)]
-        self.hx, self.hy = A5[0] / 2, A5[1] / 2
+        self.hx, self.hy = LETTER[0] / 2, LETTER[1] / 2
 
     def local(self, p):
         d = p - self.c
@@ -742,18 +456,20 @@ class Sheet:
         return 1.0 - smoothstep(0.0, 0.03, np.sqrt(dx * dx + dy * dy))
 
     def lift(self, p):
-        r = np.linalg.norm(p, axis=-1)          # base centre is the local origin
-        w = smoothstep(BASE_R + 0.004, BASE_R + 0.045, r)
+        """flat and held at the staple, lifting gently toward the free edges and corners"""
+        d = np.linalg.norm(p - self.staple, axis=-1)
+        w = smoothstep(0.012, 0.08, d)
         q = self.local(p)
-        un, vn = np.abs(q[..., 0]) / self.hx, np.abs(q[..., 1]) / self.hy
-        edge = np.clip((r - BASE_R - 0.004) / 0.12, 0, None) ** 2
-        corner = (un * vn) ** 2.5
+        un = np.clip((q[..., 0] + self.hx) / (2 * self.hx), 0, 1)      # 0 at the stapled edge
+        vn = np.clip((self.hy - q[..., 1]) / (2 * self.hy), 0, 1)      # 0 at the top edge
+        edge = (d / 0.34) ** 2
+        corner = (un * vn) ** 3
         ck = sum(0.5 + 0.5 * np.sin(p[..., 0] * a + ph) * np.sin(p[..., 1] * b + ph2)
                  for a, b, ph, ph2 in self.ck) / 3.0
         return w * (self.a_edge * edge + self.a_corner * corner + 0.00018 * ck)
 
 
-DILATE = [(0.0, 0.0)] + [(0.0075 * math.cos(a), 0.0075 * math.sin(a))
+DILATE = [(0.0, 0.0)] + [(0.0100 * math.cos(a), 0.0100 * math.sin(a))
                          for a in np.linspace(0, 2 * math.pi, 8, endpoint=False)]
 
 
@@ -762,7 +478,7 @@ def smax(a, b, k=0.0004):
 
 
 def stack_height(sheets, i, p):
-    """Underside height of sheet i at xy p (base-centre-relative): the sheet's own curled shape,
+    """Underside height of sheet i at root-local xy p: the sheet's own curled shape,
     but never below the top of any sheet under it (smooth max, so it drapes instead of creasing)."""
     sup = np.full(p.shape[:-1], PAPER_Z0)
     # support is dilated over the mesh cell (~half diagonal) so that the piecewise-linear
@@ -845,30 +561,47 @@ def add_obj(name, me, mats):
 LORENZ = integrate()
 M_BRASS, M_GRANITE, M_FELT = mat_brass(), mat_granite(), mat_felt()
 
-# ---- paper stack (bottom -> top); base centre = local origin
-SHEETS = [
-    Sheet('printed', (0.013, -0.004), 8.5, 0.0020, 0.0016, 11),
-    Sheet('graph', (-0.009, -0.012), -5.5, 0.0015, 0.0022, 12),
-    Sheet('ruled', (0.010, -0.019), 3.5, 0.0024, 0.0014, 13),
-    Sheet('sketch', (0.001, -0.030), -2.0, 0.0019, 0.0024, 14),
-]
-PAGES = {'printed': page_printed, 'graph': page_graph, 'ruled': page_ruled, 'sketch': page_sketch}
-M_PLAIN = mat_paper('lorenz_paper_plain', None)
+# ---- stapled paper stack (bottom -> top) in root-local xy
+def rot2(v, a):
+    return np.array([math.cos(a) * v[0] - math.sin(a) * v[1], math.sin(a) * v[0] + math.cos(a) * v[1]])
+
+
+c1 = np.array(STACK_W) - np.array(ROOM_LOC[:2])
+sp_local = np.array([-LETTER[0] / 2 + STAPLE_IN, LETTER[1] / 2 - STAPLE_IN])
+STAPLE = c1 + rot2(sp_local, STACK_YAW)
+SHEETS = []
+for k, (page, fan) in enumerate(zip((4, 3, 2), FAN_DEG)):
+    th = STACK_YAW + math.radians(fan)
+    SHEETS.append(Sheet(page, STAPLE - rot2(sp_local, th), th, STAPLE, 0.0017 - 0.0002 * k, 0.0016, 20 + page))
+SHEETS.append(Sheet(1, c1, STACK_YAW, STAPLE, 0.0012, 0.0019, 21))
+M_PLAIN = mat_paper('lorenz_paper_back', None)
 paper_objs, paper_tops = [], []
 for i, sh in enumerate(SHEETS):
-    img = PAGES[sh.kind](100 + i).image(f'lorenz_page_{sh.kind}')
-    me, top, bot = sheet_mesh(SHEETS, i, f'NEW_lorenz_paper_{i}_{sh.kind}')
-    ob = add_obj(me.name, me, [mat_paper(f'lorenz_paper_{sh.kind}', img), M_PLAIN])
+    img = load_page(sh.page)
+    me, top, bot = sheet_mesh(SHEETS, i, f'NEW_lorenz_paper_page{sh.page}')
+    ob = add_obj(me.name, me, [mat_paper(f'lorenz_paper_page{sh.page}', img), M_PLAIN])
     paper_objs.append(ob)
     paper_tops.append(top)
 
-# base rests on the highest paper top under its footprint (lift is zero there)
-ang = np.linspace(0, 2 * np.pi, 48, endpoint=False)
-samp = np.concatenate([np.stack([rr * np.cos(ang), rr * np.sin(ang)], axis=1)
-                       for rr in (0.0, 0.01, 0.02, 0.028, FELT_R)])
-z_under = max(float(np.max(SHEETS[i].inside(samp) * (stack_height(SHEETS, i, samp) + PAPER_T)))
-              for i in range(len(SHEETS)))
-Z_FELT = z_under + 0.00005
+# ---- staple: 12.7 mm crown on page 1, diagonal across the corner, legs through the stack
+z_top = float(stack_height(SHEETS, len(SHEETS) - 1, STAPLE[None, :])[0]) + PAPER_T
+SR = 0.00025
+crown = rot2(np.array([1.0, 1.0]) / math.sqrt(2), STACK_YAW)
+zc, zb, rc = z_top + SR + 0.00002, PAPER_Z0 + SR + 0.0001, 0.0006
+half = 0.00635
+pts = [(-half, zb), (-half, zc - rc)]
+pts += [(-half + rc - rc * math.cos(a), zc - rc + rc * math.sin(a)) for a in np.linspace(0.3, math.pi / 2, 4)]
+pts += [(half - rc + rc * math.cos(a), zc - rc + rc * math.sin(a)) for a in np.linspace(math.pi / 2, 0.3, 4)]
+pts += [(half, zc - rc), (half, zb)]
+sp3 = np.array([[STAPLE[0] + crown[0] * u, STAPLE[1] + crown[1] * u, z] for u, z in pts])
+seg = np.linalg.norm(np.diff(sp3, axis=0), axis=1)
+ss = np.concatenate([[0], np.cumsum(seg)])
+tt = np.linspace(0, ss[-1], 40)
+sp3 = np.stack([np.interp(tt, ss, sp3[:, i]) for i in range(3)], axis=1)
+staple = add_obj('NEW_lorenz_staple', tube_mesh('NEW_lorenz_staple', sp3, SR, 8), [mat_steel()])
+
+# the sculpture stands straight on the desk
+Z_FELT = 0.00005
 Z_BASE = Z_FELT + FELT_T
 Z_BASE_TOP = Z_BASE + BASE_H
 
@@ -933,20 +666,16 @@ for ob in coll.objects:
         tris += sum(len(p.vertices) - 2 for p in ob.data.polygons)
 print('TRIS', tris)
 room_xy = np.array(ROOM_LOC[:2])
-lamp_c, lamp_r = np.array([-0.7135, 1.0385]), 0.1225
 for i, t in enumerate(paper_tops):
     w = t[:, :2] + room_xy
-    print(f'SHEET {i} {SHEETS[i].kind}: x[{w[:, 0].min():.3f},{w[:, 0].max():.3f}] '
-          f'y[{w[:, 1].min():.3f},{w[:, 1].max():.3f}] z_top_max={t[:, 2].max() * 1000:.2f}mm '
-          f'lamp_clear={np.linalg.norm(w - lamp_c, axis=1).min() - lamp_r:.3f} '
-          f'from_old={np.linalg.norm(w - np.array(OLD_SPOT), axis=1).max():.3f}')
+    print(f'SHEET page{SHEETS[i].page}: x[{w[:, 0].min():.3f},{w[:, 0].max():.3f}] '
+          f'y[{w[:, 1].min():.3f},{w[:, 1].max():.3f}] z_top_max={t[:, 2].max() * 1000:.2f}mm')
 from mathutils.bvhtree import BVHTree
 dg = bpy.context.evaluated_depsgraph_get()
 trees = [BVHTree.FromObject(o, dg) for o in paper_objs]
-g = np.linspace(-0.12, 0.12, 121)
 bad = 0
-for gx in g:
-    for gy in g - 0.03:
+for gx in np.linspace(c1[0] - 0.2, c1[0] + 0.2, 161):
+    for gy in np.linspace(c1[1] - 0.2, c1[1] + 0.2, 161):
         prev_top = None
         for i, tr in enumerate(trees):
             hit_t = tr.ray_cast(Vector((gx, gy, 0.05)), Vector((0, 0, -1)))
@@ -955,7 +684,6 @@ for gx in g:
                 continue
             if hit_b[0] is None or hit_b[0].z < 0:
                 bad += 1
-                print('  desk/bottom', i, round(gx, 4), round(gy, 4))
             elif prev_top is not None and hit_b[0].z < prev_top - 1e-7:
                 bad += 1
                 if bad < 12:
@@ -966,8 +694,7 @@ rod_hits = np.sum((np.linalg.norm(Q[:, :2] - Pw[ia, :2], axis=1) < ROD_R + WIRE_
                   (Q[:, 2] < Z_ATTACH - 0.003))
 print('WIRE_THROUGH_ROD', int(rod_hits), 'attach_z', round(Z_ATTACH, 4), 'wire_zmin', round(Q[:, 2].min(), 4))
 wq = Q[:, :2] + room_xy
-print(f'WIRE x[{wq[:, 0].min():.3f},{wq[:, 0].max():.3f}] y[{wq[:, 1].min():.3f},{wq[:, 1].max():.3f}] '
-      f'z[{Q[:, 2].min():.3f},{Q[:, 2].max():.3f}]  Z_FELT={Z_FELT * 1000:.2f}mm')
+print(f'WIRE x[{wq[:, 0].min():.3f},{wq[:, 0].max():.3f}] y[{wq[:, 1].min():.3f},{wq[:, 1].max():.3f}]')
 
 
 # ----------------------------------------------------------------------------- previews
@@ -1006,9 +733,10 @@ if RENDER:
     bsdf_of(gm).inputs['Roughness'].default_value = 0.6
     ground.data.materials.append(gm)
     rig.append(ground)
-    rig.append(area('key', (-0.35, -0.3, 0.55), (0, 0, 0.06), 9.0, 0.35))
-    rig.append(area('fill', (0.45, -0.25, 0.25), (0, 0, 0.06), 2.5, 0.4, (0.95, 0.97, 1.0)))
-    rig.append(area('rim', (0.1, 0.5, 0.35), (0, 0, 0.08), 6.0, 0.25))
+    lights = [(area('key', (0, 0, 1), (0, 0, 0), 9.0, 0.35), Vector((-0.35, -0.3, 0.55))),
+              (area('fill', (0, 0, 1), (0, 0, 0), 2.5, 0.4, (0.95, 0.97, 1.0)), Vector((0.45, -0.25, 0.25))),
+              (area('rim', (0, 0, 1), (0, 0, 0), 6.0, 0.25), Vector((0.1, 0.5, 0.35)))]
+    rig += [lo_ for lo_, _ in lights]
     cam_d = bpy.data.cameras.new('preview_cam')
     cam = bpy.data.objects.new('preview_cam', cam_d)
     scene.collection.objects.link(cam)
@@ -1034,19 +762,23 @@ if RENDER:
     scene.render.image_settings.file_format = 'PNG'
 
     ctr = Vector((0.0, -0.02, 0.075))
-    to_eye = (VIEWER - Vector(ROOM_LOC) - Vector((0, 0, 0.075))).normalized()
     fr = Vector((0.75, -1.0, 0.75)).normalized()
-    views = {
-        '34': (ctr + fr * 0.5, ctr, 50),
-        'seat': (ctr + to_eye * 0.55, ctr + Vector((0, 0, -0.01)), 50),
-        'top': (Vector((0.0, -0.045, 0.62)), Vector((0.0, -0.04, 0.0)), 50),
-        'detail': (Vector((0.07, -0.13, 0.07)), Vector((0.0, -0.01, 0.035)), 60),
+    pc = Vector((c1[0], c1[1], 0.001))
+    to_eye_p = (VIEWER - Vector((STACK_W[0], STACK_W[1], ROOM_LOC[2]))).normalized()
+    title = pc + Vector((*rot2(np.array([-0.01, 0.075]), STACK_YAW), 0.0))
+    views = {   # key: (camera, target, lens, light centre)
+        'seat': (pc + to_eye_p * 0.62, pc, 75, pc),
+        'close': (title + (to_eye_p + Vector((0, 0, 0.35))).normalized() * 0.28, title, 60, pc),
+        '34': (ctr + fr * 0.5, ctr, 50, Vector((0, 0, 0.06))),
     }
     only = [a for a in ARGS if a.startswith('--only=')]
     only = only[0].split('=')[1].split(',') if only else None
-    for key, (loc, tgt, lens) in views.items():
+    for key, (loc, tgt, lens, lc) in views.items():
         if only and key not in only:
             continue
+        for lo_, off in lights:
+            lo_.location = lc + off
+            look(lo_, lc)
         cam.location = loc
         look(cam, tgt)
         cam_d.lens = lens
