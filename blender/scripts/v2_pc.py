@@ -36,8 +36,8 @@ SEAT = V((0.0, -0.16, 1.175))
 
 # ---- placement: case-local u (+x, glass side at -u), v (+y, front glass at -v), z up; origin = floor centre
 C = V((0.738, 0.970, 0.735))       # on the desk top, back-right corner (long axis along the back edge)
-YAW = math.radians(-90.0)
-MIRROR = True                       # reverse layout so the pillarless glass corner faces the chair
+YAW = math.radians(90.0)            # side glass faces the chair, front (vertical LCD fans) toward +x
+MIRROR = False                      # native layout, positive scales only
 DZ = 0.041                          # everything is modelled with the inside floor at z=0.034; lift by DZ
 LCD_Q, FRAMED = [], []
 T = Matrix.Translation(C) @ Matrix.Rotation(YAW, 4, 'Z')
@@ -152,7 +152,7 @@ def glass_mat():
     m.use_nodes = True
     nt = m.node_tree
     p = pr(m)
-    si(p, 'Base Color', (0.90, 0.94, 0.95, 1))
+    si(p, 'Base Color', (0.90, 0.95, 0.94, 1))
     si(p, 'Roughness', 0.01)
     si(p, 'IOR', 1.52)
     si(p, 'Transmission Weight', 1.0)
@@ -194,7 +194,7 @@ def perforated_mat(name='pc_perforated', ax=('X', 'Y'), P=0.0045):
 
 def filter_mat():
     """Fine black nylon dust-filter mesh (woven grid bump) in object XY."""
-    m = new_mat('pc_filter_mesh', (0.035, 0.035, 0.038), 0.6, rvar=0.0)
+    m = new_mat('pc_filter_mesh', (0.20, 0.20, 0.21), 0.6, rvar=0.0)
     nt = m.node_tree
     p = pr(m)
     tc = nt.nodes.new('ShaderNodeTexCoord')
@@ -204,7 +204,7 @@ def filter_mat():
     b = math_node(nt, 'SINE', math_node(nt, 'MULTIPLY', sep.outputs['Y'], 2 * math.pi / 0.0009))
     h = math_node(nt, 'MAXIMUM', a, b)
     bp = nt.nodes.new('ShaderNodeBump')
-    bp.inputs['Strength'].default_value = 0.5
+    bp.inputs['Strength'].default_value = 0.3
     bp.inputs['Distance'].default_value = 0.0002
     nt.links.new(h, bp.inputs['Height'])
     nt.links.new(bp.outputs['Normal'], p.inputs['Normal'])
@@ -355,7 +355,7 @@ def make_materials():
     si(pr(m), 'Emission Color', (1.0, 1.0, 1.0, 1))
     si(pr(m), 'Emission Strength', 4.0)
     glass_mat()
-    m = new_mat('pc_glass_edge', (0.55, 0.80, 0.70), 0.04, rvar=0.0)
+    m = new_mat('pc_glass_edge', (0.42, 0.74, 0.60), 0.04, rvar=0.0)
     si(pr(m), 'Transmission Weight', 1.0)
     si(pr(m), 'IOR', 1.52)
     perforated_mat()
@@ -753,26 +753,32 @@ def case_fan(mbF, mbR, M, size=0.120, depth=0.025, lcd=None):
     I = lambda off: (lambda k: Ri + off)
     O = lambda off: (lambda k: tO[k] - off)
     Wt, LED = mbF.i('pc_white_plastic'), mbF.i('pc_rgb_led')
-    prof = [(I(0), -d2 + ch), (I(ch), -d2), (I(0.0056), -d2), (O(e), -d2), (O(0), -d2 + e), (O(0), d2 - e - 0.0055),
-            (O(0), d2 - e), (O(e), d2), (I(0.0056), d2), (I(ch), d2), (I(0), d2 - ch), (I(0), 0.0050), (I(0), -0.0050)]
-    # light-strip band round the frame edge next to the show face + LED band inside the throat
-    mis = [Wt, Wt, Wt, Wt, Wt, LED, Wt, Wt, Wt, Wt, Wt, LED, Wt]
+    prof = [(I(0), -d2 + ch), (I(ch), -d2), (I(0.0056), -d2), (O(e), -d2), (O(0), -d2 + e),
+            (O(0), -0.0022), (O(0.0005), -0.0018), (O(0.0005), -0.0008), (O(0), -0.0004),
+            (O(0), d2 - e - 0.0055), (O(0), d2 - e), (O(e), d2), (I(0.0056), d2), (I(ch), d2), (I(0), d2 - ch),
+            (I(0), 0.0050), (I(0), -0.0050)]
+    # parting groove round the frame's outer wall, light-strip band next to the show face, LED band in the throat
+    DK = mbF.i('pc_port_dark')
+    mis = [Wt, Wt, Wt, Wt, Wt, Wt, DK, Wt, Wt, LED, Wt, Wt, Wt, Wt, Wt, LED, Wt]
     rings = [ring(f, z) for f, z in prof]
     mbF.merge(loft_bm(rings, mis))
     # diagonal light bars across the four corners of the show face (chamfered "infinity" outline)
     for sx in (-1, 1):
         for sy in (-1, 1):
             th = math.atan2(sx, -sy)
-            Mb_ = M @ Matrix.Translation((sx * (h - 0.0068), sy * (h - 0.0068), d2 + 0.0008)) @ Matrix.Rotation(th, 4, 'Z')
+            Mb_ = M @ Matrix.Translation((sx * (h - 0.0068), sy * (h - 0.0068), d2 + 0.0006)) @ Matrix.Rotation(th, 4, 'Z')
             box(mbF, (-0.0085, -0.0009, 0.0), (0.0085, 0.0009, 0.0006), 'pc_rgb_led', M=Mb_)
     if lcd:
         # stationary round LCD hub in front of the rotor: bezel here, the screen object is made later
-        lathe(mbF, [(0.0, d2 - 0.0012), (0.0236, d2 - 0.0012), (0.0240, d2 + 0.0004), (0.0232, d2 + 0.0016),
-                    (0.0200, d2 + 0.0018), (0.0, d2 + 0.0018)], 'pc_white_alu', M, seg=48)
+        lathe(mbF, [(0.0, d2 - 0.0012), (0.0236, d2 - 0.0012), (0.0240, d2 + 0.0004), (0.0234, d2 + 0.0020),
+                    (0.0212, d2 + 0.0024), (0.0197, d2 + 0.0020), (0.0197, d2 + 0.0012), (0.0, d2 + 0.0012)],
+              'pc_white_alu', M, seg=48)
+        lathe(mbF, [(0.0215, d2 + 0.00235), (0.0228, d2 + 0.00235), (0.0228, d2 + 0.0027), (0.0215, d2 + 0.0027)],
+              'pc_rgb_led', M, seg=48)
         for k in range(3):
             Ms_ = M @ Matrix.Rotation(math.radians(90 + 120 * k), 4, 'Z')
             box(mbF, (0.0232, -0.0012, d2 - 0.0012), (Ri + 0.001, 0.0012, d2 - 0.0002), 'pc_white_plastic', M=Ms_)
-        LCD_Q.append((M @ Matrix.Translation((0, 0, d2 + 0.0019)), lcd))
+        LCD_Q.append((M @ Matrix.Translation((0, 0, d2 + 0.0017)), lcd))
     # anti-vibration rubber corner pads    # anti-vibration rubber corner pads (L-shaped wrap over the corner) with the screw hole, both faces
     for sx in (-1, 1):
         for sy in (-1, 1):
@@ -781,7 +787,7 @@ def case_fan(mbF, mbR, M, size=0.120, depth=0.025, lcd=None):
                 box(mbF, (-0.0071, -0.0071, -0.0004 if sz > 0 else -0.0008), (0.0071, 0.0071, 0.0008 if sz > 0 else 0.0004),
                     'pc_white_rubber', r=0.0025, seg=1, M=Mc)
                 lathe(mbF, [(0.0, 0.0), (0.0021, 0.0), (0.0021, 0.0002), (0.0, 0.0002)], 'pc_port_dark',
-                      Mc @ frame((0, 0, sz * 0.00085), (0, 0, sz)), seg=12)
+                      Mc @ frame((0, 0, sz * 0.0011), (0, 0, sz)), seg=12)
     # daisy-chain connector nub on the +Y edge
     box(mbF, (-0.011, h - 0.0005, -0.006), (0.011, h + 0.0028, 0.006), 'pc_white_plastic', r=0.0008, seg=1, M=M)
     box(mbF, (-0.008, h + 0.0027, -0.0035), (0.008, h + 0.0031, 0.0035), 'pc_port_dark', M=M)
@@ -881,7 +887,7 @@ def build():
             va, vb = sorted((sv * (HD - 0.018), sv * (HD - 0.062)))
             box(mb, (ua + 0.004, va, ZF - 0.0015), (ub - 0.004, vb, ZF + 0.0004), 'pc_rubber_dark', r=0.0008, seg=1)
     # fine filter mesh + fan rails on the chamber floor under the bottom fans
-    box(mb, (-0.103, -0.176, Z0 - 0.0006), (0.014, 0.194, Z0 + 0.0002), 'pc_filter_mesh')
+    box(mb, (-0.103, -0.176, Z0 - 0.0006), (0.014, 0.194, Z0 + 0.0005), 'pc_filter_mesh')
     for uu in (-0.1035, 0.0135):
         box(mb, (uu - 0.0008, -0.176, Z0 - 0.0006), (uu + 0.0008, 0.194, Z0 + 0.0008), 'pc_white_plastic')
     done(mb)
@@ -955,7 +961,7 @@ def build():
     # glass: side (-u) and front (-v), pillarless front-left corner, 4 mm with arrised edges
     GZ0, GZ1 = Z0 + 0.0008, Z1 - 0.0012
     mb = MB('pc_glass_panels', ['pc_glass'])
-    box(mb, (-HW, -HD + 0.0125, GZ0), (-HW + 0.004, HD - 0.012, GZ1), 'pc_glass', r=0.0007, seg=1)
+    box(mb, (-HW, -HD + 0.0125, GZ0), (-HW + 0.004, HD - 0.0124, GZ1), 'pc_glass', r=0.0007, seg=1)
     box(mb, (-HW + 0.0125, -HD, GZ0), (HW, -HD + 0.004, GZ1), 'pc_glass', r=0.0007, seg=1)
     mb.i('pc_glass_edge')
     gl = done(mb, 30)
@@ -1104,8 +1110,9 @@ def build():
             Mfc = frame((0.0, vc + sg * 0.00332, 0.0), (0, sg, 0), (1, 0, 0))
             for z0 in (0.300, 0.318):
                 pv = [(0.0400, z0), (0.0440, z0), (0.0290, z0 + 0.030), (0.0250, z0 + 0.030)]
-                prism(mb, [(u_, -sg * z_) for u_, z_ in pv], Mfc, 0.0, 0.00025, 'pc_gpu_accent')
-            box(mb, (0.0240, vc + sg * 0.0033 - 0.0001, 0.360), (0.0400, vc + sg * 0.0033 + 0.0001, 0.404), 'pc_white_pcb')
+                prism(mb, [(u_, -sg * z_) for u_, z_ in pv], Mfc, -0.0001, 0.0004, 'pc_gpu_accent')
+            ya, yb = sorted((vc + sg * 0.0031, vc + sg * 0.0037))
+            box(mb, (0.0240, ya, 0.360), (0.0400, yb, 0.404), 'pc_white_pcb')
         box(mb, (0.0012, vc - 0.0029, 0.2830), (0.0094, vc + 0.0029, 0.4130), 'pc_rgb_diffuser', r=0.0012, seg=2)
         for z0, z1 in ((0.2800, 0.2832), (0.4128, 0.4160)):
             box(mb, (0.0008, vc - 0.0034, z0), (0.0096, vc + 0.0034, z1), 'pc_white_plastic', r=0.0008, seg=1)
@@ -1143,7 +1150,7 @@ def build():
     box(mb, (0.0455, 0.162, 0.2025), (0.0462, 0.186, 0.2045), 'pc_port_dark')
     for zz in (0.226, 0.152):
         box(mb, (0.0435, 0.051, zz - 0.0006), (BU, 0.060, zz + 0.0091), 'pc_white_plastic', r=0.0008, seg=1)
-    Mch = frame((0.0398, 0.0, 0.0), (-1, 0, 0), (0, 1, 0))
+    Mch = frame((0.0402, 0.0, 0.0), (-1, 0, 0), (0, 1, 0))
     for dz in (0.0, 0.010):
         pv = [(-0.016, 0.205 - dz), (-0.010, 0.205 - dz), (0.018, 0.176 - dz), (0.012, 0.176 - dz)]
         prism(mb, [(v_, -z_) for v_, z_ in pv], Mch, 0.0, 0.0004, 'pc_gpu_accent')
@@ -1160,7 +1167,7 @@ def build():
 
     def usb_a(uc, zc):
         box(mb, (uc - 0.0068, HD - 0.0020, zc - 0.0029), (uc + 0.0068, HD + 0.0003, zc + 0.0029), 'pc_metal')
-        box(mb, (uc - 0.0062, HD - 0.0019, zc - 0.0023), (uc + 0.0062, HD + 0.0004, zc + 0.0023), 'pc_port_dark')
+        box(mb, (uc - 0.0062, HD - 0.0019, zc - 0.0023), (uc + 0.0062, HD + 0.0007, zc + 0.0023), 'pc_port_dark')
         box(mb, (uc - 0.0055, HD - 0.0017, zc - 0.0020), (uc + 0.0055, HD - 0.0004, zc - 0.0004), 'pc_gpu_blue')
     for zc in (0.380, 0.371, 0.312, 0.303):
         for uc in cols:
@@ -1168,9 +1175,9 @@ def build():
     for uc in cols:
         Mu = frame((uc, HD - 0.0020, 0.3600), (0, 1, 0), (1, 0, 0))
         prism(mb, rrect(0.0094, 0.0036, 0.0017, 5), Mu, 0.0, 0.0023, 'pc_metal')
-        prism(mb, rrect(0.0084, 0.0026, 0.0012, 5), Mu, 0.0, 0.0024, 'pc_port_dark')
+        prism(mb, rrect(0.0084, 0.0026, 0.0012, 5), Mu, 0.0, 0.0027, 'pc_port_dark')
     box(mb, (0.0265, HD - 0.0020, 0.3205), (0.0425, HD + 0.0003, 0.3345), 'pc_metal')
-    box(mb, (0.0275, HD - 0.0019, 0.3215), (0.0415, HD + 0.0004, 0.3320), 'pc_port_dark')
+    box(mb, (0.0275, HD - 0.0019, 0.3215), (0.0415, HD + 0.0007, 0.3320), 'pc_port_dark')
     box(mb, (0.0275, HD + 0.0002, 0.3322), (0.0300, HD + 0.0005, 0.3340), 'pc_led_green')
     box(mb, (0.0390, HD + 0.0002, 0.3322), (0.0415, HD + 0.0005, 0.3340), 'pc_led_amber')
     for (uc, zc), col in zip(((0.0275, 0.290), (0.0415, 0.290), (0.0275, 0.279), (0.0415, 0.279), (0.0275, 0.268)),
@@ -1187,9 +1194,9 @@ def build():
     mb = MB('pc_aio_pump', ['pc_white_plastic'])
     box(mb, (PU0, PV0, PZ0), (0.046, PV1, PZ1), 'pc_white_plastic', r=0.010, seg=4)
     Mf = frame(pc_, (-1, 0, 0), (0, -1, 0))      # local +Z out of the pump face (-u)
-    lathe(mb, [(0.0290, -0.0002), (0.0290, 0.0003), (0.0322, 0.0006), (0.0334, 0.0003), (0.0334, -0.0003)],
-          'pc_white_alu', Mf, seg=72)
-    lathe(mb, [(0.0336, -0.0001), (0.0336, 0.0003), (0.0346, 0.0003), (0.0346, -0.0001)], 'pc_rgb_led', Mf, seg=72)
+    lathe(mb, [(0.0287, -0.0002), (0.0287, 0.0010), (0.0300, 0.0014), (0.0322, 0.0014), (0.0334, 0.0008),
+               (0.0334, -0.0003)], 'pc_white_alu', Mf, seg=72)
+    lathe(mb, [(0.0336, -0.0001), (0.0336, 0.0005), (0.0346, 0.0005), (0.0346, -0.0001)], 'pc_rgb_led', Mf, seg=72)
     # retention bracket bars behind the pump with knurled thumbnuts
     for zz in (PZ0 + 0.004, PZ1 - 0.004):
         box(mb, (0.041, 0.062, zz - 0.0035), (0.0475, 0.160, zz + 0.0035), 'pc_white_alu', r=0.0012, seg=2)
@@ -1210,7 +1217,7 @@ def build():
     coll.objects.link(so)
     so.parent = root
     so.matrix_parent_inverse = Matrix.Identity(4)
-    so.matrix_basis = Mf @ Matrix.Translation((0, 0, 0.00005))
+    so.matrix_basis = Mf @ Matrix.Translation((0, 0, 0.0005))          # 0.5 mm off the pump face
     objs.append(so)
     FRAMED.append(so)
     cu = bpy.data.curves.new('pc_screen_text', 'FONT')
@@ -1229,7 +1236,7 @@ def build():
     tob = bpy.data.objects.new('pc_aio_screen_text', tm)
     coll.objects.link(tob)
     tob.parent = root
-    tob.matrix_basis = Mf @ Matrix.Translation((0.0, 0.0010, 0.00015))
+    tob.matrix_basis = Mf @ Matrix.Translation((0.0, 0.0010, 0.0009))
     objs.append(tob)
     FRAMED.append(tob)
     cu2 = bpy.data.curves.new('pc_screen_label', 'FONT')
@@ -1248,7 +1255,7 @@ def build():
     tob2 = bpy.data.objects.new('pc_aio_screen_label', tm2)
     coll.objects.link(tob2)
     tob2.parent = root
-    tob2.matrix_basis = Mf @ Matrix.Translation((0.0, -0.0105, 0.00015))
+    tob2.matrix_basis = Mf @ Matrix.Translation((0.0, -0.0105, 0.0009))
     objs.append(tob2)
     FRAMED.append(tob2)
 
@@ -1349,11 +1356,19 @@ def build():
         zz = SZ0 + 0.010 + k * 0.010
         box(mb, (GU_OUT + 0.0015, GV0 - 0.0125, zz), (GU_IN - 0.0075, GV0 - 0.0115, zz + 0.004), 'pc_white_plastic')
     box(mb, (GU_OUT - 0.0006, -0.090, SZ1 - 0.0045), (GU_OUT + 0.001, 0.215, SZ1 - 0.0020), 'pc_rgb_diffuser')
-    Mea = frame((GU_OUT - 0.0004, 0.0, 0.0), (-1, 0, 0), (0, 1, 0))
+    Mea = frame((GU_OUT + 0.0002, 0.0, 0.0), (-1, 0, 0), (0, 1, 0))
     for dv in (0.0, 0.012):
         pv = [(0.128 + dv, 0.2210), (0.136 + dv, 0.2210), (0.156 + dv, 0.1780), (0.148 + dv, 0.1780)]
         prism(mb, [(v_, -z_) for v_, z_ in pv], Mea, 0.0, 0.0006, 'pc_gpu_blue_dark')
     box(mb, (GU_OUT - 0.0004, 0.170, 0.1790), (GU_OUT + 0.001, 0.214, 0.1815), 'pc_gpu_blue_dark')
+    # trim rails framing the fin window, panel lines between the fans on the underside, end vents
+    for z0 in (0.1790, 0.2200):
+        box(mb, (GU_OUT - 0.0006, -0.0835, z0), (GU_OUT + 0.0012, 0.1235, z0 + 0.0020), 'pc_gpu_accent', r=0.0005, seg=1)
+    for vv in (0.004, 0.106):
+        box(mb, (GU_OUT + 0.008, vv - 0.0008, SZ0 - 0.0005), (GU_IN - 0.008, vv + 0.0008, SZ0 + 0.0008), 'pc_gpu_blue_dark')
+    for k in range(6):
+        uu = GU_OUT + 0.020 + k * 0.016
+        box(mb, (uu, GV1 - 0.028, SZ0 - 0.0005), (uu + 0.010, GV1 - 0.008, SZ0 + 0.0008), 'pc_gpu_blue_dark', r=0.0003, seg=1)
     # PCB, backplate with vents, raised panel and screws
     box(mb, (GU_OUT + 0.004, GV0 + 0.004, GZP), (0.041, GV1 - 0.002, GZP + 0.0016), 'pc_gpu_pcb')
     BT = GZP + 0.0046
@@ -1447,8 +1462,7 @@ def build():
                               V((0.130, 0.056 - k * 0.004, 0.190)), V((0.110, 0.060, zt + 0.004)),
                               V((0.090, 0.0645, zt))],
                          2, 2, 0.0058, 0.0058, 0.0027, (0, 1, 0), 'pc_cable_black', sides=5, step=0.008)
-        if k == 0:
-            tie(mb, pts, fr, 0.55, 0.0175, 0.0115)
+        tie(mb, pts, fr, 0.55 if k == 0 else 0.40, 0.0175, 0.0115)
     done(mb, 50)
 
     # ------------------------------------------------------------------ mains cable to the power strip
@@ -1470,11 +1484,10 @@ def build():
                (0.0070, 0.0900), (0.0052, 0.0905), (0.0046, 0.0990), (0.0, 0.0990)], 'pc_plug_black', Mp, seg=40)
     world_path = [V((0.2600, 1.2350, 0.0980)), V((0.2600, 1.2340, 0.1080)), V((0.2620, 1.2220, 0.1190)),
                   V((0.2660, 1.2010, 0.1060)), V((0.2700, 1.1910, 0.0620)), V((0.2760, 1.1905, 0.0200)),
-                  V((0.2920, 1.1940, 0.0035)), V((0.3400, 1.1960, 0.0035)), V((0.5000, 1.1965, 0.0035)),
-                  V((0.7000, 1.1960, 0.0035)), V((0.8600, 1.1880, 0.0035)), V((0.9300, 1.1480, 0.0035)),
-                  V((0.9850, 1.1450, 0.0035)), V((1.0000, 1.1440, 0.0300)), V((1.0060, 1.1430, 0.2500)),
-                  V((1.0120, 1.1420, 0.5500)), V((1.0300, 1.1350, 0.7000)), V((1.0420, 1.1050, 0.7850)),
-                  V((1.0440, 1.0850, 0.8220))]
+                  V((0.2920, 1.1940, 0.0035)), V((0.3400, 1.1960, 0.0035)), V((0.4000, 1.1920, 0.0035)),
+                  V((0.4420, 1.1640, 0.0035)), V((0.4570, 1.1500, 0.0280)), V((0.4600, 1.1470, 0.3000)),
+                  V((0.4580, 1.1460, 0.6400)), V((0.4520, 1.1430, 0.7250)), V((0.4450, 1.1330, 0.7480)),
+                  V((0.4390, 1.1100, 0.7800)), V((0.4370, 1.0900, 0.8230))]
     local_tail = [V((0.105, HD + 0.062, 0.070)), V((0.105, HD + 0.054, 0.071))]
     path = [TIB @ p for p in world_path] + local_tail
     tube(mb, path, 0.0034, 'pc_cable_black', sides=10, per=10, step=0.006)
@@ -1512,7 +1525,7 @@ def build():
             to_ = bpy.data.objects.new(tmm.name, tmm)
             coll.objects.link(to_)
             to_.parent = root
-            to_.matrix_basis = Ml @ Matrix.Translation((0.0, dy, 0.00012))
+            to_.matrix_basis = Ml @ Matrix.Translation((0.0, dy, 0.0004))
             objs.append(to_)
             FRAMED.append(to_)
     # lift everything onto the thick base (build floor -> world) and mirror to the reverse layout;
@@ -1615,19 +1628,19 @@ def previews(b):
         print('PREVIEW', name)
     only = [a for a in ARGS if a.startswith('--only=')]
     only = only[0].split('=')[1].split(',') if only else None
-    if not only or '34' in only:        # reference-like 3/4 on the glass corner, side face dominant
-        d_ = V((-math.sin(math.radians(35)), -math.cos(math.radians(35)), 0.0))
+    if not only or '34' in only:        # reference-like 3/4 on the glass corner (side face dominant)
+        d_ = V((math.sin(math.radians(35)), -math.cos(math.radians(35)), 0.0))
         shot(mid + d_ * 1.15 + V((0, 0, 0.10)), mid + V((0, 0, -0.01)), 45, 'pc_34.png', (1000, 1150))
     if not only or 'seat' in only:
         shot(SEAT, mid, 40, 'pc_seat.png')
-    if not only or 'side' in only:
-        shot(mid + V((0.0, -1.0, 0.03)), mid, 38, 'pc_side.png')
-    if not only or 'rear' in only:
-        shot(mid + V((0.85, 0.30, 0.30)), mid + V((0.20, 0.0, -0.08)), 32, 'pc_rear.png')
+    if not only or 'lcd_pump' in only:   # pump-head LCD through the side glass
+        shot(V((0.612, 0.815, 1.145)), V((0.627, 0.978, 1.114)), 70, 'pc_lcd_pump.png')
+    if not only or 'lcd_fan' in only:    # middle vertical-fan hub LCD through the front glass
+        shot(V((1.080, 0.885, 1.045)), V((0.933, 0.925, 1.013)), 70, 'pc_lcd_fan.png')
     if not only or 'io' in only:
-        shot(V((0.30, 0.95, 0.86)), V((0.5075, 1.045, 0.780)), 50, 'pc_io.png')
-    if not only or 'detail' in only:
-        shot(V((0.80, 0.62, 1.17)), V((0.845, 0.985, 1.105)), 40, 'pc_detail.png')
+        shot(V((1.180, 0.960, 0.860)), V((0.9705, 1.045, 0.780)), 50, 'pc_io.png')
+    if not only or 'rear' in only:
+        shot(mid + V((-0.85, 0.30, 0.30)), mid + V((-0.20, 0.0, -0.08)), 32, 'pc_rear.png')
     for o in tmp:
         bpy.data.objects.remove(o, do_unlink=True)
 
