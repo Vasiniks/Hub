@@ -32,3 +32,5 @@ blender/scene/room.blend
 blender/scene/parts/tele_gb.blend
 blender/scene/parts/teto_pear.blend
 blender/scene/parts/cube_logo_ref.png
+blender/scene/parts/cube_logo_*.png
+blender/scene/parts/speedcube.blend

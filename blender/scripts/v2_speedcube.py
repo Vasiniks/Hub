@@ -5,7 +5,10 @@ Reference (speedcubeshop.com / thecubicle.com product pages and photos, Sept 202
   * 55.5 mm, stickerless, UV-coated gloss colour caps, transparent internals.
   * "Round-square centre": centre caps are a squircle; the two corners of each edge piece that
     touch the centre are cut with a large radius, leaving small pockets at the centre's corners.
-  * White centre carries the red "18" anniversary emblem (two interlaced square outlines + "18").
+  * White centre carries the red "18" anniversary emblem: an interlaced double-line diamond and
+    square with a faceted "18". It is a decal textured with cube_logo_18.png, which
+    v2_speedcube_logo.py cleans up from the owner's straight-on product photo. Its size and
+    placement, and the tile/centre plan radii, were measured off that same photo.
   * Bright scheme sampled from the product photos: lime-yellow, pink-red, bright green,
     mid blue, neon orange, soft white.
 Owner direction: internals are not visible from the desk, so the piece bodies are grey plastic;
@@ -55,11 +58,14 @@ CAP = 0.0016             # colour-cap thickness (the colour carries down the pie
 RT = 0.0009              # rounded top edge of every cap
 EDGE_E = 0.00005         # cap footprint inset from the piece outline (keeps walls off the body)
 BODY_R = 0.0004          # grey body edge radius
-R_S = 0.0013             # ordinary tile corner (plan)
-R_E = 0.0046             # edge-piece corners that touch the centre
-R_C = 0.0022             # corner-piece corner that touches the centre
-R_CEN = 0.0050           # squircle centre cap
-CEN_INSET = 0.00025      # centre cap slightly smaller than the tiles
+# Plan radii measured off the owner's straight-on photo (cube_logo_ref.png, ~7.6 px/mm):
+R_S = 0.0011             # ordinary tile corner
+R_E = 0.0056             # edge-piece corners that touch the centre (~43 px)
+R_C = 0.0011             # corner-piece corner nearest the centre: as small as the others
+R_CEN = 0.0058           # rounded-square centre cap (~44 px)
+CEN_INSET = 0.0001       # centre cap is practically as wide as the tiles
+LOGO_TEX = os.path.join(PARTS, 'cube_logo_18.png')   # from v2_speedcube_logo.py
+LOGO_SIZE = 0.0150       # decal square edge: 114 px of the photo's 140 px pitch -> 15.0 mm
 K = 6                    # arc segments per plan corner
 TURN_U = math.radians(3.0)
 
@@ -70,7 +76,7 @@ FACES = {
     'R': (Vector((1, 0, 0)), 'red'), 'L': (Vector((-1, 0, 0)), 'orange'),
 }
 COLOURS = {  # sRGB, sampled from the product photos and nudged off JPEG highlights
-    'white': '#E6E7E4', 'yellow': '#E0F800', 'green': '#2ECF4E',
+    'white': '#EBECEA', 'yellow': '#E0F800', 'green': '#2ECF4E',
     'blue': '#0B63C2', 'red': '#EE1426', 'orange': '#FF6414',
 }
 SLOTS = ['body', 'white', 'yellow', 'green', 'blue', 'red', 'orange']
@@ -312,7 +318,6 @@ scene.collection.children.link(coll)
 MATS = {'body': make_mat('speedcube_body_grey', '#7C7F83', 0.42, grain=0.15, var=0.04)}
 for key in SLOTS[1:]:
     MATS[key] = make_mat(f'speedcube_cap_{key}', COLOURS[key], 0.2, coat=0.35, grain=0.05, var=0.05)
-M_PRINT = make_mat('speedcube_emblem_red_print', '#D71A28', 0.3, coat=0.7, var=0.03)
 
 root = bpy.data.objects.new(f'NEW_{NAME}_root', None)
 root.empty_display_type = 'PLAIN_AXES'
@@ -336,52 +341,57 @@ for idx in CUBIES:
     coll.objects.link(ob)
     pieces[idx] = ob
 
-# ---- anniversary emblem on the white centre: interlaced square outlines + "18"
-def square_ring(bm, half, width, angle, z):
-    ro = rrect(half, half, [0.00015] * 4, k=2)
-    ri = rrect(half - width, half - width, [0.00005] * 4, k=2)
-    rot = Matrix.Rotation(angle, 2)
-    vo = [bm.verts.new((*(rot @ Vector(p)), z)) for p in ro]
-    vi = [bm.verts.new((*(rot @ Vector(p)), z)) for p in ri]
-    m = len(vo)
-    for i in range(m):
-        j = (i + 1) % m
-        bm.faces.new((vo[i], vo[j], vi[j], vi[i]))
+# ---- anniversary emblem on the white centre: decal from the owner's photo
+# In the photo (white face toward the camera, orange edge at top, red at bottom, green left,
+# blue right) the "18" reads upright, so in the solved frame its right is +Y and its up is -X.
+img = bpy.data.images.load(LOGO_TEX, check_existing=True)
+img.pack()
+M_PRINT = bpy.data.materials.new('speedcube_emblem_18_print')
+M_PRINT.use_nodes = True
+nt = M_PRINT.node_tree
+pb = bsdf_of(M_PRINT)
+tex = nt.nodes.new('ShaderNodeTexImage')
+tex.image = img
+uvn = nt.nodes.new('ShaderNodeUVMap')
+uvn.uv_map = 'UVMap'
+nt.links.new(uvn.outputs['UV'], tex.inputs['Vector'])
+tex.extension = 'CLIP'
+tex.interpolation = 'Cubic'
+nt.links.new(tex.outputs['Color'], pb.inputs['Base Color'])
+nt.links.new(tex.outputs['Alpha'], pb.inputs['Alpha'])
+pb.inputs['Roughness'].default_value = 0.2
+if 'Coat Weight' in pb.inputs:
+    pb.inputs['Coat Weight'].default_value = 0.35
+    pb.inputs['Coat Roughness'].default_value = 0.06
+try:
+    M_PRINT.surface_render_method = 'BLENDED'
+except (AttributeError, TypeError):
+    pass
 
-
+N_G = 16
 ebm = bmesh.new()
-Z_E = 0.00003
-square_ring(ebm, 0.0043, 0.00034, math.radians(45), Z_E)
-square_ring(ebm, 0.0036, 0.00030, math.radians(45), Z_E + 0.000004)
-square_ring(ebm, 0.0034, 0.00030, 0.0, Z_E + 0.000008)
-tcu = bpy.data.curves.new('emblem_18', 'FONT')
-tcu.body = '18'
-tcu.size = 0.0042
-tcu.align_x = 'CENTER'
-tcu.align_y = 'CENTER'
-tcu.resolution_u = 4
-tob = bpy.data.objects.new('emblem_18', tcu)
-scene.collection.objects.link(tob)
-bpy.context.view_layer.update()
-tme = bpy.data.meshes.new_from_object(tob.evaluated_get(bpy.context.evaluated_depsgraph_get()))
-for vert in tme.vertices:
-    vert.co.z = Z_E + 0.000012
-    vert.co.x *= 0.8   # the printed numerals are narrow
-ebm.from_mesh(tme)
-bpy.data.objects.remove(tob)
-bpy.data.curves.remove(tcu)
-bpy.data.meshes.remove(tme)
-bmesh.ops.remove_doubles(ebm, verts=ebm.verts, dist=1e-7)
-for f in ebm.faces:
-    f.normal_update()
-    if f.normal.z < 0:
-        f.normal_flip()
-# sit it on the pillowed white centre cap (face U, centre at z = HB + PITCH)
+uvl = ebm.loops.layers.uv.new('UVMap')
 n_u = Vector((0, 0, 1))
 top_z = PITCH + HB
-for vert in ebm.verts:
-    p = Vector((vert.co.x, vert.co.y, top_z))
-    vert.co.z = top_z + bulge(p, n_u) + vert.co.z
+grid = []
+for j in range(N_G + 1):
+    row = []
+    for i in range(N_G + 1):
+        tu, tv = i / N_G, j / N_G
+        p = Vector((-(tv - 0.5) * LOGO_SIZE, (tu - 0.5) * LOGO_SIZE, top_z))
+        p.z += bulge(p, n_u) + 0.00002
+        row.append((ebm.verts.new(p), (tu, tv)))
+    grid.append(row)
+for j in range(N_G):
+    for i in range(N_G):
+        quad = (grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i])
+        f = ebm.faces.new([q[0] for q in quad])
+        for loop, (_, uv) in zip(f.loops, quad):
+            loop[uvl].uv = uv
+        f.normal_update()
+        if f.normal.z < 0:
+            f.normal_flip()
+        f.smooth = True
 emb_me = bpy.data.meshes.new('NEW_speedcube_emblem18')
 ebm.to_mesh(emb_me)
 ebm.free()
@@ -417,7 +427,7 @@ for ob in list(pieces.values()) + [emblem]:
     except (AttributeError, RuntimeError, TypeError):
         lib.shade_auto(ob, 40)
     try:
-        lib.uv_unwrap(ob)
+        lib.uv_unwrap(ob, redo_base=(ob is not emblem))   # the decal keeps its own UVs
     except Exception as err:
         print(f'  uv skipped on {ob.name}: {err}')
 
@@ -479,10 +489,10 @@ if RENDER:
 
     scene.render.engine = 'CYCLES'
     prefs = bpy.context.preferences.addons['cycles'].preferences
-    prefs.compute_device_type = 'OPTIX'
+    prefs.compute_device_type = 'CUDA'
     prefs.refresh_devices()
     for d in prefs.devices:
-        d.use = d.type == 'OPTIX'
+        d.use = d.type == 'CUDA'   # GPU only; no OptiX devices, no CPU
     scene.cycles.device = 'GPU'
     scene.cycles.samples = 64
     scene.cycles.use_denoising = True

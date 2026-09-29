@@ -42,7 +42,8 @@ SEAT = Vector((0.0, -0.16, 1.175))
 FPS = 24
 LOOP_FRAMES = 96          # 4 s
 SIM_FRAMES = int(ARGS[ARGS.index('--sim-frames') + 1]) if '--sim-frames' in ARGS else 70
-RIBBON_W = 0.0225         # 22.5 mm lanyard
+K = 1.2                   # owner: medals 20% bigger (ribbons, clasps, medals)
+RIBBON_W = 0.0225 * K     # 27 mm lanyard
 ROW_STEP = 0.003          # ribbon rows every 3 mm
 Z = Vector((0, 0, 1))
 CLOTH = dict(quality=16, time_scale=1.0, mass=0.0015, air=2.0, tension=60.0, shear=25.0, bend=0.25, damp=8.0, bend_damp=0.8,
@@ -56,65 +57,30 @@ def hex_rgb(h):
 
 
 # =============================================================================== 1. measure
-def measure():
-    bpy.ops.wm.open_mainfile(filepath=ROOM, load_ui=False)
+LAMP_BLEND = os.path.join(PARTS, 'lamp.blend')     # the fixed lamp (v2_lamp_fixed.py)
+
+
+def measure(refc):
+    """Append the fixed lamp (NEW_lamp) into REF_lamp for context and read its world geometry."""
+    with bpy.data.libraries.load(LAMP_BLEND, link=False) as (src, dst):
+        dst.objects = list(src.objects)
+    for o in dst.objects:
+        if o is not None:
+            refc.objects.link(o)
+    bpy.context.view_layer.update()
     out = {'ref': {}}
-    for n in ('lamp003', 'lamp003_1', 'Cylinder', 'Cylinder_1', 'lamp_glass'):
-        o = bpy.data.objects[n]
-        mw = o.matrix_world
-        md = None
-        mat = o.data.materials[0] if o.data.materials else None
-        if mat and mat.node_tree:
-            b = next((nd for nd in mat.node_tree.nodes if nd.type == 'BSDF_PRINCIPLED'), None)
-            if b:
-                md = dict(col=tuple(b.inputs['Base Color'].default_value)[:3],
-                          rough=b.inputs['Roughness'].default_value,
-                          metal=b.inputs['Metallic'].default_value,
-                          trans=b.inputs['Transmission Weight'].default_value
-                          if 'Transmission Weight' in b.inputs else 0.0)
-        out['ref'][n] = dict(verts=[tuple(mw @ v.co) for v in o.data.vertices],
-                             faces=[tuple(p.vertices) for p in o.data.polygons], mat=md)
-
-    arm = bpy.data.objects['lamp003']
-
-    def hull_at(z):
-        bm = bmesh.new()
-        bm.from_mesh(arm.data)
-        bm.transform(arm.matrix_world)
-        r = bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:],
-                                   plane_co=(0, 0, z), plane_no=(0, 0, 1))
-        pts = [v.co.to_2d() for v in r['geom_cut'] if isinstance(v, bmesh.types.BMVert)]
-        bm.free()
-        return [tuple(pts[i]) for i in convex_hull_2d(pts)]
-
-    wv = [arm.matrix_world @ v.co for v in arm.data.vertices]
-    mid = [v for v in wv if 0.8 < v.z < 1.0]
-    out['collar_top'] = max(v.z for v in mid)
-    out['collar_bot'] = min(v.z for v in mid)
-    ct, cb = out['collar_top'], out['collar_bot']
-    out['collar_hull'] = hull_at(ct - 0.004)
-    out['bar_z0'] = ct + 0.011
-    out['bar_z1'] = ct + 0.18
-    out['bar_hull0'] = hull_at(out['bar_z0'])
-    out['bar_hull1'] = hull_at(out['bar_z1'])
-    stem = [v for v in wv if v.z < cb - 0.01]
-    out['stem_xy'] = (sum(v.x for v in stem) / len(stem), sum(v.y for v in stem) / len(stem))
-    out['stem_r'] = max(math.hypot(v.x - out['stem_xy'][0], v.y - out['stem_xy'][1]) for v in stem) + 0.0005
-    base = bpy.data.objects['lamp003_1']
-    bv = [base.matrix_world @ v.co for v in base.data.vertices]
+    for o in refc.objects:
+        if o.type == 'MESH':
+            mw = o.matrix_world
+            out['ref'][o.name] = dict(verts=[tuple(mw @ v.co) for v in o.data.vertices],
+                                      faces=[tuple(p.vertices) for p in o.data.polygons])
+    bv = [Vector(v) for v in out['ref']['lamp_base']['verts']]
     out['base_top'] = max(v.z for v in bv)
-    top = [v for v in bv if v.z > out['base_top'] - 0.012]
+    top = [v for v in bv if v.z > out['base_top'] - 0.004]
     cx = (min(v.x for v in top) + max(v.x for v in top)) / 2
     cy = (min(v.y for v in top) + max(v.y for v in top)) / 2
     out['base_c'] = (cx, cy)
-    out['base_r'] = max(math.hypot(v.x - cx, v.y - cy) for v in bv if v.z > out['base_top'] - 0.012)
-    old = []
-    for n in ('Node_75', 'Node_83', 'Node_91', 'Node_99'):
-        o = bpy.data.objects.get(n)
-        if o:
-            old.append(n)
-            old += sorted(c.name for c in o.children)
-    out['old'] = old
+    out['base_r'] = max(math.hypot(v.x - cx, v.y - cy) for v in top)
     return out
 
 
@@ -269,16 +235,16 @@ def ribbon_rows(ctrl):
 # =============================================================================== specs
 # d: exit direction in collar frame ('b' = long face toward the seat, 'a' = far round end)
 SPECS = [
-    # Clustered on the short stretch of the head bar next to the arm joint, 30 mm apart so the
-    # 24 mm crimps never touch while swaying. s: along the bar (+ toward the seat); t: crimp offset
-    # across it; drop: crimp top below the bar underside. Faces are blank (owner supplies designs).
-    dict(name='m1', s=0.055, t=0.021, drop=0.066, R=0.0205, metal='gold', relief='blank',
+    # Spread along the lamp's long horizontal head bar (s = along the bar, + toward its free tip /
+    # the seat; t = crimp offset across it; drop = crimp top below the bar underside). 37 mm pitch
+    # keeps the 29 mm crimps clear while they sway. Nearest the seat hangs shortest, so they cascade.
+    dict(name='m1', s=0.140, t=0.021, drop=0.080, R=0.0205 * 1.2, metal='gold', relief='blank',
          cols=[0, .34, .66, 1], bands=['blue', 'blue', 'blue'], twA=8, twB=-5, rot90=True),
-    dict(name='m2', s=0.025, t=0.007, drop=0.090, R=0.0195, metal='silver', relief='blank',
+    dict(name='m2', s=0.103, t=0.007, drop=0.109, R=0.0195 * 1.2, metal='silver', relief='blank',
          cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], twA=-6, twB=10, rot90=True),
-    dict(name='m3', s=-0.005, t=-0.007, drop=0.114, R=0.0195, metal='silver', relief='blank',
+    dict(name='m3', s=0.066, t=-0.007, drop=0.138, R=0.0195 * 1.2, metal='silver', relief='blank',
          cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], twA=11, twB=-7, rot90=True),
-    dict(name='m4', s=-0.035, t=-0.021, drop=0.138, R=0.0195, metal='silver', relief='blank',
+    dict(name='m4', s=0.029, t=-0.021, drop=0.167, R=0.0195 * 1.2, metal='silver', relief='blank',
          cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], twA=-8, twB=6, rot90=True),
 ]
 RIBBON_HEX = dict(blue='#1d3a8a', white='#e9e7e0', red='#a81c26', gold='#d9a92e', green='#17613a')
@@ -640,70 +606,25 @@ def add_collision(o, friction=8.0):
 
 # =============================================================================== main build
 def build():
-    meas = measure()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.render.fps = FPS
     scene.frame_start = 0
     scene.frame_end = LOOP_FRAMES
-
-    ct, cb = meas['collar_top'], meas['collar_bot']
-    collar = clean_poly(meas['collar_hull'])
-    bar0 = clean_poly(meas['bar_hull0'])
-    bar1 = clean_poly(meas['bar_hull1'])
-    lean = (centroid(bar1) - centroid(bar0)) / (meas['bar_z1'] - meas['bar_z0'])
-    C = centroid(collar)
-    # collar long axis a: longest hull edge direction, oriented toward the round end (+x+y here)
-    best = max(range(len(collar)), key=lambda i: (collar[(i + 1) % len(collar)] - collar[i]).length)
-    a_dir = (collar[(best + 1) % len(collar)] - collar[best]).normalized()
-    if a_dir.dot(Vector((1, 1))) < 0:
-        a_dir = -a_dir
-    b_dir = Vector((a_dir.y, -a_dir.x))
-    if b_dir.dot((SEAT.to_2d() - C)) < 0:
-        b_dir = -b_dir
-    dirs = {'a': a_dir, '-a': -a_dir, 'b': b_dir, '-b': -b_dir}
-    stem = Vector(meas['stem_xy'])
-    base_c = Vector(meas['base_c'])
-    print(f'MEAS collar top {ct:.4f} bot {cb:.4f} C {tuple(round(x, 4) for x in C)} a {tuple(round(x, 3) for x in a_dir)}'
-          f' b {tuple(round(x, 3) for x in b_dir)} lean {tuple(round(x, 4) for x in lean)} stem {tuple(round(x, 4) for x in stem)}'
-          f' r {meas["stem_r"]:.4f} base {tuple(round(x, 4) for x in base_c)} r {meas["base_r"]:.4f} top {meas["base_top"]:.4f}')
-
-    def bar_hull(z):
-        s = lean * (z - meas['bar_z0'])
-        return [p + s for p in bar0]
-
     M = build_materials()
 
     # ------------------------------------------------------------------ collections
     coll = link_new_collection('NEW_medals')
     work = link_new_collection('WORK_medals')      # proxies + sim; deleted before save
-    refc = link_new_collection('REF_lamp')         # preview context; deleted before save
-
-    # ------------------------------------------------------------------ reference lamp (previews)
-    for n, d in meas['ref'].items():
-        me = bpy.data.meshes.new('ref_' + n)
-        me.from_pydata(d['verts'], [], d['faces'])
-        me.update()
-        mat = bpy.data.materials.new('ref_' + n)
-        mat.use_nodes = True
-        b = principled(mat)
-        md = d['mat'] or dict(col=(0.5, 0.5, 0.5), rough=0.4, metal=0.0, trans=0.0)
-        b.inputs['Base Color'].default_value = (*md['col'], 1)
-        b.inputs['Roughness'].default_value = md['rough']
-        b.inputs['Metallic'].default_value = md['metal']
-        if 'Transmission Weight' in b.inputs:
-            b.inputs['Transmission Weight'].default_value = md['trans']
-        me.materials.append(mat)
-        o = bpy.data.objects.new('ref_' + n, me)
-        refc.objects.link(o)
-        me.shade_smooth()
-        me.set_sharp_from_angle(angle=math.radians(35))
+    refc = link_new_collection('REF_lamp')         # fixed lamp for measuring + previews; deleted before save
+    meas = measure(refc)
 
     # ------------------------------------------------------------------ head bar frame
     # The lamp's top horizontal bar is its head: an elongated flat blade. Frame: s along the bar
     # (toward its free tip, which points at the seat), t across it, z up.
-    headv = [Vector(v) for n in ('Cylinder', 'Cylinder_1', 'lamp_glass') for v in meas['ref'][n]['verts']]
-    hv = [Vector(v) for v in meas['ref']['Cylinder']['verts']]
+    headv = [Vector(v) for n in ('lamp_head', 'lamp_head_trim', 'lamp_diffuser_bezel', 'lamp_diffuser_disc')
+             for v in meas['ref'][n]['verts']]
+    hv = [Vector(v) for v in meas['ref']['lamp_head']['verts']]
     hc = Vector((sum(v.x for v in hv) / len(hv), sum(v.y for v in hv) / len(hv)))
     sxx = sum((v.x - hc.x) ** 2 for v in hv)
     syy = sum((v.y - hc.y) ** 2 for v in hv)
@@ -778,7 +699,7 @@ def build():
         ztop = max(p.y for p in sec)
         outline = resample_closed(offset_poly(sec, 0.0032), 0.0012)
         zc = zbot - spec['drop']
-        Q = Vector((spec['t'], zc - 0.0026))
+        Q = Vector((spec['t'], zc - 0.0026 * K))
         angs = [math.atan2(p.y - Q.y, p.x - Q.x) for p in outline]
         i_r = min(range(len(outline)), key=lambda i: angs[i])      # +t side tangent point
         i_l = max(range(len(outline)), key=lambda i: angs[i])      # -t side tangent point
@@ -802,8 +723,8 @@ def build():
             return to_w(s0, t, z)
         legs = {}
         for side, tw, tan_i in ((-1, spec['twA'], i_l), (1, spec['twB'], i_r)):
-            QA = P3(spec['t'] + side * 0.00055, Q.y)
-            Q2 = QA + Z * 0.011
+            QA = P3(spec['t'] + side * 0.00055 * K, Q.y)
+            Q2 = QA + Z * 0.011 * K
             T = P3(outline[tan_i].x, outline[tan_i].y)
             mid = Q2.lerp(T, 0.5)
             wm = Quaternion((T - Q2).normalized(), math.radians(tw)) @ a3
@@ -945,10 +866,10 @@ def build():
         cam_dir.normalize()
         # chain axes: crimp loop axis d; jump ring e; (second ring d; eye e) or eye d
         axes = [d3, e3, d3, e3] if spec['rot90'] else [d3, e3, d3]
-        L0 = crimp - Z * (0.0065 + 0.0014)
-        r_c, m_c = 0.0019, 0.00055
-        Rj, mj = 0.0031, 0.0005
-        re, me_ = 0.0019, 0.00065
+        L0 = crimp - Z * (0.0065 + 0.0014) * K
+        r_c, m_c = 0.0019 * K, 0.00055 * K
+        Rj, mj = 0.0031 * K, 0.0005 * K
+        re, me_ = 0.0019 * K, 0.00065 * K
         centers = [L0]
         top_wire = L0 - Z * (r_c - m_c - mj)
         J1 = top_wire - Z * Rj
@@ -961,7 +882,7 @@ def build():
         last = centers[-1]
         top_wire = last - Z * (Rj - mj - me_)
         Ec = top_wire - Z * re
-        Mc = Ec - Z * (re + spec['R'] - 0.0007)
+        Mc = Ec - Z * (re + spec['R'] - 0.0007 * K)
         n_front = cam_dir.copy()
         hw_info.append(dict(L0=L0, centers=centers, axes=axes, Ec=Ec, Mc=Mc, n=n_front))
         rs = meas['base_top']
@@ -1025,7 +946,7 @@ def build():
         coll.objects.link(o)
         o.parent = rig
         sm = o.modifiers.new('solidify', 'SOLIDIFY')
-        sm.thickness = 0.0007
+        sm.thickness = 0.0007 * K
         sm.offset = 0.0
         sm.use_rim = True
         sm.use_even_offset = False
@@ -1060,30 +981,30 @@ def build():
         nm = spec['name']
         d3, e3 = rd['d'], rd['e']
         mbh = MB()
-        fr = Matrix.Translation(rd['crimp'] - Z * 0.00325 - root_loc) @ Matrix((
+        fr = Matrix.Translation(rd['crimp'] - Z * 0.00325 * K - root_loc) @ Matrix((
             (e3.x, d3.x, 0, 0), (e3.y, d3.y, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
-        rounded_box(mbh, fr, (W + 0.0017, 0.0031, 0.0065), 0.0007, mat=0)
+        rounded_box(mbh, fr, (W + 0.0017 * K, 0.0031 * K, 0.0065 * K), 0.0007 * K, mat=0)
         # a pressed groove line on the crimp: two thin raised ridges
-        for zz in (0.0014, -0.0016):
+        for zz in (0.0014 * K, -0.0016 * K):
             fr2 = fr @ Matrix.Translation((0, 0, zz))
-            rounded_box(mbh, fr2, (W + 0.0019, 0.0033, 0.0005), 0.0002, mat=0)
-        torus(mbh, hw['L0'] - root_loc, hw['axes'][0], 0.0019, 0.00055, seg=16, segm=8)
-        torus(mbh, hw['centers'][1] - root_loc, hw['axes'][1], 0.0031, 0.0005, seg=22, segm=8)
+            rounded_box(mbh, fr2, (W + 0.0019 * K, 0.0033 * K, 0.0005 * K), 0.0002 * K, mat=0)
+        torus(mbh, hw['L0'] - root_loc, hw['axes'][0], 0.0019 * K, 0.00055 * K, seg=16, segm=8)
+        torus(mbh, hw['centers'][1] - root_loc, hw['axes'][1], 0.0031 * K, 0.0005 * K, seg=22, segm=8)
         if spec['rot90']:
-            torus(mbh, hw['centers'][2] - root_loc, hw['axes'][2], 0.0031, 0.0005, seg=22, segm=8)
+            torus(mbh, hw['centers'][2] - root_loc, hw['axes'][2], 0.0031 * K, 0.0005 * K, seg=22, segm=8)
         crimp_obj = mbh.to_object(f'medal_{nm}_clasp', [M['nickel']], coll, smooth_angle=40)
         crimp_obj.parent = rig
         # medal
         pm, sm_ = metal_sets[spec['metal']]
-        mbm = medal_mesh(spec['R'], spec['relief'])
+        mbm = medal_mesh(spec['R'] / K, spec['relief'])
         n = hw['n']
         x = n.cross(Z).normalized()
         xf = Matrix.Translation(hw['Mc'] - root_loc) @ Matrix((
-            (x.x, n.x, 0, 0), (x.y, n.y, 0, 0), (x.z, n.z, 1, 0), (0, 0, 0, 1)))
+            (x.x, n.x, 0, 0), (x.y, n.y, 0, 0), (x.z, n.z, 1, 0), (0, 0, 0, 1))) @ Matrix.Scale(K, 4)
         mbx = MB()
         mbx.extend(mbm, xf=xf)
         eye_axis = hw['n']
-        torus(mbx, hw['Ec'] - root_loc, eye_axis, 0.0019, 0.00065, seg=16, segm=8, mat=0)
+        torus(mbx, hw['Ec'] - root_loc, eye_axis, 0.0019 * K, 0.00065 * K, seg=16, segm=8, mat=0)
         med = mbx.to_object(f'medal_{nm}_disc', [M[pm], M[sm_]], coll, smooth_angle=38)
         med.parent = rig
         for o, bn in ((crimp_obj, 'tail_' + nm), (med, 'medal_' + nm)):
@@ -1092,7 +1013,7 @@ def build():
         # clasp rings follow the medal bone so the chain swings as one
         ring_vg = crimp_obj.vertex_groups.new(name='medal_' + nm)
         L0l = hw['L0'] - root_loc
-        ring_ids = [v.index for v in crimp_obj.data.vertices if v.co.z < L0l.z - 0.0009]
+        ring_ids = [v.index for v in crimp_obj.data.vertices if v.co.z < L0l.z - 0.0009 * K]
         crimp_obj.vertex_groups['tail_' + nm].remove(ring_ids)
         ring_vg.add(ring_ids, 1.0, 'REPLACE')
         objs += [crimp_obj, med]
@@ -1142,8 +1063,14 @@ def build():
 
     # clearance to the lamp arm (lamp003 = arm bars, collar, stem) across the sway loop
     from mathutils.bvhtree import BVHTree
-    lv = meas['ref']['lamp003']
-    tree = BVHTree.FromPolygons([Vector(v) for v in lv['verts']], lv['faces'])
+    fixed_parts = ('lamp_arm', 'lamp_column', 'lamp_collar_pivot', 'lamp_head_hinge', 'lamp_base')
+    av, af = [], []
+    for n in fixed_parts:
+        lv = meas['ref'][n]
+        base_i = len(av)
+        av += [Vector(v) for v in lv['verts']]
+        af += [tuple(i + base_i for i in f) for f in lv['faces']]
+    tree = BVHTree.FromPolygons(av, af)
     worst = {}
     for f in (0, 24, 48, 72):
         scene.frame_set(f)
@@ -1177,7 +1104,7 @@ def build():
                 gap = min(gap, min(trees[names[j]][1].find_nearest(v)[3] for v in trees[names[i]][0]))
     print(f'CLEARANCE between different lanyards over the loop: {gap * 1000:.1f} mm')
     scene.frame_set(0)
-    print('CLEARANCE to arm (mm)', {k: round(v * 1000, 1) for k, v in worst.items()})
+    print('CLEARANCE to arm/column/hinge/base (mm)', {k: round(v * 1000, 1) for k, v in worst.items()})
     total = sum(tris.values())
     print('TRIS', total, json.dumps(tris))
     return dict(scene=scene, coll=coll, work=work, refc=refc, rib=rib_data, hw=hw_info, root=root, rig=rig,
