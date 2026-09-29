@@ -125,7 +125,7 @@ These are the owner's standing constraints. They are not negotiable and they out
 - Do not edit the global `~/.claude/CLAUDE.md`. Do not install extra MCP servers, plugins or skills
   without a demonstrated need.
 - Do not attempt to bypass authentication or access controls.
-- Commits end with: `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`
+- Commits end with: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`
 
 ## Branches
 

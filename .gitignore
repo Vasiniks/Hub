@@ -18,3 +18,15 @@ public/assets/lightmaps/
 tmp/
 .serena/
 __pycache__/
+
+# Blender remodel — backups, test copies, regenerable exports, preview renders
+*.blend1
+blender/scene/renders/
+blender/scene/room_export.glb
+blender/scene/parts/*.png
+blender/scene/parts/materials_test.blend
+# Not redistributable in this PUBLIC repo (see assets/MANIFEST.md): Sketchfab Free Standard guitar, owner downloads
+# room.blend embeds them; blender/scene/room_public.blend is the same scene with them stripped.
+assets/source/
+blender/scene/room.blend
+blender/scene/parts/tele_gb.blend
