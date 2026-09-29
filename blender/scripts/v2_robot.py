@@ -42,7 +42,7 @@ OUT = os.path.join(PARTS, 'robot.blend')
 ROOM = os.path.join(REPO, 'blender', 'scene', 'room.blend')
 ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 NO_RENDER = '--no-render' in ARGS
-BUDGET = int(ARGS[ARGS.index('--budget') + 1]) if '--budget' in ARGS else 128000
+BUDGET = int(ARGS[ARGS.index('--budget') + 1]) if '--budget' in ARGS else 146000
 PLACE = Vector((-1.12, -0.34, 0.0))
 YAW = 0.86
 MIN_SIZE = 0.015
@@ -57,9 +57,11 @@ DROP = re.compile(
 
 # ----------------------------------------------------------------------------------------------- 1
 def prefilter():
-    if os.path.exists(FILT) and os.path.exists(SIDE) and os.path.getmtime(FILT) > os.path.getmtime(SRC) \
-            and os.path.getmtime(FILT) > os.path.getmtime(__file__):
-        return json.load(open(SIDE))
+    key = '%s|%s|floor' % (DROP.pattern, MIN_SIZE)
+    if os.path.exists(FILT) and os.path.exists(SIDE) and os.path.getmtime(FILT) > os.path.getmtime(SRC):
+        old = json.load(open(SIDE))
+        if old.get('key') == key:
+            return old
     with open(SRC, 'rb') as f:
         f.read(12)
         clen, _ = struct.unpack('<II', f.read(8))
@@ -106,12 +108,16 @@ def prefilter():
         c = np.array([[x, y, z, 1] for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])]) @ w.T
         wlo, whi = c[:, :3].min(0), c[:, :3].max(0)
         name = n.get('name', '')
-        # hidden electronics: everything on the stacked Pi/power boards except the boards themselves
         if DROP.search(name) or (whi - wlo).max() < MIN_SIZE:
             dropped += tris
             continue
         kept.append(dict(node=i, name=name, mesh=n['mesh'], tris=tris, chain=chain(i),
                          lo=wlo.tolist(), hi=whi.tolist(), world=w))
+    # nothing may hang below the wheel contact plane (a loose top-level copy of 100-004 sits 4 mm under it)
+    floor = min(r['lo'][2] for r in kept if re.search(r'swerve|tread|wheel', r['name'], re.I))
+    for r in [r for r in kept if r['lo'][2] < floor - 0.002]:
+        print('PREFILTER below floor, dropped:', r['name'], r['chain'])
+        kept.remove(r); dropped += r['tris']
     # flat GLB: glTF is Y-up; the Onshape data is Z-up, so pre-rotate so Blender's Y-up->Z-up
     # conversion lands it back exactly: gltf (x, z, -y)
     C = np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, -1, 0, 0], [0, 0, 0, 1]], float)
@@ -135,25 +141,18 @@ def prefilter():
         f.write(struct.pack('<III', 0x46546C67, 2, 12 + 8 + len(body) + 8 + len(binchunk)))
         f.write(struct.pack('<II', len(body), 0x4E4F534A)); f.write(body)
         f.write(struct.pack('<II', len(binchunk), 0x004E4942)); f.write(binchunk)
-    side = dict(tri_all=tri_all, tri_dropped=dropped, nodes_total=len(N),
+    side = dict(key=key, tri_all=tri_all, tri_dropped=dropped, nodes_total=len(N),
                 parts={'P%04d' % k: dict(name=r['name'], sub=(r['chain'][1] if len(r['chain']) > 1 else ''),
                                          tris=r['tris'], lo=r['lo'], hi=r['hi']) for k, r in enumerate(kept)})
     json.dump(side, open(SIDE, 'w'), indent=0)
     return side
 
 
+
+
 side = prefilter()
 print('PREFILTER source instanced tris', side['tri_all'], 'dropped', side['tri_dropped'],
       'kept parts', len(side['parts']))
-
-# ----------------------------------------------------------------------------------------------- 2
-bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.gltf(filepath=FILT, import_shading='NORMALS', import_scene_as_collection=False)
-objs = [o for o in bpy.context.scene.objects if o.type == 'MESH']
-for o in list(bpy.context.scene.objects):
-    if o.type != 'MESH':
-        bpy.data.objects.remove(o, do_unlink=True)
-print('IMPORTED', len(objs), 'objects', len({o.data for o in objs}), 'meshes')
 
 
 def ntris(me):
@@ -164,69 +163,7 @@ def info(o):
     return side['parts'].get(o.name.split('.')[0], {})
 
 
-tri_in = sum(ntris(o.data) for o in objs)
-
-# floor = lowest wheel point; frame centre = centre of the CAD bumper footprint
-bump = [o for o in objs if info(o).get('name', '').upper().startswith('BUMPER')]
-assert bump, 'no BUMPERS part'
-bb = [o.matrix_world @ Vector(c) for o in bump for c in o.bound_box]
-bl = Vector([min(v[i] for v in bb) for i in range(3)]); bh = Vector([max(v[i] for v in bb) for i in range(3)])
-floor_z = min((o.matrix_world @ v.co).z for o in objs
-              if re.search(r'wheel|tread|swerve', info(o).get('name', ''), re.I) for v in o.data.vertices)
-CEN = Vector(((bl.x + bh.x) / 2, (bl.y + bh.y) / 2, floor_z))
-print('BUMPER box', [round(x, 4) for x in bl], [round(x, 4) for x in bh], 'floor', round(floor_z, 4))
-
-# decimation budget per unique mesh: size-weighted share, clamped, solved by bisection
-by_mesh = {}
-for o in objs:
-    by_mesh.setdefault(o.data, []).append(o)
-stats = []
-for me, users in by_mesh.items():
-    xs = [v.co for v in me.vertices]
-    d = Vector([max(v[i] for v in xs) - min(v[i] for v in xs) for i in range(3)])
-    area = 2 * (d.x * d.y + d.y * d.z + d.z * d.x)
-    stats.append((me, len(users), ntris(me), area, max(d)))
-LETTER_TRIS = 6000
-
-
-def total(B):
-    return sum(k * min(t, max(24, B * a ** 0.75)) for me, k, t, a, mx in stats)
-lo_b, hi_b = 1.0, 1e9
-for _ in range(80):
-    mid = math.sqrt(lo_b * hi_b)
-    (lo_b, hi_b) = (mid, hi_b) if total(mid) < BUDGET - LETTER_TRIS else (lo_b, mid)
-B = lo_b
-tmp = bpy.data.objects.new('tmp', None)
-for me, k, t, a, mx in stats:
-    target = min(t, max(24, B * a ** 0.75))
-    o = bpy.data.objects.new('dec', me); bpy.context.scene.collection.objects.link(o)
-    w = o.modifiers.new('weld', 'WELD'); w.merge_threshold = 0.00005
-    dm = o.modifiers.new('plan', 'DECIMATE'); dm.decimate_type = 'DISSOLVE'
-    dm.angle_limit = math.radians(1.0); dm.delimit = {'NORMAL'} if False else set()
-    dg = bpy.context.evaluated_depsgraph_get()
-    m1 = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
-    o.modifiers.clear()
-    t1 = ntris(m1)
-    if t1 > target:
-        o.data = m1
-        dc = o.modifiers.new('col', 'DECIMATE'); dc.decimate_type = 'COLLAPSE'
-        dc.ratio = max(0.002, target / t1); dc.use_collapse_triangulate = True
-        dg = bpy.context.evaluated_depsgraph_get()
-        m2 = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
-        o.modifiers.clear()
-    else:
-        m2 = m1
-    bpy.data.objects.remove(o)
-    for mat_i, mat in enumerate(me.materials):
-        if mat_i < len(m2.materials): m2.materials[mat_i] = mat
-    for u in by_mesh[me]:
-        u.data = m2
-for me in list(bpy.data.meshes):
-    if me.users == 0: bpy.data.meshes.remove(me)
-tri_dec = sum(ntris(o.data) for o in objs)
-print('DECIMATE', tri_in, '->', tri_dec, 'B', round(B, 1))
-
-# ----------------------------------------------------------------------------------------------- 3
+# ----------------------------------------------------------------------------------------------- materials
 def hexrgb(h):
     h = h.lstrip('#'); c = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
     return [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
@@ -238,6 +175,7 @@ def make_mat(name, col, rough, metal=0.0, bump=0.0, bump_scale=300.0, trans=0.0,
     bs = next(n for n in N if n.type == 'BSDF_PRINCIPLED')
     bs.inputs['Base Color'].default_value = (*col, 1)
     bs.inputs['Metallic'].default_value = metal
+    m.diffuse_color = (*col, 1)
     if trans:
         bs.inputs['Transmission Weight'].default_value = trans
         bs.inputs['IOR'].default_value = 1.586
@@ -251,15 +189,17 @@ def make_mat(name, col, rough, metal=0.0, bump=0.0, bump_scale=300.0, trans=0.0,
     mr.inputs['To Min'].default_value = rough * 0.85; mr.inputs['To Max'].default_value = min(1, rough * 1.15)
     L.new(nz.outputs['Fac'], mr.inputs['Value']); L.new(mr.outputs['Result'], bs.inputs['Roughness'])
     if fabric:
-        wv = N.new('ShaderNodeTexWave'); wv.inputs['Scale'].default_value = 900; wv.bands_direction = 'Z'
-        wv2 = N.new('ShaderNodeTexWave'); wv2.inputs['Scale'].default_value = 900; wv2.bands_direction = 'X'
+        # woven cordura: two crossed fine wave bands -> weave bump, low tinted sheen
+        wv = N.new('ShaderNodeTexWave'); wv.inputs['Scale'].default_value = 700; wv.bands_direction = 'Z'
+        wv2 = N.new('ShaderNodeTexWave'); wv2.inputs['Scale'].default_value = 700; wv2.bands_direction = 'X'
         L.new(tc.outputs['Object'], wv.inputs['Vector']); L.new(tc.outputs['Object'], wv2.inputs['Vector'])
         mx = N.new('ShaderNodeMath'); mx.operation = 'MULTIPLY'
         L.new(wv.outputs['Fac'], mx.inputs[0]); L.new(wv2.outputs['Fac'], mx.inputs[1])
-        bp = N.new('ShaderNodeBump'); bp.inputs['Strength'].default_value = 0.35
-        bp.inputs['Distance'].default_value = 0.0004
+        bp = N.new('ShaderNodeBump'); bp.inputs['Strength'].default_value = 0.3
+        bp.inputs['Distance'].default_value = 0.0003
         L.new(mx.outputs['Value'], bp.inputs['Height']); L.new(bp.outputs['Normal'], bs.inputs['Normal'])
-        bs.inputs['Sheen Weight'].default_value = 0.6
+        bs.inputs['Sheen Weight'].default_value = 0.12
+        bs.inputs['Sheen Tint'].default_value = (*[min(1, c * 1.6 + 0.05) for c in col], 1)
     elif bump:
         bp = N.new('ShaderNodeBump'); bp.inputs['Strength'].default_value = bump
         bp.inputs['Distance'].default_value = 0.0002
@@ -267,30 +207,11 @@ def make_mat(name, col, rough, metal=0.0, bump=0.0, bump_scale=300.0, trans=0.0,
     return m
 
 
-MATS = {
-    'alu':       make_mat('robot_aluminium', hexrgb('#c4c8cc'), 0.32, 1.0, 0.04, 900),
-    'darkalu':   make_mat('robot_black_anodised', hexrgb('#2a2c30'), 0.38, 1.0, 0.03, 900),
-    'black':     make_mat('robot_black_plastic', hexrgb('#1a1b1e'), 0.5, 0.0, 0.05, 400),
-    'grey':      make_mat('robot_grey_plastic', hexrgb('#6d7278'), 0.5, 0.0, 0.05, 400),
-    'white':     make_mat('robot_white_plastic', hexrgb('#e9eaec'), 0.45, 0.0, 0.04, 400),
-    'rubber':    make_mat('robot_rubber', hexrgb('#141414'), 0.85, 0.0, 0.25, 700),
-    'poly':      make_mat('robot_polycarbonate', hexrgb('#dfe6ec'), 0.08, 0.0, 0.0, 300, trans=0.9),
-    'red':       make_mat('robot_red_anodised', hexrgb('#b3191c'), 0.35, 0.6, 0.03, 900),
-    'blue':      make_mat('robot_blue_anodised', hexrgb('#1d5fb5'), 0.35, 0.6, 0.03, 900),
-    'orange':    make_mat('robot_orange', hexrgb('#ef7d10'), 0.45, 0.0, 0.04, 400),
-    'yellow':    make_mat('robot_yellow', hexrgb('#f2c21b'), 0.45, 0.0, 0.04, 400),
-    'green':     make_mat('robot_green_pcb', hexrgb('#2f7d3a'), 0.4, 0.0, 0.03, 400, coat=0.3),
-    'purple':    make_mat('robot_purple_anodised', hexrgb('#7a4a9c'), 0.35, 0.6, 0.03, 900),
-    'tan':       make_mat('robot_nylon_tan', hexrgb('#d8cdb0'), 0.55, 0.0, 0.05, 400),
-    'fabric':    make_mat('robot_bumper_fabric', hexrgb('#a3161b'), 0.8, 0.0, fabric=True),
-    'number':    make_mat('robot_bumper_number', hexrgb('#f4f4f2'), 0.7, 0.0, fabric=True),
-}
-
-
 def classify(rgb, pname):
     n = pname.lower()
     if n.startswith('bumper'): return 'fabric'
-    if re.search(r'tread|wheel|belt|compliant|roller', n) and not re.search(r'hub|bracket|plate', n): return 'rubber'
+    if re.search(r'tread|wheel|belt|compliant|roller', n) and not re.search(r'hub|bracket|plate|block', n):
+        return 'rubber'
     r, g, b = rgb
     mxc, mnc = max(rgb), min(rgb)
     sat = (mxc - mnc) / mxc if mxc > 0 else 0
@@ -309,61 +230,190 @@ def classify(rgb, pname):
     if g > r and g > b: return 'green'
     if r > 0.6 and g > 0.6 and b > 0.45: return 'tan'
     if r > 0.5 and g < 0.2: return 'red'
-    if r > 0.5 and g < 0.45: return 'red' if g < 0.2 else 'orange'
     if r > 0.5 and g < 0.7: return 'orange'
-    if r > 0.5 and g >= 0.7: return 'yellow'
+    if r > 0.5: return 'yellow'
     return 'grey'
 
 
-def mat_rgb(m):
+def cad_rgb(m):
+    # Onshape names every material by its sRGB colour: "r_g_b_0_0"
     try:
-        bs = next(n for n in m.node_tree.nodes if n.type == 'BSDF_PRINCIPLED')
-        c = bs.inputs['Base Color'].default_value
-        # glTF importer stores linear; the CAD file names carry the sRGB values
-    except StopIteration:
-        c = m.diffuse_color
-    try:
-        return [float(x) for x in m.name.split('_')[:3]]
+        return [float(x) for x in re.sub(r'\.\d{3}$', '', m.name).split('_')[:3]]
     except ValueError:
+        c = next(n for n in m.node_tree.nodes if n.type == 'BSDF_PRINCIPLED').inputs['Base Color'].default_value
         return [c[0], c[1], c[2]]
 
 
-usage = {}
+# ----------------------------------------------------------------------------------------------- 2 import
+bpy.ops.wm.read_factory_settings(use_empty=True)
+MATS = {
+    'alu':     make_mat('robot_aluminium', hexrgb('#c4c8cc'), 0.32, 1.0, 0.04, 900),
+    'darkalu': make_mat('robot_black_anodised', hexrgb('#2a2c30'), 0.38, 1.0, 0.03, 900),
+    'black':   make_mat('robot_black_plastic', hexrgb('#1a1b1e'), 0.5, 0.0, 0.05, 400),
+    'grey':    make_mat('robot_grey_plastic', hexrgb('#6d7278'), 0.5, 0.0, 0.05, 400),
+    'white':   make_mat('robot_white_plastic', hexrgb('#e9eaec'), 0.45, 0.0, 0.04, 400),
+    'rubber':  make_mat('robot_rubber', hexrgb('#161616'), 0.85, 0.0, 0.25, 700),
+    'poly':    make_mat('robot_polycarbonate', hexrgb('#dfe6ec'), 0.08, 0.0, 0.0, 300, trans=0.9),
+    'red':     make_mat('robot_red_anodised', hexrgb('#b3191c'), 0.35, 0.6, 0.03, 900),
+    'blue':    make_mat('robot_blue_anodised', hexrgb('#1d5fb5'), 0.35, 0.6, 0.03, 900),
+    'orange':  make_mat('robot_orange', hexrgb('#ef7d10'), 0.45, 0.0, 0.04, 400),
+    'yellow':  make_mat('robot_yellow', hexrgb('#f2c21b'), 0.45, 0.0, 0.04, 400),
+    'green':   make_mat('robot_green_pcb', hexrgb('#2f7d3a'), 0.4, 0.0, 0.03, 400, coat=0.3),
+    'purple':  make_mat('robot_purple_anodised', hexrgb('#7a4a9c'), 0.35, 0.6, 0.03, 900),
+    'tan':     make_mat('robot_nylon_tan', hexrgb('#d8cdb0'), 0.55, 0.0, 0.05, 400),
+    'fabric':  make_mat('robot_bumper_fabric', hexrgb('#8a0c12'), 0.85, 0.0, fabric=True),
+    'number':  make_mat('robot_bumper_number', hexrgb('#f2f2ef'), 0.75, 0.0, fabric=True),
+}
+bpy.ops.import_scene.gltf(filepath=FILT, import_shading='NORMALS', import_scene_as_collection=False)
+objs = [o for o in bpy.context.scene.objects if o.type == 'MESH']
+for o in list(bpy.context.scene.objects):
+    if o.type != 'MESH':
+        bpy.data.objects.remove(o, do_unlink=True)
+print('IMPORTED', len(objs), 'objects', len({o.data for o in objs}), 'meshes')
+tri_in = sum(ntris(o.data) for o in objs)
+
+# consolidate 100 CAD colours -> ~14 procedural materials (object-level slots for now)
+usage, okey = {}, {}
 for o in objs:
     pname = info(o).get('name', '')
-    me = o.data
-    for i, slot in enumerate(o.material_slots):
-        m = slot.material
-        key = classify(mat_rgb(m) if m else [0.6, 0.6, 0.6], pname)
+    keys = []
+    for slot in o.material_slots:
+        key = classify(cad_rgb(slot.material) if slot.material else [0.6] * 3, pname)
+        slot.link = 'OBJECT'; slot.material = MATS[key]; keys.append(key)
         usage[key] = usage.get(key, 0) + 1
-        slot.link = 'OBJECT'; slot.material = MATS[key]
+    okey[o.name] = keys[0] if keys else 'alu'
 print('MATERIAL use', usage)
 
-# join everything per material --------------------------------------------------------------
-col = bpy.data.collections.new('NEW_robot'); bpy.context.scene.collection.children.link(col)
-root = bpy.data.objects.new('NEW_robot_root', None); col.objects.link(root)
-groups = {}
+# bumper box + floor (lowest wheel point) in CAD coords
+bump = [o for o in objs if info(o).get('name', '').upper().startswith('BUMPER')]
+assert bump, 'no BUMPERS part'
+bv = np.array([(o.matrix_world @ v.co)[:] for o in bump for v in o.data.vertices])
+bl, bh = Vector(bv.min(0)), Vector(bv.max(0))
+floor_z = min((o.matrix_world @ v.co).z for o in objs
+              if re.search(r'wheel|tread|swerve', info(o).get('name', ''), re.I) for v in o.data.vertices)
+CEN = Vector(((bl.x + bh.x) / 2, (bl.y + bh.y) / 2, floor_z))
+rel = bv - np.array(CEN)
+B_OUT = float(np.abs(rel[:, :2]).max())                                   # outer half size
+B_IN = float(np.max(np.abs(rel[:, :2]), 1).min())                          # plywood inner face
+B_Z0, B_Z1 = float(rel[:, 2].min()), float(rel[:, 2].max())
+print('BUMPER half in/out %.4f %.4f  z %.4f..%.4f  floor %.4f' % (B_IN, B_OUT, B_Z0, B_Z1, floor_z))
+
+# ----------------------------------------------------------------------------------------------- visibility
+# Orthographic ray grids from 25 directions around/above the robot. A part's hit count ~ how much of it
+# can be seen from outside; parts never hit are internals (inside gearboxes, under covers) and go.
+sc = bpy.context.scene
+dg = bpy.context.evaluated_depsgraph_get()
+hits = {}
+C0 = CEN + Vector((0, 0, 0.28))
+RAD = 0.95
+STEP = 0.011
+dirs = [(math.radians(a), math.radians(e)) for e in (6, 35, 65) for a in range(0, 360, 45)] + [(0, math.radians(90))]
+for az, el in dirs:
+    d = -Vector((math.cos(el) * math.cos(az), math.cos(el) * math.sin(az), math.sin(el)))
+    u = d.cross(Vector((0, 0, 1)))
+    u = u.normalized() if u.length > 1e-6 else Vector((1, 0, 0))
+    v = u.cross(d).normalized()
+    n = int(2 * RAD / STEP)
+    for i in range(n):
+        for j in range(n):
+            org = C0 - d * 2.0 + u * (-RAD + i * STEP) + v * (-RAD + j * STEP)
+            for _ in range(4):
+                ok, loc, nrm, idx, ob, mw = sc.ray_cast(dg, org, d)
+                if not ok: break
+                nm = ob.original.name if hasattr(ob, 'original') else ob.name
+                if okey.get(nm) == 'poly':
+                    hits[nm] = hits.get(nm, 0) + 0.25
+                    org = loc + d * 0.0005
+                    continue
+                hits[nm] = hits.get(nm, 0) + 1
+                break
+print('VISIBILITY rays done, parts hit', len(hits), 'of', len(objs))
+
+# delete CAD bumper (rebuilt below) and hidden parts
+hidden = [o for o in objs if hits.get(o.name, 0) < 2 or o in bump]
+tri_hidden = sum(ntris(o.data) for o in hidden if o not in bump)
+print('HIDDEN parts removed', len(hidden) - len(bump), 'tris', tri_hidden)
+for o in hidden:
+    objs.remove(o); bpy.data.objects.remove(o)
+
+# ----------------------------------------------------------------------------------------------- decimate
+by_mesh = {}
 for o in objs:
-    o.data = o.data.copy() if o.data.users > 1 else o.data
-    # bake object-level material into mesh slots so joining keeps it
+    by_mesh.setdefault(o.data, []).append(o)
+
+
+def reduce(me, mods):
+    o = bpy.data.objects.new('dec', me); sc.collection.objects.link(o)
+    for kind, kw in mods:
+        m = o.modifiers.new(kind, kind)
+        for k, val in kw.items(): setattr(m, k, val)
+    g = bpy.context.evaluated_depsgraph_get()
+    out = bpy.data.meshes.new_from_object(o.evaluated_get(g))
+    bpy.data.objects.remove(o)
+    return out
+
+
+stats = []
+for me, users in by_mesh.items():
+    m1 = reduce(me, [('WELD', dict(merge_threshold=0.00005)),
+                     ('DECIMATE', dict(decimate_type='DISSOLVE', angle_limit=math.radians(1.0)))])
+    w = max(hits.get(u.name, 0) for u in users)
+    stats.append([me, m1, len(users), ntris(m1), w])
+tri_dis = sum(k * t for _, _, k, t, _ in stats)
+FIXED_TRIS = 10000                   # rebuilt bumper + two numbers
+
+
+def total(Bv):
+    return sum(k * min(t, max(24, Bv * w ** 0.8)) for _, _, k, t, w in stats)
+
+
+lo_b, hi_b = 1e-3, 1e7
+for _ in range(90):
+    mid = math.sqrt(lo_b * hi_b)
+    (lo_b, hi_b) = (mid, hi_b) if total(mid) < BUDGET - FIXED_TRIS else (lo_b, mid)
+Bv = lo_b
+GOAL = BUDGET - FIXED_TRIS
+for it in range(4):                  # collapse overshoots on small parts: re-aim until the total fits
+    out = []
+    for me, m1, k, t1, w in stats:
+        target = min(t1, max(24, Bv * w ** 0.8))
+        m2 = reduce(m1, [('DECIMATE', dict(decimate_type='COLLAPSE', ratio=max(0.003, target / t1),
+                                           use_collapse_triangulate=True))]) if t1 > target else m1
+        out.append(m2)
+    got = sum(k * ntris(m2) for (me, m1, k, t1, w), m2 in zip(stats, out))
+    print('  decimate pass', it, 'B %.3f' % Bv, 'tris', got)
+    if got <= GOAL * 1.01 or it == 3:
+        break
+    for (me, m1, k, t1, w), m2 in zip(stats, out):
+        if m2 is not m1: bpy.data.meshes.remove(m2)
+    Bv *= (GOAL / got) ** 1.3
+for (me, m1, k, t1, w), m2 in zip(stats, out):
+    for u in by_mesh[me]:
+        u.data = m2
+for me in list(bpy.data.meshes):
+    if me.users == 0: bpy.data.meshes.remove(me)
+tri_dec = sum(ntris(o.data) for o in objs)
+print('DECIMATE in %d -> dissolved %d -> %d' % (tri_in - tri_hidden, tri_dis, tri_dec))
+
+# ----------------------------------------------------------------------------------------------- 3 join
+col = bpy.data.collections.new('NEW_robot'); sc.collection.children.link(col)
+root = bpy.data.objects.new('NEW_robot_root', None); col.objects.link(root)
+for o in objs:
+    if o.data.users > 1: o.data = o.data.copy()
     ms = [s.material for s in o.material_slots]
     o.data.materials.clear()
     for m in ms: o.data.materials.append(m)
     for s in o.material_slots: s.link = 'DATA'
     o.data.transform(o.matrix_world); o.matrix_world = Matrix()
-    groups.setdefault(ms[0].name if len(set(ms)) == 1 else 'mixed', []).append(o)
 bpy.ops.object.select_all(action='DESELECT')
 for o in objs: o.select_set(True)
 bpy.context.view_layer.objects.active = objs[0]
 bpy.ops.object.join()
-big = bpy.context.view_layer.objects.active
 bpy.ops.object.mode_set(mode='EDIT')
 bpy.ops.mesh.select_all(action='SELECT')
 bpy.ops.mesh.separate(type='MATERIAL')
 bpy.ops.object.mode_set(mode='OBJECT')
-parts = [o for o in bpy.context.scene.objects if o.type == 'MESH']
-
-# recentre: bumper centre at XY origin, wheels on z=0
+parts = [o for o in sc.objects if o.type == 'MESH']
 T = Matrix.Translation(-CEN)
 for o in parts:
     me = o.data
@@ -372,88 +422,165 @@ for o in parts:
         me.attributes.remove(me.attributes[an])
     for p in me.polygons: p.use_smooth = True
     me.set_sharp_from_angle(angle=math.radians(35))
-    # drop unused slots
     used = {p.material_index for p in me.polygons}
-    mat = me.materials[next(iter(used))] if used else None
+    mat = me.materials[next(iter(used))]
     me.materials.clear(); me.materials.append(mat)
     for p in me.polygons: p.material_index = 0
-    o.name = 'Robot_' + mat.name.replace('robot_', '')
-    o.data.name = o.name
+    o.name = 'Robot_' + mat.name.replace('robot_', ''); me.name = o.name
     for uc in list(o.users_collection): uc.objects.unlink(o)
     col.objects.link(o); o.parent = root
-bl -= CEN; bh -= CEN
+zmin, zobj = min((min(v.co.z for v in o.data.vertices), o.name) for o in parts)
+print('LOWEST after decimation %.4f (%s) -> re-seated on z=0' % (zmin, zobj))
+for o in parts: o.data.transform(Matrix.Translation((0, 0, -zmin)))
+B_Z0 -= zmin; B_Z1 -= zmin
 
-# ----------------------------------------------------------------------------------------------- 4
-fab = next(o for o in parts if o.name.startswith('Robot_bumper_fabric'))
-fab_me = fab.data
-fv = np.array([v.co[:] for v in fab_me.vertices])
-print('BUMPER local box', fv.min(0).round(4), fv.max(0).round(4))
+# ----------------------------------------------------------------------------------------------- 4 bumper
+# FRC bumper section: 3/4" plywood backing, two pool noodles, fabric pulled over -> flat back, round-
+# shouldered outer face with a faint valley where the noodles meet; swept round the frame perimeter.
+BD = B_OUT - B_IN
+RO, RI = 0.024, 0.004
+ZM = (B_Z0 + B_Z1) / 2
+
+
+def arc(cx, cz, r, a0, a1, n):
+    return [(cx + r * math.cos(a0 + (a1 - a0) * t / n), cz + r * math.sin(a0 + (a1 - a0) * t / n)) for t in range(n + 1)]
+
+
+prof = []
+prof += arc(RI, B_Z0 + RI, RI, math.pi, 1.5 * math.pi, 3)[1:]                    # inner-bottom
+prof += arc(BD - RO, B_Z0 + RO, RO, 1.5 * math.pi, 2 * math.pi, 8)               # outer-bottom shoulder
+for t in range(1, 14):                                                           # outer face, noodle valley
+    z = B_Z0 + RO + (B_Z1 - B_Z0 - 2 * RO) * t / 14
+    prof.append((BD - 0.0022 * math.exp(-((z - ZM) / 0.010) ** 2), z))
+prof += arc(BD - RO, B_Z1 - RO, RO, 0, 0.5 * math.pi, 8)                          # outer-top shoulder
+prof += arc(RI, B_Z1 - RI, RI, 0.5 * math.pi, math.pi, 3)[1:]                      # inner-top
+prof += [(0.0, B_Z1 - RI - (B_Z1 - B_Z0 - 2 * RI) * t / 4) for t in range(1, 4)]  # plywood back
+
+
+def ring(dd):
+    a = B_IN + dd
+    rc = 0.003 + dd * (0.016 - 0.003) / BD
+    pts = []
+    for k in range(4):
+        ang0 = k * math.pi / 2
+        c = Vector((math.cos(ang0 + math.pi / 4), math.sin(ang0 + math.pi / 4))) * math.sqrt(2) * (a - rc)
+        for t in range(7):
+            ang = ang0 + (math.pi / 2) * t / 6
+            pts.append(c + rc * Vector((math.cos(ang), math.sin(ang))))
+    return pts
+
+
+bm = bmesh.new()
+grid = [[bm.verts.new((p.x, p.y, z)) for p in ring(dd)] for dd, z in prof]
+nj, ni = len(grid), len(grid[0])
+for j in range(nj):
+    for i in range(ni):
+        bm.faces.new((grid[j][i], grid[j][(i + 1) % ni], grid[(j + 1) % nj][(i + 1) % ni], grid[(j + 1) % nj][i]))
+bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+fab_me = bpy.data.meshes.new('Robot_bumper_fabric'); bm.to_mesh(fab_me); bm.free()
+fab_me.materials.append(MATS['fabric'])
+fab = bpy.data.objects.new('Robot_bumper_fabric', fab_me); col.objects.link(fab); fab.parent = root
+for p in fab_me.polygons: p.use_smooth = True
+fab_me.set_sharp_from_angle(angle=math.radians(60))
 
 FONT = r'C:\Windows\Fonts\arialbd.ttf'
-DIGIT_H = 0.100
+DIGIT_H = 0.095
 
 
 def number_on_face(axis_sign, axis):
     """'1360' on the bumper face whose outward normal is axis_sign * axis ('x' or 'y')."""
     cu = bpy.data.curves.new('num', 'FONT'); cu.body = '1360'
-    try:
+    if os.path.exists(FONT):
         cu.font = bpy.data.fonts.load(FONT, check_existing=True)
-    except RuntimeError:
-        pass
-    cu.align_x = 'CENTER'; cu.align_y = 'CENTER'
-    cu.size = DIGIT_H / 0.716; cu.extrude = 0.0006; cu.resolution_u = 4
-    cu.space_character = 1.05
-    t = bpy.data.objects.new('num', cu); bpy.context.scene.collection.objects.link(t)
-    dg = bpy.context.evaluated_depsgraph_get()
-    me = bpy.data.meshes.new_from_object(t.evaluated_get(dg))
+    cu.size = 1.0; cu.resolution_u = 5; cu.space_character = 1.04
+    t = bpy.data.objects.new('num', cu); sc.collection.objects.link(t)
+    g = bpy.context.evaluated_depsgraph_get()
+    me = bpy.data.meshes.new_from_object(t.evaluated_get(g))
     bpy.data.objects.remove(t); bpy.data.curves.remove(cu)
-    # text lies in XY facing +Z; stand it up facing +Y then rotate to the wanted face
+    vs = np.array([v.co[:] for v in me.vertices]); lo, hi = vs.min(0), vs.max(0)
+    s = DIGIT_H / (hi[1] - lo[1])
+    me.transform(Matrix.Scale(s, 4) @ Matrix.Translation(Vector((-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, 0))))
+    bm = bmesh.new(); bm.from_mesh(me)
+    for k in range(1, 16):                                   # horizontal cuts so it can follow the curve
+        z = -DIGIT_H / 2 + DIGIT_H * k / 16
+        geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
+        bmesh.ops.bisect_plane(bm, geom=geom, plane_co=(0, z, 0), plane_no=(0, 1, 0))
+    bmesh.ops.triangulate(bm, faces=bm.faces)
+    bm.to_mesh(me); bm.free()
+    # XY text facing +Z -> reading +X, up +Z, facing -Y; then turn to the wanted face
     me.transform(Matrix.Rotation(math.radians(90), 4, 'X'))
-    # now reading direction +X, up +Z, facing -Y; turn it to the wanted face
     ang = {('y', -1): 0.0, ('x', 1): math.pi / 2, ('y', 1): math.pi, ('x', -1): -math.pi / 2}[(axis, axis_sign)]
-    me.transform(Matrix.Rotation(ang, 4, 'Z'))
-    # face position: ray-cast to the fabric surface at mid height along the face centre line
-    zc = (bl.z + bh.z) / 2
-    d = Vector((axis_sign, 0, 0)) if axis == 'x' else Vector((0, axis_sign, 0))
-    start = Vector((0, 0, zc)) + d * 2.0
-    hit_depth = None
-    from mathutils.bvhtree import BVHTree
-    bvh = BVHTree.FromObject(fab, bpy.context.evaluated_depsgraph_get())
-    hit = bvh.ray_cast(start, -d)
-    assert hit[0] is not None, 'bumper face not hit'
-    pos = hit[0]
-    # letters: back face flush at the fabric, raised 0.6 mm; project each vertex onto the surface
-    me.transform(Matrix.Translation(pos + d * 0.0009))
-    o = bpy.data.objects.new('Robot_number_1360_%s%s' % ('+' if axis_sign > 0 else '-', axis), me)
+    me.transform(Matrix.Translation((0, 0, ZM)) @ Matrix.Rotation(ang, 4, 'Z')
+                 @ Matrix.Translation((0, -(B_OUT + 0.02), 0)))
+    o = bpy.data.objects.new('Robot_number_1360_%s%s' % ('pos' if axis_sign > 0 else 'neg', axis.upper()), me)
     col.objects.link(o); o.parent = root
     sw = o.modifiers.new('wrap', 'SHRINKWRAP'); sw.target = fab; sw.wrap_method = 'PROJECT'
     sw.use_project_x = axis == 'x'; sw.use_project_y = axis == 'y'
-    sw.use_negative_direction = True; sw.use_positive_direction = True; sw.offset = 0.0009
-    sw.wrap_mode = 'OUTSIDE_SURFACE'
+    sw.use_negative_direction = True; sw.use_positive_direction = True
+    sw.offset = 0.0007
+    so = o.modifiers.new('thick', 'SOLIDIFY'); so.thickness = 0.0012; so.offset = 1.0
+    so.use_even_offset = True
     me.materials.append(MATS['number'])
+    g = bpy.context.evaluated_depsgraph_get()
+    m2 = bpy.data.meshes.new_from_object(o.evaluated_get(g)); o.modifiers.clear(); o.data = m2
+    bpy.data.meshes.remove(me)
+    m2.name = o.name
+    for p in m2.polygons: p.use_smooth = True
+    m2.set_sharp_from_angle(angle=math.radians(40))
     return o
 
 
 NUM_AXIS = ARGS[ARGS.index('--num-axis') + 1] if '--num-axis' in ARGS else 'x'
 nums = [number_on_face(+1, NUM_AXIS), number_on_face(-1, NUM_AXIS)]
+for o in nums:
+    nv = np.array([v.co[:] for v in o.data.vertices])
+    print('NUMBER', o.name, 'box', nv.min(0).round(4), nv.max(0).round(4))
 
-# ----------------------------------------------------------------------------------------------- 5
-root.matrix_world = Matrix.Translation(PLACE) @ Matrix.Rotation(YAW, 4, 'Z')
-for o in col.objects:
-    if o.type == 'MESH':
-        for p in o.data.polygons: p.use_smooth = True
-tri_out = 0
-dg = bpy.context.evaluated_depsgraph_get()
-for o in col.objects:
-    if o.type == 'MESH':
-        tri_out += ntris(o.evaluated_get(dg).data)
+# ----------------------------------------------------------------------------------------------- 5 placement
+# measured in room.blend: left wall inner face x=-2.08 (skirting in front of it), round rug Mesh_4
+# centre (0.06,-0.05) r=0.88 and 6 mm thick, desk leg frame desk_top_tmp_2 x -0.99..0.95 y 0.41..1.10,
+# chair_base* x >= -0.014.
+WALL_X, RUG_C, RUG_R = -2.08, Vector((0.06, -0.05)), 0.88
+DESK = ((-0.99 - 0.01, 0.41 - 0.01), (0.95, 1.10))
+local = np.array([v.co[:] for o in col.objects if o.type == 'MESH' for v in o.data.vertices])
+
+
+def clear(off):
+    Rm = np.array(Matrix.Rotation(YAW, 3, 'Z'))
+    wv = local @ Rm.T + np.array(PLACE + off)
+    if wv[:, 0].min() < WALL_X + 0.02: return False
+    low = wv[wv[:, 2] < 0.012]
+    if (np.hypot(low[:, 0] - RUG_C.x, low[:, 1] - RUG_C.y) < RUG_R + 0.015).any(): return False
+    inside = (wv[:, 0] > DESK[0][0]) & (wv[:, 1] > DESK[0][1]) & (wv[:, 1] < DESK[1][1]) & (wv[:, 2] < 0.74)
+    if inside.any(): return False
+    if (wv[:, 0] > -0.03).any(): return False
+    return True
+
+
+best = None
+for r in range(0, 60):
+    for a in range(0, 360, 15):
+        off = Vector((r * 0.01 * math.cos(math.radians(a)), r * 0.01 * math.sin(math.radians(a)), 0))
+        if clear(off):
+            best = off; break
+    if best is not None: break
+assert best is not None, 'no clear spot'
+root.matrix_world = Matrix.Translation(PLACE + best) @ Matrix.Rotation(YAW, 4, 'Z')
+bpy.context.view_layer.update()
+print('PLACEMENT offset from project spot', [round(x, 3) for x in best])
+
+tri_out = sum(ntris(o.data) for o in col.objects if o.type == 'MESH')
 allv = [o.matrix_world @ v.co for o in col.objects if o.type == 'MESH' for v in o.data.vertices]
 wl = Vector([min(v[i] for v in allv) for i in range(3)]); wh = Vector([max(v[i] for v in allv) for i in range(3)])
 print('ROBOT tris out', tri_out, 'objects', len([o for o in col.objects if o.type == 'MESH']))
+for o in col.objects:
+    if o.type == 'MESH': print('   ', o.name, ntris(o.data))
 print('ROBOT world box', [round(x, 3) for x in wl], [round(x, 3) for x in wh])
-meta = dict(tri_source_instanced=side['tri_all'], tri_after_filter=tri_in, tri_out=tri_out,
-            world_lo=list(wl), world_hi=list(wh), place=list(PLACE), yaw=YAW,
-            bumper_local=[list(bl), list(bh)])
+meta = dict(tri_source_instanced=side['tri_all'], tri_prefilter_dropped=side['tri_dropped'],
+            tri_imported=tri_in, tri_hidden_removed=tri_hidden, tri_out=tri_out,
+            root_location=list(root.matrix_world.translation), yaw=YAW,
+            world_lo=list(wl), world_hi=list(wh),
+            bumper=dict(half_in=B_IN, half_out=B_OUT, z0=B_Z0, z1=B_Z1))
 json.dump(meta, open(os.path.join(PARTS, 'robot_meta.json'), 'w'), indent=1)
 bpy.ops.wm.save_as_mainfile(filepath=OUT, compress=True)
 print('SAVED', OUT)
@@ -483,37 +610,33 @@ def shot(sc, loc, target, lens, name):
 
 
 if not NO_RENDER and '--room-only' not in ARGS:
-    sc = bpy.context.scene
     gpu(sc)
     w = bpy.data.worlds.new('w'); sc.world = w; w.use_nodes = True
     bg = next(n for n in w.node_tree.nodes if n.type == 'BACKGROUND')
-    bg.inputs['Color'].default_value = (0.5, 0.5, 0.5, 1); bg.inputs['Strength'].default_value = 0.6
+    bg.inputs['Color'].default_value = (0.5, 0.5, 0.5, 1); bg.inputs['Strength'].default_value = 0.35
     fl = bpy.data.meshes.new('floor'); bm = bmesh.new()
-    bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=4); bm.to_mesh(fl)
+    bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=4); bm.to_mesh(fl); bm.free()
     flo = bpy.data.objects.new('preview_floor', fl); sc.collection.objects.link(flo)
-    flo.location = PLACE
+    flo.location = root.matrix_world.translation
     fm = bpy.data.materials.new('floor'); fm.use_nodes = True
     fb = next(n for n in fm.node_tree.nodes if n.type == 'BSDF_PRINCIPLED')
-    fb.inputs['Base Color'].default_value = (0.35, 0.35, 0.36, 1); fb.inputs['Roughness'].default_value = 0.6
+    fb.inputs['Base Color'].default_value = (0.3, 0.3, 0.31, 1); fb.inputs['Roughness'].default_value = 0.6
     fl.materials.append(fm)
-    c = root.matrix_world.translation
-    for nm, off, en, sz in (('key', (1.6, -1.8, 2.2), 900, 1.2), ('fill', (-2.0, -0.8, 1.2), 250, 2.0),
-                            ('rim', (-0.6, 2.2, 1.8), 500, 1.0)):
+    c = root.matrix_world.translation.copy()
+    R = root.matrix_world.to_3x3()
+    for nm, off, en, sz in (('key', (1.6, -1.8, 2.2), 380, 1.2), ('fill', (-2.0, -0.8, 1.2), 110, 2.0),
+                            ('rim', (-0.6, 2.2, 1.8), 220, 1.0)):
         ld = bpy.data.lights.new(nm, 'AREA'); ld.energy = en; ld.size = sz
         lo_ = bpy.data.objects.new(nm, ld); sc.collection.objects.link(lo_)
-        lo_.location = c + Vector(off)
+        lo_.location = c + R @ Vector(off)
         lo_.rotation_euler = (c + Vector((0, 0, 0.25)) - lo_.location).to_track_quat('-Z', 'Y').to_euler()
-    R = root.matrix_world.to_3x3()
-    mid = c + Vector((0, 0, 0.26))
-    shot(sc, c + R @ Vector((1.25, -1.35, 0.95)), mid, 40, '34')
-    ax = +1 if NUM_AXIS == 'x' else 0
+    shot(sc, c + R @ Vector((1.35, -1.25, 0.95)), c + Vector((0, 0, 0.24)), 38, '34')
     nrm = R @ (Vector((1, 0, 0)) if NUM_AXIS == 'x' else Vector((0, 1, 0)))
-    face = c + nrm * 0.43 + Vector((0, 0, 0.095))
     side_ = R @ (Vector((0, 1, 0)) if NUM_AXIS == 'x' else Vector((1, 0, 0)))
-    shot(sc, face + nrm * 0.55 + side_ * 0.25 + Vector((0, 0, 0.12)), face, 50, 'bumper')
-    nrm2 = -nrm
-    face2 = c + nrm2 * 0.43 + Vector((0, 0, 0.095))
-    shot(sc, face2 + nrm2 * 0.9 - side_ * 0.3 + Vector((0, 0, 0.3)), face2 + Vector((0, 0, 0.08)), 40, 'bumper_other')
+    face = c + nrm * B_OUT + Vector((0, 0, ZM))
+    shot(sc, face + nrm * 0.5 - side_ * 0.18 + Vector((0, 0, 0.1)), face, 45, 'bumper')
+    face2 = c - nrm * B_OUT + Vector((0, 0, ZM))
+    shot(sc, face2 - nrm * 1.1 + side_ * 0.5 + Vector((0, 0, 0.45)), face2 + Vector((0, 0, 0.08)), 35, 'bumper_other')
 
 if not NO_RENDER:
     bpy.ops.wm.open_mainfile(filepath=ROOM)          # read-only: never saved
