@@ -608,7 +608,7 @@ def conform(ob, below, above):
         hit = bvh_dense.ray_cast(Vector((w_.x, w_.y, -0.01)), Vector((0, 0, 1)))[0]
         zs_ = hit.z if hit is not None else zf
         v.co = ob.matrix_world.inverted() @ Vector((w_.x, w_.y, zs_ + (above if v.co.z > 1e-6 else -below) * mm))
-for ob_, b_, a_ in ((plate, 0.15, 0.15), (footL, 0.45, 0.35), (footR, 0.45, 0.35)): conform(ob_, b_, a_)
+for ob_, b_, a_ in ((plate, 0.5, 0.2), (footL, 0.45, 0.35), (footR, 0.45, 0.35)): conform(ob_, b_, a_)
 pu, nu = ray((7.0, 90, 9.5), (0, -1, 0))
 usb = place(rrect_prism('MouseMX_USBC', 8.6, 2.7, 1.3, 2.0, segs=6), 'MouseMX_USBC', m_black,
             frame(Vector((1, 0, 0)), Vector(nu), pu) @ Matrix.Translation((0, 0, -1.9 * mm)))
