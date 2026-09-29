@@ -47,8 +47,8 @@ K = 1.2 * 1.12            # owner: 20% bigger, then another ~12%
 RIBBON_W = 0.0225 * K     # 30 mm lanyard
 ROW_STEP = 0.003
 Z = Vector((0, 0, 1))
-CLOTH = dict(quality=20, mass=0.0006, air=3.0, tension=120.0, shear=40.0, bend=0.6, damp=10.0, bend_damp=1.0,
-             pin=6.0, coldist=0.0009, colq=6, selfcol=True, selfdist=0.0010, selffric=5.0, friction=6.0)
+CLOTH = dict(quality=25, time_scale=1.0, mass=0.0006, air=3.0, tension=120.0, compression=30.0, shear=40.0, bend=4.0, damp=10.0, bend_damp=2.0,
+             pin=6.0, coldist=0.0010, colq=8, selfcol=True, selfdist=0.0006, selffric=5.0, friction=6.0)
 RIBBON_HEX = dict(blue='#1d3a8a', white='#e9e7e0', red='#a81c26', gold='#d9a92e', green='#17613a')
 
 # layer 1 = innermost loop ... 4 = outermost (on top). plane/drop: clean start state (drop from the neck
@@ -64,17 +64,17 @@ AMP_K = 1.0
 # vertical), slack (the crimp rises this much, so the ribbon settles in soft folds instead of a taut strip).
 SPECS = [
     dict(name='m1', layer=4, plane=+0.0135, drop=0.111, lean=12, R=0.0205 * K, metal='gold', relief='blank',
-         cols=[0, .34, .66, 1], bands=['blue', 'blue', 'blue'], rot90=False,
-         move=dict(ds=0.004, dt=0.004, rot=15, slack=0.006)),
-    dict(name='m2', layer=3, plane=+0.0045, drop=0.081, lean=-8, R=0.0195 * K, metal='silver', relief='blank',
-         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], rot90=False,
-         move=dict(ds=0.0, dt=-0.018, rot=180, slack=0.005)),
+         cols=[0, 1/6, 2/6, 3/6, 4/6, 5/6, 1], bands=['blue'] * 6, rot90=False,
+         move=dict(ds=0.004, dt=0.004, rot=15, slack=0.003)),
+    dict(name='m2', layer=3, plane=+0.0045, drop=0.100, lean=-8, R=0.0195 * K, metal='silver', relief='blank',
+         cols=[0, 1/6, 2/6, 3/6, 4/6, 5/6, 1], bands=['red'] * 6, rot90=False,
+         move=dict(ds=0.0, dt=-0.020, rot=60, slack=0.002)),
     dict(name='m3', layer=2, plane=-0.0045, drop=0.191, lean=20, R=0.0195 * K, metal='silver', relief='blank',
-         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], rot90=False,
-         move=dict(ds=-0.002, dt=0.026, rot=60, slack=0.008)),
+         cols=[0, 1/6, 2/6, 3/6, 4/6, 5/6, 1], bands=['red'] * 6, rot90=False,
+         move=dict(ds=-0.002, dt=0.024, rot=180, slack=0.003)),
     dict(name='m4', layer=1, plane=-0.0135, drop=0.076, lean=-15, R=0.0195 * K, metal='silver', relief='blank',
-         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], rot90=False,
-         move=dict(ds='branch', dt=-0.004, rot=-12, slack=0.004)),
+         cols=[0, 1/6, 2/6, 3/6, 4/6, 5/6, 1], bands=['red'] * 6, rot90=False,
+         move=dict(ds=-0.006, dt=-0.004, rot=-10, slack=0.002)),
 ]
 
 
@@ -612,7 +612,7 @@ def build():
     Z_T0, Z_T1 = neck_c - 0.010, neck_c - 0.044
     Z_FAN = neck_c - 0.060
     WS_G = 0.014 / W
-    AB = 0.00055 * K
+    AB = 0.0008 * K
     t_hat, s_hat = T, F
 
     def sm(x):
@@ -766,112 +766,107 @@ def build():
                 sa, sb = rd['rows'][r][2], rd['rows'][r + 1][2]
                 uvs.append([(cols[c_] * W, sa), (cols[c_ + 1] * W, sa), (cols[c_ + 1] * W, sb), (cols[c_] * W, sb)])
         ranges.append((v0, len(verts), f0, len(faces)))
-    me = bpy.data.meshes.new('sim_ribbons')
-    me.from_pydata([tuple(v) for v in verts], [], faces)
-    me.update()
-    sim = bpy.data.objects.new('sim_ribbons', me)
-    work.objects.link(sim)
-    vg_pin = sim.vertex_groups.new(name='pin')
-    vg_pin.add([i for i, w in enumerate(pinw) if w > 0], 1.0, 'REPLACE')
-
-    # hooks carry each lanyard's crimp ends to its casual pose; medal discs ride along as colliders
-    hooks = []
-    scene.frame_start = 1
-    for li, rd in enumerate(rib_data):
-        hk = bpy.data.objects.new(f'hook_{rd["spec"]["name"]}', None)
-        work.objects.link(hk)
-        hk.location = rd['crimp0']
-        hk.rotation_mode = 'XYZ'
-        hk.keyframe_insert('location', frame=1)
-        hk.keyframe_insert('rotation_euler', frame=1)
-        hk.location = rd['crimp']
-        hk.rotation_euler = (0, 0, math.radians(rd['move']['rot']))
-        hk.keyframe_insert('location', frame=MOVE_FRAMES)
-        hk.keyframe_insert('rotation_euler', frame=MOVE_FRAMES)
-        hk.location = rd['crimp0']
-        hk.rotation_euler = (0, 0, 0)
-        g = sim.vertex_groups.new(name=f'hook_{li}')
-        g.add([i for i, h in enumerate(hookgrp) if h == li], 1.0, 'REPLACE')
-        hm = sim.modifiers.new(f'hook_{li}', 'HOOK')
-        hm.object = hk
-        hm.vertex_group = g.name
-        hm.falloff_type = 'NONE'
-        hm.center = rd['crimp0']
-        hm.matrix_inverse = Matrix.Translation(rd['crimp0']).inverted()
-        # medal disc collider (at the rest pose relative to the crimp), parented to the hook
-        Rm = rd['spec']['R']
-        bm = bmesh.new()
-        bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=32, radius1=Rm + 0.0006,
-                              radius2=Rm + 0.0006, depth=0.0036 * K / 1.2 + 0.001)
-        bm.transform(Matrix.Rotation(math.radians(90), 4, 'X'))       # disc axis -> local Y (= F at rest)
-        dm = bpy.data.meshes.new(f'medal_col_{li}')
-        bm.to_mesh(dm)
-        bm.free()
-        mo = bpy.data.objects.new(f'medal_col_{li}', dm)
-        work.objects.link(mo)
-        rest = Matrix.Translation(rd['crimp0'] - Z * medal_drop(Rm)) @ Matrix((
-            (T.x, F.x, 0, 0), (T.y, F.y, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
-        mo.matrix_world = rest
-        bpy.context.view_layer.update()
-        mo.parent = hk
-        mo.matrix_parent_inverse = hk.matrix_world.inverted()
-        mo.matrix_world = rest
-        if '--medal-colliders' in ARGS:
-            add_collision(mo, friction=CLOTH['friction'])
-            mo.collision.thickness_outer = 0.0006
-        mo.hide_render = True
-        hooks.append(hk)
-    bpy.context.view_layer.update()
-    for hk in hooks:
-        if hk.animation_data and hk.animation_data.action:
-            pass
-
-    cl = sim.modifiers.new('Cloth', 'CLOTH')
+    # ------------------------------------------------------------------ sequential cloth sim, inner loop first
+    # Each lanyard settles with self-collision (its two tails, its own half twist) against the lamp and the
+    # lanyards already settled under it (frozen as two-sided colliders), while a hook carries its crimp to the
+    # casual pose. One joint self-collision sim of all four was numerically unstable in these tight layers.
     P_ = dict(CLOTH)
     for a in ARGS:
         if a.startswith('cloth.') and '=' in a:
             kk, vv = a[6:].split('=')
             P_[kk] = type(P_[kk])(float(vv)) if not isinstance(P_[kk], bool) else vv in ('1', 'true')
     print('CLOTH', P_)
-    s = cl.settings
-    s.quality = int(P_['quality'])
-    s.mass = P_['mass']
-    s.air_damping = P_['air']
-    s.tension_stiffness = P_['tension']
-    s.compression_stiffness = P_['tension']
-    s.shear_stiffness = P_['shear']
-    s.bending_stiffness = P_['bend']
-    s.tension_damping = P_['damp']
-    s.compression_damping = P_['damp']
-    s.shear_damping = P_['damp']
-    s.bending_damping = P_['bend_damp']
-    s.vertex_group_mass = 'pin'
-    s.pin_stiffness = P_['pin']
-    cs = cl.collision_settings
-    cs.use_collision = True
-    cs.distance_min = P_['coldist']
-    cs.collision_quality = int(P_['colq'])
-    cs.use_self_collision = P_['selfcol']
-    cs.self_distance_min = P_['selfdist']
-    cs.self_friction = P_['selffric']
-    cl.point_cache.frame_start = 1
-    cl.point_cache.frame_end = SIM_FRAMES
     draped = [v.copy() for v in verts]
-    if SIM_FRAMES > 0:
-        for fr in range(1, SIM_FRAMES + 1):
-            scene.frame_set(fr)
-        dg = bpy.context.evaluated_depsgraph_get()
-        ev = sim.evaluated_get(dg)
-        em = ev.to_mesh()
-        draped = [v.co.copy() for v in em.vertices]
-        ev.to_mesh_clear()
-    else:
-        # no sim: apply the hook motion rigidly to the ends only (debug)
-        for li, rd in enumerate(rib_data):
-            Rz = Matrix.Rotation(math.radians(rd['move']['rot']), 3, 'Z')
-            for i, h in enumerate(hookgrp):
-                if h == li:
-                    draped[i] = rd['crimp'] + Rz @ (verts[i] - rd['crimp0'])
+    scene.frame_start = 1
+    order = sorted(range(len(rib_data)), key=lambda i: rib_data[i]['spec']['layer'])
+    for li in order:
+        rd = rib_data[li]
+        v0, v1, f0, f1 = ranges[li]
+        me = bpy.data.meshes.new(f'sim_{li}')
+        me.from_pydata([tuple(verts[i]) for i in range(v0, v1)], [],
+                       [tuple(i - v0 for i in faces[j]) for j in range(f0, f1)])
+        me.update()
+        sim = bpy.data.objects.new(f'sim_{li}', me)
+        work.objects.link(sim)
+        idx_end = [i - v0 for i in range(v0, v1) if hookgrp[i] == li]
+        sim.vertex_groups.new(name='pin').add(idx_end, 1.0, 'REPLACE')
+        # rows near the crimp (where both tails meet face to face) do not self-collide
+        nc_ = len(rd['spec']['cols'])
+        near = [i - v0 for i in range(v0, v1) if min(rd['rows'][(i - v0) // nc_][2],
+                                                      rd['length'] - rd['rows'][(i - v0) // nc_][2]) < 0.016]
+        sim.vertex_groups.new(name='noself').add(near, 1.0, 'REPLACE')
+        hk = bpy.data.objects.new(f'hook_{rd["spec"]["name"]}', None)
+        work.objects.link(hk)
+        hk.rotation_mode = 'XYZ'
+        hk.location = rd['crimp0']
+        hk.rotation_euler = (0, 0, 0)
+        hk.keyframe_insert('location', frame=1)
+        hk.keyframe_insert('rotation_euler', frame=1)
+        hk.location = rd['crimp']
+        hk.rotation_euler = (0, 0, math.radians(rd['move']['rot']))
+        hk.keyframe_insert('location', frame=MOVE_FRAMES)
+        hk.keyframe_insert('rotation_euler', frame=MOVE_FRAMES)
+        scene.frame_set(1)
+        g = sim.vertex_groups.new(name='hook')
+        g.add(idx_end, 1.0, 'REPLACE')
+        hm = sim.modifiers.new('hook', 'HOOK')
+        hm.object = hk
+        hm.vertex_group = 'hook'
+        hm.falloff_type = 'NONE'
+        hm.center = rd['crimp0']
+        hm.matrix_inverse = Matrix.Translation(rd['crimp0']).inverted()
+        cl = sim.modifiers.new('Cloth', 'CLOTH')
+        s = cl.settings
+        s.quality = int(P_['quality'])
+        s.time_scale = P_.get('time_scale', 1.0)
+        s.mass = P_['mass']
+        s.air_damping = P_['air']
+        s.tension_stiffness = P_['tension']
+        s.compression_stiffness = P_['compression']
+        s.shear_stiffness = P_['shear']
+        s.bending_stiffness = P_['bend']
+        s.tension_damping = P_['damp']
+        s.compression_damping = P_['damp']
+        s.shear_damping = P_['damp']
+        s.bending_damping = P_['bend_damp']
+        s.vertex_group_mass = 'pin'
+        s.pin_stiffness = P_['pin']
+        cs = cl.collision_settings
+        cs.use_collision = True
+        cs.distance_min = P_['coldist']
+        cs.collision_quality = int(P_['colq'])
+        cs.use_self_collision = P_['selfcol']
+        cs.self_distance_min = P_['selfdist']
+        cs.self_friction = P_['selffric']
+        cs.vertex_group_self_collisions = 'noself'
+        cl.point_cache.frame_start = 1
+        cl.point_cache.frame_end = SIM_FRAMES
+        out = [v.co.copy() for v in me.vertices]
+        if SIM_FRAMES > 0:
+            for fr in range(1, SIM_FRAMES + 1):
+                scene.frame_set(fr)
+            dg = bpy.context.evaluated_depsgraph_get()
+            ev = sim.evaluated_get(dg)
+            em = ev.to_mesh()
+            out = [v.co.copy() for v in em.vertices]
+            ev.to_mesh_clear()
+        for i, co in enumerate(out):
+            draped[v0 + i] = co.copy()
+        # freeze as a static two-sided collider for the lanyards settling over it
+        sim.modifiers.clear()
+        for i, co in enumerate(out):
+            me.vertices[i].co = co
+        me.update()
+        add_collision(sim, friction=CLOTH['friction'])
+        sim.collision.thickness_outer = 0.0012
+        sim.collision.thickness_inner = 0.0012
+        if hasattr(sim.collision, 'use_culling'):
+            sim.collision.use_culling = False
+        sim.hide_render = True
+        st_ = max(((draped[a] - draped[b]).length / max(1e-9, (verts[a] - verts[b]).length))
+                  for f in faces[f0:f1] for a, b in zip(f, f[1:] + f[:1]))
+        print(f'SIMSEQ {rd["spec"]["name"]} stretch {st_:.3f}')
+        scene.frame_set(1)
     stretch = max(((draped[a] - draped[b]).length / max(1e-9, (verts[a] - verts[b]).length))
                   for f in faces for a, b in zip(f, f[1:] + f[:1]))
     print(f'SIM frames {SIM_FRAMES}: max edge stretch {stretch:.3f}')

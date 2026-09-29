@@ -20,8 +20,8 @@ wired into `src/` — it is a to-do list for the web pass (non-Blender work → 
   curtains, painting, and in-progress: cables, electronics/mug/notes, speedcube, monitor) need GLB export through the
   existing pipeline (`scripts/optimize-glb.mjs`) and hookups in `src/scene/*`. Procedural Blender materials will need
   baking to textures (or re-authoring in `materials.ts`) — they don't export to glTF as-is.
-- **Medal sway**: `medals.glb` carries a 4 s looping armature action `medals_sway`; the runtime must play it
-  (AnimationMixer), at least while the lamp/desk is in focus.
+- **Medals are static** (owner decision): no sway animation — just place the static `medals.glb` under the lamp's
+  pivot.
 
 ## Licensing decisions blocking the web build
 - `tele_gb` (Greg Bennett FA1 T-style, Sketchfab **Free Standard**, not CC): shipping it as a served GLB is a grey area.
