@@ -1,23 +1,24 @@
 """
-v2_medals.py -- four medals casually tossed over the desk lamp's short neck, draped by cloth simulation.
+v2_medals.py -- four FIRST-style medals (1 gold on royal blue, 3 silver on red) hung on the desk lamp's neck.
+STATIC (no animation). Built procedurally so the ribbons read as real woven lanyards: smooth gravity
+sweeps, one gentle half twist, no crumples, no interpenetration.
 
-    blender -b --factory-startup --python blender/scripts/v2_medals.py -- [--no-render] [--sim-frames N]
+    blender -b --factory-startup --python blender/scripts/v2_medals.py -- [--no-render]
 
-1. Reads the lamp as it now stands in blender/scene/room.blend (opened READ-ONLY, never saved): every
-   mesh under NEW_lamp_root in world space (the orchestrator moved/scaled it), the tilt pivot and the
-   neck (axis, radius, the 15 mm span between the yoke and the head rim).
-2. Builds four lanyards (27-30 mm woven ribbon, 1 blue + 3 red) in a clean, non-intersecting start state:
-   loops layered over the neck at slightly different lean angles, tails twisting into their own depth
-   layers below it.
-3. One joint cloth simulation of all four ribbons -- self-collision on, colliding with the real lamp meshes
-   and with the medal discs -- while each lanyard's crimp end is carried by a hook to a casual final pose:
-   different heights and offsets, one medal flipped to its back (its ribbon takes a half twist), one turned
-   sideways, one resting against the lamp's front branch. Gravity and the collisions produce the folds and
-   crossings. The settled cloth is baked into plain meshes.
-4. Medals (gold on the blue ribbon, silver on the red ones, blank faces), crimps and jump rings at the
-   final poses; one armature with a 4 s seamless sway; medals.blend + medals.glb, re-import check.
-Output root NEW_medals_root carries parent_to = 'NEW_lamp_pivot' (parent it keeping transform, so the
-medals follow the lamp's tilt). ROOM coordinates.
+Inputs: parts/lamp.blend + parts/lamp_meta.json (v2_lamp_stl.py) -- the lamp from the owner's STL, arm tilted
+5 deg; the neck is the bulb between the ball knuckle and the head bracket (22.5 mm long, ~42 x 32 mm section).
+Design, from the reference photos (parts/medal_ref_gold.jpg, parts/medal_ref_silver.jpg):
+  * medal Ø70 mm cast disc, antique finish (matte darker field, polished raised rim and relief); obverse:
+    raised square frame with a block relief and corner icons, a raised word-mark band and a sub-line band;
+    reverse: interlocking-loop logo and four raised text bands; a pierced tab on top;
+  * split ring through the tab, a D-ring the lanyard is sewn around; plain solid-colour woven ribbon 25 mm.
+Lanyards: all four loops stacked on the neck (gathered to 20 mm to fit it); just below, each side's layered
+tails twist 90 deg together (a rigid rotation, so layers never cross) and every lanyard then hangs as a flat V
+in its own depth layer, 14 mm apart -- gold/blue on top of the loop stack and in front. Each tail is a flat
+ribbon swept along a smooth curve (gentle bow, different lengths, lateral offsets); the gold's left tail
+carries a half twist. Medals face the seated viewer.
+Output: parts/medals.blend (NEW_medals / NEW_medals_root, ROOM coords; root carries parent_to =
+'NEW_lamp_pivot' -- parent it keeping transform) + a static parts/medals.glb.
 """
 import bpy
 import bmesh
@@ -27,54 +28,37 @@ import sys
 import json
 from mathutils import Vector, Matrix, Quaternion
 from mathutils.bvhtree import BVHTree
+from mathutils.geometry import convex_hull_2d
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..'))
-ROOM = os.path.join(REPO, 'blender', 'scene', 'room.blend')
 PARTS = os.path.join(REPO, 'blender', 'scene', 'parts')
+LAMP_BLEND = os.path.join(PARTS, 'lamp.blend')
 NAME = 'medals'
 OUT_BLEND = os.path.join(PARTS, NAME + '.blend')
 OUT_GLB = os.path.join(PARTS, NAME + '.glb')
 ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 NO_RENDER = '--no-render' in ARGS
-
 SEAT = Vector((0.0, -0.16, 1.175))
-FPS = 24
-LOOP_FRAMES = 96          # 4 s sway loop
-SIM_FRAMES = int(ARGS[ARGS.index('--sim-frames') + 1]) if '--sim-frames' in ARGS else 110
-MOVE_FRAMES = 70          # crimps travel to their casual poses over these frames, then everything settles
-K = 1.2 * 1.12            # owner: 20% bigger, then another ~12%
-RIBBON_W = 0.0225 * K     # 30 mm lanyard
-ROW_STEP = 0.003
 Z = Vector((0, 0, 1))
-CLOTH = dict(quality=25, time_scale=1.0, mass=0.0006, air=3.0, tension=120.0, compression=30.0, shear=40.0, bend=4.0, damp=10.0, bend_damp=2.0,
-             pin=6.0, coldist=0.0010, colq=8, selfcol=True, selfdist=0.0006, selffric=5.0, friction=6.0)
-RIBBON_HEX = dict(blue='#1d3a8a', white='#e9e7e0', red='#a81c26', gold='#d9a92e', green='#17613a')
+RIBBON_W = 0.025
+RIB_T = 0.0005
+ROW_STEP = 0.003
+MEDAL_R = 0.035
+RIBBON_HEX = dict(blue='#2446a8', red='#cc1f27')
 
-# layer 1 = innermost loop ... 4 = outermost (on top). plane/drop: clean start state (drop from the neck
-# axis to the crimp top, ~18% longer than before). lean: loop lean about the across axis (deg).
-# move: casual final pose of the crimp relative to the start: ds (along the neck, + toward the seat),
-# dt (across), dz, rot (deg about vertical). ds='branch' = slide back until the medal rests against the
-# lamp's front branch.
-AMP_K = 1.0
-# layer 1 = innermost loop ... 4 = outermost (on top). plane: start depth of the lanyard below the neck
-# (+ toward the seat). drop: final crimp drop below the neck axis (tails of different lengths). lean: loop
-# lean about the across axis (deg). move: where the hook carries the crimp during the sim -- ds (along the
-# neck; 'branch' = back until the medal rests against the lamp's front branch), dt (across), rot (deg about
-# vertical), slack (the crimp rises this much, so the ribbon settles in soft folds instead of a taut strip).
+# layer 1 = innermost loop ... 4 = outermost (on top). plane: final depth of the lanyard's flat V relative to
+# the neck centre, + toward the seat. drop: D-ring bar below the neck axis. t: lateral offset of the V apex.
+# bow: gentle lateral sag of the tails (mm). twist: 'A'/'B' tail with a half twist. lean: loop lean (deg).
 SPECS = [
-    dict(name='m1', layer=4, plane=+0.0135, drop=0.111, lean=12, R=0.0205 * K, metal='gold', relief='blank',
-         cols=[0, 1/6, 2/6, 3/6, 4/6, 5/6, 1], bands=['blue'] * 6, rot90=False,
-         move=dict(ds=0.004, dt=0.004, rot=15, slack=0.003)),
-    dict(name='m2', layer=3, plane=+0.0045, drop=0.100, lean=-8, R=0.0195 * K, metal='silver', relief='blank',
-         cols=[0, 1/6, 2/6, 3/6, 4/6, 5/6, 1], bands=['red'] * 6, rot90=False,
-         move=dict(ds=0.0, dt=-0.020, rot=60, slack=0.002)),
-    dict(name='m3', layer=2, plane=-0.0045, drop=0.191, lean=20, R=0.0195 * K, metal='silver', relief='blank',
-         cols=[0, 1/6, 2/6, 3/6, 4/6, 5/6, 1], bands=['red'] * 6, rot90=False,
-         move=dict(ds=-0.002, dt=0.024, rot=180, slack=0.003)),
-    dict(name='m4', layer=1, plane=-0.0135, drop=0.076, lean=-15, R=0.0195 * K, metal='silver', relief='blank',
-         cols=[0, 1/6, 2/6, 3/6, 4/6, 5/6, 1], bands=['red'] * 6, rot90=False,
-         move=dict(ds=-0.006, dt=-0.004, rot=-10, slack=0.002)),
+    dict(name='m1', layer=4, plane=+0.021, drop=0.190, t=+0.004, bow=(5, -3), twist='A', lean=6, metal='gold',
+         ribbon='blue', off_s=+0.0008),
+    dict(name='m2', layer=3, plane=+0.007, drop=0.160, t=-0.016, bow=(-4, 6), twist=None, lean=-4, metal='silver',
+         ribbon='red', off_s=-0.0006),
+    dict(name='m3', layer=2, plane=-0.007, drop=0.222, t=+0.018, bow=(3, 5), twist=None, lean=8, metal='silver',
+         ribbon='red', off_s=+0.0004),
+    dict(name='m4', layer=1, plane=-0.021, drop=0.176, t=-0.004, bow=(-6, -2), twist=None, lean=-7, metal='silver',
+         ribbon='red', off_s=-0.0002),
 ]
 
 
@@ -214,67 +198,6 @@ def lathe(mb, prof, seg, mat_fn):
                 mb.face([A[j], A[j2], B[j2], B[j]], m)
 
 
-def ellipsoid(mb, c, ax, ay, az, rotz, seg=8, rings=4, mat=0, xf=None):
-    """Ellipsoid in local frame; rotz rotates about local Y (the medal normal)."""
-    rot = Matrix.Rotation(rotz, 3, 'Y')
-    top = mb.vert(c + rot @ Vector((0, 0, az)))
-    ring_ids = []
-    for r in range(1, rings):
-        th = math.pi * r / rings
-        ring = []
-        for s in range(seg):
-            ph = 2 * math.pi * s / seg
-            p = Vector((ax * math.sin(th) * math.cos(ph), ay * math.sin(th) * math.sin(ph), az * math.cos(th)))
-            ring.append(mb.vert(c + rot @ p))
-        ring_ids.append(ring)
-    bot = mb.vert(c + rot @ Vector((0, 0, -az)))
-    for s in range(seg):
-        mb.face([top, ring_ids[0][s], ring_ids[0][(s + 1) % seg]], mat)
-        mb.face([bot, ring_ids[-1][(s + 1) % seg], ring_ids[-1][s]], mat)
-    for r in range(len(ring_ids) - 1):
-        for s in range(seg):
-            a, b = ring_ids[r], ring_ids[r + 1]
-            mb.face([a[s], b[s], b[(s + 1) % seg], a[(s + 1) % seg]], mat)
-
-
-def leaf(mb, c, length, width, thick, ang, mat=0, seg=8, rings=4):
-    """A flattened ellipsoid lying on the medal face (local XZ plane, thickness along Y)."""
-    rot = Matrix.Rotation(ang, 3, 'Y')
-    top = mb.vert(c + rot @ Vector((0, 0, length)))
-    ring_ids = []
-    for r in range(1, rings):
-        th = math.pi * r / rings
-        ring = []
-        for s in range(seg):
-            ph = 2 * math.pi * s / seg
-            p = Vector((width * math.sin(th) * math.cos(ph), thick * math.sin(th) * math.sin(ph),
-                        length * math.cos(th)))
-            ring.append(mb.vert(c + rot @ p))
-        ring_ids.append(ring)
-    bot = mb.vert(c + rot @ Vector((0, 0, -length)))
-    for s in range(seg):
-        mb.face([top, ring_ids[0][s], ring_ids[0][(s + 1) % seg]], mat)
-        mb.face([bot, ring_ids[-1][(s + 1) % seg], ring_ids[-1][s]], mat)
-    for r in range(len(ring_ids) - 1):
-        for s in range(seg):
-            a, b = ring_ids[r], ring_ids[r + 1]
-            mb.face([a[s], b[s], b[(s + 1) % seg], a[(s + 1) % seg]], mat)
-
-
-def faceted_star(mb, yb, ro, ri, h, points=5, mat=0, rot=0.0):
-    n = points * 2
-    apex = mb.vert((0, yb + h, 0))
-    botc = mb.vert((0, yb - 0.0002, 0))
-    ring = []
-    for k in range(n):
-        a = math.pi / 2 + rot + math.pi * k / points
-        r = ro if k % 2 == 0 else ri
-        ring.append(mb.vert((r * math.cos(a), yb - 0.00015, r * math.sin(a))))
-    for k in range(n):
-        mb.face([apex, ring[(k + 1) % n], ring[k]], mat)
-        mb.face([botc, ring[k], ring[(k + 1) % n]], mat)
-
-
 def torus(mb, c, axis, R, r, seg=20, segm=8, mat=0):
     axis = axis.normalized()
     u = axis.orthogonal().normalized()
@@ -377,790 +300,12 @@ def metal_mat(name, rgb, rough, grain=0.03, grain_scale=1500.0):
     return m
 
 
-def build_materials():
-    M = {}
-    for k, hx in RIBBON_HEX.items():
-        M['ribbon_' + k] = fabric_mat('medals_ribbon_' + k, hx)
-    M['gold'] = metal_mat('medals_gold_polished', (1.0, 0.74, 0.33), 0.16)
-    M['gold_satin'] = metal_mat('medals_gold_satin', (0.95, 0.70, 0.31), 0.42, grain=0.12, grain_scale=4000)
-    M['silver'] = metal_mat('medals_silver_polished', (0.95, 0.94, 0.91), 0.14)
-    M['silver_satin'] = metal_mat('medals_silver_satin', (0.88, 0.87, 0.85), 0.40, grain=0.12, grain_scale=4000)
-    M['bronze'] = metal_mat('medals_bronze_polished', (0.66, 0.38, 0.19), 0.24)
-    M['bronze_satin'] = metal_mat('medals_bronze_satin', (0.55, 0.32, 0.17), 0.48, grain=0.12, grain_scale=4000)
-    M['nickel'] = metal_mat('medals_nickel', (0.66, 0.64, 0.60), 0.24)
-    return M
-
-
-def medal_mesh(R, relief):
-    """Medal in local frame: face normal +Y (front), up +Z, centre at origin. mat 0 polished, 1 satin."""
-    T_f, T_b = 0.0012, -0.0012
-    prof = [(0, T_f), (0.45 * (R - 0.0024), T_f), (R - 0.0024, T_f), (R - 0.0021, T_f + 0.00028),
-            (R - 0.0018, T_f + 0.00042), (R - 0.0008, T_f + 0.00042), (R - 0.0002, T_f + 0.0001),
-            (R, T_f - 0.00035), (R, T_b + 0.00035), (R - 0.0002, T_b - 0.0001), (R - 0.0008, T_b - 0.00032),
-            (R - 0.0016, T_b - 0.00032), (R - 0.0019, T_b), (0.45 * (R - 0.002), T_b), (0, T_b)]
-    satin_segments = {0, 1, 12, 13}
-    mb = MB()
-    lathe(mb, prof, 56, lambda i: 1 if i in satin_segments else 0)
-    yb = T_f
-    if relief == 'star':
-        faceted_star(mb, yb, 0.62 * R, 0.25 * R, 0.00048, mat=0)
-        n = 30
-        for k in range(n):
-            a = 2 * math.pi * k / n
-            c = Vector((0.81 * R * math.cos(a), yb, 0.81 * R * math.sin(a)))
-            ellipsoid(mb, c, 0.00042, 0.00042, 0.00042, 0, seg=6, rings=3, mat=0)
-    if relief in ('wreath', 'wreath_boss'):
-        for side in (-1, 1):
-            n = 9
-            for k in range(n):
-                t = k / (n - 1)
-                a = math.radians(-78 + t * 128)          # from bottom up the side
-                rr = 0.70 * R
-                px = side * rr * math.cos(a)
-                pz = rr * math.sin(a)
-                for outer in (0, 1):
-                    rr2 = rr + (0.075 * R if outer else -0.075 * R)
-                    c = Vector((side * rr2 * math.cos(a), yb + 0.00012, rr2 * math.sin(a)))
-                    # leaf axis along the arc tangent (upward), splayed outward / inward
-                    ang = -side * a + side * (0.5 if outer else -0.5)
-                    leaf(mb, c, 0.115 * R, 0.048 * R, 0.00032, ang, mat=0, seg=8, rings=4)
-        if relief == 'wreath':
-            faceted_star(mb, yb, 0.34 * R, 0.14 * R, 0.00042, mat=0)
-        else:
-            boss = [(0, yb + 0.00055), (0.14 * R, yb + 0.0005), (0.26 * R, yb + 0.00032),
-                    (0.33 * R, yb + 0.0001), (0.35 * R, yb - 0.0002)]
-            sub = MB()
-            lathe(sub, boss, 36, lambda i: 0)
-            mb.extend(sub)
-    if relief == 'sun':
-        boss = [(0, yb + 0.0006), (0.12 * R, yb + 0.00055), (0.22 * R, yb + 0.0004),
-                (0.28 * R, yb + 0.00015), (0.30 * R, yb - 0.0002)]
-        sub = MB()
-        lathe(sub, boss, 36, lambda i: 0)
-        mb.extend(sub)
-        nr = 16
-        for k in range(nr):
-            a = 2 * math.pi * (k + 0.5) / nr
-            dvec = Vector((math.cos(a), 0, math.sin(a)))
-            perp = Vector((-math.sin(a), 0, math.cos(a)))
-            r0, r1 = 0.33 * R, (0.80 if k % 2 == 0 else 0.66) * R
-            hw = 0.055 * R
-            A = mb.vert(dvec * r0 + perp * hw + Vector((0, yb - 0.00015, 0)))
-            B = mb.vert(dvec * r0 - perp * hw + Vector((0, yb - 0.00015, 0)))
-            C = mb.vert(dvec * r1 + Vector((0, yb - 0.00015, 0)))
-            Tp = mb.vert(dvec * r0 + Vector((0, yb + 0.00042, 0)))
-            mb.face([A, Tp, C], 0)
-            mb.face([Tp, B, C], 0)
-            mb.face([A, B, Tp], 0)
-            mb.face([A, C, B], 0)
-        rim2 = [(0.86 * R, yb - 0.0002), (0.875 * R, yb + 0.0002), (0.895 * R, yb + 0.0002),
-                (0.91 * R, yb - 0.0002)]
-        sub = MB()
-        lathe(sub, rim2, 56, lambda i: 0)
-        mb.extend(sub)
-    return mb
-
-
 def link_new_collection(name, parent=None):
     c = bpy.data.collections.new(name)
     (parent or bpy.context.scene.collection).children.link(c)
     return c
 
 
-def add_collision(o, friction=8.0):
-    o.modifiers.new('Collision', 'COLLISION')
-    o.collision.thickness_outer = 0.0004
-    o.collision.thickness_inner = 0.002
-    o.collision.cloth_friction = friction
-    o.collision.damping = 0.5
-
-
-# =============================================================================== 1. measure (room.blend, read-only)
-def measure():
-    bpy.ops.wm.open_mainfile(filepath=ROOM, load_ui=False)
-    root = bpy.data.objects['NEW_lamp_root']
-    out = {'ref': {}, 'lights': []}
-
-    def walk(o):
-        if o.name.startswith('NEW_medals'):          # the currently integrated medals hang under the pivot
-            return
-        yield o
-        for c in o.children:
-            yield from walk(c)
-    for o in walk(root):
-        if o.type == 'MESH':
-            mw = o.matrix_world
-            md = dict(col=(0.83, 0.83, 0.82), rough=0.33, metal=0.0, emit=0.0, ecol=(1, 1, 1))
-            mat = o.data.materials[0] if o.data.materials else None
-            if mat and mat.node_tree:
-                b = next((n for n in mat.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None)
-                if b:
-                    md = dict(col=tuple(b.inputs['Base Color'].default_value)[:3],
-                              rough=b.inputs['Roughness'].default_value, metal=b.inputs['Metallic'].default_value,
-                              emit=b.inputs['Emission Strength'].default_value,
-                              ecol=tuple(b.inputs['Emission Color'].default_value)[:3])
-            name = o.name.split('.')[0]
-            out['ref'][name] = dict(verts=[tuple(mw @ v.co) for v in o.data.vertices],
-                                    faces=[tuple(p.vertices) for p in o.data.polygons], mat=md)
-        elif o.type == 'LIGHT':
-            out['lights'].append(dict(name=o.name, type=o.data.type, energy=o.data.energy, color=tuple(o.data.color),
-                                      size=getattr(o.data, 'size', 0.0), shape=getattr(o.data, 'shape', 'DISK'),
-                                      spread=getattr(o.data, 'spread', math.pi), matrix=[list(r) for r in o.matrix_world]))
-    piv = bpy.data.objects['NEW_lamp_pivot']
-    out['pivot'] = list(piv.matrix_world.translation)
-    bv = [Vector(v) for v in out['ref']['lamp_base']['verts']]
-    out['base_top'] = max(v.z for v in bv)
-    cx = (min(v.x for v in bv) + max(v.x for v in bv)) / 2
-    cy = (min(v.y for v in bv) + max(v.y for v in bv)) / 2
-    out['base_c'] = (cx, cy)
-    out['base_r'] = (max(v.x for v in bv) - min(v.x for v in bv)) / 2
-    return out
-
-
-def medal_drop(R):
-    """Crimp top -> medal centre, along -Z, for the chain used below (crimp, crimp loop, jump ring, eye)."""
-    r_c, m_c = 0.0019 * K, 0.00055 * K
-    Rj, mj = 0.0031 * K, 0.0005 * K
-    re, me_ = 0.0019 * K, 0.00065 * K
-    d = (0.0065 + 0.0014) * K + (r_c - m_c - mj) + Rj + (Rj - mj - me_) + re + (re + R - 0.0007 * K)
-    return d
-
-
-# =============================================================================== main build
-def build():
-    meas = measure()
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    scene = bpy.context.scene
-    scene.render.fps = FPS
-    scene.frame_start = 0
-    scene.frame_end = LOOP_FRAMES
-    M = build_materials()
-    coll = link_new_collection('NEW_medals')
-    work = link_new_collection('WORK_medals')      # proxies, hooks, sim; deleted before save
-    refc = link_new_collection('REF_lamp')         # the lamp as in room.blend; deleted before save
-
-    # ------------------------------------------------------------------ the lamp (reference + colliders)
-    ref_objs = {}
-    for n, d in meas['ref'].items():
-        me = bpy.data.meshes.new('ref_' + n)
-        me.from_pydata(d['verts'], [], d['faces'])
-        me.update()
-        mat = bpy.data.materials.new('ref_' + n)
-        mat.use_nodes = True
-        b = principled(mat)
-        b.inputs['Base Color'].default_value = (*d['mat']['col'], 1)
-        b.inputs['Roughness'].default_value = d['mat']['rough']
-        b.inputs['Metallic'].default_value = d['mat']['metal']
-        if d['mat']['emit'] > 0:
-            b.inputs['Emission Color'].default_value = (*d['mat']['ecol'], 1)
-            b.inputs['Emission Strength'].default_value = d['mat']['emit']
-        me.materials.append(mat)
-        me.shade_smooth()
-        me.set_sharp_from_angle(angle=math.radians(40))
-        o = bpy.data.objects.new('ref_' + n, me)
-        refc.objects.link(o)
-        ref_objs[n] = o
-        add_collision(o, friction=CLOTH['friction'])
-        o.collision.thickness_outer = 0.0006
-    for L in meas['lights']:
-        ld = bpy.data.lights.new('ref_' + L['name'], L['type'])
-        ld.energy = L['energy']
-        ld.color = L['color']
-        if L['type'] == 'AREA':
-            ld.shape = L['shape']
-            ld.size = L['size']
-            ld.spread = L['spread']
-        lo = bpy.data.objects.new('ref_' + L['name'], ld)
-        refc.objects.link(lo)
-        lo.matrix_world = Matrix(L['matrix'])
-
-    # ------------------------------------------------------------------ neck frame (re-measured)
-    nv = [Vector(v) for v in meas['ref']['lamp_neck']['verts']]
-    c = sum(nv, Vector()) / len(nv)
-    import numpy as np
-    A = np.array([[v.x, v.y, v.z] for v in nv])
-    _, _, vt = np.linalg.svd(A - A.mean(0))
-    F = Vector(vt[0]).normalized()
-    F.z = 0
-    F.normalize()
-    if F.to_2d().dot(SEAT.to_2d() - c.to_2d()) < 0:
-        F = -F
-    T = Z.cross(F).normalized()
-    neck_r = max(((v - c) - F * (v - c).dot(F)).length for v in nv)
-    yv = [Vector(v) for v in meas['ref']['lamp_yoke']['verts']]
-    hv = [Vector(v) for v in meas['ref']['lamp_head']['verts']]
-    yoke_front = max((v - c).dot(F) for v in yv if abs(v.z - c.z) < neck_r)
-    head_rim = min((v - c).dot(F) for v in hv if abs((v - c).dot(T)) < neck_r and abs(v.z - c.z) < 0.004)
-    O = c + F * yoke_front
-    neck_c = c.z
-    neck_span = head_rim - yoke_front
-    s_c = neck_span / 2
-    print(f'NECK centre {tuple(round(x, 4) for x in c)} dir {tuple(round(x, 4) for x in F)} r {neck_r * 1000:.1f}mm '
-          f'visible span {neck_span * 1000:.1f}mm')
-    a3, b3 = F.copy(), T.copy()
-    hc = O.to_2d()
-
-    def to_w(s, t, z):
-        return Vector((O.x, O.y, 0)) + F * s + T * t + Z * z
-
-    # ------------------------------------------------------------------ clean start state (layered, twisted)
-    W = RIBBON_W
-    NR = neck_r
-    L_LAYER = 0.0032
-    T_MID = NR + 0.0014 + 1.5 * L_LAYER
-    T_END = 0.017
-    Z_T0, Z_T1 = neck_c - 0.010, neck_c - 0.044
-    Z_FAN = neck_c - 0.060
-    WS_G = 0.014 / W
-    AB = 0.0008 * K
-    t_hat, s_hat = T, F
-
-    def sm(x):
-        x = max(0.0, min(1.0, x))
-        return x * x * (3 - 2 * x)
-    rib_data = []
-    for spec in SPECS:
-        k = spec['layer']
-        d_k = (k - 2.5) * L_LAYER
-        r_k = T_MID + d_k
-        zc = neck_c - spec['drop']
-        s_k = s_c + spec['plane']
-        t_k = 0.0
-        lean = math.tan(math.radians(spec['lean']))
-        loop = []
-        for i in range(13):
-            ph = math.pi * (1 - i / 12)
-            loop.append((to_w(s_c + r_k * math.sin(ph) * lean, r_k * math.cos(ph), neck_c + r_k * math.sin(ph)),
-                         s_hat.copy(), WS_G))
-
-        def tail(sg):
-            off = sg * AB
-            pts = [(to_w(s_c, sg * r_k, neck_c), s_hat.copy(), WS_G),
-                   (to_w(s_c, sg * r_k, neck_c - 0.006), s_hat.copy(), WS_G)]
-            n_tw = 7
-            for i in range(n_tw + 1):
-                u = i / n_tw
-                th = math.pi / 2 * sm(u)
-                z = Z_T0 + (Z_T1 - Z_T0) * u
-                t_ax = sg * (T_MID + (T_END - T_MID) * sm(u))
-                pts.append((to_w(s_c + (d_k + off) * math.sin(th), t_ax + sg * d_k * math.cos(th), z),
-                            (-math.sin(th) * sg) * t_hat + math.cos(th) * s_hat,
-                            WS_G + (1 - WS_G) * sm((u - 0.45) / 0.55)))
-            q_end = Vector((s_k + off, t_k, zc - 0.0026 * K))
-            q2 = Vector((q_end.x, q_end.y, q_end.z + 0.011 * K))
-            te = Vector((s_c + d_k + off, sg * T_END, Z_T1))
-            for zf in (Z_T1 - 0.006, Z_FAN):
-                f = sm((Z_T1 - zf) / (Z_T1 - Z_FAN))
-                u_line = (Z_T1 - zf) / (Z_T1 - q2.z)
-                pts.append((to_w(te.x + (s_k + off - te.x) * f, te.y + (q2.y - te.y) * u_line, zf), -sg * t_hat, 1.0))
-            pts.append((to_w(q2.x, q2.y, q2.z), -sg * t_hat, 1.0))
-            pts.append((to_w(q_end.x, q_end.y, q_end.z), -sg * t_hat, 1.0))
-            return pts
-        ctrl = list(reversed(tail(-1))) + loop[1:-1] + tail(+1)
-        rows, length = ribbon_rows(ctrl)
-        for i_r, r_ in enumerate(rows):
-            p = r_[0]
-            q = p.to_2d() - hc
-            sg = -1.0 if q.dot(T.to_2d()) < 0 else 1.0
-            off = sg * AB
-            if Z_T1 <= p.z <= Z_T0:
-                u = (Z_T0 - p.z) / (Z_T0 - Z_T1)
-                th = math.pi / 2 * sm(u)
-                t_ax = sg * (T_MID + (T_END - T_MID) * sm(u))
-                r_[0] = to_w(s_c + (d_k + off) * math.sin(th), t_ax + sg * d_k * math.cos(th), p.z)
-                r_[1] = (-math.sin(th) * sg) * t_hat + math.cos(th) * s_hat
-                r_[3] = WS_G + (1 - WS_G) * sm((u - 0.45) / 0.55)
-            elif p.z < Z_T1:
-                a_ = rows[max(i_r - 1, 0)][0]
-                b_ = rows[min(i_r + 1, len(rows) - 1)][0]
-                wn = s_hat.cross((b_ - a_).normalized()).normalized()
-                if wn.dot(r_[1]) < 0:
-                    wn = -wn
-                r_[1] = wn
-        crimp0 = to_w(s_k, t_k, zc)
-        rib_data.append(dict(spec=spec, rows=rows, length=length, crimp0=crimp0,
-                             pivot=to_w(s_c, 0.0, neck_c - 0.008), zk=neck_c + NR))
-
-    # ------------------------------------------------------------------ casual final poses of the crimps
-    def pose(rd, ds, dt, dz, rot):
-        crimp = rd['crimp0'] + F * ds + T * dt + Z * dz            # dz = slack (upward)
-        R = Matrix.Rotation(math.radians(rot), 3, 'Z')
-        return crimp, R @ T, R @ F
-
-    def medal_pts(crimp, e, d, R):
-        """Sample points on the medal disc (both faces + rim) for clearance tests."""
-        Mc = crimp - Z * medal_drop(R)
-        pts = []
-        for ring in (0.25, 0.5, 0.75, 1.0):
-            for j in range(24):
-                a = 2 * math.pi * j / 24
-                for h in (-0.0018 * K / 1.2, 0.0018 * K / 1.2):
-                    pts.append(Mc + (e * math.cos(a) + Z * math.sin(a)) * (R * ring) + d * h)
-        return pts
-    lamp_tree_parts = [n for n in meas['ref'] if n not in ('lamp_neck',)]
-
-    def tree_of(names):
-        V, Fc = [], []
-        for n in names:
-            d = meas['ref'][n]
-            b_ = len(V)
-            V += [Vector(v) for v in d['verts']]
-            Fc += [tuple(i + b_ for i in f) for f in d['faces']]
-        return BVHTree.FromPolygons(V, Fc)
-    lamp_tree = tree_of(lamp_tree_parts)
-    branch_tree = tree_of(['lamp_branch_front'])
-    for rd in rib_data:
-        mv = dict(rd['spec']['move'])
-        for a_ in ARGS:                                   # overrides: move.m2.rot=0
-            if a_.startswith('move.' + rd['spec']['name'] + '.'):
-                kk_, vv_ = a_.split('.', 2)[2].split('=')
-                mv[kk_] = vv_ if vv_ == 'branch' else float(vv_)
-        mv['dz'] = mv['slack']
-        if mv['ds'] == 'branch':
-            ds = 0.0
-            for _ in range(120):
-                cr, e, d = pose(rd, ds, mv['dt'], mv['dz'], mv['rot'])
-                dist = min(branch_tree.find_nearest(p)[3] for p in medal_pts(cr, e, d, rd['spec']['R']))
-                if dist < 0.0035:
-                    break
-                ds -= 0.001
-            mv['ds'] = ds
-        rd['move'] = mv
-    # report medal-medal and medal-lamp clearances of the chosen poses (tuned by hand, not auto-moved)
-    mp = []
-    for rd in rib_data:
-        mv = rd['move']
-        cr, e, d = pose(rd, mv['ds'], mv['dt'], mv['dz'], mv['rot'])
-        mp.append(medal_pts(cr, e, d, rd['spec']['R']))
-    for i in range(len(mp)):
-        dl = min(lamp_tree.find_nearest(p)[3] for p in mp[i])
-        dm = [round(min((p - q).length for p in mp[i] for q in mp[j]) * 1000, 1) for j in range(len(mp)) if j != i]
-        per = {n: round(min(tree_of([n]).find_nearest(p)[3] for p in mp[i]) * 1000, 1) for n in lamp_tree_parts}
-        near = sorted(per.items(), key=lambda kv: kv[1])[:2]
-        print(f'POSECHECK {rib_data[i]["spec"]["name"]}: to lamp {dl * 1000:.1f}mm {near}, to other medals {dm}')
-    for rd in rib_data:
-        mv = rd['move']
-        rd['crimp'], rd['e'], rd['d'] = pose(rd, mv['ds'], mv['dt'], mv['dz'], mv['rot'])
-        print(f'POSE {rd["spec"]["name"]} ds {mv["ds"] * 1000:+.1f} dt {mv["dt"] * 1000:+.1f} slack {mv["dz"] * 1000:+.1f}mm '
-              f'rot {mv["rot"]:+.0f}deg crimp {tuple(round(x, 4) for x in rd["crimp"])}')
-
-    # ------------------------------------------------------------------ strips -> one cloth object
-    verts, faces, fmats, uvs, pinw, hookgrp = [], [], [], [], [], []
-    ranges = []
-    for li, rd in enumerate(rib_data):
-        spec = rd['spec']
-        cols = spec['cols']
-        v0, f0 = len(verts), len(faces)
-        nr, nc = len(rd['rows']), len(cols)
-        for (pos, w, s, ws) in rd['rows']:
-            for u in cols:
-                verts.append(pos + w * ((u - 0.5) * W * ws))
-                ds_ = min(s, rd['length'] - s)
-                pinw.append(1.0 if ds_ < 0.0045 else 0.0)
-                hookgrp.append(li if ds_ < 0.0045 else -1)
-        for r in range(nr - 1):
-            for c_ in range(nc - 1):
-                a = v0 + r * nc + c_
-                faces.append((a, a + 1, a + nc + 1, a + nc))
-                fmats.append(c_)
-                sa, sb = rd['rows'][r][2], rd['rows'][r + 1][2]
-                uvs.append([(cols[c_] * W, sa), (cols[c_ + 1] * W, sa), (cols[c_ + 1] * W, sb), (cols[c_] * W, sb)])
-        ranges.append((v0, len(verts), f0, len(faces)))
-    # ------------------------------------------------------------------ sequential cloth sim, inner loop first
-    # Each lanyard settles with self-collision (its two tails, its own half twist) against the lamp and the
-    # lanyards already settled under it (frozen as two-sided colliders), while a hook carries its crimp to the
-    # casual pose. One joint self-collision sim of all four was numerically unstable in these tight layers.
-    P_ = dict(CLOTH)
-    for a in ARGS:
-        if a.startswith('cloth.') and '=' in a:
-            kk, vv = a[6:].split('=')
-            P_[kk] = type(P_[kk])(float(vv)) if not isinstance(P_[kk], bool) else vv in ('1', 'true')
-    print('CLOTH', P_)
-    draped = [v.copy() for v in verts]
-    scene.frame_start = 1
-    order = sorted(range(len(rib_data)), key=lambda i: rib_data[i]['spec']['layer'])
-    for li in order:
-        rd = rib_data[li]
-        v0, v1, f0, f1 = ranges[li]
-        me = bpy.data.meshes.new(f'sim_{li}')
-        me.from_pydata([tuple(verts[i]) for i in range(v0, v1)], [],
-                       [tuple(i - v0 for i in faces[j]) for j in range(f0, f1)])
-        me.update()
-        sim = bpy.data.objects.new(f'sim_{li}', me)
-        work.objects.link(sim)
-        idx_end = [i - v0 for i in range(v0, v1) if hookgrp[i] == li]
-        sim.vertex_groups.new(name='pin').add(idx_end, 1.0, 'REPLACE')
-        # rows near the crimp (where both tails meet face to face) do not self-collide
-        nc_ = len(rd['spec']['cols'])
-        near = [i - v0 for i in range(v0, v1) if min(rd['rows'][(i - v0) // nc_][2],
-                                                      rd['length'] - rd['rows'][(i - v0) // nc_][2]) < 0.016]
-        sim.vertex_groups.new(name='noself').add(near, 1.0, 'REPLACE')
-        hk = bpy.data.objects.new(f'hook_{rd["spec"]["name"]}', None)
-        work.objects.link(hk)
-        hk.rotation_mode = 'XYZ'
-        hk.location = rd['crimp0']
-        hk.rotation_euler = (0, 0, 0)
-        hk.keyframe_insert('location', frame=1)
-        hk.keyframe_insert('rotation_euler', frame=1)
-        hk.location = rd['crimp']
-        hk.rotation_euler = (0, 0, math.radians(rd['move']['rot']))
-        hk.keyframe_insert('location', frame=MOVE_FRAMES)
-        hk.keyframe_insert('rotation_euler', frame=MOVE_FRAMES)
-        scene.frame_set(1)
-        g = sim.vertex_groups.new(name='hook')
-        g.add(idx_end, 1.0, 'REPLACE')
-        hm = sim.modifiers.new('hook', 'HOOK')
-        hm.object = hk
-        hm.vertex_group = 'hook'
-        hm.falloff_type = 'NONE'
-        hm.center = rd['crimp0']
-        hm.matrix_inverse = Matrix.Translation(rd['crimp0']).inverted()
-        cl = sim.modifiers.new('Cloth', 'CLOTH')
-        s = cl.settings
-        s.quality = int(P_['quality'])
-        s.time_scale = P_.get('time_scale', 1.0)
-        s.mass = P_['mass']
-        s.air_damping = P_['air']
-        s.tension_stiffness = P_['tension']
-        s.compression_stiffness = P_['compression']
-        s.shear_stiffness = P_['shear']
-        s.bending_stiffness = P_['bend']
-        s.tension_damping = P_['damp']
-        s.compression_damping = P_['damp']
-        s.shear_damping = P_['damp']
-        s.bending_damping = P_['bend_damp']
-        s.vertex_group_mass = 'pin'
-        s.pin_stiffness = P_['pin']
-        cs = cl.collision_settings
-        cs.use_collision = True
-        cs.distance_min = P_['coldist']
-        cs.collision_quality = int(P_['colq'])
-        cs.use_self_collision = P_['selfcol']
-        cs.self_distance_min = P_['selfdist']
-        cs.self_friction = P_['selffric']
-        cs.vertex_group_self_collisions = 'noself'
-        cl.point_cache.frame_start = 1
-        cl.point_cache.frame_end = SIM_FRAMES
-        out = [v.co.copy() for v in me.vertices]
-        if SIM_FRAMES > 0:
-            for fr in range(1, SIM_FRAMES + 1):
-                scene.frame_set(fr)
-            dg = bpy.context.evaluated_depsgraph_get()
-            ev = sim.evaluated_get(dg)
-            em = ev.to_mesh()
-            out = [v.co.copy() for v in em.vertices]
-            ev.to_mesh_clear()
-        for i, co in enumerate(out):
-            draped[v0 + i] = co.copy()
-        # freeze as a static two-sided collider for the lanyards settling over it
-        sim.modifiers.clear()
-        for i, co in enumerate(out):
-            me.vertices[i].co = co
-        me.update()
-        add_collision(sim, friction=CLOTH['friction'])
-        sim.collision.thickness_outer = 0.0012
-        sim.collision.thickness_inner = 0.0012
-        if hasattr(sim.collision, 'use_culling'):
-            sim.collision.use_culling = False
-        sim.hide_render = True
-        st_ = max(((draped[a] - draped[b]).length / max(1e-9, (verts[a] - verts[b]).length))
-                  for f in faces[f0:f1] for a, b in zip(f, f[1:] + f[:1]))
-        print(f'SIMSEQ {rd["spec"]["name"]} stretch {st_:.3f}')
-        scene.frame_set(1)
-    stretch = max(((draped[a] - draped[b]).length / max(1e-9, (verts[a] - verts[b]).length))
-                  for f in faces for a, b in zip(f, f[1:] + f[:1]))
-    print(f'SIM frames {SIM_FRAMES}: max edge stretch {stretch:.3f}')
-    for li, (v0, v1, f0, f1) in enumerate(ranges):
-        st_ = max(((draped[a] - draped[b]).length / max(1e-9, (verts[a] - verts[b]).length))
-                  for f in faces[f0:f1] for a, b in zip(f, f[1:] + f[:1]))
-        worst = max(((draped[a] - draped[b]).length / max(1e-9, (verts[a] - verts[b]).length), a)
-                    for f in faces[f0:f1] for a, b in zip(f, f[1:] + f[:1]))
-        print(f'SIM {rib_data[li]["spec"]["name"]} stretch {st_:.3f} at z {draped[worst[1]].z:.4f}')
-    scene.frame_start = 0
-    scene.frame_set(0)
-    # the room/lamp reference frame values used below
-    C = O.to_2d()
-    ct = neck_c + NR
-    base_c = Vector(meas['base_c'])
-
-    # ------------------------------------------------------------------ root, rig
-    root_loc = Vector((C.x, C.y, ct))
-    root = bpy.data.objects.new('NEW_medals_root', None)
-    root.empty_display_type = 'PLAIN_AXES'
-    root.empty_display_size = 0.03
-    root.location = root_loc
-    root['parent_to'] = 'NEW_lamp_pivot'      # parent (keep transform) to the lamp's tilt pivot in the room
-    coll.objects.link(root)
-    arm_data = bpy.data.armatures.new('NEW_medals_rig')
-    rig = bpy.data.objects.new('NEW_medals_rig', arm_data)
-    coll.objects.link(rig)
-    rig.parent = root
-    rig.show_in_front = True
-    bpy.context.view_layer.update()
-
-    # hardware / medal placement per ribbon
-    hw_info = []
-    for rd in rib_data:
-        spec = rd['spec']
-        d3, e3 = rd['d'], rd['e']
-        crimp = rd['crimp']
-        cam_dir = (SEAT - crimp)
-        cam_dir.z = 0
-        cam_dir.normalize()
-        # chain axes: crimp loop axis d; jump ring e; (second ring d; eye e) or eye d
-        axes = [d3, e3, d3, e3] if spec['rot90'] else [d3, e3, d3]
-        L0 = crimp - Z * (0.0065 + 0.0014) * K
-        r_c, m_c = 0.0019 * K, 0.00055 * K
-        Rj, mj = 0.0031 * K, 0.0005 * K
-        re, me_ = 0.0019 * K, 0.00065 * K
-        centers = [L0]
-        top_wire = L0 - Z * (r_c - m_c - mj)
-        J1 = top_wire - Z * Rj
-        centers.append(J1)
-        prev_R, prev_m = Rj, mj
-        if spec['rot90']:
-            top_wire = J1 - Z * (Rj - mj - mj)
-            J2 = top_wire - Z * Rj
-            centers.append(J2)
-        last = centers[-1]
-        top_wire = last - Z * (Rj - mj - me_)
-        Ec = top_wire - Z * re
-        Mc = Ec - Z * (re + spec['R'] - 0.0007 * K)
-        n_front = d3.copy()          # the flipped medal shows its back
-        hw_info.append(dict(L0=L0, centers=centers, axes=axes, Ec=Ec, Mc=Mc, n=n_front))
-        rs = meas['base_top']
-        low = Mc.z - spec['R']
-        rad = (Mc.to_2d() - base_c).length
-        print(f'MEDAL {spec["name"]} centre {tuple(round(x, 4) for x in Mc)} bottom z {low:.4f} '
-              f'radial-from-base {rad * 1000:.0f}mm (base r {meas["base_r"] * 1000:.0f}mm top {rs:.4f})')
-
-    bpy.context.view_layer.objects.active = rig
-    rig.select_set(True)
-    bpy.ops.object.mode_set(mode='EDIT')
-    eb = arm_data.edit_bones
-    inv = root.matrix_world.inverted()
-    broot = eb.new('root')
-    broot.head = inv @ root_loc
-    broot.tail = inv @ (root_loc + Z * 0.03)
-    pivots = []
-    for rd, hw in zip(rib_data, hw_info):
-        nm = rd['spec']['name']
-        piv = rd['pivot'].copy()
-        pivots.append(piv)
-        bt = eb.new('tail_' + nm)
-        bt.head = inv @ piv
-        bt.tail = inv @ rd['crimp']
-        bt.parent = broot
-        bm_ = eb.new('medal_' + nm)
-        bm_.head = inv @ hw['L0']
-        bm_.tail = inv @ hw['Mc']
-        bm_.parent = bt
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    # ------------------------------------------------------------------ ribbon objects
-    def smooth01(x):
-        x = max(0.0, min(1.0, x))
-        return x * x * (3 - 2 * x)
-
-    tris = {}
-    objs = []
-    for idx, (rd, (v0, v1, f0, f1)) in enumerate(zip(rib_data, ranges)):
-        spec = rd['spec']
-        nm = spec['name']
-        vs = [draped[i] - root_loc for i in range(v0, v1)]
-        fs = [tuple(i - v0 for i in faces[j]) for j in range(f0, f1)]
-        me = bpy.data.meshes.new(f'medal_{nm}_ribbon')
-        me.from_pydata([tuple(v) for v in vs], [], fs)
-        me.update()
-        band_names = spec['bands']
-        uniq = []
-        for bn in band_names:
-            if bn not in uniq:
-                uniq.append(bn)
-        for bn in uniq:
-            me.materials.append(M['ribbon_' + bn])
-        for j, p in enumerate(me.polygons):
-            p.material_index = uniq.index(band_names[fmats[f0 + j]])
-        uvl = me.uv_layers.new(name='UVMap')
-        for j, p in enumerate(me.polygons):
-            for li, loop_i in enumerate(p.loop_indices):
-                uvl.data[loop_i].uv = uvs[f0 + j][li]
-        o = bpy.data.objects.new(f'medal_{nm}_ribbon', me)
-        coll.objects.link(o)
-        o.parent = rig
-        sm = o.modifiers.new('solidify', 'SOLIDIFY')
-        sm.thickness = 0.0007 * K
-        sm.offset = 0.0
-        sm.use_rim = True
-        sm.use_even_offset = False
-        sm.use_quality_normals = True
-        dg = bpy.context.evaluated_depsgraph_get()
-        new_me = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
-        o.modifiers.remove(sm)
-        old = o.data
-        o.data = new_me
-        bpy.data.meshes.remove(old)
-        new_me.name = f'medal_{nm}_ribbon'
-        new_me.shade_smooth()
-        new_me.set_sharp_from_angle(angle=math.radians(60))
-        # weights: loops stay on root; tails below the collar swing with their bone
-        g_root = o.vertex_groups.new(name='root')
-        g_tail = o.vertex_groups.new(name='tail_' + nm)
-        zp = pivots[idx].z - root_loc.z
-        for v in new_me.vertices:
-            w = smooth01((zp - v.co.z) / 0.03)
-            if w < 1:
-                g_root.add([v.index], 1 - w, 'REPLACE')
-            if w > 0:
-                g_tail.add([v.index], w, 'REPLACE')
-        objs.append(o)
-        tris[o.name] = sum(len(p.vertices) - 2 for p in new_me.polygons)
-
-    # ------------------------------------------------------------------ hardware + medal objects
-    metal_sets = {'gold': ('gold', 'gold_satin'), 'silver': ('silver', 'silver_satin'),
-                  'bronze': ('bronze', 'bronze_satin')}
-    for rd, hw in zip(rib_data, hw_info):
-        spec = rd['spec']
-        nm = spec['name']
-        d3, e3 = rd['d'], rd['e']
-        mbh = MB()
-        fr = Matrix.Translation(rd['crimp'] - Z * 0.00325 * K - root_loc) @ Matrix((
-            (e3.x, d3.x, 0, 0), (e3.y, d3.y, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
-        rounded_box(mbh, fr, (W + 0.0017 * K, 0.0031 * K, 0.0065 * K), 0.0007 * K, mat=0)
-        # a pressed groove line on the crimp: two thin raised ridges
-        for zz in (0.0014 * K, -0.0016 * K):
-            fr2 = fr @ Matrix.Translation((0, 0, zz))
-            rounded_box(mbh, fr2, (W + 0.0019 * K, 0.0033 * K, 0.0005 * K), 0.0002 * K, mat=0)
-        torus(mbh, hw['L0'] - root_loc, hw['axes'][0], 0.0019 * K, 0.00055 * K, seg=16, segm=8)
-        torus(mbh, hw['centers'][1] - root_loc, hw['axes'][1], 0.0031 * K, 0.0005 * K, seg=22, segm=8)
-        if spec['rot90']:
-            torus(mbh, hw['centers'][2] - root_loc, hw['axes'][2], 0.0031 * K, 0.0005 * K, seg=22, segm=8)
-        crimp_obj = mbh.to_object(f'medal_{nm}_clasp', [M['nickel']], coll, smooth_angle=40)
-        crimp_obj.parent = rig
-        # medal
-        pm, sm_ = metal_sets[spec['metal']]
-        mbm = medal_mesh(spec['R'] / K, spec['relief'])
-        n = hw['n']
-        x = n.cross(Z).normalized()
-        xf = Matrix.Translation(hw['Mc'] - root_loc) @ Matrix((
-            (x.x, n.x, 0, 0), (x.y, n.y, 0, 0), (x.z, n.z, 1, 0), (0, 0, 0, 1))) @ Matrix.Scale(K, 4)
-        mbx = MB()
-        mbx.extend(mbm, xf=xf)
-        eye_axis = hw['n']
-        torus(mbx, hw['Ec'] - root_loc, eye_axis, 0.0019 * K, 0.00065 * K, seg=16, segm=8, mat=0)
-        med = mbx.to_object(f'medal_{nm}_disc', [M[pm], M[sm_]], coll, smooth_angle=38)
-        med.parent = rig
-        for o, bn in ((crimp_obj, 'tail_' + nm), (med, 'medal_' + nm)):
-            vg = o.vertex_groups.new(name=bn)
-            vg.add(list(range(len(o.data.vertices))), 1.0, 'REPLACE')
-        # clasp rings follow the medal bone so the chain swings as one
-        ring_vg = crimp_obj.vertex_groups.new(name='medal_' + nm)
-        L0l = hw['L0'] - root_loc
-        ring_ids = [v.index for v in crimp_obj.data.vertices if v.co.z < L0l.z - 0.0009 * K]
-        crimp_obj.vertex_groups['tail_' + nm].remove(ring_ids)
-        ring_vg.add(ring_ids, 1.0, 'REPLACE')
-        objs += [crimp_obj, med]
-        tris[crimp_obj.name] = sum(len(p.vertices) - 2 for p in crimp_obj.data.polygons)
-        tris[med.name] = sum(len(p.vertices) - 2 for p in med.data.polygons)
-
-    for o in objs:
-        am = o.modifiers.new('Armature', 'ARMATURE')
-        am.object = rig
-        am.use_vertex_groups = True
-
-    # ------------------------------------------------------------------ sway animation
-    rig.animation_data_create()
-    # neighbours sway nearly together (a shared draft), so adjacent medals never close on each other
-    phases = [0.0, 1.6, 3.1, 4.7]
-    # (swing about the across-bar axis, swing about the bar axis, medal twist, medal lag) in degrees
-    amp = {'m1': (1.6, 0.5, 1.5, 0.6), 'm2': (1.6, 0.5, 1.5, 0.6), 'm3': (1.6, 0.5, 1.5, 0.6),
-           'm4': (1.6, 0.5, 1.5, 0.6)}
-    for pb in rig.pose.bones:
-        pb.rotation_mode = 'QUATERNION'
-    for f in range(0, LOOP_FRAMES + 1, 2):
-        t = 2 * math.pi * f / LOOP_FRAMES
-        for i, rd in enumerate(rib_data):
-            nm = rd['spec']['name']
-            A_side, A_io, A_tw, A_lag = amp[nm]
-            A_io, A_tw, A_lag = A_io * AMP_K, A_tw * AMP_K, A_lag * AMP_K
-            ph = phases[i]
-            # identical for every lanyard: the stacked tails are layered 1-3 mm apart and move together
-            side = A_side * (math.sin(t) + 0.22 * math.sin(2 * t + 0.7))
-            io = A_io * math.sin(t + 1.1)
-            Rw = Quaternion(rd['d'], math.radians(side)) @ Quaternion(rd['e'], math.radians(io))
-            pb = rig.pose.bones['tail_' + nm]
-            B = pb.bone.matrix_local.to_3x3()
-            pb.rotation_quaternion = (B.inverted() @ Rw.to_matrix() @ B).to_quaternion()
-            pb.keyframe_insert('rotation_quaternion', frame=f)
-            tw = A_tw * (math.sin(t + ph - 0.9) + 0.18 * math.sin(2 * t + ph))
-            lag = A_lag * math.sin(t + ph - 1.2)
-            Rm = Quaternion(Z, math.radians(tw)) @ Quaternion(rd['d'], math.radians(lag))
-            pb = rig.pose.bones['medal_' + nm]
-            B = pb.bone.matrix_local.to_3x3()
-            pb.rotation_quaternion = (B.inverted() @ Rm.to_matrix() @ B).to_quaternion()
-            pb.keyframe_insert('rotation_quaternion', frame=f)
-    act = rig.animation_data.action
-    act.name = 'medals_sway'
-    act.use_frame_range = True
-    if hasattr(act, 'use_cyclic'):
-        act.use_cyclic = True
-    act.frame_range = (0, LOOP_FRAMES)
-    scene.frame_set(0)
-
-    # clearance to the lamp arm (lamp003 = arm bars, collar, stem) across the sway loop
-    fixed_parts = tuple(n for n in meas['ref'] if n != 'lamp_neck')
-    av, af = [], []
-    for n in fixed_parts:
-        lv = meas['ref'][n]
-        base_i = len(av)
-        av += [Vector(v) for v in lv['verts']]
-        af += [tuple(i + base_i for i in f) for f in lv['faces']]
-    tree = BVHTree.FromPolygons(av, af)
-    worst = {}
-    for f in (0, 24, 48, 72):
-        scene.frame_set(f)
-        dg = bpy.context.evaluated_depsgraph_get()
-        for o in objs:
-            ev = o.evaluated_get(dg)
-            m = ev.to_mesh()
-            mw = ev.matrix_world
-            dmin = min(tree.find_nearest(mw @ v.co)[3] for v in m.vertices)
-            ev.to_mesh_clear()
-            worst[o.name] = min(worst.get(o.name, 1.0), dmin)
-    # hardware-to-hardware gaps between neighbouring lanyards across the sway
-    gap = 1.0
-    gap_pair = None
-    hw_objs = [o for o in objs if o.name.endswith(('_clasp', '_disc', '_ribbon'))]
-    for f in range(0, LOOP_FRAMES, 8):
-        scene.frame_set(f)
-        dg = bpy.context.evaluated_depsgraph_get()
-        trees = {}
-        for o in hw_objs:
-            ev = o.evaluated_get(dg)
-            m = ev.to_mesh()
-            trees[o.name] = ([ev.matrix_world @ v.co for v in m.vertices],
-                             BVHTree.FromPolygons([ev.matrix_world @ v.co for v in m.vertices],
-                                                  [tuple(p.vertices) for p in m.polygons]))
-            ev.to_mesh_clear()
-        names = list(trees)
-        for i in range(len(names)):
-            for j in range(len(names)):
-                if names[i].split('_')[1] == names[j].split('_')[1]:
-                    continue
-                gd = min(trees[names[j]][1].find_nearest(v)[3] for v in trees[names[i]][0])
-                if gd < gap:
-                    gap = gd
-                    gap_pair = (names[i], names[j], f)
-    print(f'CLEARANCE between different lanyards over the loop: {gap * 1000:.1f} mm {gap_pair}')
-    scene.frame_set(0)
-    print('CLEARANCE to column/knuckle/head/diffuser/base (mm)', {k: round(v * 1000, 1) for k, v in worst.items()})
-    total = sum(tris.values())
-    print('TRIS', total, json.dumps(tris))
-    return dict(scene=scene, coll=coll, work=work, refc=refc, rib=rib_data, hw=hw_info, root=root, rig=rig,
-                objs=objs, tris=tris, total=total, meas=meas, C=C, ct=ct)
-
-
-# =============================================================================== previews
 def setup_render(scene):
     scene.render.engine = 'CYCLES'
     prefs = bpy.context.preferences.addons['cycles'].preferences
@@ -1198,12 +343,488 @@ def add_light(scene, name, loc, target, power, size, colour=(1, 1, 1)):
     return o
 
 
+# =============================================================================== 2D helpers
+def cross2(a, b):
+    return a.x * b.y - a.y * b.x
+
+
+def clean_poly(pts, tol=0.0003):
+    out = []
+    for p in pts:
+        p = Vector(p).to_2d()
+        if not out or (p - out[-1]).length > tol:
+            out.append(p)
+    while len(out) > 2 and (out[0] - out[-1]).length < tol:
+        out.pop()
+    if sum(cross2(out[i], out[(i + 1) % len(out)]) for i in range(len(out))) < 0:
+        out.reverse()
+    return out
+
+
+def offset_poly(poly, off, arc_step=math.radians(8)):
+    n = len(poly)
+    res = []
+    for i in range(n):
+        p0, p1, p2 = poly[i - 1], poly[i], poly[(i + 1) % n]
+        ei = (p1 - p0).normalized()
+        eo = (p2 - p1).normalized()
+        a0 = math.atan2(-ei.x, ei.y)
+        a1 = math.atan2(-eo.x, eo.y)
+        da = (a1 - a0) % (2 * math.pi)
+        if da > math.pi:
+            da -= 2 * math.pi
+        steps = max(1, int(abs(da) / arc_step))
+        for k in range(steps + 1):
+            a = a0 + da * k / steps
+            res.append(p1 + Vector((math.cos(a), math.sin(a))) * off)
+    return clean_poly(res, 0.0002)
+
+
+# =============================================================================== materials (static)
+def metal_pair(name, polished, antique, r_pol, r_ant):
+    return (metal_mat(f'medals_{name}_polished', polished, r_pol),
+            metal_mat(f'medals_{name}_antique', antique, r_ant, grain=0.14, grain_scale=3500))
+
+
+def build_mats():
+    M = {}
+    for k, hx in RIBBON_HEX.items():
+        M['ribbon_' + k] = fabric_mat('medals_ribbon_' + k, hx)
+    M['gold'] = metal_pair('gold', (0.90, 0.64, 0.26), (0.32, 0.22, 0.08), 0.24, 0.62)
+    M['silver'] = metal_pair('silver', (0.84, 0.84, 0.82), (0.26, 0.26, 0.26), 0.22, 0.62)
+    M['nickel'] = metal_mat('medals_nickel', (0.70, 0.69, 0.66), 0.25)
+    return M
+
+
+# =============================================================================== medal geometry (reference style)
+def box_relief(mb, cx, cz, sx, sz, y0, h, mat, bev=0.0003, face=1):
+    """Raised block on the front (face=+1) or back (face=-1) field: size sx x sz, height h above y0."""
+    fr = Matrix.Translation(Vector((cx, face * (y0 + h / 2 - 0.0001), cz)))
+    rounded_box(mb, fr, (sx, h + 0.0002, sz), min(bev, h * 0.45, sx * 0.3, sz * 0.3), mat=mat)
+
+
+def frame_relief(mb, cx, cz, outer, band, y0, h, mat, face=1):
+    """Raised square frame (band wide) as four bars."""
+    o2, b = outer / 2, band
+    box_relief(mb, cx, cz + o2 - b / 2, outer, b, y0, h, mat, face=face)
+    box_relief(mb, cx, cz - o2 + b / 2, outer, b, y0, h, mat, face=face)
+    box_relief(mb, cx - o2 + b / 2, cz, b, outer - 2 * b, y0, h, mat, face=face)
+    box_relief(mb, cx + o2 - b / 2, cz, b, outer - 2 * b, y0, h, mat, face=face)
+
+
+def medal_frc(R):
+    """Cast medal in the reference style. Local frame: X across, +Y = obverse normal, Z up. mat 0 polished,
+    1 antique field. Relief is blank-ish: shapes where the artwork and lettering are, no actual text."""
+    mb = MB()
+    T_f, T_b = 0.0014, -0.0014
+    prof = [(0.0, T_f), (0.5 * R, T_f), (R - 0.0033, T_f), (R - 0.0030, T_f + 0.00045),
+            (R - 0.0026, T_f + 0.0006), (R - 0.0009, T_f + 0.0006), (R - 0.0002, T_f + 0.0002),
+            (R, T_f - 0.0003), (R, T_b + 0.0003), (R - 0.0002, T_b - 0.0002), (R - 0.0009, T_b - 0.0006),
+            (R - 0.0026, T_b - 0.0006), (R - 0.0030, T_b - 0.00045), (R - 0.0033, T_b), (0.5 * R, T_b), (0.0, T_b)]
+    field = {0, 1, 13, 14}
+    lathe(mb, prof, 48, lambda i: 1 if i in field else 0)
+    s = R / 0.035
+    # obverse: framed artwork panel, block relief, corner icons, word-mark band, sub-line
+    frame_relief(mb, 0.0, 0.0055 * s, 0.034 * s, 0.0022 * s, T_f, 0.0006, 0)
+    # (local +X appears on the viewer's LEFT when looking at the obverse, so x positions are mirrored)
+    box_relief(mb, 0.001 * s, 0.0065 * s, 0.017 * s, 0.009 * s, T_f, 0.0011, 0, bev=0.0005)        # the block
+    box_relief(mb, -0.0045 * s, 0.0085 * s, 0.0075 * s, 0.006 * s, T_f + 0.0011, 0.0005, 0, bev=0.0003)
+    box_relief(mb, 0.0105 * s, 0.017 * s, 0.0032 * s, 0.0032 * s, T_f, 0.0004, 0)                 # gear
+    box_relief(mb, -0.0105 * s, 0.017 * s, 0.0026 * s, 0.0034 * s, T_f, 0.0004, 0)                # lock
+    for k in range(3):                                                                            # bricks
+        box_relief(mb, (0.0115 - 0.0028 * k) * s, -0.0045 * s, 0.0024 * s, 0.0014 * s, T_f, 0.0003, 0)
+    box_relief(mb, -0.0105 * s, -0.0045 * s, 0.0036 * s, 0.0008 * s, T_f, 0.0003, 0)              # hammer
+    box_relief(mb, 0.0, -0.0175 * s, 0.031 * s, 0.0058 * s, T_f, 0.0007, 0, bev=0.0004)            # word mark
+    box_relief(mb, 0.0, -0.0238 * s, 0.024 * s, 0.0022 * s, T_f, 0.0004, 0)                       # sub-line
+    # reverse: interlocking-loop logo and four text bands
+    for dx in (-0.0035, 0.0035):
+        torus(mb, Vector((dx * s, T_b - 0.0001, 0.0185 * s)), Vector((0, 1, 0)), 0.0045 * s, 0.0007, seg=18, segm=6,
+              mat=0)
+    box_relief(mb, 0.0, 0.0085 * s, 0.019 * s, 0.0042 * s, -T_b, 0.0005, 0, face=-1)
+    box_relief(mb, 0.0, 0.0015 * s, 0.033 * s, 0.0048 * s, -T_b, 0.0005, 0, face=-1)
+    box_relief(mb, 0.0, -0.0055 * s, 0.044 * s, 0.0048 * s, -T_b, 0.0005, 0, face=-1)
+    box_relief(mb, 0.0, -0.0150 * s, 0.014 * s, 0.0045 * s, -T_b, 0.0005, 0, face=-1)
+    box_relief(mb, 0.0, -0.0245 * s, 0.008 * s, 0.0012 * s, -T_b, 0.0003, 0, face=-1)
+    # pierced tab on top (a thick washer on a short neck)
+    tab_c = Vector((0, 0, R + 0.0031))
+    ring = [(0.0021, -0.0012), (0.0048, -0.0012), (0.0048, 0.0012), (0.0021, 0.0012), (0.0021, -0.0012)]
+    sub = MB()
+    lathe(sub, ring, 20, lambda i: 0)
+    mb.extend(sub, xf=Matrix.Translation(tab_c))
+    rounded_box(mb, Matrix.Translation(Vector((0, 0, R - 0.0002))), (0.0056, 0.0024, 0.0034), 0.0005, mat=0)
+    return mb, tab_c
+
+
+def sweep_tube(mb, path, radius, seg=12, closed=True, mat=0):
+    """Round wire along a polyline (closed loop by default)."""
+    n = len(path)
+    rings = []
+    for i in range(n):
+        a = path[(i - 1) % n] if closed else path[max(i - 1, 0)]
+        b = path[(i + 1) % n] if closed else path[min(i + 1, n - 1)]
+        tan = (b - a).normalized()
+        nrm = tan.orthogonal().normalized() if i == 0 else (rings_n[-1] - tan * rings_n[-1].dot(tan)).normalized()
+        if i == 0:
+            rings_n = [nrm]
+        else:
+            rings_n.append(nrm)
+        bn = tan.cross(nrm)
+        rings.append([mb.vert(path[i] + (nrm * math.cos(2 * math.pi * j / seg) + bn * math.sin(2 * math.pi * j / seg))
+                              * radius) for j in range(seg)])
+    m = n if closed else n - 1
+    for i in range(m):
+        A, B = rings[i], rings[(i + 1) % n]
+        for j in range(seg):
+            mb.face([A[j], A[(j + 1) % seg], B[(j + 1) % seg], B[j]], mat)
+
+
+def d_ring_path(c_top, w_axis, width, height, n=12):
+    """D-ring centreline in the plane of w_axis and Z: straight top bar centred at c_top, round bottom."""
+    hw = width / 2
+    pts = [c_top + w_axis * (-hw + 2 * hw * k / n) for k in range(n)]
+    for k in range(3 * n):
+        a = math.pi * k / (3 * n)
+        pts.append(c_top + w_axis * (hw * math.cos(a)) - Z * (height * math.sin(a)))
+    return pts
+
+
+# =============================================================================== build
+def build():
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    scene = bpy.context.scene
+    M = build_mats()
+    coll = link_new_collection('NEW_medals')
+    refc = link_new_collection('REF_lamp')
+    with bpy.data.libraries.load(LAMP_BLEND, link=False) as (src, dst):
+        dst.objects = list(src.objects)
+    for o in dst.objects:
+        if o is not None:
+            refc.objects.link(o)
+    bpy.context.view_layer.update()
+    with open(os.path.join(PARTS, 'lamp_meta.json')) as f:
+        LM = json.load(f)
+    n0, n1 = Vector(LM['neck_start']), Vector(LM['neck_end'])
+    NC = (n0 + n1) / 2
+    a3 = (n1 - n0)
+    a3.z = 0
+    span = a3.length
+    a3.normalize()
+    t3 = Z.cross(a3).normalized()
+    AT, AZ = LM['neck_at'], LM['neck_az']
+    s_c = span / 2
+    O = Vector((n0.x, n0.y, 0))
+
+    def to_w(s, t, z):
+        return O + a3 * s + t3 * t + Z * z
+    seat_dir = (SEAT - NC)
+    seat_dir.z = 0
+    seat_dir.normalize()
+    print(f'NECK centre {tuple(round(x, 4) for x in NC)} span {span * 1000:.1f}mm section {2 * AT * 1000:.0f}x{2 * AZ * 1000:.0f}mm; '
+          f'reach vs seat {math.degrees(a3.angle(seat_dir)):.1f} deg')
+
+    arm = next(o for o in refc.objects if o.name.startswith('lamp_arm'))
+    hull_pts = []
+    for v in arm.data.vertices:
+        p = arm.matrix_world @ v.co
+        q = p - O
+        sp, tp = q.dot(a3), q.dot(t3)
+        if abs(sp - s_c) < 0.0065 and abs(tp) < 0.04 and abs(p.z - NC.z) < 0.03:
+            hull_pts.append(Vector((tp, p.z - NC.z)))
+    sec = clean_poly([hull_pts[i] for i in convex_hull_2d(hull_pts)])
+    AT = max(abs(p.x) for p in sec)
+    print(f'NECK section hull: {len(sec)} pts, half-width {AT * 1000:.1f}mm, z [{min(p.y for p in sec) * 1000:.1f},'
+          f'{max(p.y for p in sec) * 1000:.1f}]mm')
+    W = RIBBON_W
+    L = 0.002
+    T_START = AT + 0.0012 + 1.5 * L
+    T_END = 0.0145
+    Z_T0, Z_T1 = NC.z - 0.010, NC.z - 0.050
+    Z_FAN = NC.z - 0.120
+    WS_G = 0.012 / W                 # pinched to 12 mm over the neck bulb's narrow waist
+    AB = 0.00145
+
+    def sm(x):
+        x = max(0.0, min(1.0, x))
+        return x * x * (3 - 2 * x)
+    ribbons, parts_of = [], {}
+    tris = {}
+    lanyards = []
+    for spec in SPECS:
+        k = spec['layer']
+        d_k = (k - 2.5) * L
+        off_k = 0.0012 + (k - 1) * L
+        offs = spec['off_s']
+        s_k = s_c + spec['plane']
+        t_k = spec['t']
+        z_ap = NC.z - spec['drop']
+        lean = math.tan(math.radians(spec['lean']))
+        # ---- control points: A wrap bottom -> A tail up -> loop -> B tail down -> B wrap bottom
+        def tail(sg):
+            pts = []
+            ab = -sg * AB                                   # A (sg -1) in front of the bar, B behind
+            bow = spec['bow'][0 if sg < 0 else 1] * 0.001
+            te = Vector((s_c + d_k, sg * T_END - sg * offs, Z_T1))
+            for f in (0.12, 0.3, 0.5, 0.7, 0.88):
+                z = Z_T1 + (z_ap - Z_T1) * f
+                s_ = s_c + d_k + (s_k - s_c - d_k) * sm((Z_T1 - z) / (Z_T1 - Z_FAN)) + ab * sm((f - 0.55) / 0.45)
+                t_ = te.y + (t_k - te.y) * f + bow * math.sin(math.pi * f)
+                pts.append(to_w(s_, t_, z))
+            pts.append(to_w(s_k + ab, t_k, z_ap))
+            return te, pts
+        teA, A = tail(-1)
+        teB, B = tail(+1)
+        ctrl = []
+        # A wrap: bottom of the bar -> front quarter
+        for i in range(4):
+            ph = math.pi / 2 * (1 - i / 3)
+            ctrl.append((to_w(s_k + AB * math.cos(ph), t_k, z_ap - AB * math.sin(ph)), t3.copy(), 1.0))
+        for p in reversed(A[:-1]):
+            ctrl.append((p, t3.copy(), 1.0))
+        ctrl.append((to_w(teA.x, teA.y, teA.z), t3.copy(), 1.0))
+        # twist zone + gather (A side), placeholders refined analytically below
+        def twist_pt(sg, u):
+            th = math.pi / 2 * sm(u)
+            ax = sg * (T_START + (T_END - T_START) * sm(u))
+            return (to_w(s_c + offs * math.cos(th) + d_k * math.sin(th),
+                         ax + sg * (-offs * math.sin(th) + d_k * math.cos(th)), Z_T0 + (Z_T1 - Z_T0) * u),
+                    math.cos(th) * a3 - math.sin(th) * sg * t3, WS_G + (1 - WS_G) * sm((u - 0.4) / 0.6))
+        for u in (0.66, 0.33, 0.0):
+            ctrl.append(twist_pt(-1.0, u))
+        # loop over the neck: the neck bulb's real cross-section, offset per layer (nested, never crossing)
+        ring = offset_poly(sec, off_k)
+        up = [p for p in ring if p.y >= -0.004]
+        up.sort(key=lambda p: -math.atan2(p.y, p.x) % (2 * math.pi))
+        up.sort(key=lambda p: math.atan2(p.y, p.x), reverse=True)
+        stepped = [up[0]]
+        for p in up[1:]:
+            if (p - stepped[-1]).length > 0.0025:
+                stepped.append(p)
+        if (up[-1] - stepped[-1]).length > 1e-6:
+            stepped.append(up[-1])
+        for p in stepped:
+            ctrl.append((to_w(s_c + offs + lean * p.y, p.x, NC.z + p.y), a3.copy(), WS_G))
+        for u in (0.0, 0.33, 0.66):
+            ctrl.append(twist_pt(1.0, u))
+        ctrl.append((to_w(teB.x, teB.y, teB.z), t3.copy(), 1.0))
+        for p in B[:-1]:
+            ctrl.append((p, t3.copy(), 1.0))
+        for i in range(4):
+            ph = math.pi / 2 * i / 3
+            ctrl.append((to_w(s_k - AB * math.cos(ph), t_k, z_ap - AB * math.sin(ph)), t3.copy(), 1.0))
+        rows, length = ribbon_rows(ctrl)
+        # ---- exact geometry: twist zone is a rigid rotation of each side's layered stack; elsewhere the
+        # width lies in the lanyard's plane (a3 x tangent) with continuity, plus the optional half twist
+        top_i = max(range(len(rows)), key=lambda i: rows[i][0].z)
+        for i_r, r_ in enumerate(rows):
+            p = r_[0]
+            sg = -1.0 if i_r < top_i else 1.0
+            if Z_T1 <= p.z <= Z_T0:
+                u = (Z_T0 - p.z) / (Z_T0 - Z_T1)
+                th = math.pi / 2 * sm(u)
+                ax = sg * (T_START + (T_END - T_START) * sm(u))
+                s_ = s_c + offs * math.cos(th) + d_k * math.sin(th)
+                t_ = ax + sg * (-offs * math.sin(th) + d_k * math.cos(th))
+                r_[0] = to_w(s_, t_, p.z)
+                r_[1] = math.cos(th) * a3 - math.sin(th) * sg * t3
+                r_[3] = WS_G + (1 - WS_G) * sm((u - 0.4) / 0.6)
+            elif p.z > Z_T0:
+                r_[3] = WS_G
+        # orient the lower regions by continuity from the twist zone outward
+        def lower_orient(indices):
+            prev = None
+            for i_r in indices:
+                r_ = rows[i_r]
+                if r_[0].z >= Z_T1:
+                    prev = r_[1]
+                    continue
+                a_ = rows[max(i_r - 1, 0)][0]
+                b_ = rows[min(i_r + 1, len(rows) - 1)][0]
+                wn = a3.cross((b_ - a_).normalized())
+                if wn.length < 1e-6:
+                    wn = t3.copy()
+                wn.normalize()
+                if prev is not None and wn.dot(prev) < 0:
+                    wn = -wn
+                r_[1] = wn
+                r_[3] = 1.0
+                prev = wn
+        lower_orient(range(top_i, -1, -1))
+        lower_orient(range(top_i, len(rows)))
+        # the half twist (gentle, over ~70 mm of one tail, above the fan-out end)
+        if spec['twist']:
+            z_hi, z_lo = Z_FAN - 0.002, Z_FAN - 0.072
+            idx = range(0, top_i) if spec['twist'] == 'A' else range(top_i, len(rows))
+            for i_r in idx:
+                r_ = rows[i_r]
+                if r_[0].z < z_hi:
+                    f = sm((z_hi - r_[0].z) / (z_hi - z_lo))
+                    a_ = rows[max(i_r - 1, 0)][0]
+                    b_ = rows[min(i_r + 1, len(rows) - 1)][0]
+                    tan = (b_ - a_).normalized()
+                    r_[1] = Quaternion(tan, math.pi * f) @ r_[1]
+        lanyards.append(dict(spec=spec, rows=rows, length=length, s_k=s_k, t_k=t_k, z_ap=z_ap))
+        print(f'RIBBON {spec["name"]} layer {k} len {length * 100:.1f}cm rows {len(rows)} apex drop {spec["drop"] * 1000:.0f}mm')
+
+    # ---- ribbon meshes
+    objs = []
+    for ly in lanyards:
+        spec = ly['spec']
+        cols = [0, 0.25, 0.5, 0.75, 1.0]
+        verts, faces, uvs = [], [], []
+        nc = len(cols)
+        for (pos, w, s, ws) in ly['rows']:
+            for u in cols:
+                verts.append(pos + w * ((u - 0.5) * W * ws))
+        for r in range(len(ly['rows']) - 1):
+            sa, sb = ly['rows'][r][2], ly['rows'][r + 1][2]
+            for c_ in range(nc - 1):
+                a = r * nc + c_
+                faces.append((a, a + 1, a + nc + 1, a + nc))
+                uvs.append([(cols[c_] * W, sa), (cols[c_ + 1] * W, sa), (cols[c_ + 1] * W, sb), (cols[c_] * W, sb)])
+        me = bpy.data.meshes.new(f'medal_{spec["name"]}_ribbon')
+        me.from_pydata([tuple(v) for v in verts], [], faces)
+        me.update()
+        uvl = me.uv_layers.new(name='UVMap')
+        for j, p in enumerate(me.polygons):
+            for li, lp in enumerate(p.loop_indices):
+                uvl.data[lp].uv = uvs[j][li]
+        me.materials.append(M['ribbon_' + spec['ribbon']])
+        o = bpy.data.objects.new(f'medal_{spec["name"]}_ribbon', me)
+        coll.objects.link(o)
+        sm_ = o.modifiers.new('solidify', 'SOLIDIFY')
+        sm_.thickness = RIB_T
+        sm_.offset = 0.0
+        sm_.use_rim = True
+        sm_.use_quality_normals = True
+        dg = bpy.context.evaluated_depsgraph_get()
+        nm = bpy.data.meshes.new_from_object(o.evaluated_get(dg))
+        o.modifiers.remove(sm_)
+        old = o.data
+        o.data = nm
+        bpy.data.meshes.remove(old)
+        nm.name = f'medal_{spec["name"]}_ribbon'
+        nm.shade_smooth()
+        nm.set_sharp_from_angle(angle=math.radians(60))
+        objs.append(o)
+        tris[o.name] = sum(len(p.vertices) - 2 for p in nm.polygons)
+
+    # ---- D-ring, split ring, medal (faces the seat)
+    for ly in lanyards:
+        spec = ly['spec']
+        nmn = spec['name']
+        c_top = to_w(ly['s_k'], ly['t_k'], ly['z_ap'])
+        mbr = MB()
+        DR_W, DR_H, DR_r = 0.028, 0.011, 0.0011
+        sweep_tube(mbr, d_ring_path(c_top, t3, DR_W, DR_H, n=8), DR_r, seg=8)
+        # split ring: plane spanned by the seat direction and Z, hanging from the D-ring's bottom wire
+        u_face = (SEAT - c_top)
+        u_face.z = 0
+        u_face.normalize()
+        Rr, rr = 0.0045, 0.0006
+        d_bottom = c_top - Z * DR_H
+        ring_c = d_bottom - Z * (Rr - DR_r - rr)
+        torus(mbr, ring_c, Z.cross(u_face).normalized(), Rr, rr, seg=18, segm=6, mat=0)
+        clasp = mbr.to_object(f'medal_{nmn}_clasp', [M['nickel']], coll, smooth_angle=45)
+        objs.append(clasp)
+        tris[clasp.name] = sum(len(p.vertices) - 2 for p in clasp.data.polygons)
+        # medal: its tab hole hangs on the split ring's bottom wire
+        mesh, tab_c = medal_frc(MEDAL_R)
+        hole_r = 0.0021
+        ring_bottom_wire = ring_c - Z * Rr
+        tab_world = ring_bottom_wire - Z * (hole_r - rr)          # the ring's wire rests on the top of the hole
+        Mc = tab_world - tab_c
+        x_ax = u_face.cross(Z).normalized()
+        xf = Matrix.Translation(Mc) @ Matrix(((x_ax.x, u_face.x, 0, 0), (x_ax.y, u_face.y, 0, 0),
+                                              (x_ax.z, u_face.z, 1, 0), (0, 0, 0, 1)))
+        mbx = MB()
+        mbx.extend(mesh, xf=xf)
+        pm, am = M[spec['metal']]
+        med = mbx.to_object(f'medal_{nmn}_disc', [pm, am], coll, smooth_angle=35)
+        objs.append(med)
+        tris[med.name] = sum(len(p.vertices) - 2 for p in med.data.polygons)
+        ly['Mc'] = Mc
+        print(f'MEDAL {nmn} {spec["metal"]} centre {tuple(round(x, 4) for x in Mc)} bottom z {Mc.z - MEDAL_R:.4f}')
+
+    # ---- root (parent to NEW_lamp_pivot in the room, keeping transform)
+    root = bpy.data.objects.new('NEW_medals_root', None)
+    root.empty_display_type = 'PLAIN_AXES'
+    root.empty_display_size = 0.03
+    root.location = n0
+    root['parent_to'] = 'NEW_lamp_pivot'
+    coll.objects.link(root)
+    bpy.context.view_layer.update()
+    for o in objs:
+        mw = o.matrix_world.copy()
+        o.parent = root
+        o.matrix_parent_inverse = root.matrix_world.inverted()
+        o.matrix_world = mw
+
+    # ---- clearance checks: every pair of different lanyards, and everything vs the lamp
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+
+    def data(o):
+        ev = o.evaluated_get(dg)
+        m = ev.to_mesh()
+        V = [ev.matrix_world @ v.co for v in m.vertices]
+        F = [tuple(p.vertices) for p in m.polygons]
+        ev.to_mesh_clear()
+        return V, BVHTree.FromPolygons(V, F)
+    D = {o.name: data(o) for o in objs}
+    worst = (1.0, None)
+    overl = 0
+    names = list(D)
+    for i in range(len(names)):
+        for j in range(i + 1, len(names)):
+            if names[i].split('_')[1] == names[j].split('_')[1]:
+                continue
+            ov = D[names[i]][1].overlap(D[names[j]][1])
+            overl += len(ov)
+            d_ = min(D[names[j]][1].find_nearest(v)[3] for v in D[names[i]][0][::2])
+            if d_ < worst[0]:
+                worst = (d_, (names[i], names[j]))
+    lamp_objs = [o for o in refc.objects if o.type == 'MESH']
+    LV = {o.name: data(o) for o in lamp_objs}
+    lamp_min = {}
+    for n in names:
+        lamp_min[n] = round(min(min(t.find_nearest(v)[3] for v in D[n][0][::3]) for _, t in LV.values()) * 1000, 1)
+    lamp_ov = sum(len(D[n][1].overlap(t)) for n in names for _, t in LV.values())
+    print(f'CLEARANCE between lanyards: min {worst[0] * 1000:.2f} mm {worst[1]}, overlapping tri pairs {overl}')
+    for i in range(len(names)):
+        for j in range(i + 1, len(names)):
+            if names[i].split('_')[1] == names[j].split('_')[1]:
+                continue
+            ov = D[names[i]][1].overlap(D[names[j]][1])
+            if ov:
+                Vi = D[names[i]][0]
+                me_i = bpy.data.objects[names[i]].evaluated_get(dg).to_mesh()
+                zs = sorted({round(sum(Vi[v].z for v in me_i.polygons[a].vertices) / len(me_i.polygons[a].vertices) - NC.z, 3)
+                             for a, _ in ov})
+                bpy.data.objects[names[i]].evaluated_get(dg).to_mesh_clear()
+                print(f'  OVERLAP {names[i]} x {names[j]}: {len(ov)} pairs at dz {zs[0]:.3f}..{zs[-1]:.3f}')
+    for n in names:
+        for ln, (V_, t_) in LV.items():
+            ov = D[n][1].overlap(t_)
+            if ov:
+                Vi = D[n][0]
+                me_i = bpy.data.objects[n].evaluated_get(dg).to_mesh()
+                zs = sorted({round(sum(Vi[v].z for v in me_i.polygons[a].vertices) / len(me_i.polygons[a].vertices) - NC.z, 3)
+                             for a, _ in ov})
+                bpy.data.objects[n].evaluated_get(dg).to_mesh_clear()
+                print(f'  LAMPOVERLAP {n} x {ln}: {len(ov)} pairs at dz {zs[0]:.3f}..{zs[-1]:.3f}')
+    print(f'CLEARANCE to lamp (mm) {lamp_min}, overlapping tri pairs {lamp_ov}')
+    total = sum(tris.values())
+    print('TRIS', total, json.dumps(tris))
+    return dict(scene=scene, coll=coll, refc=refc, lanyards=lanyards, objs=objs, root=root, NC=NC, a3=a3, t3=t3,
+                tris=tris, total=total)
+
+
+# =============================================================================== previews
 def previews(b):
     scene = b['scene']
     setup_render(scene)
-    scene.cycles.samples = 64
     refc = b['refc']
-    c = b['C']
+    c = b['NC']
     desk = bpy.data.meshes.new('ref_desk')
     desk.from_pydata([(c.x - 0.8, c.y - 0.8, 0.735), (c.x + 0.8, c.y - 0.8, 0.735),
                       (c.x + 0.8, c.y + 0.8, 0.735), (c.x - 0.8, c.y + 0.8, 0.735)], [], [(0, 1, 2, 3)])
@@ -1213,9 +834,8 @@ def previews(b):
     principled(dm).inputs['Roughness'].default_value = 0.55
     desk.materials.append(dm)
     refc.objects.link(bpy.data.objects.new('ref_desk', desk))
-    target = sum((h['Mc'] for h in b['hw']), Vector()) / len(b['hw'])
-    low = min(h['Mc'].z - rd['spec']['R'] for h, rd in zip(b['hw'], b['rib']))
-    target.z = (low + b['ct']) / 2
+    target = sum((ly['Mc'] for ly in b['lanyards']), Vector()) / len(b['lanyards'])
+    target.z = (target.z - MEDAL_R + c.z) / 2
     add_light(scene, 'key', target + Vector((0.45, -0.55, 0.45)), target, 22, 0.35)
     add_light(scene, 'fill', target + Vector((-0.6, -0.35, 0.15)), target, 7, 0.6, (0.9, 0.95, 1.0))
     add_light(scene, 'rim', target + Vector((-0.2, 0.6, 0.35)), target, 20, 0.3, (1.0, 0.95, 0.9))
@@ -1223,8 +843,7 @@ def previews(b):
     scene.collection.objects.link(cam)
     scene.camera = cam
 
-    def shot(loc, tgt, lens, fname, frame=0):
-        scene.frame_set(frame)
+    def shot(loc, tgt, lens, fname):
         cam.location = loc
         cam.data.lens = lens
         cam.rotation_euler = (Vector(tgt) - Vector(loc)).to_track_quat('-Z', 'Y').to_euler()
@@ -1233,75 +852,49 @@ def previews(b):
         print('PREVIEW', fname)
     dirv = (target - SEAT).normalized()
     side_dir = Vector((-dirv.y, dirv.x, 0)).normalized()
-    shot(SEAT, target + Vector((0, 0, 0.01)), 75, 'medals_seat.png', 0)
+    shot(SEAT, target, 55, 'medals_seat.png')
     three_q = (-dirv * 0.75 + side_dir * 0.62).normalized()
-    shot(target + three_q * 0.42 + Vector((0, 0, 0.07)), target, 50, 'medals_34.png', 0)
-    shot(target + side_dir * 0.62 + Vector((0, 0, 0.05)), target, 45, 'medals_side.png', 0)
+    shot(target + three_q * 0.5 + Vector((0, 0, 0.06)), target, 50, 'medals_34.png')
+    shot(target + side_dir * 0.62 + Vector((0, 0, 0.04)), target, 45, 'medals_side.png')
+    gold = next(ly for ly in b['lanyards'] if ly['spec']['metal'] == 'gold')
+    mt = gold['Mc'] + Vector((0, 0, 0.012))
+    shot(mt - dirv * 0.20 + Vector((0, 0, 0.02)), mt, 60, 'medals_closeup.png')
 
 
 # =============================================================================== save / export / verify
 def finish(b):
-    for o in list(b['work'].objects) + list(b['refc'].objects):
+    for o in list(b['refc'].objects):
         bpy.data.objects.remove(o, do_unlink=True)
-    for cn in ('WORK_medals', 'REF_lamp'):
-        c = bpy.data.collections.get(cn)
-        if c:
-            bpy.data.collections.remove(c)
+    c = bpy.data.collections.get('REF_lamp')
+    if c:
+        bpy.data.collections.remove(c)
     for o in list(bpy.context.scene.objects):
-        if o.type in ('LIGHT', 'CAMERA'):
+        if o.type in ('LIGHT', 'CAMERA') or o.name not in b['coll'].all_objects:
             bpy.data.objects.remove(o, do_unlink=True)
     bpy.ops.outliner.orphans_purge(do_recursive=True)
-    bpy.context.scene.frame_set(0)
     os.makedirs(PARTS, exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=OUT_BLEND, compress=True)
     print('SAVED', OUT_BLEND)
     for o in bpy.context.scene.objects:
         o.select_set(o.name in b['coll'].all_objects)
-    kw = dict(filepath=OUT_GLB, export_format='GLB', use_selection=True, export_yup=True,
-              export_apply=False, export_animations=True, export_skins=True, export_materials='EXPORT',
-              export_cameras=False, export_lights=False, export_force_sampling=True)
-    try:
-        bpy.ops.export_scene.gltf(**kw)
-    except TypeError as err:
-        print('gltf kw issue', err)
-        for k in ('export_force_sampling',):
-            kw.pop(k, None)
-        bpy.ops.export_scene.gltf(**kw)
+    bpy.ops.export_scene.gltf(filepath=OUT_GLB, export_format='GLB', use_selection=True, export_yup=True,
+                              export_apply=True, export_animations=False, export_skins=False,
+                              export_materials='EXPORT', export_cameras=False, export_lights=False)
     print('EXPORTED', OUT_GLB, os.path.getsize(OUT_GLB) // 1024, 'KB')
 
 
 def verify():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=OUT_GLB)
-    scene = bpy.context.scene
-    arms = [o for o in scene.objects if o.type == 'ARMATURE']
-    meshes = [o for o in scene.objects if o.type == 'MESH']
-    acts = [(a.name, tuple(a.frame_range)) for a in bpy.data.actions]
+    sc = bpy.context.scene
+    meshes = [o for o in sc.objects if o.type == 'MESH']
     tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in meshes)
-    print('VERIFY armatures', [(a.name, len(a.data.bones)) for a in arms], 'meshes', len(meshes), 'tris', tris)
-    print('VERIFY actions', acts)
-    probe = next(o for o in meshes if 'm3_disc' in o.name or o.name.endswith('m3_disc'))
-
-    def centre(f):
-        scene.frame_set(f)
-        dg = bpy.context.evaluated_depsgraph_get()
-        ev = probe.evaluated_get(dg)
-        m = ev.to_mesh()
-        c = sum((ev.matrix_world @ v.co for v in m.vertices), Vector()) / len(m.vertices)
-        ev.to_mesh_clear()
-        return c
-    fr = [int(x) for x in bpy.data.actions[0].frame_range] if bpy.data.actions else [0, 0]
-    c0 = centre(fr[0])
-    c1 = centre(fr[0] + (fr[1] - fr[0]) // 3)
-    c2 = centre(fr[1])
-    print(f'VERIFY probe {probe.name}: moved {(c1 - c0).length * 1000:.2f} mm mid-loop, '
-          f'loop closure error {(c2 - c0).length * 1000:.3f} mm')
+    print('VERIFY static glb: meshes', len(meshes), 'tris', tris, 'armatures',
+          len([o for o in sc.objects if o.type == 'ARMATURE']), 'actions', len(bpy.data.actions))
 
 
 if __name__ == '__main__':
     b = build()
-    if '--sim-only' in ARGS:
-        raise SystemExit(0)
     if not NO_RENDER:
         previews(b)
     finish(b)
