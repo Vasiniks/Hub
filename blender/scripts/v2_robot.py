@@ -46,6 +46,14 @@ BUDGET = int(ARGS[ARGS.index('--budget') + 1]) if '--budget' in ARGS else 146000
 PLACE = Vector((-1.12, -0.34, 0.0))
 YAW = 0.86
 MIN_SIZE = 0.015
+# owner: the hopper (bucket + its extension) walls are polycarbonate; their screws/nuts show through it,
+# so those two sub-assemblies keep their hardware (rebuilt below as clean low-poly proxies)
+HOPPER_SUBS = ('250 - Bucket', 'Assembly 1 <4>')
+def is_hopper(sub):
+    return sub in HOPPER_SUBS or re.sub(r'\s*<\d+>$', '', sub) in HOPPER_SUBS
+
+
+HW = re.compile(r'screw|nut|nut_|nylock|lock nut', re.I)
 
 DROP = re.compile(
     r'screw|bolt|\bnut\b|nut_|nylock|rivet|washer|standoff|zip.?tie|spacer|bearing|bushing|capacitor|'
@@ -57,7 +65,7 @@ DROP = re.compile(
 
 # ----------------------------------------------------------------------------------------------- 1
 def prefilter():
-    key = '%s|%s|floor' % (DROP.pattern, MIN_SIZE)
+    key = '%s|%s|floor|hw3' % (DROP.pattern, MIN_SIZE)
     if os.path.exists(FILT) and os.path.exists(SIDE) and os.path.getmtime(FILT) > os.path.getmtime(SRC):
         old = json.load(open(SIDE))
         if old.get('key') == key:
@@ -108,10 +116,12 @@ def prefilter():
         c = np.array([[x, y, z, 1] for x in (lo[0], hi[0]) for y in (lo[1], hi[1]) for z in (lo[2], hi[2])]) @ w.T
         wlo, whi = c[:, :3].min(0), c[:, :3].max(0)
         name = n.get('name', '')
-        if DROP.search(name) or (whi - wlo).max() < MIN_SIZE:
+        ch = chain(i)
+        hw = len(ch) > 1 and is_hopper(ch[1]) and bool(HW.search(name))
+        if not hw and (DROP.search(name) or (whi - wlo).max() < MIN_SIZE):
             dropped += tris
             continue
-        kept.append(dict(node=i, name=name, mesh=n['mesh'], tris=tris, chain=chain(i),
+        kept.append(dict(node=i, name=name, mesh=n['mesh'], tris=tris, chain=ch, hw=hw,
                          lo=wlo.tolist(), hi=whi.tolist(), world=w))
     # nothing may hang below the wheel contact plane (a loose top-level copy of 100-004 sits 4 mm under it)
     floor = min(r['lo'][2] for r in kept if re.search(r'swerve|tread|wheel', r['name'], re.I))
@@ -143,7 +153,7 @@ def prefilter():
         f.write(struct.pack('<II', len(binchunk), 0x004E4942)); f.write(binchunk)
     side = dict(key=key, tri_all=tri_all, tri_dropped=dropped, nodes_total=len(N),
                 parts={'P%04d' % k: dict(name=r['name'], sub=(r['chain'][1] if len(r['chain']) > 1 else ''),
-                                         tris=r['tris'], lo=r['lo'], hi=r['hi']) for k, r in enumerate(kept)})
+                                         tris=r['tris'], lo=r['lo'], hi=r['hi'], hw=r['hw']) for k, r in enumerate(kept)})
     json.dump(side, open(SIDE, 'w'), indent=0)
     return side
 
@@ -169,7 +179,7 @@ def hexrgb(h):
     return [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
 
 
-def make_mat(name, col, rough, metal=0.0, bump=0.0, bump_scale=300.0, trans=0.0, fabric=False, coat=0.0):
+def make_mat(name, col, rough, metal=0.0, bump=0.0, bump_scale=300.0, trans=0.0, fabric=False, coat=0.0, sss=0.0):
     m = bpy.data.materials.new(name); m.use_nodes = True
     nt = m.node_tree; N = nt.nodes; L = nt.links
     bs = next(n for n in N if n.type == 'BSDF_PRINCIPLED')
@@ -181,6 +191,9 @@ def make_mat(name, col, rough, metal=0.0, bump=0.0, bump_scale=300.0, trans=0.0,
         bs.inputs['IOR'].default_value = 1.586
     if coat:
         bs.inputs['Coat Weight'].default_value = coat
+    if sss:
+        bs.inputs['Subsurface Weight'].default_value = sss
+        bs.inputs['Subsurface Radius'].default_value = (0.004, 0.003, 0.001)
     tc = N.new('ShaderNodeTexCoord')
     nz = N.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = bump_scale
     nz.inputs['Detail'].default_value = 4.0
@@ -207,9 +220,39 @@ def make_mat(name, col, rough, metal=0.0, bump=0.0, bump_scale=300.0, trans=0.0,
     return m
 
 
-def classify(rgb, pname):
+def make_polycarb():
+    # clear 1/8" polycarbonate: faint blue-grey tint, glossy, directional scuffs in the roughness
+    m = bpy.data.materials.new('robot_polycarbonate'); m.use_nodes = True
+    N = m.node_tree.nodes; L = m.node_tree.links
+    bs = next(n for n in N if n.type == 'BSDF_PRINCIPLED')
+    col = hexrgb('#dde4ea')
+    bs.inputs['Base Color'].default_value = (*col, 1); m.diffuse_color = (*col, 0.25)
+    bs.inputs['Transmission Weight'].default_value = 0.95
+    bs.inputs['IOR'].default_value = 1.58
+    tc = N.new('ShaderNodeTexCoord')
+    mp = N.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (1.0, 1.0, 40.0)
+    L.new(tc.outputs['Object'], mp.inputs['Vector'])
+    sc_ = N.new('ShaderNodeTexNoise'); sc_.inputs['Scale'].default_value = 60; sc_.inputs['Detail'].default_value = 8
+    L.new(mp.outputs['Vector'], sc_.inputs['Vector'])
+    blot = N.new('ShaderNodeTexNoise'); blot.inputs['Scale'].default_value = 9
+    L.new(tc.outputs['Object'], blot.inputs['Vector'])
+    mx = N.new('ShaderNodeMath'); mx.operation = 'MULTIPLY'
+    L.new(sc_.outputs['Fac'], mx.inputs[0]); L.new(blot.outputs['Fac'], mx.inputs[1])
+    mr = N.new('ShaderNodeMapRange')
+    mr.inputs['From Min'].default_value = 0.15; mr.inputs['From Max'].default_value = 0.45
+    mr.inputs['To Min'].default_value = 0.05; mr.inputs['To Max'].default_value = 0.12
+    L.new(mx.outputs['Value'], mr.inputs['Value']); L.new(mr.outputs['Result'], bs.inputs['Roughness'])
+    return m
+
+
+def classify(rgb, pname, part=None):
     n = pname.lower()
     if n.startswith('bumper'): return 'fabric'
+    if 'game piece' in n: return 'ball'
+    if part and is_hopper(part.get('sub', '')) and not part.get('hw'):
+        d = sorted(h - l for l, h in zip(part['lo'], part['hi']))
+        if d[0] <= 0.0065 and d[1] > 0.10:            # thin, large sheet = a hopper wall
+            return 'poly'
     if re.search(r'tread|wheel|belt|compliant|roller', n) and not re.search(r'hub|bracket|plate|block', n):
         return 'rubber'
     r, g, b = rgb
@@ -253,7 +296,8 @@ MATS = {
     'grey':    make_mat('robot_grey_plastic', hexrgb('#6d7278'), 0.5, 0.0, 0.05, 400),
     'white':   make_mat('robot_white_plastic', hexrgb('#e9eaec'), 0.45, 0.0, 0.04, 400),
     'rubber':  make_mat('robot_rubber', hexrgb('#161616'), 0.85, 0.0, 0.25, 700),
-    'poly':    make_mat('robot_polycarbonate', hexrgb('#dfe6ec'), 0.08, 0.0, 0.0, 300, trans=0.9),
+    'poly':    make_polycarb(),
+    'ball':    make_mat('robot_foam_ball', hexrgb('#f3c417'), 0.82, 0.0, 0.35, 260, sss=0.08),
     'red':     make_mat('robot_red_anodised', hexrgb('#b3191c'), 0.35, 0.6, 0.03, 900),
     'blue':    make_mat('robot_blue_anodised', hexrgb('#1d5fb5'), 0.35, 0.6, 0.03, 900),
     'orange':  make_mat('robot_orange', hexrgb('#ef7d10'), 0.45, 0.0, 0.04, 400),
@@ -278,11 +322,82 @@ for o in objs:
     pname = info(o).get('name', '')
     keys = []
     for slot in o.material_slots:
-        key = classify(cad_rgb(slot.material) if slot.material else [0.6] * 3, pname)
+        key = classify(cad_rgb(slot.material) if slot.material else [0.6] * 3, pname, info(o))
         slot.link = 'OBJECT'; slot.material = MATS[key]; keys.append(key)
         usage[key] = usage.get(key, 0) + 1
     okey[o.name] = keys[0] if keys else 'alu'
 print('MATERIAL use', usage)
+
+
+# hopper hardware -> clean low-poly proxies built in each CAD part's own frame (button-head screws with
+# shank, hex nuts), so they read through the clear polycarbonate without costing 16k tris each
+def hw_proxy(me, is_screw):
+    V = np.array([v.co[:] for v in me.vertices])
+    lo, hi = V.min(0), V.max(0); dims = hi - lo; c = (lo + hi) / 2
+    ax = int(np.argmax(dims)) if is_screw else int(np.argmin(dims))
+    o1, o2 = [i for i in range(3) if i != ax]
+    bm = bmesh.new()
+
+    def frame(a, r1, r2):                      # axial a, radial offsets -> local point
+        p = c.copy(); p[ax] = a; p[o1] += r1; p[o2] += r2
+        return p
+    if is_screw:
+        a = V[:, ax]; rad = np.hypot(V[:, o1] - c[o1], V[:, o2] - c[o2])
+        L = dims[ax]
+        end_lo = rad[a < lo[ax] + 0.15 * L].max(); end_hi = rad[a > hi[ax] - 0.15 * L].max()
+        head_at_hi = end_hi > end_lo
+        rh = max(end_lo, end_hi); rs = max(min(end_lo, end_hi), 0.0008)
+        big = a[rad > 1.25 * rs]
+        hh = (hi[ax] - big.min()) if head_at_hi else (big.max() - lo[ax])
+        hh = min(max(hh, 0.001), 0.6 * L)
+        sgn = 1 if head_at_hi else -1
+        base = hi[ax] - hh if head_at_hi else lo[ax] + hh
+        tip = lo[ax] if head_at_hi else hi[ax]
+        n = 10
+        rings = [(tip, rs), (base, rs), (base, rh * 0.98), (base + sgn * hh * 0.35, rh),
+                 (base + sgn * hh * 0.75, rh * 0.72), (base + sgn * hh, rh * 0.25)]
+        vs = [[bm.verts.new(frame(z, r * math.cos(2 * math.pi * k / n), r * math.sin(2 * math.pi * k / n)))
+               for k in range(n)] for z, r in rings]
+        for j in range(len(vs) - 1):
+            for k in range(n):
+                bm.faces.new((vs[j][k], vs[j][(k + 1) % n], vs[j + 1][(k + 1) % n], vs[j + 1][k]))
+        bm.faces.new(vs[0][::-1]); bm.faces.new(vs[-1])
+    else:
+        rr = 0.5 * max(dims[o1], dims[o2]) / math.cos(math.pi / 6) * 0.93
+        rr = min(rr, 0.5 * max(dims[o1], dims[o2]))
+        vs = [[bm.verts.new(frame(z, rr * math.cos(math.pi / 3 * k), rr * math.sin(math.pi / 3 * k)))
+               for k in range(6)] for z in (lo[ax], hi[ax])]
+        for k in range(6):
+            bm.faces.new((vs[0][k], vs[0][(k + 1) % 6], vs[1][(k + 1) % 6], vs[1][k]))
+        bm.faces.new(vs[0][::-1]); bm.faces.new(vs[1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    out = bpy.data.meshes.new(me.name + '_proxy'); bm.to_mesh(out); bm.free()
+    for m in me.materials: out.materials.append(m)
+    return out
+
+
+hw_meshes, bad = {}, []
+for o in list(objs):
+    if info(o).get('hw'):
+        if o.data not in hw_meshes:
+            hw_meshes[o.data] = hw_proxy(o.data, 'screw' in info(o)['name'].lower())
+        px = hw_meshes[o.data]
+        pw = np.array([(o.matrix_world @ v.co)[:] for v in px.vertices])
+        lo_, hi_ = np.array(info(o)['lo']), np.array(info(o)['hi'])
+        if (pw.min(0) < lo_ - 0.002).any() or (pw.max(0) > hi_ + 0.002).any():
+            print('   proxy outside CAD box, dropped', info(o)['name'], pw.min(0).round(3), lo_.round(3))
+            bad.append(o); continue
+        o.data = px
+        for s in o.material_slots:
+            s.link = 'OBJECT'; s.material = MATS['darkalu']        # black-oxide steel hardware
+        okey[o.name] = 'hw'
+for o in bad:
+    objs.remove(o); bpy.data.objects.remove(o)
+HW_DATA = set(hw_meshes.values())
+print('HOPPER hardware proxies', sum(1 for o in objs if o.data in HW_DATA), 'objects')
+for o in sorted(objs, key=lambda o: min((o.matrix_world @ v.co).z for v in o.data.vertices))[:4]:
+    print('   lowest part', o.name, info(o).get('name'), info(o).get('sub'),
+          round(min((o.matrix_world @ v.co).z for v in o.data.vertices), 4))
 
 # bumper box + floor (lowest wheel point) in CAD coords
 bump = [o for o in objs if info(o).get('name', '').upper().startswith('BUMPER')]
@@ -355,6 +470,8 @@ def reduce(me, mods):
 
 stats = []
 for me, users in by_mesh.items():
+    if me in HW_DATA:
+        stats.append([me, me, len(users), ntris(me), 1e9]); continue
     m1 = reduce(me, [('WELD', dict(merge_threshold=0.00005)),
                      ('DECIMATE', dict(decimate_type='DISSOLVE', angle_limit=math.radians(1.0)))])
     w = max(hits.get(u.name, 0) for u in users)
@@ -429,6 +546,9 @@ for o in parts:
     o.name = 'Robot_' + mat.name.replace('robot_', ''); me.name = o.name
     for uc in list(o.users_collection): uc.objects.unlink(o)
     col.objects.link(o); o.parent = root
+for o in parts:
+    if o.name.startswith('Robot_polycarbonate'):
+        o.visible_shadow = False          # clear sheet: must not shade the hopper interior like a solid
 zmin, zobj = min((min(v.co.z for v in o.data.vertices), o.name) for o in parts)
 print('LOWEST after decimation %.4f (%s) -> re-seated on z=0' % (zmin, zobj))
 for o in parts: o.data.transform(Matrix.Translation((0, 0, -zmin)))
