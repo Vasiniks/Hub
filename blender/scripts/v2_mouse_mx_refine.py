@@ -371,10 +371,12 @@ log('scan', len(scan.data.polygons), 'tris')
 r = scan.modifiers.new('r', 'REMESH'); r.mode = 'VOXEL'; r.voxel_size = VOXEL; r.adaptivity = 0
 dense = bpy.data.meshes.new_from_object(scan.evaluated_get(bpy.context.evaluated_depsgraph_get()))
 scan.modifiers.remove(r)
-E = edges_np(dense); P = taubin(co(dense), E, 45)
+E = edges_np(dense); P = taubin(co(dense), E, 70)
 # flat base: the scan's underside is lumpy (feet, label plate) -> one plane 0.9 mm up
 zf = 0.9 * mm
 P[:, 2] = np.maximum(P[:, 2], zf)
+Nd = np.empty(len(dense.vertices) * 3); dense.vertices.foreach_get('normal', Nd); Nd = Nd.reshape(-1, 3)
+P[(P[:, 2] < zf + 1.2 * mm) & (Nd[:, 2] < -0.8), 2] = zf           # underside: one clean plane
 dense.vertices.foreach_set('co', P.ravel()); dense.update()
 log('remesh', len(dense.vertices), 'verts')
 shell = bpy.data.objects.new('MouseMX_Shell', dense); sc.collection.objects.link(shell)
@@ -472,8 +474,39 @@ for _ in range(2):
             labels[f.index] = max(set(nb), key=nb.count)
 log('labels', {k: int((labels == v).sum()) for k, v in PART.items()})
 
-# --- 4. seam distance (mm) per vertex: distance to edges between different parts
+# --- 3b. straighten the part lines: tangential smoothing of the seam polylines, re-projected onto
+# the smoothed surface, so every parting line reads as one clean moulded curve.
 def seam_group(l): return 1 if l in (1, 7) else l       # silver chassis and flat base = one part
+sedges = [e for e in bm.edges if len(e.link_faces) == 2 and
+          seam_group(labels[e.link_faces[0].index]) != seam_group(labels[e.link_faces[1].index])]
+nbr = {}
+for e in sedges:
+    a_, b_ = e.verts; nbr.setdefault(a_, []).append(b_); nbr.setdefault(b_, []).append(a_)
+def turn(v):
+    a0 = (nbr[v][0].co - v.co); b0 = (nbr[v][1].co - v.co)
+    if a0.length < 1e-9 or b0.length < 1e-9: return 180.0
+    return 180.0 - math.degrees(a0.angle(b0))
+# corners (turning > 32 deg) and their neighbours stay put; only the scan wobble is smoothed
+corners = {v for v, n in nbr.items() if len(n) != 2 or turn(v) > 32}
+frozen = corners | {w for v in corners for w in nbr[v]}
+movable = [v for v, n in nbr.items() if v not in frozen and not v.is_boundary]
+for it in range(10):
+    for f_ in (0.5, -0.53):                                       # Taubin on the curve: no shrinking
+        newco = {v: v.co + f_ * ((nbr[v][0].co + nbr[v][1].co) / 2 - v.co) for v in movable}
+        for v, c in newco.items():
+            hit = bvh_dense.find_nearest(c)[0]
+            v.co = hit if hit is not None else c
+# relax the ring next to the seams a little so no triangle folds over the moved line
+ring = {w for v in movable for e in v.link_edges for w in (e.other_vert(v),) if w not in nbr}
+for it in range(3):
+    for w in ring:
+        c = sum((e.other_vert(w).co for e in w.link_edges), Vector()) / len(w.link_edges)
+        hit = bvh_dense.find_nearest(w.co.lerp(c, 0.5))[0]
+        if hit is not None: w.co = hit
+bm.normal_update()
+log('seam verts smoothed', len(movable))
+
+# --- 4. seam distance (mm) per vertex: distance to edges between different parts
 seam_edges = []
 for e in bm.edges:
     if len(e.link_faces) == 2:
@@ -497,26 +530,28 @@ log('seam edges', len(seam_edges))
 for v in bm.verts:
     fs = max(v[layers['sideF']], v[layers['sideR']])
     if fs > 0: v.co += v.normal * (0.35 * mm * min(1.0, fs / 0.6))
-MAT_OF = {0: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 1: 1, 7: 2}           # 0 pale, 1 silver, 2 base
+MAT_OF = {0: 0, 2: 0, 3: 0, 4: 4, 5: 4, 6: 4, 1: 1, 7: 2}           # 0 pale, 1 silver, 2 base, 4 buttons
 for f in bm.faces: f.material_index = MAT_OF[int(labels[f.index])]
 bm.to_mesh(me); bm.free()
 a_ = me.attributes.new('seam', 'FLOAT', 'POINT'); a_.data.foreach_set('value', seam.astype(np.float32))
 pa = me.attributes.new('part', 'INT', 'FACE'); pa.data.foreach_set('value', labels.astype(np.int32))
 
 # --- 5. materials
-PALE = srgb(232, 233, 235)          # Logitech "Pale Gray" swatch 236/237/239, a touch down for albedo
-SILVER = srgb(142, 144, 149)
+PALE = srgb(230, 231, 233)          # Logitech "Pale Gray" swatch 236/237/239, a touch down for albedo
+SILVER = srgb(122, 125, 131)        # satin 'space-grey silver' chassis, thumb scoop and thumb-wheel panel
 logo_img, logo_rect = logo_image()
-m_pale = new_mat('MX_PaleGrey', PALE, 0.52, spec=0.45, grain=0.04, logo_img=logo_img)
-m_silver = new_mat('MX_SatinSilver', SILVER, 0.36, metal=0.4, grain=0.02, sparkle=1.0)
-m_base = new_mat('MX_BaseSilver', srgb(160, 162, 166), 0.5, metal=0.5, grain=0.02)
+m_pale = new_mat('MX_PaleGrey', PALE, 0.62, spec=0.4, grain=0.04, logo_img=logo_img)          # matte shell
+m_silver = new_mat('MX_SatinSilver', SILVER, 0.32, metal=0.45, grain=0.02, sparkle=1.0)     # satin metallic
+m_base = new_mat('MX_BaseSilver', srgb(112, 114, 119), 0.5, metal=0.3, grain=0.02)
+m_sidebtn = new_mat('MX_SideButton', srgb(196, 198, 202), 0.5, spec=0.45, grain=0.03)           # side/mode buttons
 m_dark = new_mat('MX_WellDark', srgb(58, 59, 61), 0.6, groove=False)
-m_steel = new_mat('MX_Steel', srgb(205, 206, 208), 0.26, metal=1.0, groove=False, knurl=90, grain=0.01)
-m_steel_t = new_mat('MX_Steel_Thumb', srgb(200, 201, 203), 0.28, metal=1.0, groove=False, knurl=40, grain=0.01)
+m_steel = new_mat('MX_Steel', srgb(150, 152, 156), 0.3, metal=1.0, groove=False, knurl=90, grain=0.01)
+m_steel_t = new_mat('MX_Steel_Thumb', srgb(128, 130, 134), 0.32, metal=1.0, groove=False, knurl=40, grain=0.01)
 m_black = new_mat('MX_BlackPlastic', srgb(24, 24, 25), 0.55, groove=False)
 m_feet = new_mat('MX_Feet', srgb(20, 20, 21), 0.32, groove=False, grain=0.0)
 for m in (m_pale, m_silver, m_base): me.materials.append(m)
 me.materials.append(m_dark)                                        # index 3: boolean walls
+me.materials.append(m_sidebtn)                                     # index 4: side + mode buttons
 
 # --- 6. rebuilt wheels + booleans (positions from the smoothed scan surface)
 def ray(o, dvec):
@@ -608,7 +643,12 @@ def conform(ob, below, above):
         hit = bvh_dense.ray_cast(Vector((w_.x, w_.y, -0.01)), Vector((0, 0, 1)))[0]
         zs_ = hit.z if hit is not None else zf
         v.co = ob.matrix_world.inverted() @ Vector((w_.x, w_.y, zs_ + (above if v.co.z > 1e-6 else -below) * mm))
-for ob_, b_, a_ in ((plate, 0.5, 0.2), (footL, 0.45, 0.35), (footR, 0.45, 0.35)): conform(ob_, b_, a_)
+# flat, rebuilt underside parts (no draping over scan lumps): plate 0.25 mm, feet 0.45 mm proud
+for ob_, below, h_ in ((plate, 0.25, 3.0), (footL, 0.45, 2.0), (footR, 0.45, 2.0)):
+    for v in ob_.data.vertices:
+        v.co.z = (-below if v.co.z < 1e-6 else h_) * mm
+    ob_.matrix_world = Matrix.Translation((ob_.matrix_world.translation.x, ob_.matrix_world.translation.y, zf))
+    for p_ in ob_.data.polygons: p_.use_smooth = False
 pu, nu = ray((7.0, 90, 9.5), (0, -1, 0))
 usb = place(rrect_prism('MouseMX_USBC', 8.6, 2.7, 1.3, 2.0, segs=6), 'MouseMX_USBC', m_black,
             frame(Vector((1, 0, 0)), Vector(nu), pu) @ Matrix.Translation((0, 0, -1.9 * mm)))

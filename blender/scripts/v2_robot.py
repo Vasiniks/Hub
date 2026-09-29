@@ -549,6 +549,7 @@ for o in parts:
 for o in parts:
     if o.name.startswith('Robot_polycarbonate'):
         o.visible_shadow = False          # clear sheet: must not shade the hopper interior like a solid
+        for p in o.data.polygons: p.use_smooth = False       # flat sheets: no interpolated-normal facets
 zmin, zobj = min((min(v.co.z for v in o.data.vertices), o.name) for o in parts)
 print('LOWEST after decimation %.4f (%s) -> re-seated on z=0' % (zmin, zobj))
 for o in parts: o.data.transform(Matrix.Translation((0, 0, -zmin)))
@@ -769,6 +770,12 @@ if not NO_RENDER:
             o = stack.pop(); retire.append(o.name); stack.extend(o.children)
             o.hide_render = True; o.hide_viewport = True
     print('RETIRE', sorted(retire))
+    prev = bpy.data.collections.get('NEW_robot')          # an earlier integrated build of this robot
+    if prev:
+        for o in list(prev.objects):
+            if o is not None:
+                o.hide_render = True; o.hide_viewport = True
+        prev.hide_render = True
     with bpy.data.libraries.load(OUT, link=False) as (src, dst):
         dst.collections = ['NEW_robot']
     sc.collection.children.link(dst.collections[0])

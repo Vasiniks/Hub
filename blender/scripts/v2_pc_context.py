@@ -8,7 +8,7 @@ Writes parts/pc_room_seat.png (seated viewer turned toward the PC) and parts/pc_
 import bpy
 import os
 import sys
-from mathutils import Vector as V
+from mathutils import Vector as V, Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PARTS = os.path.abspath(os.path.join(HERE, '..', 'scene', 'parts'))
@@ -26,6 +26,13 @@ if old is not None:
 with bpy.data.libraries.load(os.path.join(PARTS, 'pc.blend'), link=False) as (src, dst):
     dst.collections = ['NEW_pc']
 scene.collection.children.link(dst.collections[0])
+# desk clutter the orchestrator relocates (organizer, bins, plush, loose parts) where the PC now stands
+for o in scene.objects:
+    if o.type in ('MESH', 'CURVE') and not any(c.name.startswith('NEW_pc') for c in o.users_collection):
+        pts = [o.matrix_world @ Vector(c) for c in o.bound_box]
+        cc = sum(pts, Vector()) / 8
+        if 0.50 < cc.x < 0.99 and 0.81 < cc.y < 1.13 and 0.735 < cc.z < 1.25 and max(p.z for p in pts) - min(p.z for p in pts) < 0.5:
+            o.hide_render = True
 tote = bpy.data.objects.get('Node_380')
 for o in ([tote] + list(tote.children_recursive)) if tote else []:
     o.hide_render = True
