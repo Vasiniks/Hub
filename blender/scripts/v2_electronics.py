@@ -215,6 +215,10 @@ def std_mats():
     pbr('graphite', (0.12, 0.12, 0.13), 0.35, 0.45)
     pbr('ferrule', (0.86, 0.76, 0.42), 0.3, 1.0, rvar=0.06)
     pbr('eraser', (0.95, 0.56, 0.56), 0.8, bump=0.3, bscale=2500, sss=0.1)
+    pbr('chrome', (0.90, 0.90, 0.91), 0.12, 1.0, rvar=0.03)
+    pbr('rot_pearl', (0.93, 0.92, 0.89), 0.34, coat=0.35, coat_rough=0.2, rvar=0.05, bump=0.04, bscale=6000,
+        bdist=0.00002)
+    knurl_mat()
 
 
 def braid_mat():
@@ -366,6 +370,56 @@ def coffee_mat():
     nt.links.new(h, bp.inputs['Height'])
     nt.links.new(bp.outputs['Normal'], b.inputs['Normal'])
     return name
+
+
+def knurl_mat():
+    """chrome with a diamond knurl bump around the pencil axis (object X)."""
+    name = 'knurl_chrome'
+    if name in MATS:
+        return name
+    m, nt, b = new_mat(name)
+    setin(b, 'Base Color', (*lin((0.86, 0.86, 0.87)), 1))
+    setin(b, 'Metallic', 1.0)
+    setin(b, 'Roughness', 0.26)
+    tc = node(nt, 'ShaderNodeTexCoord', (-1400, 0))
+    sx = node(nt, 'ShaderNodeSeparateXYZ', (-1200, 0))
+    nt.links.new(tc.outputs['Object'], sx.inputs[0])
+    th = math_n(nt, 'ARCTAN2', sx.outputs[2], sx.outputs[1])
+    arc = math_n(nt, 'MULTIPLY', th, 0.0039)
+    k = 2 * math.pi / 0.00075
+    a = math_n(nt, 'SINE', math_n(nt, 'MULTIPLY', math_n(nt, 'ADD', sx.outputs[0], arc), k))
+    c = math_n(nt, 'SINE', math_n(nt, 'MULTIPLY', math_n(nt, 'SUBTRACT', sx.outputs[0], arc), k))
+    h = math_n(nt, 'ABSOLUTE', math_n(nt, 'MULTIPLY', a, c))
+    bp = node(nt, 'ShaderNodeBump', (-200, -200), Strength=1.0, Distance=0.00012)
+    nt.links.new(h, bp.inputs['Height'])
+    nt.links.new(bp.outputs['Normal'], b.inputs['Normal'])
+    return name
+
+
+def sticky_texture():
+    cv = Canvas(76.0, 76.0, 10.0)
+    rng = random.Random(9)
+    for li, y in enumerate((20.0, 12.0, 4.0, -4.0, -13.0)):
+        x = -30.0
+        while True:
+            wl = rng.uniform(6.0, 15.0)
+            if x + wl > 30.0 - (12 if li == 4 else 0):
+                break
+            scribble(cv, x, y, wl, 2.1, rng, rng.uniform(0.45, 0.65), 0.34)
+            x += wl + rng.uniform(2.5, 3.5)
+    cv.poly('ink', [(-30.0, 1.5), (-6.0, 1.0)], 0.3, val=0.5)
+    H, W = cv.H, cv.W
+    ink = np.clip(cv.layer('ink'), 0, 1)
+    tooth = np.random.RandomState(4).rand(H, W).astype(np.float32)
+    ink = ink * (0.6 + 0.4 * tooth)
+    base = np.array((0.99, 0.93, 0.56), np.float32)
+    ys = np.linspace(0, 1, H)[:, None, None]
+    col = base * (1 + 0.015 * (tooth[..., None] - 0.5)) * (0.97 + 0.03 * ys)
+    col = col * (1 - ink[..., None]) + np.array((0.36, 0.36, 0.38), np.float32) * ink[..., None]
+    dat = np.stack([0.5 + 0.1 * (tooth - 0.5) - 0.12 * ink, 0.82 - 0.4 * ink, ink * 0.1], -1)
+    ic = make_image('elec_sticky_col', col)
+    idt = make_image('elec_sticky_dat', dat, noncolor=True)
+    return image_mat('sticky_yellow_written', ic, idt, bump_dist=0.0001, sss=0.05, rnoise=0.02)
 
 
 def paper_edge_mat():
@@ -2084,40 +2138,100 @@ def build_notes(coll, parent):
         path.append(V((x0 + (x1 - x0) * t, cy + R * math.cos(a), czc + R * math.sin(a))))
     sweep(mb, path, circle2(0.55, 6), 'spiral_wire', up=(1, 0, 0))
     o1 = mb.finish(parent, coll, sharp=40)
-    # pencil: hexagonal, lacquered, sharpened (scalloped paint edge), crimped ferrule + eraser. Axis +x.
-    pm = MB('elec_pencil')
-    Lb, cone, Rc = 152.0, 19.0, 4.04
-    hexp = []
+    # ---------------------------------------------------------------- sticky notes (76 x 76 mm)
+    def sheet_z(x, y):
+        v = (y + H_ / 2 - 0.2) / (H_ - 1.4)
+        z = ztop + 0.24 + 0.05
+        d = math.hypot(x - W_ / 2, y + H_ / 2)
+        if d < 55.0:
+            z += 4.6 * (1 - d / 55.0) ** 2.2
+        return z + 0.16 * math.sin(x * 0.045) * math.sin(y * 0.03 + 1.3) * (1 - v)
+
+    sn = MB('elec_sticky_notes')
+    m_sticky = sticky_texture()
+    pbr('sticky_pink', (0.98, 0.74, 0.82), 0.8, bump=0.25, bscale=2500, sss=0.05)
+    pbr('sticky_mint', (0.74, 0.93, 0.82), 0.8, bump=0.25, bscale=2500, sss=0.05)
+    notes_spec = [  # (cx, cy, rot, material, on_page, curl mm, z extra)
+        (28.0, -40.0, -7.0, 'sticky_pink', True, 1.6, 0.0),
+        (30.0, 36.0, 5.0, m_sticky, True, 2.6, 0.1),
+        (-150.0, 40.0, -14.0, 'sticky_mint', False, 3.2, 0.0),
+    ]
+    for cx, cy, rot, mat, on_page, curl, zx in notes_spec:
+        n = 10
+        c, s_ = math.cos(math.radians(rot)), math.sin(math.radians(rot))
+        top, bot = [], []
+        for j in range(n + 1):
+            rt, rb = [], []
+            for i in range(n + 1):
+                a, b = -38 + 76 * i / n, -38 + 76 * j / n
+                xp, yp = cx + a * c - b * s_, cy + a * s_ + b * c
+                base = sheet_z(xp, yp) + 0.06 if on_page else 0.0
+                # glued strip along the top 15 mm; the free edge lifts and one corner curls a little more
+                lift = curl * max(0.0, (22.0 - b) / 60.0) ** 2.2 + 0.35 * curl * max(0.0, (a - 20) / 18.0) ** 2 * \
+                    max(0.0, (10 - b) / 48.0)
+                z = base + 0.09 + lift + zx
+                rt.append((xp, yp, z))
+                rb.append((xp, yp, z - 0.09))
+            top.append(rt)
+            bot.append(rb)
+        vt = [sn.verts(r) for r in top]
+        vb = [sn.verts(r) for r in bot]
+        for j in range(n):
+            for i in range(n):
+                uv = [(i / n, j / n), ((i + 1) / n, j / n), ((i + 1) / n, (j + 1) / n), (i / n, (j + 1) / n)]
+                sn.face([vt[j][i], vt[j][i + 1], vt[j + 1][i + 1], vt[j + 1][i]], mat, True, uv)
+                sn.face([vb[j][i], vb[j + 1][i], vb[j + 1][i + 1], vb[j][i + 1]], mat, True)
+        border = [(0, i) for i in range(n + 1)] + [(j, n) for j in range(1, n + 1)] + \
+                 [(n, i) for i in range(n - 1, -1, -1)] + [(j, 0) for j in range(n - 1, 0, -1)]
+        for k in range(len(border)):
+            (j0, i0), (j1, i1) = border[k], border[(k + 1) % len(border)]
+            sn.face([vb[j0][i0], vb[j1][i1], vt[j1][i1], vt[j0][i0]], mat, True)
+    o_sn = sn.finish(parent, coll, sharp=60)
+    # ---------------------------------------------------------------- rOtring 600 (Pearl White), 0.5 mm
+    # Axis +x from the lead tip (x=0) to the push button; hexagonal brass barrel, knurled round grip.
+    pm = MB('elec_rotring600')
+    RY = Ry(90)
+    revolve(pm, [(0.0, -0.75), (0.25, -0.75), (0.25, 0.0)], 8, 'graphite', RY)
+    revolve(pm, [(0.2, 0.0), (0.45, 0.0), (0.45, 3.6), (0.55, 3.9), (0.95, 4.0)], 12, 'chrome', RY)
+    cone = [(0.95, 4.0), (1.25, 4.6), (2.2, 8.0), (3.1, 11.6), (3.55, 13.6), (3.62, 14.0), (3.45, 14.3), (3.45, 14.7),
+            (3.7, 15.0)]
+    revolve(pm, cone, 32, 'chrome', RY)
+    grip = [(3.7, 15.0), (3.9, 15.4), (3.9, 39.4), (3.75, 39.8), (3.75, 40.4), (3.98, 40.7)]
+    revolve(pm, grip, 40, 'chrome', RY, mats=['chrome', 'knurl_chrome', 'chrome', 'chrome', 'chrome'])
+    # hexagonal barrel (8 mm across flats, softened corners)
+    Rh = 4.0 / math.cos(math.radians(30))
+    hexl = []
     for k in range(6):
         a0 = math.radians(60 * k)
         for s in range(-2, 3):
-            a = a0 + math.radians(s * 9.0)
-            p = V((math.cos(a0), math.sin(a0))) * (Rc - 0.55) + V((math.cos(a), math.sin(a))) * 0.5
-            hexp.append((p.x, p.y))
-    hexp_r = [math.hypot(x, y) for x, y in hexp]
-    xc0 = Lb - cone
-    xs = [2.0, 40.0, 80.0, 120.0, xc0] + [xc0 + cone * (1 - (1 - (i + 1) / 22) ** 1.4) for i in range(22)]
-    loops, mats = [], []
-    for x in xs:
-        rcone = Rc * (1 - (x - xc0) / cone) if x > xc0 else 99.0
-        loops.append([(x, px * min(1.0, max(rcone, 0.03) / r), py * min(1.0, max(rcone, 0.03) / r))
-                      for (px, py), r in zip(hexp, hexp_r)])
-    for i in range(len(xs) - 1):
-        xm = (xs[i] + xs[i + 1]) / 2
-        rcone = Rc * (1 - (xm - xc0) / cone) if xm > xc0 else 99.0
-        mats.append('graphite' if rcone < 1.05 else ('wood' if rcone < Rc * 0.985 else 'pencil_paint'))
-    k = pm.mark()
-    loft(pm, loops, 'pencil_paint', None, mats=mats, cap0=True, cap1=True, capmat='graphite', cap0mat='wood')
-    pm.recalc(k)
-    fprof = [(0.0, -10.5), (3.7, -10.5), (3.95, -10.3), (4.12, -9.9)]
-    for zz in (-8.2, -7.0, -3.5, -2.3):
-        fprof += [(4.12, zz - 0.35), (3.96, zz), (4.12, zz + 0.35)]
-    fprof += [(4.12, 0.2), (3.95, 0.5), (3.55, 0.5)]
-    revolve(pm, fprof, 32, 'ferrule', T(4.5, 0, 0) @ Ry(90))
-    revolve(pm, [(0.0, -16.65), (1.4, -16.6), (2.6, -16.3), (3.3, -15.5), (3.5, -14.2), (3.5, -10.4)], 24,
-            'eraser', T(4.5, 0, 0) @ Ry(90))
+            a = a0 + math.radians(s * 10.0)
+            p = V((math.cos(a0), math.sin(a0))) * (Rh - 0.6) + V((math.cos(a), math.sin(a))) * 0.52
+            hexl.append((p.x, p.y))
+    xs_h = [40.7, 41.3, 70.0, 100.0, 117.6]
+    k0 = pm.mark()
+    loft(pm, [[(x, py * sc, pz * sc) for py, pz in hexl] for x, sc in
+              zip(xs_h, (0.93, 1.0, 1.0, 1.0, 1.0))], 'rot_pearl', None, cap0=True, cap1=True)
+    pm.recalc(k0)
+    # lead-grade indicator band with its window, then the chrome top cone, clip ring and push button
+    revolve(pm, [(3.9, 117.4), (4.3, 117.6), (4.3, 121.6), (3.9, 121.8)], 36, 'chrome', RY)
+    k0 = pm.mark()
+    slab(pm, 'port_dark', T(119.6, 0.0, 4.22), 2.2, 1.6, 0.12, rc=0.3, seg=2)
+    pm.recalc(k0)
+    k0 = pm.mark()
+    loft(pm, [[(x, py * sc, pz * sc) for py, pz in hexl] for x, sc in ((121.8, 1.0), (126.0, 1.0), (126.6, 0.93))],
+         'rot_pearl', None, cap0=True, cap1=True)
+    pm.recalc(k0)
+    revolve(pm, [(3.6, 126.5), (4.15, 126.7), (4.15, 131.2), (3.3, 132.6), (3.0, 133.0)], 36, 'chrome', RY)
+    revolve(pm, [(2.85, 133.0), (2.85, 139.8), (2.6, 140.9), (1.8, 141.6), (0.0, 141.8)], 28, 'chrome', RY)
+    # clip: spring-steel strip off the top flat, with a rounded bead at its free end
+    clip = [V((129.5, 0.0, 4.2)), V((127.5, 0.0, 5.3)), V((124.0, 0.0, 5.55)), V((105.0, 0.0, 5.25)),
+            V((92.0, 0.0, 4.95)), V((89.5, 0.0, 4.55))]
+    path, _ = spline(clip, 0.8)
+    sweep(pm, path, [(p[0], p[1]) for p in rr(3.2, 0.9, 0.35, 2)], 'chrome', up=(0, 1, 0), cap0=True, cap1=True)
+    revolve(pm, [(0.0, -0.9), (0.8, -0.75), (1.1, 0.0), (0.8, 0.75), (0.0, 0.9)], 12, 'chrome',
+            T(90.2, 0.0, 4.55))
     o2 = pm.finish(parent, coll, sharp=35)
-    return [o1, o2]
+    return [o1, o2, o_sn]
 
 
 # ============================================================================ assemble
@@ -2162,10 +2276,10 @@ def main():
     notes = build_notes(coll, e)
     # pencil lies on the pad, resting on its ferrule and graphite tip
     pen = notes[1]
-    ptop = 8.35 + 0.25 + 0.05
-    tilt = math.asin((4.12 - 0.3) / 152.0)
+    ptop = 8.35 + 0.24 + 0.05 + 0.1
     pen.matrix_parent_inverse = Matrix.Identity(4)
-    pen.matrix_basis = T(-0.004, -0.088, (ptop + 4.12) * MM) @ Rz(76) @ Ry(math.degrees(tilt))
+    # rests on a hex flat (apothem 4.0), clip up, along the page's left side
+    pen.matrix_basis = T(-0.052, -0.078, (ptop + 4.0) * MM) @ Rz(79)
     objs['notes'] = notes
     # ------------------------------------------------------------------ report
     tot = 0
@@ -2206,7 +2320,7 @@ def previews(scene, coll):
     for o in dst.objects:
         if o is None:
             continue
-        if o.type in ('LIGHT', 'CAMERA') or o.name in retire or o.hide_render:
+        if o.type in ('LIGHT', 'CAMERA') or o.name in retire or o.hide_render or o.name.startswith(('elec_', 'NEW_electronics')):
             bpy.data.objects.remove(o, do_unlink=True)
             continue
         ctx.objects.link(o)
@@ -2282,7 +2396,8 @@ def previews(scene, coll):
         'pico': ((0.80, 0.93, 0.80), (0.69, 1.045, 0.746), 46),
         'hub': ((0.33, 0.78, 0.84), (0.27, 0.92, 0.745), 34),
         'mug': ((0.62, 0.33, 0.92), (0.722, 0.462, 0.77), 50),
-        'notes': ((-0.40, 0.22, 1.02), (-0.52, 0.52, 0.745), 32),
+        'notes': ((-0.42, 0.24, 1.00), (-0.55, 0.52, 0.745), 28),
+        'rotring': ((-0.46, 0.40, 0.84), (-0.556, 0.49, 0.748), 40),
         'seat': ((0.0, -0.16, 1.175), (0.12, 0.75, 0.74), 16),
     }
     for key, (loc, tgt, lens) in views.items():

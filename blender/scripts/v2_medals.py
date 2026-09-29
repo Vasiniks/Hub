@@ -234,18 +234,24 @@ def ribbon_rows(ctrl):
 
 # =============================================================================== specs
 # d: exit direction in collar frame ('b' = long face toward the seat, 'a' = far round end)
+_TS = [float(a.split('=')[1]) for a in ARGS if a.startswith('tstag=')]
+T_STAG = _TS[0] if _TS else 0.0
+_AK = [float(a.split('=')[1]) for a in ARGS if a.startswith('ampk=')]
+AMP_K = _AK[0] if _AK else 0.5          # half swing: neighbours on the 30 mm pitch stay >= 1.7 mm apart
+T_M1, T_M2, T_M3, T_M4 = T_STAG, -T_STAG, T_STAG, -T_STAG
 SPECS = [
-    # Spread along the lamp's long horizontal head bar (s = along the bar, + toward its free tip /
-    # the seat; t = crimp offset across it; drop = crimp top below the bar underside). 37 mm pitch
-    # keeps the 29 mm crimps clear while they sway. Nearest the seat hangs shortest, so they cascade.
-    dict(name='m1', s=0.140, t=0.021, drop=0.080, R=0.0205 * 1.2, metal='gold', relief='blank',
-         cols=[0, .34, .66, 1], bands=['blue', 'blue', 'blue'], twA=8, twB=-5, rot90=True),
-    dict(name='m2', s=0.103, t=0.007, drop=0.109, R=0.0195 * 1.2, metal='silver', relief='blank',
-         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], twA=-6, twB=10, rot90=True),
-    dict(name='m3', s=0.066, t=-0.007, drop=0.138, R=0.0195 * 1.2, metal='silver', relief='blank',
-         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], twA=11, twB=-7, rot90=True),
-    dict(name='m4', s=0.029, t=-0.021, drop=0.167, R=0.0195 * 1.2, metal='silver', relief='blank',
-         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], twA=-8, twB=6, rot90=True),
+    # On the lamp's short neck (145 mm between the knuckle and the head rim): s = centre along the neck
+    # from the knuckle surface, 30 mm pitch for the 27 mm ribbons (3 mm gaps; crimps sit at different
+    # heights so their 29 mm width never meets). Each medal (49 mm, facing the seat) reaches ~20 mm along
+    # the neck, so drops step down toward the head: every neighbour's crimp ends above the next medal.
+    dict(name='m1', s=0.1255, t=T_M1, drop=0.148, R=0.0205 * 1.2, metal='gold', relief='blank',
+         cols=[0, .34, .66, 1], bands=['blue', 'blue', 'blue'], twA=6, twB=-4, rot90=False),
+    dict(name='m2', s=0.0955, t=T_M2, drop=0.122, R=0.0195 * 1.2, metal='silver', relief='blank',
+         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], twA=-5, twB=7, rot90=False),
+    dict(name='m3', s=0.0655, t=T_M3, drop=0.096, R=0.0195 * 1.2, metal='silver', relief='blank',
+         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], twA=7, twB=-5, rot90=False),
+    dict(name='m4', s=0.0355, t=T_M4, drop=0.070, R=0.0195 * 1.2, metal='silver', relief='blank',
+         cols=[0, .34, .66, 1], bands=['red', 'red', 'red'], twA=-6, twB=4, rot90=False),
 ]
 RIBBON_HEX = dict(blue='#1d3a8a', white='#e9e7e0', red='#a81c26', gold='#d9a92e', green='#17613a')
 
@@ -620,21 +626,16 @@ def build():
     meas = measure(refc)
 
     # ------------------------------------------------------------------ head bar frame
-    # The lamp's top horizontal bar is its head: an elongated flat blade. Frame: s along the bar
-    # (toward its free tip, which points at the seat), t across it, z up.
-    headv = [Vector(v) for n in ('lamp_head', 'lamp_head_trim', 'lamp_diffuser_bezel', 'lamp_diffuser_disc')
-             for v in meas['ref'][n]['verts']]
-    hv = [Vector(v) for v in meas['ref']['lamp_head']['verts']]
-    hc = Vector((sum(v.x for v in hv) / len(hv), sum(v.y for v in hv) / len(hv)))
-    sxx = sum((v.x - hc.x) ** 2 for v in hv)
-    syy = sum((v.y - hc.y) ** 2 for v in hv)
-    sxy = sum((v.x - hc.x) * (v.y - hc.y) for v in hv)
-    ang = 0.5 * math.atan2(2 * sxy, sxx - syy)
-    a2 = Vector((math.cos(ang), math.sin(ang)))
-    if a2.dot(SEAT.to_2d() - hc) < 0:
-        a2 = -a2
+    # The medals hang on the lamp's short straight horizontal neck (knuckle -> round head).
+    # Frame: s along the neck from the knuckle surface toward the head, t across it, z up.
+    with open(os.path.join(PARTS, 'lamp_meta.json')) as f:
+        LM = json.load(f)
+    headv = [Vector(v) for v in meas['ref']['lamp_neck']['verts']]
+    hc = Vector(LM['neck_start']).to_2d()
+    a2 = Vector(LM['neck_dir']).to_2d().normalized()
     b2 = Vector((-a2.y, a2.x))
     a3, b3 = a2.to_3d(), b2.to_3d()
+    neck_span = (Vector(LM['neck_end']) - Vector(LM['neck_start'])).length
 
     def to_w(s, t, z):
         return Vector((hc.x, hc.y, 0)) + a3 * s + b3 * t + Z * z
@@ -1027,10 +1028,11 @@ def build():
 
     # ------------------------------------------------------------------ sway animation
     rig.animation_data_create()
-    phases = [0.0, 2.2, 4.1, 1.2]
+    # neighbours sway nearly together (a shared draft), so adjacent medals never close on each other
+    phases = [0.0, 0.45, 0.9, 1.35]
     # (swing about the across-bar axis, swing about the bar axis, medal twist, medal lag) in degrees
-    amp = {'m1': (0.35, 1.6, 5.0, 0.6), 'm2': (0.3, 1.4, 4.5, 0.5), 'm3': (0.4, 1.7, 5.5, 0.6),
-           'm4': (0.3, 1.4, 5.0, 0.5)}
+    amp = {'m1': (0.25, 1.6, 5.0, 0.5), 'm2': (0.2, 1.4, 4.5, 0.4), 'm3': (0.25, 1.7, 5.5, 0.5),
+           'm4': (0.2, 1.4, 5.0, 0.4)}
     for pb in rig.pose.bones:
         pb.rotation_mode = 'QUATERNION'
     for f in range(0, LOOP_FRAMES + 1, 2):
@@ -1038,6 +1040,7 @@ def build():
         for i, rd in enumerate(rib_data):
             nm = rd['spec']['name']
             A_side, A_io, A_tw, A_lag = amp[nm]
+            A_io, A_tw, A_lag = A_io * AMP_K, A_tw * AMP_K, A_lag * AMP_K
             ph = phases[i]
             side = A_side * (math.sin(t + ph) + 0.22 * math.sin(2 * t + 1.3 * ph + 0.7))
             io = A_io * math.sin(t + ph + 1.1)
@@ -1063,7 +1066,8 @@ def build():
 
     # clearance to the lamp arm (lamp003 = arm bars, collar, stem) across the sway loop
     from mathutils.bvhtree import BVHTree
-    fixed_parts = ('lamp_arm', 'lamp_column', 'lamp_collar_pivot', 'lamp_head_hinge', 'lamp_base')
+    fixed_parts = ('lamp_column', 'lamp_knuckle', 'lamp_head', 'lamp_diffuser_bezel', 'lamp_diffuser_disc',
+                   'lamp_base')
     av, af = [], []
     for n in fixed_parts:
         lv = meas['ref'][n]
@@ -1084,6 +1088,7 @@ def build():
             worst[o.name] = min(worst.get(o.name, 1.0), dmin)
     # hardware-to-hardware gaps between neighbouring lanyards across the sway
     gap = 1.0
+    gap_pair = None
     hw_objs = [o for o in objs if o.name.endswith(('_clasp', '_disc', '_ribbon'))]
     for f in range(0, LOOP_FRAMES, 8):
         scene.frame_set(f)
@@ -1101,10 +1106,13 @@ def build():
             for j in range(len(names)):
                 if names[i].split('_')[1] == names[j].split('_')[1]:
                     continue
-                gap = min(gap, min(trees[names[j]][1].find_nearest(v)[3] for v in trees[names[i]][0]))
-    print(f'CLEARANCE between different lanyards over the loop: {gap * 1000:.1f} mm')
+                gd = min(trees[names[j]][1].find_nearest(v)[3] for v in trees[names[i]][0])
+                if gd < gap:
+                    gap = gd
+                    gap_pair = (names[i], names[j], f)
+    print(f'CLEARANCE between different lanyards over the loop: {gap * 1000:.1f} mm {gap_pair}')
     scene.frame_set(0)
-    print('CLEARANCE to arm/column/hinge/base (mm)', {k: round(v * 1000, 1) for k, v in worst.items()})
+    print('CLEARANCE to column/knuckle/head/diffuser/base (mm)', {k: round(v * 1000, 1) for k, v in worst.items()})
     total = sum(tris.values())
     print('TRIS', total, json.dumps(tris))
     return dict(scene=scene, coll=coll, work=work, refc=refc, rib=rib_data, hw=hw_info, root=root, rig=rig,

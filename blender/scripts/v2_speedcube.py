@@ -57,7 +57,14 @@ HB = PITCH / 2 - GAP / 2  # half size of one piece
 CAP = 0.0016             # colour-cap thickness (the colour carries down the piece sides this far)
 RT = 0.0009              # rounded top edge of every cap
 EDGE_E = 0.00005         # cap footprint inset from the piece outline (keeps walls off the body)
-BODY_R = 0.0004          # grey body edge radius
+# Interior (owner: no flat grey grid in the gaps). Under each cap the piece carries on as a
+# grey skirt of the same outline, which then curls in toward the core; below that sits a
+# heavily rounded inner block pulled back from the seams, and a spherical core fills the middle.
+SKIRT = 0.0010           # straight grey wall below the coloured cap
+CURL = 0.0015            # radius of the skirt's inward curl toward the core
+IN_INSET = 0.0006        # inner block pulled back from each seam
+BLOCK_R = 0.0020         # inner block edge radius
+CORE_R = 0.80 * (0.0555 / 3)   # core sphere
 # Plan radii measured off the owner's straight-on photo (cube_logo_ref.png, ~7.6 px/mm):
 R_S = 0.0011             # ordinary tile corner
 R_E = 0.0056             # edge-piece corners that touch the centre (~43 px)
@@ -66,7 +73,7 @@ R_CEN = 0.0058           # rounded-square centre cap (~44 px)
 CEN_INSET = 0.0001       # centre cap is practically as wide as the tiles
 LOGO_TEX = os.path.join(PARTS, 'cube_logo_18.png')   # from v2_speedcube_logo.py
 LOGO_SIZE = 0.0150       # decal square edge: 114 px of the photo's 140 px pitch -> 15.0 mm
-K = 6                    # arc segments per plan corner
+K_BIG, K_SMALL = 9, 4    # arc segments per plan corner (big-radius / ordinary corners)
 TURN_U = math.radians(3.0)
 
 # WCA orientation: U white, F green (-Y here, toward the viewer after the yaw).
@@ -168,14 +175,18 @@ assert all(v == 9 for v in allc.values()) and len(allc) == 6
 
 
 # ----------------------------------------------------------------------------- geometry helpers
-def rrect(A, B, radii, k=K):
-    """Rounded rectangle, CCW from quadrant (+,+); radii per quadrant (++, -+, --, +-)."""
+def rrect(A, B, radii, k=None, base=None):
+    """Rounded rectangle, CCW from quadrant (+,+); radii per quadrant (++, -+, --, +-).
+    Segment count per corner follows the corner's nominal radius (`base`), so offset rings of
+    one cap keep the same point count while big corners get finer arcs than small ones."""
+    radii0 = base if base is not None else radii
     pts = []
     for q, (sx, sy) in enumerate(((1, 1), (-1, 1), (-1, -1), (1, -1))):
         r = max(1e-5, min(radii[q], A - 1e-6, B - 1e-6))
         cx, cy = sx * (A - r), sy * (B - r)
-        for i in range(k + 1):
-            a = math.radians(90 * q + 90 * i / k)
+        kq = k if k is not None else (K_BIG if radii0[q] >= 0.003 else K_SMALL)
+        for i in range(kq + 1):
+            a = math.radians(90 * q + 90 * i / kq)
             pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
     return pts
 
@@ -217,13 +228,15 @@ def add_cap(bm, idx, n, slot):
     half = HB - EDGE_E - (CEN_INSET if cu == 0 and cv == 0 else 0.0)
     plane = c + n * HB  # the face plane of this piece (flush with the cube face)
 
-    profile = [(0.0, -CAP - 0.0002), (0.0, -RT)]
+    c45 = math.sqrt(0.5)
+    profile = [(CURL, -CAP - SKIRT - CURL), (CURL * (1 - c45), -CAP - SKIRT - CURL * c45),
+               (0.0, -CAP - SKIRT), (0.0, -CAP), (0.0, -RT)]
     for i in range(1, 5):
         t = math.radians(90 * i / 4)
         profile.append((RT * (1 - math.cos(t)), -RT + RT * math.sin(t)))
-    rings2d = [(rrect(half - d, half - d, [r - d for r in radii]), z) for d, z in profile]
+    rings2d = [(rrect(half - d, half - d, [r - d for r in radii], base=radii), z) for d, z in profile]
     top_pts, _ = rings2d[-1]
-    for s in (0.72, 0.45, 0.2):
+    for s in (0.6, 0.25):
         rings2d.append(([(x * s, y * s) for x, y in top_pts], 0.0))
 
     def to3d(x, y, z):
@@ -232,13 +245,17 @@ def add_cap(bm, idx, n, slot):
         return p + n * (bulge(p, n) * w)
 
     rings = [[bm.verts.new(to3d(x, y, z)) for x, y in pts] for pts, z in rings2d]
+    zs = [z for _, z in rings2d]
     centre = bm.verts.new(to3d(0.0, 0.0, 0.0))
     m = len(rings[0])
     faces = []
-    for a_, b_ in zip(rings[:-1], rings[1:]):
+    grey = []
+    for k, (a_, b_) in enumerate(zip(rings[:-1], rings[1:])):
         for i in range(m):
             j = (i + 1) % m
             faces.append(bm.faces.new((a_[i], a_[j], b_[j], b_[i])))
+            if zs[k + 1] <= -CAP + 1e-9:
+                grey.append(faces[-1])
     last = rings[-1]
     for i in range(m):
         faces.append(bm.faces.new((last[i], last[(i + 1) % m], centre)))
@@ -250,20 +267,26 @@ def add_cap(bm, idx, n, slot):
     for f in faces:
         f.material_index = slot
         f.smooth = True
+    for f in grey:
+        f.material_index = 0
 
 
 def add_body(bm, idx):
+    """Rounded inner block: tucked under the skirts outside, pulled back from the seams inside."""
     lo, hi = [], []
+    tuck = HB - CAP - SKIRT - 0.6 * CURL
     for a in range(3):
         c = idx[a] * PITCH
-        lo.append(c - (HB - CAP if idx[a] == -1 else HB))
-        hi.append(c + (HB - CAP if idx[a] == 1 else HB))
+        lo.append(c - (tuck if idx[a] == -1 else HB - IN_INSET))
+        hi.append(c + (tuck if idx[a] == 1 else HB - IN_INSET))
     tmp = bmesh.new()
     bmesh.ops.create_cube(tmp, size=1.0)
     for vert in tmp.verts:
         vert.co = Vector([lo[a] + (vert.co[a] + 0.5) * (hi[a] - lo[a]) for a in range(3)])
-    bmesh.ops.bevel(tmp, geom=list(tmp.edges), offset=BODY_R, segments=2, affect='EDGES',
+    bmesh.ops.bevel(tmp, geom=list(tmp.edges), offset=BLOCK_R, segments=2, affect='EDGES',
                     profile=0.5, clamp_overlap=True)
+    for f in tmp.faces:
+        f.smooth = True
     me = bpy.data.meshes.new('tmp_body')
     tmp.to_mesh(me)
     tmp.free()
@@ -341,6 +364,18 @@ for idx in CUBIES:
     coll.objects.link(ob)
     pieces[idx] = ob
 
+# ---- core: the sphere the pieces ride on (fills the middle so no gap looks straight through)
+cbm = bmesh.new()
+bmesh.ops.create_uvsphere(cbm, u_segments=24, v_segments=14, radius=CORE_R)
+for f in cbm.faces:
+    f.smooth = True
+core_me = bpy.data.meshes.new('NEW_speedcube_core')
+cbm.to_mesh(core_me)
+cbm.free()
+core_me.materials.append(MATS['body'])
+core = bpy.data.objects.new('NEW_speedcube_core', core_me)
+coll.objects.link(core)
+
 # ---- anniversary emblem on the white centre: decal from the owner's photo
 # In the photo (white face toward the camera, orange edge at top, red at bottom, green left,
 # blue right) the "18" reads upright, so in the solved frame its right is +Y and its up is -X.
@@ -415,12 +450,12 @@ emblem.matrix_basis = pieces[(0, 0, 1)].matrix_basis.copy()
 bpy.context.view_layer.update()
 min_z = min((ob.matrix_world @ vv.co).z for ob in pieces.values() for vv in ob.data.vertices)
 lift = -min_z
-for ob in list(pieces.values()) + [emblem]:
+for ob in list(pieces.values()) + [emblem, core]:
     ob.matrix_basis = Matrix.Translation((0, 0, lift)) @ ob.matrix_basis
     ob.parent = root
     ob.matrix_parent_inverse = Matrix.Identity(4)
 
-for ob in list(pieces.values()) + [emblem]:
+for ob in list(pieces.values()) + [emblem, core]:
     lib.activate(ob)
     try:
         bpy.ops.object.shade_smooth_by_angle(angle=math.radians(40))
@@ -505,12 +540,19 @@ if RENDER:
     scene.render.image_settings.file_format = 'PNG'
 
     ctr = Vector((0, 0, 0.028))
+    bpy.context.view_layer.update()
+    # close-up into the pocket at the front-right corner of the white centre
+    cen_ob = pieces[(0, 0, 1)]
+    gap_pt = root.matrix_world @ (Matrix.Translation((0, 0, lift)) @ Vector((0, 0, 0)))
+    gap_pt = cen_ob.matrix_world @ Vector((PITCH / 2, -PITCH / 2, 1.5 * PITCH))
+    gap_dir = (Matrix.Rotation(ROOM_YAW, 3, 'Z') @ Vector((0.35, -0.75, 1.0))).normalized()
     # seated direction: from the cube toward the seated viewer's eye, in room terms
     to_eye = (VIEWER - Vector(ROOM_LOC) - Vector((0, 0, 0.028))).normalized()
     # close 3/4: from the front-right-top corner of the cube (three faces)
     fr = Matrix.Rotation(ROOM_YAW, 3, 'Z') @ Vector((0.55, -1.0, 0.9)).normalized()
     views = {
         '34': (ctr + fr * 0.24, ctr, 60),
+        'gap': (gap_pt + gap_dir * 0.045, gap_pt - Vector((0, 0, 0.0015)), 55),
         'seat': (ctr + to_eye * 0.35, ctr, 80),
         'top': (ctr + Vector((0.0, -0.02, 0.2)), ctr, 60),
     }

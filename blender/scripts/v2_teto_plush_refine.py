@@ -13,7 +13,8 @@ What it does (textures / UVs untouched):
   * volume compensation: control cages are pre-offset so the subdivided limit surface passes through the
     original vertices -> hands, drills and head keep their size/silhouette instead of shrinking
   * flat face decals (eyes, lashes, mouth) are densified (Simple) and shrinkwrapped onto the smoothed head
-  * subtle fabric: fine noise bump + a touch of sheen on the plush materials
+  * short-pile minky fabric: fibre + brushed-streak bump, clump mottling, colour-tinted sheen rim, rougher;
+    seams with stitch dashes on the hair cap and at the sleeve panel joins. Eyes/lashes/mouth/outlines untouched.
 """
 import bpy, bmesh, sys, os, mathutils
 
@@ -152,27 +153,165 @@ for name, (lvl, tgt, mode) in DECALS.items():
     w.offset = 0.0004
 
 # ---------------------------------------------------------------- fabric
-SKIP_MATS = {'Material.003', 'Material.005', 'Material.017', 'Material.018', 'Material.021'}  # textures / outlines
+# Short-pile minky / velboa: fine fibre noise + a downward-brushed streak (bump), low-frequency clumping that
+# mottles colour and height, colour-tinted sheen for the fuzzy rim, slightly rougher. Seams with stitch dashes
+# on the hair cap (centre line) and around the sleeves (at the grey/red panel joins). Printed face untouched.
+SKIP_MATS = {'Material.003', 'Material.005', 'Material.017', 'Material.018', 'Material.021'}  # eyes, lashes/mouth, outlines
+STITCH = 0.004   # stitch pitch (m)
+
+
+def sleeve_seams():
+    """Grey/red join loops on the right sleeve (object space, mirrored in the shader): [(centre, normal, radius)]."""
+    from collections import defaultdict
+    me = M['Circle.003'].data
+    co = [mathutils.Vector(d.vector) for d in me.attributes['plush_orig_co'].data]
+    ef = defaultdict(list)
+    for p in me.polygons:
+        for k in p.edge_keys: ef[k].append(p.material_index)
+    adj = defaultdict(set)
+    for (a, b), m in ef.items():
+        if len(m) == 2 and m[0] != m[1] and co[a].x > 0: adj[a].add(b); adj[b].add(a)
+    seams, seen = [], set()
+    for v in adj:
+        if v in seen: continue
+        st, L = [v], []; seen.add(v)
+        while st:
+            x = st.pop(); L.append(x)
+            for y in adj[x]:
+                if y not in seen: seen.add(y); st.append(y)
+        c = sum((co[i] for i in L), mathutils.Vector()) / len(L)
+        C = mathutils.Matrix(((0, 0, 0), (0, 0, 0), (0, 0, 0)))
+        for i in L:
+            d = co[i] - c
+            for r in range(3):
+                for q in range(3): C[r][q] += d[r] * d[q]
+        n = mathutils.Vector((1, 0.1, 0.1)); Ci = (C + mathutils.Matrix.Identity(3) * 1e-9).inverted()
+        for _ in range(60): n = (Ci @ n).normalized()      # loop-plane normal = sleeve axis at the join
+        seams.append((c, n, sum((co[i] - c).length for i in L) / len(L)))
+    return seams
+
+
+class NB:
+    """tiny node-builder; every node it makes is named 'Plush*' so reruns can strip them."""
+    def __init__(s, nt, kind): s.nt = nt; s.kind = kind; s.x = -1600; s.y = -500
+    def node(s, t, name, **kw):
+        n = s.nt.nodes.new(t); n.name = n.label = 'Plush' + name
+        n.location = (s.x, s.y); s.y -= 170
+        if s.y < -2600: s.y = -500; s.x += 200
+        for k, v in kw.items(): setattr(n, k, v)
+        return n
+    def inp(s, n, i, v):
+        if isinstance(v, bpy.types.NodeSocket): s.nt.links.new(v, n.inputs[i])
+        else: n.inputs[i].default_value = v
+    def math(s, op, a, b=0.0):
+        n = s.node('ShaderNodeMath', op, operation=op)
+        s.inp(n, 0, a); s.inp(n, 1, b)
+        return n.outputs[0]
+    def vmath(s, op, a, b=(0, 0, 0)):
+        n = s.node('ShaderNodeVectorMath', op, operation=op)
+        s.inp(n, 0, a); s.inp(n, 1, b)
+        return n.outputs['Value' if op in ('DOT_PRODUCT', 'LENGTH') else 'Vector']
+    def noise(s, vec, scale, detail=2.0, rough=0.6):
+        n = s.node('ShaderNodeTexNoise', 'Noise')
+        s.inp(n, 'Vector', vec); n.inputs['Scale'].default_value = scale
+        n.inputs['Detail'].default_value = detail; n.inputs['Roughness'].default_value = rough
+        return n.outputs['Fac']
+    def band(s, t, w):
+        """1 at t=0, smoothly 0 for |t| >= w."""
+        n = s.node('ShaderNodeMapRange', 'Band', interpolation_type='SMOOTHSTEP')
+        s.inp(n, 'Value', s.math('ABSOLUTE', t)); n.inputs['From Min'].default_value = 0.0
+        n.inputs['From Max'].default_value = w; n.inputs['To Min'].default_value = 1.0; n.inputs['To Max'].default_value = 0.0
+        return n.outputs['Result']
+    def dashes(s, arc):
+        """stitch dashes along an arc-length coordinate: 1 on the thread, 0 between."""
+        sn = s.math('SINE', s.math('MULTIPLY', arc, 2 * 3.14159265 / STITCH))
+        return s.math('GREATER_THAN', sn, 0.0)
+
+
+def seam_height(b, P):
+    """Groove (negative) with raised stitch dashes across it -> (height, groove) sockets, or None."""
+    grooves, stitches = [], []
+    if b.kind == 'hair':                                   # centre seam of the hair cap: plane x = 0
+        sep = b.node('ShaderNodeSeparateXYZ', 'Sep'); b.inp(sep, 0, P)
+        sy = b.node('ShaderNodeSeparateXYZ', 'SepYZ'); b.inp(sy, 0, b.vmath('SUBTRACT', P, (0.0, 0.016, 0.19)))
+        ang = b.math('ARCTAN2', sy.outputs['Z'], sy.outputs['Y'])
+        grooves.append(b.band(sep.outputs['X'], 0.0013))
+        stitches.append((b.band(sep.outputs['X'], 0.0018), b.dashes(b.math('MULTIPLY', ang, 0.09))))
+    elif b.kind == 'sleeve':                               # rings at the grey/red joins, both arms (|x|)
+        sep = b.node('ShaderNodeSeparateXYZ', 'Sep'); b.inp(sep, 0, P)
+        cm = b.node('ShaderNodeCombineXYZ', 'Mirror')
+        b.inp(cm, 0, b.math('ABSOLUTE', sep.outputs['X'])); b.inp(cm, 1, sep.outputs['Y']); b.inp(cm, 2, sep.outputs['Z'])
+        for c, n, r in SLEEVE_SEAMS:
+            u = n.orthogonal().normalized(); v = n.cross(u)
+            d = b.vmath('SUBTRACT', cm.outputs[0], c)
+            t = b.vmath('DOT_PRODUCT', d, n)
+            ang = b.math('ARCTAN2', b.vmath('DOT_PRODUCT', d, v), b.vmath('DOT_PRODUCT', d, u))
+            grooves.append(b.band(t, 0.0013))
+            stitches.append((b.band(t, 0.0018), b.dashes(b.math('MULTIPLY', ang, r))))
+    else:
+        return None
+    g = grooves[0]
+    for x in grooves[1:]: g = b.math('MAXIMUM', g, x)
+    st = None
+    for w, dsh in stitches:
+        x = b.math('MULTIPLY', w, dsh)
+        st = x if st is None else b.math('MAXIMUM', st, x)
+    return b.math('SUBTRACT', b.math('MULTIPLY', st, 1.5), g), g     # thread sits proud inside the groove
+
+
+SLEEVE_SEAMS = sleeve_seams()
+KIND = {'Material.006': 'hair', 'Material.008': 'sleeve', 'Material.009': 'sleeve'}
+
 for mat in {s.material for o in M.values() for s in o.material_slots if s.material}:
     if mat.name in SKIP_MATS or not mat.use_nodes: continue
     nt = mat.node_tree
     for n in [n for n in nt.nodes if n.name.startswith('Plush')]: nt.nodes.remove(n)
     bsdf = next(n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED')
-    old = bsdf.inputs['Normal'].links[0].from_socket if bsdf.inputs['Normal'].is_linked else None
-    tc = nt.nodes.new('ShaderNodeTexCoord'); tc.name = 'PlushCoord'
-    nz = nt.nodes.new('ShaderNodeTexNoise'); nz.name = 'PlushNoise'
-    nz.inputs['Scale'].default_value = 900.0; nz.inputs['Detail'].default_value = 2.0
-    nz.inputs['Roughness'].default_value = 0.6
-    nt.links.new(tc.outputs['Object'], nz.inputs['Vector'])
-    bump = nt.nodes.new('ShaderNodeBump'); bump.name = 'PlushBump'
-    bump.inputs['Strength'].default_value = 0.08; bump.inputs['Distance'].default_value = 0.0002
-    nt.links.new(nz.outputs['Fac'], bump.inputs['Height'])
-    if old is not None: nt.links.new(old, bump.inputs['Normal'])
-    nt.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
-    bsdf.inputs['Sheen Weight'].default_value = 0.2
-    bsdf.inputs['Sheen Roughness'].default_value = 0.5
-    bsdf.inputs['Sheen Tint'].default_value = bsdf.inputs['Base Color'].default_value
-    for i, n in enumerate((tc, nz, bump)): n.location = (bsdf.location.x - 600 + i * 180, bsdf.location.y - 420)
+    # downloaded values are stashed on the material so every rerun starts from them
+    if 'plush_base' not in mat: mat['plush_base'] = list(bsdf.inputs['Base Color'].default_value)
+    if 'plush_rough' not in mat: mat['plush_rough'] = bsdf.inputs['Roughness'].default_value
+    base = mathutils.Vector(mat['plush_base'][:3])
+    bsdf.inputs['Base Color'].default_value = list(base) + [1.0]
+    bsdf.inputs['Roughness'].default_value = min(1.0, mat['plush_rough'] + 0.2)
+    nmap = next((n for n in nt.nodes if n.type == 'NORMAL_MAP'), None)
+
+    b = NB(nt, KIND.get(mat.name))
+    P = b.node('ShaderNodeTexCoord', 'Coord').outputs['Object']
+    fibre = b.noise(P, 1400.0, 2.0, 0.6)                                  # individual pile tips
+    streak = b.noise(b.vmath('MULTIPLY', P, (1.0, 1.0, 0.12)), 700.0, 3.0, 0.6)   # pile brushed down (Z streaks)
+    clump = b.noise(P, 160.0, 3.0, 0.55)                                  # velboa clumping patches
+    h = b.math('ADD', b.math('MULTIPLY', fibre, 0.5), b.math('MULTIPLY', streak, 0.35))
+    h = b.math('ADD', h, b.math('MULTIPLY', clump, 0.35))
+    bump = b.node('ShaderNodeBump', 'Bump')
+    bump.inputs['Strength'].default_value = 0.55; bump.inputs['Distance'].default_value = 0.0004
+    b.inp(bump, 'Height', h)
+    if nmap is not None: nt.links.new(nmap.outputs['Normal'], bump.inputs['Normal'])
+    normal_out = bump.outputs['Normal']
+
+    # colour: slight mottling from the clumps (+-6 %), darker in seam grooves
+    shade = b.math('ADD', 0.88, b.math('MULTIPLY', clump, 0.24))
+    sh = seam_height(b, P)
+    if sh is not None:
+        seam_h, groove = sh
+        sb = b.node('ShaderNodeBump', 'SeamBump')
+        sb.inputs['Strength'].default_value = 1.0 if b.kind == 'hair' else 0.45; sb.inputs['Distance'].default_value = 0.0008
+        b.inp(sb, 'Height', seam_h); nt.links.new(normal_out, sb.inputs['Normal'])
+        normal_out = sb.outputs['Normal']
+        shade = b.math('MULTIPLY', shade, b.math('SUBTRACT', 1.0, b.math('MULTIPLY', groove, 0.45)))
+    cc = b.node('ShaderNodeCombineColor', 'Shade')
+    for i in range(3): b.inp(cc, i, shade)
+    col = b.node('ShaderNodeMix', 'Tint', data_type='RGBA', blend_type='MULTIPLY')
+    col.inputs['Factor'].default_value = 1.0
+    col.inputs[6].default_value = list(base) + [1.0]
+    nt.links.new(cc.outputs[0], col.inputs[7])
+    nt.links.new(col.outputs[2], bsdf.inputs['Base Color'])
+    nt.links.new(normal_out, bsdf.inputs['Normal'])
+
+    # fuzzy rim: sheen tinted toward the fabric colour (lifted a little so dark cloth still gets a soft halo)
+    tint = base.lerp(mathutils.Vector((1, 1, 1)), 0.25)
+    bsdf.inputs['Sheen Weight'].default_value = 0.65
+    bsdf.inputs['Sheen Roughness'].default_value = 0.35
+    bsdf.inputs['Sheen Tint'].default_value = list(tint) + [1.0]
 
 # ---------------------------------------------------------------- report + save
 dg = bpy.context.evaluated_depsgraph_get()
