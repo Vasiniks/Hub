@@ -624,13 +624,13 @@ def usb_a(mb, fr, mats, length=0.021, boot_len=0.012, cable_r=0.002, ribs=4):
     return boot(mb, fr, length - 0.0015, 0.0036, cable_r * 1.3, boot_len, cable_r, M_BODY, ribs=ribs), fr[3]
 
 
-def dp_plug(mb, fr, mats, cable_r=0.003):
+def dp_plug(mb, fr, mats, cable_r=0.003, insert=0.0045):
     """DisplayPort: asymmetric chamfered shell, chunky overmold with a latch button, ribbed boot."""
     M_SHELL, M_INS, M_BODY = mats
     w, h, ch = 0.0161, 0.0048, 0.0013
     shell = [(w / 2, h / 2), (-w / 2, h / 2), (-w / 2, -h / 2 + ch), (-w / 2 + ch, -h / 2), (w / 2, -h / 2)]
     # resample to more points for smooth shading continuity
-    loft(mb, fr, [(-0.0045, shell), (0.001, shell)], M_SHELL)
+    loft(mb, fr, [(-insert, shell), (0.001, shell)], M_SHELL)
     bw, bh, br = 0.0195, 0.0086, 0.0016
     length = 0.033
     secs = [(0.0006, inset_rrect(bw, bh, br, 0.0009, 3)), (0.0014, inset_rrect(bw, bh, br, 0.0002, 3)),
@@ -652,22 +652,31 @@ def dp_plug(mb, fr, mats, cable_r=0.003):
     return boot(mb, fr, length - 0.0015, 0.0044, cable_r * 1.25, 0.016, cable_r, M_BODY, ribs=5), fr[3]
 
 
-def c7_plug(mb, fr, mats, cable_r=0.0028):
-    """IEC C7 figure-8 connector (monitor mains): lobed body with a draft and a ribbed boot."""
+def c7_plug(mb, fr, mats, cable_r=0.0028, nose_depth=0.0024):
+    """
+    IEC C7 figure-8 connector (monitor mains). Frame origin on the inlet's mouth, +z out of it.
+    A 12.1 x 7.0 mm figure-8 nose seats nose_depth into the inlet shroud; outside, a 15.6 x 9.2 mm
+    lobed body with a soft front edge, a draft toward the rear, grip ribs and a ribbed boot.
+    """
     M_BODY, M_HOLE = mats
-    body = fig8(0.0050, 0.0033, 44)
-    face = fig8(0.0044, 0.0033, 44)
-    secs = [(0.0, face), (0.0006, scale2(body, 0.97)), (0.0014, body), (0.016, body),
-            (0.022, scale2(body, 0.86, 0.92)), (0.0245, scale2(body, 0.62, 0.8))]
+    nose = fig8(0.0029, 0.0024, 48)
+    body = fig8(0.0046, 0.0032, 48)
+    secs = [(-nose_depth, scale2(nose, 0.94)), (-nose_depth + 0.0003, nose), (0.0002, nose),
+            (0.0003, scale2(body, 0.90, 0.86)), (0.0008, scale2(body, 0.97, 0.96)), (0.0016, body),
+            (0.0150, body), (0.0200, scale2(body, 0.88, 0.93)), (0.0232, scale2(body, 0.66, 0.82))]
     loft(mb, fr, secs, M_BODY)
-    # grip ribs across both flat faces
+    # the two contact sockets in the nose face (only visible if unplugged, but real)
     o, x, y, z = fr
+    for sx in (-0.0024, 0.0024):
+        hfr = (fpt(fr, sx, 0, -nose_depth - 0.00002), x, y, z)
+        loft(mb, hfr, [(0.0, circ(0.0011, 12)), (0.00004, circ(0.0011, 12))], M_HOLE, cap1=False)
+    # grip ribs across both flat faces
     for side in (1, -1):
         for k in range(5):
-            rfr = (fpt(fr, 0, side * 0.0049, 0.0065 + k * 0.0022), x, z * side, y * side)
+            rfr = (fpt(fr, 0, side * 0.0045, 0.0050 + k * 0.0021), x, z * side, y * side)
             rib = rrect(0.0068, 0.0007, 0.00033, 1)
             loft(mb, rfr, [(-0.0003, rib), (0.00035, rib)], M_BODY, cap0=False)
-    return boot(mb, fr, 0.0232, 0.0042, cable_r * 1.3, 0.014, cable_r, M_BODY, ribs=6), fr[3]
+    return boot(mb, fr, 0.0220, 0.0040, cable_r * 1.3, 0.014, cable_r, M_BODY, ribs=6), fr[3]
 
 
 def magsafe3(mb, fr, mats, cable_r=0.0020, flank=0.0029):
@@ -984,45 +993,72 @@ def build():
     TILT = 0.2967                                   # NEW_macbook_laptop rotation about X (17.0 deg)
     mb_long = V((0, math.cos(TILT), math.sin(TILT)))   # MacBook flank long axis (toward the hinge)
 
-    # ======================================================================= 2. monitor
-    DP_R = 0.0030
+    # ======================================================================= 2. monitor (NEW_monitor)
+    # Rear I/O pocket faces +Y (head tilted 2 deg about X, so "out of the port" dips slightly):
+    # DP receptacle x 0.0514..0.0679, z 1.0381..1.0436, mouth y 0.9950; figure-8 inlet shroud
+    # x -0.1463..-0.1337, z 1.0368..1.0446, mouth y 0.9989. Column cable hole: x -0.068..-0.032,
+    # z 0.773..0.821, through the column from y 1.029 to 1.063. Base plate top z 0.7452, rear edge y 1.105.
+    DP_R = 0.0026            # USB-C <-> DisplayPort cable to the MacBook
     PW_R = 0.0029
+    MON_OUT = V((0.0, math.cos(-0.0349), math.sin(-0.0349)))
+    HOLE_Z = 0.773
+    BASE_Z = 0.7452
     mb = MB('cables_monitor_dp_plug', ['conn_metal_nickel', 'conn_insulator_black', 'conn_overmold_black'])
-    fr = frame(V((0.08995, 0.9765, 1.00475)), (0, 1, 0), (1, 0, 0))
-    dp_exit, dp_dir = dp_plug(mb, fr, (0, 1, 2), cable_r=DP_R)
+    fr = frame(V((0.05965, 0.9950, 1.04085)), MON_OUT, (-1, 0, 0))     # latch button up
+    dp_exit, dp_dir = dp_plug(mb, fr, (0, 1, 2), cable_r=DP_R, insert=0.0016)   # the receptacle is 1.8 mm deep
     done(mb)
 
     mb = MB('cables_monitor_c7_plug', ['conn_overmold_black', 'monitor_inlet_dark'])
-    pw_face = V((0.1520, 0.9855, 1.0040))
-    fr = frame(pw_face + V((0, 0.0015, 0)), (0, 1, 0), (1, 0, 0))
-    pw_exit, pw_dir = c7_plug(mb, fr, (0, 1), cable_r=PW_R)
-    # the inlet surround the plug sits in (the monitor model has no mains inlet of its own)
-    ifr = frame(pw_face, (0, 1, 0), (1, 0, 0))
-    outer = fig8(0.0064, 0.0034, 44)
-    loft(mb, ifr, [(-0.0004, outer), (0.0011, outer), (0.0015, scale2(outer, 0.96))], 1)
+    fr = frame(V((-0.1400, 0.9989, 1.0407)), MON_OUT, (-1, 0, 0))
+    pw_exit, pw_dir = c7_plug(mb, fr, (0, 1), cable_r=PW_R, nose_depth=0.0024)
     done(mb)
 
-    # the two monitor cables fall behind the panel, meet under it and are strapped together
-    pair_y = 1.066
-    dp_hang = [dp_exit, dp_exit + dp_dir * 0.006, V((0.0900, 1.0440, 1.0010)), V((0.0898, 1.0555, 0.9900)),
-               V((0.0893, 1.0625, 0.9700)), V((0.0885, pair_y, 0.9400)), V((0.0880, pair_y, 0.9000))]
-    pw_hang = [pw_exit, pw_exit + pw_dir * 0.006, V((0.1515, 1.0470, 1.0000)), V((0.1480, 1.0570, 0.9880)),
-               V((0.1380, 1.0630, 0.9680)), V((0.1150, pair_y, 0.9420)), V((0.0995, pair_y, 0.9150)),
-               V((0.0945, pair_y, 0.9000))]
-    # together down to the desk
-    dz = DESK
-    dp_down = [V((0.0880, pair_y, 0.8600)), V((0.0878, pair_y + 0.001, 0.8000)), V((0.0872, pair_y + 0.004, 0.7650)),
-               V((0.0850, pair_y + 0.014, dz + DP_R + 0.004)), V((0.0800, 1.095, dz + DP_R)),
-               V((0.0735, 1.108, dz + DP_R)), V((0.0712, 1.118, dz + DP_R))]
-    pw_down = [V((0.0940, pair_y, 0.8600)), V((0.0940, pair_y + 0.001, 0.8000)), V((0.0938, pair_y + 0.004, 0.7650)),
-               V((0.0925, pair_y + 0.016, dz + PW_R + 0.004)), V((0.0880, 1.097, dz + PW_R)),
-               V((0.0805, 1.109, dz + PW_R)), V((0.0778, 1.118, dz + PW_R))]
+    # Both hang out of the pocket, curl down under the head in front of the column and pass through
+    # its cable hole. They come from opposite sides, so they cross inside the hole: the DP cable lies
+    # on the hole's floor, the mains cord rides over it. Behind the column both drop onto the base
+    # plate and off its back edge onto the desk.
+    dp_front = [dp_exit, dp_exit + dp_dir * 0.006, V((0.0585, 1.0560, 1.0240)), V((0.0540, 1.0560, 0.9900)),
+                V((0.0420, 1.0460, 0.9350)), V((0.0220, 1.0320, 0.8830)), V((0.0020, 1.0215, 0.8420)),
+                V((-0.0180, 1.0180, 0.8090)), V((-0.0330, 1.0190, 0.7870)),
+                V((-0.0400, 1.0260, HOLE_Z + DP_R + 0.0011)), V((-0.0470, 1.0400, HOLE_Z + DP_R + 0.0010)),
+                V((-0.0550, 1.0520, HOLE_Z + DP_R + 0.0010)), V((-0.0600, 1.0615, HOLE_Z + DP_R + 0.0010)),
+                V((-0.0615, 1.0650, HOLE_Z + DP_R + 0.0004)), V((-0.0630, 1.0690, 0.7720)),
+                V((-0.0645, 1.0760, BASE_Z + DP_R + 0.0030)), V((-0.0660, 1.0850, BASE_Z + DP_R + 0.0002)),
+                V((-0.0690, 1.0990, BASE_Z + DP_R)), V((-0.0720, 1.1060, BASE_Z + DP_R - 0.0004)),
+                V((-0.0760, 1.1110, DESK + DP_R + 0.0040)), V((-0.0830, 1.1150, DESK + DP_R + 0.0004)),
+                V((-0.0950, 1.1165, DESK + DP_R))]
+    PZ = HOLE_Z + 0.0010 + 2 * DP_R + PW_R + 0.0003           # mains cord resting on the DP cable in the hole
+    pw_front = [pw_exit, pw_exit + pw_dir * 0.006, V((-0.1395, 1.0500, 1.0230)), V((-0.1370, 1.0510, 0.9900)),
+                V((-0.1250, 1.0440, 0.9450)), V((-0.1080, 1.0330, 0.9000)), V((-0.0920, 1.0215, 0.8600)),
+                V((-0.0770, 1.0170, 0.8260)), V((-0.0650, 1.0170, 0.8020)), V((-0.0590, 1.0240, PZ + 0.0015)),
+                V((-0.0550, 1.0330, PZ)), V((-0.0480, 1.0460, PZ)), V((-0.0420, 1.0580, PZ)),
+                V((-0.0390, 1.0660, PZ - 0.0020)), V((-0.0370, 1.0720, 0.7735)),
+                V((-0.0350, 1.0800, BASE_Z + PW_R + 0.0025)), V((-0.0330, 1.0900, BASE_Z + PW_R + 0.0002)),
+                V((-0.0310, 1.0990, BASE_Z + PW_R)), V((-0.0290, 1.1060, BASE_Z + PW_R - 0.0004)),
+                V((-0.0275, 1.1110, DESK + PW_R + 0.0040)), V((-0.0262, 1.1160, DESK + PW_R + 0.0005)),
+                V((-0.0255, 1.1200, DESK + PW_R))]
+    PW_EDGE_X = -0.0255
 
-    # strap on the hanging pair, where it shows under the monitor from the chair
-    mb = MB('cables_velcro_monitor', ['velcro_black'])
-    wrap_strap(mb, V((0.0910, pair_y, 0.875)), (0, 0, -1), (1, 0, 0),
-               [(-0.0030, 0.0, DP_R), (0.0030, 0.0, PW_R)], 0.012, 0.0011, 0, turns=1.3)
+    # USB-C end of the DP cable in the MacBook's front-left Thunderbolt port (laptop-local y 0.0406)
+    lap_m = Matrix(((1, 0, 0, -0.05), (0, math.cos(TILT), -math.sin(TILT), 0.7115),
+                    (0, math.sin(TILT), math.cos(TILT), 0.7891), (0, 0, 0, 1)))
+    tb_face = lap_m @ V((-0.1563, 0.0406, 0.00575))
+    mb = MB('cables_monitor_dp_usbc_plug', ['conn_metal_nickel', 'conn_insulator_black', 'conn_overmold_black'])
+    fr = frame(tb_face, (-1, 0, 0), -mb_long)
+    tb_exit, tb_dir = usb_c(mb, fr, (0, 1, 2), cable_r=DP_R, show_mouth=False, length=0.0160,
+                            boot_len=0.011, ribs=0)
     done(mb)
+    dz_ = DESK + DP_R
+    # behind the base, left along the desk, forward to the right of the MagSafe run (clear of the
+    # monitor base), then up to the laptop on the same ~25 mm bends as the MagSafe braid
+    dp_desk = [V((-0.1300, 1.1170, dz_)), V((-0.1700, 1.1165, dz_)), V((-0.2020, 1.1120, dz_)),
+               V((-0.2180, 1.0980, dz_)), V((-0.2250, 1.0650, dz_)), V((-0.2300, 1.0050, dz_)),
+               V((-0.2360, 0.9450, dz_)), V((-0.2440, 0.8850, dz_)), V((-0.2505, 0.8300, dz_)),
+               V((-0.2535, 0.8100, dz_)), V((-0.2560, 0.7900, dz_ + 0.0002)),
+               V((-0.2575, 0.7740, 0.7390)), V((-0.2590, 0.7620, 0.7450)), V((-0.2600, 0.7540, 0.7560)),
+               V((-0.2605, 0.7505, 0.7700)), V((-0.2595, 0.7497, 0.7840)), V((-0.2565, 0.7492, 0.7940)),
+               V((-0.2505, 0.7489, 0.8015)), tb_exit + tb_dir * 0.008 + V((0, 0, -0.0010)),
+               tb_exit + tb_dir * 0.003, tb_exit]
 
     # ======================================================================= 4. MacBook charge (braided)
     MC_R = 0.0021
@@ -1066,8 +1102,7 @@ def build():
                 V((x + 0.006, y_in, z_in))]
         return pts
 
-    CH = {'mc': (1.0712, TRAY_FLOOR + MC_R), 'dp': (1.0770, TRAY_FLOOR + DP_R),
-          'pw': (1.0842, TRAY_FLOOR + PW_R)}
+    CH = {'mc': (1.0716, TRAY_FLOOR + MC_R), 'pw': (1.0820, TRAY_FLOOR + PW_R)}
     X_EXIT = 0.395
 
     def channel_run(key, x0, x1):
@@ -1079,8 +1114,7 @@ def build():
             pts.append(V((x0 + (x1 - x0) * t, y + 0.0006 * math.sin(t * 9 + len(key)), z)))
         return pts
 
-    dp_path1 = dp_hang + dp_down + over_edge(0.0712, DP_R, *CH['dp']) + channel_run('dp', 0.0712, X_EXIT - 0.03)
-    pw_path1 = pw_hang + pw_down + over_edge(0.0778, PW_R, *CH['pw']) + channel_run('pw', 0.0778, X_EXIT - 0.03)
+    pw_path1 = pw_front + over_edge(PW_EDGE_X, PW_R, *CH['pw']) + channel_run('pw', PW_EDGE_X, X_EXIT - 0.03)
     mc_path1 = mc_desk + over_edge(-0.2398, MC_R, *CH['mc']) + channel_run('mc', -0.2398, X_EXIT - 0.03)
 
     # ======================================================================= 6. the drop to the floor
@@ -1093,8 +1127,8 @@ def build():
               V((Xb + 0.008, 1.1300, 0.3000)), V((Xb + 0.009, 1.1320, 0.2000)), V((Xb + 0.013, 1.1340, 0.1200)),
               V((Xb + 0.019, 1.1370, 0.0650))]
     cdense = resample(catmull(centre, 30), 0.004)
-    radii = [MC_R, DP_R, PW_R]
-    names = ['mc', 'dp', 'pw']
+    radii = [MC_R, PW_R]
+    names = ['mc', 'pw']
     cl = [0.0]
     for a, b in zip(cdense, cdense[1:]):
         cl.append(cl[-1] + (b - a).length)
@@ -1322,21 +1356,19 @@ def build():
     def tail_from_bundle(c, pts):
         return pts
 
-    # below the last strap the three split: the MacBook cable stays in front and runs left along the
-    # floor to the brick, the DP cable goes right along the skirting, the monitor's mains cord peels
-    # off higher up and drapes down into its plug in the strip
-    mc_floor = [V((0.4150, 1.1331, 0.0330)), V((0.4070, 1.1334, 0.0090)), V((0.3880, 1.1340, fz(MC_R))),
+    # below the straps the two split: the MacBook braid stays down to the floor and runs left to the
+    # brick; the monitor's mains cord peels off higher up and drapes down into its plug in the strip.
+    # Tails start from where each cable actually is in the bundle.
+    mcf = per[names.index('mc')][::3][-1]
+    pwf = [p for p in per[names.index('pw')][::3] if p.z >= 0.20][-1]
+    mc_floor = [V((mcf.x - 0.0025, mcf.y, 0.0330)), V((mcf.x - 0.0105, mcf.y + 0.0003, 0.0090)),
+                V((mcf.x - 0.0300, mcf.y + 0.0008, fz(MC_R))),
                 V((0.3400, 1.1400, fz(MC_R))), V((0.2800, 1.1500, fz(MC_R))), V((0.2200, 1.1620, fz(MC_R))),
                 V((0.1800, 1.1740, fz(MC_R) + 0.0003)),
                 V((0.1620, 1.1785, 0.0065)), brick_plug_exit + brick_plug_dir * 0.009 + V((0, 0, -0.0012)),
                 brick_plug_exit + brick_plug_dir * 0.004, brick_plug_exit]
-    dp_floor = [V((0.4185, 1.1420, 0.0330)), V((0.4260, 1.1430, 0.0100)), V((0.4420, 1.1450, fz(DP_R))),
-                V((0.4700, 1.1520, fz(DP_R))), V((0.4900, 1.1680, fz(DP_R))), V((0.5100, 1.2000, fz(DP_R))),
-                V((0.5400, 1.2450, fz(DP_R))), V((0.5800, 1.2610, fz(DP_R))),
-                V((0.6800, 1.2640, fz(DP_R))), V((0.8000, 1.2650, fz(DP_R))), V((0.9200, 1.2660, fz(DP_R))),
-                V((1.0200, 1.2660, fz(DP_R)))]
-    pw_floor = [V((0.3920, 1.1350, 0.1760)), V((0.3730, 1.1530, 0.1500)), V((0.3490, 1.1800, 0.1310)),
-                V((0.3310, 1.2070, 0.1180)), V((0.3190, 1.2290, 0.1080)),
+    pw_floor = [V((pwf.x - 0.006, pwf.y + 0.004, pwf.z - 0.025)), V((0.3730, 1.1530, 0.1500)),
+                V((0.3490, 1.1800, 0.1310)), V((0.3310, 1.2070, 0.1180)), V((0.3190, 1.2290, 0.1080)),
                 mp_exit + mp_dir * 0.010, mp_exit]
 
     # assemble every cable path: desk/channel part + bundle track + floor tail
@@ -1350,7 +1382,7 @@ def build():
         tr = [p for i, p in enumerate(tr) if i >= 2 and not (p.z < zmin and p.y > 1.12)]
         return first + tr + last
 
-    dp_all = join(dp_path1, 'dp', dp_floor)
+    dp_all = dp_front + dp_desk
     pw_all = join(pw_path1, 'pw', pw_floor, zmin=0.20)
     mc_all = join(mc_path1, 'mc', mc_floor)
 
@@ -1515,7 +1547,9 @@ VIEWS = {
     'coil':      ((0.800, 0.520, 0.880), (0.875, 0.650, 0.738), 42),
     'monitor':   ((0.34, 1.26, 1.02), (0.10, 1.02, 0.86), 26),
     'seat':      ((0.0, -0.16, 1.175), (0.0, 1.0, 0.85), 30),
-    'io':        ((0.175, 1.175, 1.075), (0.105, 0.985, 0.995), 40),
+    'io':        ((0.02, 1.215, 1.075), (-0.04, 1.00, 1.02), 30),
+    'column':    ((0.20, 0.88, 0.86), (-0.05, 1.04, 0.80), 32),
+    'dp_laptop': ((-0.34, 0.66, 0.84), (-0.245, 0.77, 0.775), 36),
     'magsafe_side': ((-0.36, 0.66, 0.86), (-0.245, 0.80, 0.785), 38),
     'magsafe_top':  ((-0.228, 0.772, 0.868), (-0.2140, 0.7872, 0.8175), 70),
     'drop':      ((0.30, 1.215, 0.50), (0.40, 1.10, 0.645), 22),
@@ -1532,6 +1566,11 @@ def preview(names):
     for o in bpy.data.objects:
         if o.type == 'LIGHT':
             o.hide_render = True
+    old = bpy.data.collections.get('NEW_cables')          # an integrated copy in room.blend
+    if old:
+        for o in list(old.all_objects):
+            bpy.data.objects.remove(o, do_unlink=True)
+        bpy.data.collections.remove(old)
     with bpy.data.libraries.load(OUT, link=False) as (src, dst):
         dst.collections = ['NEW_cables']
     sc.collection.children.link(dst.collections[0])
