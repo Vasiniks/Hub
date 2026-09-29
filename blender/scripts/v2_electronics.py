@@ -2239,10 +2239,10 @@ def previews(scene, coll):
     scene.world = world
     scene.render.engine = 'CYCLES'
     prefs = bpy.context.preferences.addons['cycles'].preferences
-    prefs.compute_device_type = 'OPTIX'
+    prefs.compute_device_type = 'CUDA'
     prefs.refresh_devices()
     for d in prefs.devices:
-        d.use = d.type == 'OPTIX'
+        d.use = d.type == 'CUDA'
     scene.cycles.device = 'GPU'
     scene.cycles.samples = 64
     scene.cycles.use_denoising = True
