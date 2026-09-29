@@ -245,6 +245,37 @@ def mb_pcb_mat():
     return m
 
 
+def dots_mat():
+    """Ice-silver shroud flat with a fine staggered dot-perforation pattern (object XY = card underside plane)."""
+    m = new_mat('pc_gpu_dots', (0.80, 0.83, 0.88), 0.34, metal=0.25, rvar=0.0)
+    nt = m.node_tree
+    p = pr(m)
+    tc = nt.nodes.new('ShaderNodeTexCoord')
+    sep = nt.nodes.new('ShaderNodeSeparateXYZ')
+    nt.links.new(tc.outputs['Object'], sep.inputs[0])
+    P_ = 0.0012
+    u = math_node(nt, 'DIVIDE', sep.outputs['X'], P_)
+    v = math_node(nt, 'DIVIDE', sep.outputs['Y'], P_ * 0.866)
+    odd = math_node(nt, 'ABSOLUTE', math_node(nt, 'MODULO', math_node(nt, 'FLOOR', v), 2.0))
+    u2 = math_node(nt, 'ADD', u, math_node(nt, 'MULTIPLY', odd, 0.5))
+    fu = math_node(nt, 'SUBTRACT', math_node(nt, 'FRACT', u2), 0.5)
+    fv = math_node(nt, 'MULTIPLY', math_node(nt, 'SUBTRACT', math_node(nt, 'FRACT', v), 0.5), 0.866)
+    d = math_node(nt, 'SQRT', math_node(nt, 'ADD', math_node(nt, 'MULTIPLY', fu, fu), math_node(nt, 'MULTIPLY', fv, fv)))
+    dot = math_node(nt, 'LESS_THAN', d, 0.26)
+    mix = nt.nodes.new('ShaderNodeMix')
+    mix.data_type = 'RGBA'
+    nt.links.new(dot, mix.inputs['Factor'])
+    sock(mix.inputs, 'A_Color').default_value = (0.80, 0.83, 0.88, 1)
+    sock(mix.inputs, 'B_Color').default_value = (0.30, 0.32, 0.36, 1)
+    nt.links.new(sock(mix.outputs, 'Result_Color'), p.inputs['Base Color'])
+    b = nt.nodes.new('ShaderNodeBump')
+    b.inputs['Strength'].default_value = 0.35
+    b.inputs['Distance'].default_value = 0.0002
+    nt.links.new(math_node(nt, 'SUBTRACT', 1.0, dot), b.inputs['Height'])
+    nt.links.new(b.outputs['Normal'], p.inputs['Normal'])
+    return m
+
+
 def rad_core_mat():
     m = new_mat('pc_rad_fins', (0.82, 0.82, 0.81), 0.5, rvar=0.0)
     nt = m.node_tree
@@ -409,6 +440,12 @@ def make_materials():
         new_mat(nm, col, 0.4, rvar=0.0)
     rad_core_mat()
     mb_pcb_mat()
+    dots_mat()
+    new_mat('pc_gpu_ice', (0.80, 0.83, 0.88), 0.32, metal=0.25, coat=0.2, bump=0.008, bscale=1500)
+    new_mat('pc_fin_alu', (0.78, 0.80, 0.83), 0.30, metal=1.0, rvar=0.05)
+    new_mat('pc_hub_silver', (0.86, 0.87, 0.89), 0.20, metal=1.0, bump=0.015, bscale=4000)
+    m = new_mat('pc_gpu_blade_ice', (0.90, 0.92, 0.95), 0.40, rvar=0.0)
+    si(pr(m), 'Transmission Weight', 0.35)
     new_mat('pc_smd_tan', (0.50, 0.40, 0.26), 0.45, rvar=0.0)
     new_mat('pc_smd_grey', (0.22, 0.22, 0.23), 0.4, metal=0.3, rvar=0.0)
     sleeve_mat('pc_sleeve_white', (0.83, 0.83, 0.82))
@@ -1416,103 +1453,87 @@ def build():
     done(mb, 50)
 
     # ------------------------------------------------------------------ GPU (horizontal in the top x16 slot)
-    # Modelled after the MSI GeForce RTX 5070 Ti 16G GAMING TRIO OC WHITE: 338 x 140 x 50 mm, three 7-blade
-    # STORMFORCE fans with a circular tip arc, plastic shroud with an RGB light bar under a frosted strip on the
-    # top (glass-side) edge, exposed aluminium fin stack with V-cut fins, metal backplate with a large
-    # flow-through cut-out at the overhang, 12V-2x6 connector, 3x DP + 1x HDMI. Shroud tinted light blue, no logos.
+    # Modelled after the owner's reference photo (Gigabyte Eagle OC ICE style): ice-silver/white shroud with
+    # dot-perforated flats and chamfered corners, three overlapping fans (the middle one stands proud of the
+    # outer two in a three-circle cut-out), wide curved frosted blades, brushed-silver domed hubs in a dark
+    # ring, aluminium fin stack visible through the fans and along the edges, heat pipes at the ends, white
+    # backplate, gold PCIe fingers, bracket with 8 hex-slot vents over 3x DP + 1x HDMI. ~300 x 125 x 50 mm
+    # (assumed). No logos/text.
     GZP = 0.2288                          # PCB underside
-    GU_OUT, GU_IN = -0.096, 0.036         # glass-side (top) edge .. board-side end of the cooler
-    GV0, GV1 = -0.112, 0.226              # 338 mm long, bracket end at +v
-    FANS_V = (-0.057, 0.045, 0.147)
-    GUC = -0.031
-    SZ0, SZ1 = 0.1830, 0.1960             # fan cover plate underside .. top (fins above it up to the PCB)
-    FR = 0.0470
-    mb = MB('pc_gpu_shroud', ['pc_gpu_blue'])
-    cover = [(GU_IN, GV0 + 0.010), (GU_IN, GV1 - 0.004), (GU_IN - 0.010, GV1), (GU_OUT + 0.014, GV1), (GU_OUT, GV1 - 0.014),
-             (GU_OUT, GV0 + 0.022), (GU_OUT + 0.012, GV0), (GU_IN - 0.012, GV0)]
-    prism(mb, cover, I4, SZ0, SZ1, 'pc_gpu_blue', ch=0.0015)
+    GU_OUT, GU_IN = -0.084, 0.036         # glass-side (top) edge .. board-side end of the cooler
+    GV0, GV1 = -0.074, 0.226
+    FANS_V = (-0.017, 0.076, 0.169)
+    GUC = -0.024
+    SZ0, SZ1 = 0.1818, 0.1968             # fan cover underside .. top (fin stack above it up to the PCB)
+    FR = 0.0510
+    mb = MB('pc_gpu_shroud', ['pc_gpu_ice'])
+    c_ = 0.016
+    cover = [(GU_IN, GV0 + c_), (GU_IN, GV1 - c_), (GU_IN - c_, GV1), (GU_OUT + c_, GV1), (GU_OUT, GV1 - c_),
+             (GU_OUT, GV0 + c_), (GU_OUT + c_, GV0), (GU_IN - c_, GV0)]
+    prism(mb, cover, I4, SZ0, SZ1, 'pc_gpu_ice', ch=0.0020)
     shroud = done(mb)
-    cuts = [cutter(coll, lathe_bm([(0.0, SZ0 - 0.01), (FR, SZ0 - 0.01), (FR, SZ1 + 0.01), (0.0, SZ1 + 0.01)], 72,
-                                  Matrix.Translation((GUC, vv, 0))), 'pc_gpu_blue') for vv in FANS_V]
-    boolean_apply(shroud, cuts)
-    mb = MB('pc_gpu_details', ['pc_gpu_accent'])
-    # end caps with chamfered outer corners, board-side wall
-    Mend = frame((GU_OUT + 0.002, 0.0, 0.0), (1, 0, 0), (0, 1, 0))       # local x = v, y = z, extrude +u
-    prism(mb, [(GV0, SZ0), (GV0 + 0.016, SZ0), (GV0 + 0.016, GZP - 0.001), (GV0 + 0.005, GZP - 0.001), (GV0, GZP - 0.012)],
-          Mend, 0.0, GU_IN - GU_OUT - 0.006, 'pc_gpu_blue', ch=0.0012)
-    prism(mb, [(GV1 - 0.018, SZ0), (GV1, SZ0), (GV1, GZP - 0.010), (GV1 - 0.006, GZP - 0.001), (GV1 - 0.018, GZP - 0.001)],
-          Mend, 0.0, GU_IN - GU_OUT - 0.006, 'pc_gpu_blue', ch=0.0012)
-    box(mb, (GU_IN - 0.006, GV0 + 0.014, SZ1 - 0.0005), (GU_IN, GV1 - 0.016, GZP - 0.001), 'pc_gpu_blue', r=0.001, seg=1)
-    # top-edge rail + frosted RGB light bar (stops short of the power connector)
-    box(mb, (GU_OUT - 0.0010, GV0 + 0.014, GZP - 0.0110), (GU_OUT + 0.0060, 0.176, GZP - 0.0085), 'pc_gpu_blue', r=0.0008, seg=1)
-    box(mb, (GU_OUT - 0.0012, GV0 + 0.018, GZP - 0.0085), (GU_OUT + 0.0045, 0.172, GZP - 0.0015), 'pc_rgb_diffuser', r=0.0012, seg=2)
-    box(mb, (GU_OUT - 0.0010, 0.176, GZP - 0.0110), (GU_OUT + 0.0060, GV1 - 0.016, GZP - 0.0015), 'pc_gpu_blue', r=0.0008, seg=1)
-    # fin stack: 0.4 mm aluminium plates at 2.2 mm pitch with a V-cut on the exposed top edge
-    fin = [(GU_OUT + 0.0010, SZ1 - 0.0004), (GU_IN - 0.0065, SZ1 - 0.0004), (GU_IN - 0.0065, GZP - 0.0012),
-           (GU_OUT + 0.0010, GZP - 0.0012), (GU_OUT + 0.0075, (SZ1 + GZP) / 2 - 0.002)]
-    finl = [(u_, -z_) for u_, z_ in fin]
-    k = 0
-    vv = GV0 + 0.0165
-    while vv < GV1 - 0.0185:
-        prism(mb, finl, frame((0.0, vv, 0.0), (0, 1, 0), (1, 0, 0)), 0.0, 0.0004, 'pc_heatsink')
-        vv += 0.0022
-    # five nickel-plated heat pipes running through the stack, U-bends at the overhang end
-    for j, zz in enumerate((0.2008, 0.2062, 0.2116, 0.2170, 0.2224)):
-        uu = GU_OUT + 0.0105 + (j % 2) * 0.004
-        tube(mb, [V((uu, GV1 - 0.030, zz)), V((uu, GV0 + 0.026, zz)), V((uu + 0.006, GV0 + 0.019, zz)),
-                  V((uu + 0.014, GV0 + 0.022, zz))], 0.0026, 'pc_metal', sides=10, step=0.02)
-    # fan bezels, chevron cut lines between the fans and angled accent lines on the cover underside
+    cuts = []
     for vv in FANS_V:
-        lathe(mb, [(FR - 0.0004, -0.0006), (FR - 0.0004, 0.0005), (FR + 0.0008, 0.0012), (FR + 0.0026, 0.0012),
-                   (FR + 0.0034, 0.0), (FR + 0.0034, -0.0006)], 'pc_gpu_accent',
-              frame((GUC, vv, SZ0), (0, 0, -1), (0, 1, 0)), seg=72)
-    Mun = frame((0.0, 0.0, SZ0 + 0.0002), (0, 0, -1), (1, 0, 0))          # local x = u, y = -v
-    def stripe(p, q, w, mat):
-        p, q = V(p), V(q)
-        n_ = V((-(q - p).y, (q - p).x)).normalized() * (w / 2)
-        pts = [p - n_, q - n_, q + n_, p + n_]
-        prism(mb, [(t.x, -t.y) for t in pts], Mun, 0.0, 0.0006, mat)
-    for vm in ((FANS_V[0] + FANS_V[1]) / 2, (FANS_V[1] + FANS_V[2]) / 2):
-        for ue, ui in ((GU_IN - 0.004, GU_IN - 0.014), (GU_OUT + 0.004, GU_OUT + 0.014)):
-            stripe((ue, vm - 0.010), (ui, vm), 0.0018, 'pc_gpu_blue_dark')
-            stripe((ui, vm), (ue, vm + 0.010), 0.0018, 'pc_gpu_blue_dark')
-    for vv0, sgn in ((GV0 + 0.006, 1), (GV1 - 0.006, -1)):
-        stripe((GU_OUT + 0.010, vv0), (GU_OUT + 0.030, vv0 + sgn * 0.010), 0.0014, 'pc_white_alu')
-        stripe((GU_IN - 0.012, vv0), (GU_IN - 0.034, vv0 + sgn * 0.010), 0.0014, 'pc_white_alu')
-    # PCB (shorter than the cooler), backplate with the flow-through cut-out, vents, accent strip, screws
-    box(mb, (GU_OUT + 0.004, -0.018, GZP), (0.041, GV1 - 0.002, GZP + 0.0016), 'pc_gpu_pcb')
+        cuts.append(cutter(coll, lathe_bm([(0.0, SZ0 - 0.01), (FR, SZ0 - 0.01), (FR, SZ1 + 0.01), (0.0, SZ1 + 0.01)], 72,
+                                          Matrix.Translation((GUC, vv, 0))), 'pc_gpu_ice'))
+    boolean_apply(shroud, cuts)
+    shroud.data.materials.append(MAT['pc_gpu_dots'])
+    di = len(shroud.data.materials) - 1
+    for p_ in shroud.data.polygons:                  # dot perforation on the flat underside only
+        if p_.normal.z < -0.9 and p_.center.z < SZ0 + 0.0005:
+            p_.material_index = di
+    mb = MB('pc_gpu_details', ['pc_gpu_ice'])
+    # corner facets: raised chamfered triangles on the four corners of the underside (dot-perforated)
+    Mun = frame((0.0, 0.0, SZ0 + 0.0003), (0, 0, -1), (1, 0, 0))          # local x = u, y = -v, extrude down
+    for (ua, va, su, sv) in ((GU_OUT + 0.004, GV0 + 0.004, 1, 1), (GU_IN - 0.004, GV0 + 0.004, -1, 1),
+                             (GU_OUT + 0.004, GV1 - 0.004, 1, -1), (GU_IN - 0.004, GV1 - 0.004, -1, -1)):
+        tri = [(ua + su * c_, va), (ua + su * 0.034, va), (ua, va + sv * 0.034), (ua, va + sv * c_)]
+        if su * sv < 0:
+            tri = tri[::-1]
+        prism(mb, [(x_, -y_) for x_, y_ in tri], Mun, 0.0, 0.0013, 'pc_gpu_dots', ch=0.0004)
+    # end caps with chamfered outer corners, board-side wall, glass-side rails framing the exposed fins
+    Mend = frame((GU_OUT + 0.002, 0.0, 0.0), (1, 0, 0), (0, 1, 0))       # local x = v, y = z, extrude +u
+    prism(mb, [(GV0, SZ0), (GV0 + 0.014, SZ0), (GV0 + 0.014, GZP - 0.001), (GV0 + 0.005, GZP - 0.001), (GV0, GZP - 0.012)],
+          Mend, 0.0, GU_IN - GU_OUT - 0.006, 'pc_gpu_ice', ch=0.0012)
+    prism(mb, [(GV1 - 0.016, SZ0), (GV1, SZ0), (GV1, GZP - 0.010), (GV1 - 0.006, GZP - 0.001), (GV1 - 0.016, GZP - 0.001)],
+          Mend, 0.0, GU_IN - GU_OUT - 0.006, 'pc_gpu_ice', ch=0.0012)
+    box(mb, (GU_IN - 0.006, GV0 + 0.012, SZ1 - 0.0005), (GU_IN, GV1 - 0.014, GZP - 0.012), 'pc_gpu_ice', r=0.001, seg=1)
+    box(mb, (GU_OUT - 0.0006, GV0 + 0.012, GZP - 0.0065), (GU_OUT + 0.0050, 0.172, GZP - 0.0015), 'pc_gpu_ice', r=0.0010, seg=1)
+    box(mb, (GU_OUT - 0.0006, 0.204, GZP - 0.0065), (GU_OUT + 0.0050, GV1 - 0.014, GZP - 0.0015), 'pc_gpu_ice', r=0.0010, seg=1)
+    # the middle fan's raised ring frame (it stands proud of the outer two)
+    lathe(mb, [(FR - 0.0004, -0.0003), (FR - 0.0004, 0.0052), (FR + 0.0008, 0.0062), (FR + 0.0026, 0.0062),
+               (FR + 0.0034, 0.0050), (FR + 0.0034, -0.0003)], 'pc_gpu_ice',
+          frame((GUC, FANS_V[1], SZ0), (0, 0, -1), (0, 1, 0)), seg=96)
+    # aluminium fin stack (0.4 mm plates at 2.2 mm pitch) + four nickel heat pipes with U-bends at the far end
+    vv = GV0 + 0.0145
+    while vv < GV1 - 0.0165:
+        box(mb, (GU_OUT + 0.0010, vv, SZ1 - 0.0004), (GU_IN - 0.0065, vv + 0.0004, GZP - 0.0012), 'pc_fin_alu')
+        vv += 0.0022
+    for j, zz in enumerate((0.2025, 0.2085, 0.2145, 0.2205)):
+        uu = GU_OUT + 0.0095 + (j % 2) * 0.0045
+        tube(mb, [V((uu, GV1 - 0.024, zz)), V((uu, GV0 + 0.022, zz)), V((uu + 0.006, GV0 + 0.0155, zz)),
+                  V((uu + 0.016, GV0 + 0.0185, zz)), V((uu + 0.040, GV0 + 0.019, zz))], 0.0026, 'pc_metal', sides=10, step=0.02)
+    # PCB, gold PCIe fingers, backplate (white, flow-through window)
+    box(mb, (GU_OUT + 0.004, -0.030, GZP), (0.041, GV1 - 0.002, GZP + 0.0016), 'pc_gpu_pcb')
     box(mb, (0.036, 0.100, GZP - 0.0002), (0.046, 0.189, GZP + 0.0018), 'pc_gold')
     BT = GZP + 0.0046
     done(mb)
     mb = MB('pc_gpu_backplate', ['pc_white_alu'])
     box(mb, (GU_OUT + 0.001, GV0 + 0.001, GZP + 0.0016), (GU_IN, GV1 - 0.002, BT), 'pc_white_alu', r=0.0012, seg=2)
     bplate = done(mb)
-    c_ = cutter(coll, prism_bm(rrect(0.090, 0.068, 0.008, 4), GZP - 0.01, BT + 0.01), 'pc_white_alu')
-    c_.matrix_world = T @ Matrix.Translation((-0.040, -0.066, 0.0))      # flow-through window over the overhang
-    boolean_apply(bplate, [c_])
+    c_b = cutter(coll, prism_bm(rrect(0.080, 0.040, 0.008, 4), GZP - 0.01, BT + 0.01), 'pc_white_alu')
+    c_b.matrix_world = T @ Matrix.Translation((-0.028, -0.048, 0.0))
+    boolean_apply(bplate, [c_b])
     mb = MB('pc_gpu_backplate_detail', ['pc_white_alu'])
-    for k in range(9):
-        vv = 0.0 + k * 0.024
-        for uu in (GU_OUT + 0.016, GU_OUT + 0.058):
+    for k in range(8):
+        vv = 0.004 + k * 0.024
+        for uu in (GU_OUT + 0.014, GU_OUT + 0.056):
             box(mb, (uu, vv, BT - 0.0003), (uu + 0.034, vv + 0.0045, BT + 0.0005), 'pc_port_dark', r=0.0008, seg=1)
-    box(mb, (GU_OUT + 0.0045, -0.030, BT - 0.0002), (GU_OUT + 0.0095, GV1 - 0.020, BT + 0.0008), 'pc_gpu_blue', r=0.0004, seg=1)
-    for uu, vv in ((GU_OUT + 0.008, 0.200), (GU_IN - 0.008, 0.200), (GU_OUT + 0.008, 0.000), (GU_IN - 0.008, 0.000),
+    box(mb, (GU_OUT + 0.0045, -0.020, BT - 0.0002), (GU_OUT + 0.0095, GV1 - 0.020, BT + 0.0008), 'pc_hub_silver', r=0.0004, seg=1)
+    for uu, vv in ((GU_OUT + 0.008, 0.200), (GU_IN - 0.008, 0.200), (GU_OUT + 0.008, 0.010), (GU_IN - 0.008, 0.010),
                    (GU_OUT + 0.100, 0.100), (GU_OUT + 0.100, 0.160)):
         lathe(mb, [(0.0, 0.0), (0.0021, 0.0), (0.0021, 0.0006), (0.0013, 0.0010), (0.0, 0.0010)], 'pc_metal',
               frame((uu, vv, BT), (0, 0, 1)), seg=12)
-    # 3-slot bracket: 3x DisplayPort + 1x HDMI, vent slots, screw tab
-    box(mb, (-0.092, 0.2265, 0.1690), (0.016, 0.2285, 0.2350), 'pc_metal', r=0.0005, seg=1)
-    box(mb, (-0.092, GV1 - 0.002, SZ0), (-0.088, 0.2265, GZP + 0.004), 'pc_metal')
-    Mbr = frame((0.0, 0.2284, 0.0), (0, 1, 0), (1, 0, 0))                 # local x = u, y = -z, extrude +v
-    dp = [(-0.0080, -0.0024), (0.0080, -0.0024), (0.0080, 0.0014), (0.0062, 0.0030), (-0.0080, 0.0030)]
-    hd = [(-0.0070, -0.0026), (0.0070, -0.0026), (0.0070, 0.0010), (0.0052, 0.0026), (-0.0052, 0.0026), (-0.0070, 0.0010)]
-    for uu, shape in ((-0.080, dp), (-0.058, dp), (-0.036, hd), (-0.014, dp)):
-        M_ = Mbr @ Matrix.Translation((uu + 0.008, -0.2040, 0.0))
-        prism(mb, [(x_ * 1.12, y_ * 1.35) for x_, y_ in shape], M_, 0.0, 0.0012, 'pc_metal')
-        prism(mb, shape, M_, 0.0, 0.0016, 'pc_port_dark')
-    for k in range(9):
-        uu = -0.084 + k * 0.011
-        box(mb, (uu, 0.2283, 0.176), (uu + 0.006, 0.2292, 0.194), 'pc_port_dark', r=0.0005, seg=1)
     # 12V-2x6 socket on the top edge near the bracket end, with the plug, latch and sense-pin row
     CV = 0.188
     box(mb, (GU_OUT - 0.0030, CV - 0.0120, GZP - 0.0040), (GU_OUT + 0.0040, CV + 0.0120, GZP + 0.0040), 'pc_dark_plastic', r=0.0006, seg=1)
@@ -1520,14 +1541,54 @@ def build():
     box(mb, (GU_OUT - 0.0100, CV - 0.0040, GZP + 0.0054), (GU_OUT - 0.0040, CV + 0.0040, GZP + 0.0072), 'pc_white_plastic', r=0.0005, seg=1)
     box(mb, (GU_OUT - 0.0112, CV - 0.0110, GZP + 0.0040), (GU_OUT - 0.0060, CV + 0.0110, GZP + 0.0060), 'pc_port_dark')
     done(mb)
-    # STORMFORCE-style rotors: 7 blades joined by a circular tip arc, hub cap with an RGB ring
-    mbG = MB('pc_gpu_fans', ['pc_gpu_blade'])
-    for vv in FANS_V:
-        Mfg = frame((GUC, vv, SZ0), (0, 0, -1), (0, 1, 0))
-        rotor(mbG, Mfg, 0.0165, 0.0446, -0.0120, -0.0015, 7, 'pc_gpu_blade', 'pc_gpu_blue_dark', 'pc_gpu_accent',
-              nr=5, ns=6, sweep=30, thick=0.0012)
-        lathe(mbG, [(0.0440, -0.0110), (0.0452, -0.0110), (0.0452, -0.0025), (0.0440, -0.0025)], 'pc_gpu_blade', Mfg, seg=72)
-        lathe(mbG, [(0.0125, -0.0016), (0.0147, -0.0016), (0.0147, -0.0010), (0.0125, -0.0010)], 'pc_rgb_led', Mfg, seg=40)
+    # I/O bracket: silver plate with 8 hex-slot vents over 3x DP + 1x HDMI, screw tab and slot tongue
+    BV0_, BV1_ = 0.2265, 0.2285
+    mb = MB('pc_gpu_bracket', ['pc_metal'])
+    box(mb, (-0.092, BV0_, 0.169), (0.016, BV1_, 0.235), 'pc_metal', r=0.0005, seg=1)
+    brk = done(mb)
+    Mb_ = lambda uc, zc: T @ frame((uc, (BV0_ + BV1_) / 2, zc), (0, 1, 0), (1, 0, 0))     # local x = u, y = -z
+    hexs = [(0.0036, -0.0082), (0.0036, 0.0082), (0.0, 0.0106), (-0.0036, 0.0082), (-0.0036, -0.0082), (0.0, -0.0106)]
+    bcuts = []
+    for k in range(8):
+        c = cutter(coll, prism_bm(hexs, -0.004, 0.004), 'pc_port_dark')
+        c.matrix_world = Mb_(-0.0845 + k * 0.0114, 0.1875)
+        bcuts.append(c)
+    dp = [(-0.0092, -0.0036), (0.0092, -0.0036), (0.0092, 0.0020), (0.0072, 0.0040), (-0.0092, 0.0040)]
+    hd = [(-0.0082, -0.0032), (0.0082, -0.0032), (0.0082, 0.0012), (0.0062, 0.0032), (-0.0062, 0.0032), (-0.0082, 0.0012)]
+    PORTS_ = ((-0.072, dp), (-0.050, dp), (-0.028, dp), (-0.006, hd))
+    for uc, shp in PORTS_:
+        c = cutter(coll, prism_bm(shp, -0.004, 0.004), 'pc_metal')
+        c.matrix_world = Mb_(uc, 0.2170)
+        bcuts.append(c)
+    boolean_apply(brk, bcuts)
+    mb = MB('pc_gpu_bracket_detail', ['pc_metal'])
+    for uc, shp in PORTS_:
+        Mp_ = frame((uc, BV0_, 0.2170), (0, 1, 0), (1, 0, 0))
+        inner = offset2d(shp, -0.0005)
+        R = lambda pts, y_: [Mp_ @ V((p.x if hasattr(p, 'x') else p[0], p.y if hasattr(p, 'y') else p[1], y_)) for p in pts]
+        mb.merge(loft_bm([R(inner, -0.0060), R(inner, 0.0025), R(shp, 0.0025), R(shp, -0.0060)], 0), 'pc_metal')
+        prism(mb, inner, Mp_, -0.0062, -0.0058, 'pc_port_dark')
+        box(mb, (-0.0060, -0.0008, -0.0058), (0.0060, 0.0004, -0.0015), 'pc_port_dark', M=Mp_)
+    for uc in (-0.061, -0.039, -0.017):
+        lathe(mb, [(0.0, 0.0), (0.0022, 0.0), (0.0022, 0.0010), (0.0014, 0.0014), (0.0, 0.0014)], 'pc_metal',
+              frame((uc, BV1_, 0.2255), (0, 1, 0)), seg=6)
+    # screw tab folded over at the outer end, slot tongue at the board end
+    box(mb, (-0.0935, BV0_, 0.169), (-0.0915, 0.2320, 0.235), 'pc_metal', r=0.0004, seg=1)
+    box(mb, (0.016, BV0_, 0.176), (0.024, BV1_, 0.186), 'pc_metal', r=0.0004, seg=1)
+    # vent lips visible behind the slots (fin-stack end + dark shadow box)
+    box(mb, (-0.090, BV0_ - 0.0080, 0.1750), (0.0140, BV0_ - 0.0060, 0.2000), 'pc_port_dark')
+    done(mb)
+    # rotors: 9 wide, curved frosted blades; outer fans recessed, middle fan proud; brushed domed hubs in a dark ring
+    mbG = MB('pc_gpu_fans', ['pc_gpu_blade_ice'])
+    for k, vv in enumerate(FANS_V):
+        Mfg = frame((GUC, vv, SZ0), (0, 0, -1), (0, 1, 0)) @ (Matrix.Scale(-1, 4, (1, 0, 0)) if k == 1 else I4)
+        z0, z1 = ((-0.0040, 0.0050) if k == 1 else (-0.0140, -0.0048))
+        rotor(mbG, Mfg, 0.0175, 0.0492, z0, z1, 9, 'pc_gpu_blade_ice', 'pc_white_plastic', 'pc_white_plastic',
+              nr=5, ns=6, sweep=38, thick=0.0012)
+        lathe(mbG, [(0.0150, z1 - 0.0002), (0.0176, z1 - 0.0002), (0.0176, z1 + 0.0006), (0.0150, z1 + 0.0006)],
+              'pc_dark_plastic', Mfg, seg=48)
+        lathe(mbG, [(0.0150, z1 + 0.0005), (0.0145, z1 + 0.0014), (0.0120, z1 + 0.0026), (0.0080, z1 + 0.0034),
+                    (0.0, z1 + 0.0037)], 'pc_hub_silver', Mfg, seg=48)
     done(mbG, 60)
 
     # ------------------------------------------------------------------ sleeved cables
@@ -1766,6 +1827,14 @@ def previews(b):
         shot(V((0.612, 0.815, 1.145)), V((0.627, 0.978, 1.114)), 70, 'pc_lcd_pump.png')
     if not only or 'lcd_fan' in only:    # middle vertical-fan hub LCD through the front glass
         shot(V((1.080, 0.885, 1.045)), V((0.933, 0.925, 1.013)), 70, 'pc_lcd_fan.png')
+    if not only or 'gpuref' in only:     # GPU alone, reference-photo angle (fan side, bracket end, PCIe edge)
+        keep = {o for o in scene.objects if o.name.startswith('pc_gpu')}
+        hid = [o for o in scene.objects if o.type == 'MESH' and o not in keep and o not in tmp]
+        for o in hid:
+            o.hide_render = True
+        shot(V((0.300, 1.075, 0.815)), V((0.620, 0.950, 0.960)), 44, 'pc_gpu_ref.png', (1100, 1100))
+        for o in hid:
+            o.hide_render = False
     if not only or 'gpu' in only:        # GPU from slightly below through the side glass
         shot(V((0.560, 0.660, 0.895)), V((0.690, 0.930, 0.972)), 42, 'pc_gpu.png')
     if not only or 'mobo' in only:       # motherboard through the side glass
