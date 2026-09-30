@@ -18,7 +18,7 @@ wired into `src/` — it is a to-do list for the web pass (non-Blender work → 
 - **Sunset is now the main look** (supersedes afternoon): key sun ≈ #ff9552, elevation 9°, coming from ~40° right
   (angled down the street so it clears the houses), AgX Medium High Contrast at +0.45 EV, thin interior haze.
   Outside: deep orange horizon, lamp-lit house windows, porch lights and street light on.
-- **Robot status light** (amber FRC RSL on top of the robot) pulses slowly: emission 0→7 on a 4 s sine — animate in
+- **Robot status light** (the CAD's own orange RSL dome on the robot's side, split out as `Robot_rsl_lens`) pulses slowly: emission 0→7 on a 4 s sine — animate in
   the runtime (emissive intensity), don't bake it.
 - **A1 mini** has a lit touchscreen and a green power LED (emissive).
 
