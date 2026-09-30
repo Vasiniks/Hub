@@ -294,7 +294,8 @@ def lcd_art_mat():
     si(p, 'Roughness', 0.05)
     tc = nt.nodes.new('ShaderNodeTexCoord')
     mp = nt.nodes.new('ShaderNodeMapping')
-    mp.inputs['Scale'].default_value = (38.0, 38.0, 38.0)
+    mp.inputs['Scale'].default_value = (24.0, 24.0, 24.0)
+    mp.inputs['Rotation'].default_value = (0.0, 0.0, math.radians(28))
     nt.links.new(tc.outputs['Object'], mp.inputs['Vector'])
     nz = nt.nodes.new('ShaderNodeTexNoise')
     nz.inputs['Scale'].default_value = 1.4
@@ -302,13 +303,14 @@ def lcd_art_mat():
     nz.inputs['Distortion'].default_value = 1.2
     nt.links.new(mp.outputs['Vector'], nz.inputs['Vector'])
     wv = nt.nodes.new('ShaderNodeTexWave')
-    wv.inputs['Scale'].default_value = 1.2
-    wv.inputs['Distortion'].default_value = 6.0
+    wv.bands_direction = 'DIAGONAL'
+    wv.inputs['Scale'].default_value = 0.55
+    wv.inputs['Distortion'].default_value = 3.0
     wv.inputs['Detail'].default_value = 3.0
     nt.links.new(mp.outputs['Vector'], wv.inputs['Vector'])
-    f = math_node(nt, 'MULTIPLY_ADD', nz.outputs['Fac'], 0.65)
+    f = math_node(nt, 'MULTIPLY_ADD', nz.outputs['Fac'], 0.80)
     f.node.inputs[2].default_value = 0.0
-    f = math_node(nt, 'ADD', f, math_node(nt, 'MULTIPLY', wv.outputs['Fac'], 0.45))
+    f = math_node(nt, 'ADD', f, math_node(nt, 'MULTIPLY', wv.outputs['Fac'], 0.30))
     ramp = nt.nodes.new('ShaderNodeValToRGB')
     el = ramp.color_ramp.elements
     el[0].position, el[0].color = 0.20, (0.004, 0.006, 0.025, 1)
@@ -1095,7 +1097,7 @@ def _external(img, name, clean=None):
     new.name = 'pc_%s' % name
     new.colorspace_settings.name = img.colorspace_settings.name
     new.alpha_mode = img.alpha_mode
-    new.filepath = bpy.path.relpath(out, start=PARTS)
+    new.filepath = out                                         # made relative to parts/ on save
     img.user_remap(new)
     return new
 
@@ -1127,7 +1129,7 @@ def _fill_edge(px):
         for x in range(x0, x1, w):
             n = min(w, x1 - x)
             px[r0:r1, x:x + n] = patch[:, :n]
-    for zone in ((55, 172, 76, 101), (196, 322, 68, 108), (334, 476, 76, 101), (664, 1006, 70, 110), (430, 585, 110, 126)):
+    for zone in ((55, 172, 76, 101), (196, 322, 68, 108), (334, 476, 76, 101), (664, 1006, 70, 110), (410, 610, 106, 127)):
         fill(*zone)
 
 
@@ -1165,7 +1167,7 @@ def import_mobo(coll, root, objs):
     for im in bpy.data.images:
         stem = ntpath.splitext(ntpath.basename(im.filepath))[0].lower()
         if stem in tex:
-            im.filepath = bpy.path.relpath(tex[stem], start=PARTS)
+            im.filepath = tex[stem]
             im.reload()
     # all-white look: PCB, heatsinks, shrouds, slots, RAM; RGB bars take the build's pink/blue ramp
     mats = {m for o in keep for m in o.data.materials if m}
@@ -1218,7 +1220,7 @@ def import_gpukit(coll, root, objs):
     keep = []
     for o in meshes:
         mn = o.data.materials[0].name if o.data.materials and o.data.materials[0] else ''
-        if mn.startswith('Material.015'):                    # glowing hub logo
+        if mn.startswith('Material.015') or mn.startswith('Procedural_pearl'):   # hub logo glow + raised hub lettering
             bpy.data.objects.remove(o, do_unlink=True)
             continue
         keep.append(o)
@@ -1929,6 +1931,10 @@ def finish(b):
     bpy.ops.outliner.orphans_purge(do_recursive=True)
     os.makedirs(PARTS, exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=OUT_BLEND, compress=True)
+    bpy.ops.file.make_paths_relative()                         # external textures -> //../../../assets/source/...
+    packed = [i.name for i in bpy.data.images if i.packed_file]
+    print('PACKED_IMAGES', packed, 'EXTERNAL', sorted(i.filepath for i in bpy.data.images if not i.packed_file)[:40])
+    bpy.ops.wm.save_mainfile(compress=True)
     print('SAVED', OUT_BLEND)
 
 
