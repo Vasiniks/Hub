@@ -480,12 +480,13 @@ def image_mat(name, img_col, img_dat, coat=0.0, coat_from_metal=False, bump_dist
 
 def make_image(name, arr, noncolor=False):
     H, W, _ = arr.shape
-    img = bpy.data.images.new(name, W, H, alpha=False)
+    img = bpy.data.images.new(name, W, H, alpha=False, is_data=noncolor)
+    if noncolor:
+        img.colorspace_settings.name = 'Non-Color'
     rgba = np.ones((H, W, 4), np.float32)
     rgba[..., :3] = np.clip(arr, 0, 1)
     img.pixels.foreach_set(rgba.ravel())
-    if noncolor:
-        img.colorspace_settings.name = 'Non-Color'
+    img.update()
     os.makedirs(TMP, exist_ok=True)
     p = os.path.join(TMP, name + '.png')
     img.filepath_raw = p
@@ -2252,16 +2253,14 @@ def main():
         e.empty_display_size = 0.02
         return e
     objs = {}
-    e = empty('elec_uno', T(0.440, 0.660, DESK + 0.0018) @ Rz(math.degrees(0.42)))
+    # lab-corner layout (2026-09-29): Uno turned so its far headers face the breadboard, ESP32 to the
+    # front-right corner, Pico lying flat behind the Uno; jumpers now live in elec_lab_wiring.
+    e = empty('elec_uno', T(0.445, 0.690, DESK + 0.0018) @ Rz(-90))
     o, B = build_uno(coll, e)
-    objs['uno'] = o + dupont_wires(B, coll, e)
-    e = empty('elec_esp32', T(0.955, 0.740, DESK + 0.0085) @ Rz(math.degrees(-0.70)))
+    objs['uno'] = o
+    e = empty('elec_esp32', T(0.935, 0.405, DESK + 0.0085) @ Rz(90))
     objs['esp32'] = build_esp32(coll, e)
-    lean = math.radians(16.0)
-    s, c = math.sin(lean), math.cos(lean)
-    xb = 0.6810
-    Mp = Matrix(((0.0, -s, c, xb + 0.0105 * s), (1.0, 0.0, 0.0, 1.045), (0.0, c, s, DESK + 0.0105 * c + 0.0002),
-                 (0, 0, 0, 1)))
+    Mp = T(0.440, 0.785, DESK)
     e = empty('elec_pico', Mp)
     objs['pico'] = build_pico(coll, e, Matrix.Identity(4))
     e = empty('elec_hub', HUB_M)
@@ -2271,7 +2270,10 @@ def main():
     cab, clen = build_cable(coll, e, exit_w)
     objs['cable'] = cab
     e = empty('elec_mug', MUG_M)
-    objs['mug'] = build_mug(coll, e)
+    for ob in build_mug(coll, e):   # the owner replaced the mug with a Red Bull can: kept, but hidden
+        ob.hide_render = True
+        ob.hide_viewport = True
+        ob.hide_set(True)
     e = empty('elec_notes', NOTE_M)
     notes = build_notes(coll, e)
     # pencil lies on the pad, resting on its ferrule and graphite tip
@@ -2281,6 +2283,14 @@ def main():
     # rests on a hex flat (apothem 4.0), clip up, along the page's left side
     pen.matrix_basis = T(-0.052, -0.078, (ptop + 4.0) * MM) @ Rz(79)
     objs['notes'] = notes
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import v2_electronics_lab as lab
+    bpy.context.view_layer.update()
+    lab_objs = lab.build_lab(sys.modules[__name__], coll, root)
+    objs.update(lab_objs)
+    lab_tris = sum(sum(len(p.vertices) - 2 for p in ob.data.polygons) for lst in lab_objs.values() for ob in lst)
+    print('TRIS new lab items', lab_tris)
     # ------------------------------------------------------------------ report
     tot = 0
     for k, lst in objs.items():
@@ -2390,14 +2400,12 @@ def previews(scene, coll):
             pass
         lights.append(lo)
     views = {
-        'boards': ((0.70, 0.36, 1.02), (0.70, 0.83, 0.745), 22),
-        'uno': ((0.43, 0.53, 0.84), (0.435, 0.675, 0.742), 42),
-        'esp32': ((0.90, 0.64, 0.83), (0.955, 0.74, 0.745), 48),
-        'pico': ((0.80, 0.93, 0.80), (0.69, 1.045, 0.746), 46),
-        'hub': ((0.33, 0.78, 0.84), (0.27, 0.92, 0.745), 34),
-        'mug': ((0.62, 0.33, 0.92), (0.722, 0.462, 0.77), 50),
-        'notes': ((-0.42, 0.24, 1.00), (-0.55, 0.52, 0.745), 28),
-        'rotring': ((-0.46, 0.40, 0.84), (-0.556, 0.49, 0.748), 40),
+        'lab': ((0.58, 0.40, 0.95), (0.745, 0.66, 0.78), 30),
+        'stage': ((0.665, 0.495, 0.83), (0.745, 0.605, 0.765), 42),
+        'box': ((0.60, 0.56, 1.05), (0.73, 0.73, 0.82), 32),
+        'bench': ((0.47, 0.50, 0.90), (0.54, 0.70, 0.75), 30),
+        'preamp': ((0.78, 0.35, 0.86), (0.835, 0.49, 0.752), 38),
+        'dmm': ((0.53, 0.28, 0.90), (0.54, 0.41, 0.75), 34),
         'seat': ((0.0, -0.16, 1.175), (0.12, 0.75, 0.74), 16),
     }
     for key, (loc, tgt, lens) in views.items():

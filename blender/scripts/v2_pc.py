@@ -22,7 +22,10 @@ Writes blender/scene/parts/pc.blend (collection NEW_pc, root NEW_pc_root, ROOM c
 import bpy
 import bmesh
 import math
+import ntpath
 import random
+
+import numpy as np
 import os
 import sys
 from mathutils import Vector as V, Matrix
@@ -41,6 +44,11 @@ YAW = math.radians(90.0)            # side glass faces the chair, front (vertica
 MIRROR = False                      # native layout, positive scales only
 DZ = 0.041                          # everything is modelled with the inside floor at z=0.034; lift by DZ
 LCD_Q, FRAMED = [], []
+# owner-supplied downloads (git-ignored under assets/source; textures stay external, never packed)
+SRC = os.path.join(REPO, 'assets', 'source')
+KIT_DIR = os.path.join(SRC, 'gpu-kit-rtx-5090-arc-b580-gigabyte-aero')        # licence unknown: local-only
+MOBO_DIR = os.path.join(SRC, 'motherboard-components')                        # CC BY 4.0, Daniel Cardona
+GPU_TINT = (0.74, 0.85, 1.0)
 T = Matrix.Translation(C) @ Matrix.Rotation(YAW, 4, 'Z')
 TI = T.inverted()
 W, D, H = 0.296, 0.465, 0.454         # build coords: H = top of the thin top rail (world height H + DZ)
@@ -276,6 +284,46 @@ def dots_mat():
     return m
 
 
+def lcd_art_mat():
+    """Abstract pink/blue light-streak artwork for the pump LCD (object XY in metres), no text/logos."""
+    m = bpy.data.materials.new('pc_lcd_art')
+    m.use_nodes = True
+    nt = m.node_tree
+    p = pr(m)
+    si(p, 'Base Color', (0.0, 0.0, 0.0, 1))
+    si(p, 'Roughness', 0.05)
+    tc = nt.nodes.new('ShaderNodeTexCoord')
+    mp = nt.nodes.new('ShaderNodeMapping')
+    mp.inputs['Scale'].default_value = (38.0, 38.0, 38.0)
+    nt.links.new(tc.outputs['Object'], mp.inputs['Vector'])
+    nz = nt.nodes.new('ShaderNodeTexNoise')
+    nz.inputs['Scale'].default_value = 1.4
+    nz.inputs['Detail'].default_value = 4.0
+    nz.inputs['Distortion'].default_value = 1.2
+    nt.links.new(mp.outputs['Vector'], nz.inputs['Vector'])
+    wv = nt.nodes.new('ShaderNodeTexWave')
+    wv.inputs['Scale'].default_value = 1.2
+    wv.inputs['Distortion'].default_value = 6.0
+    wv.inputs['Detail'].default_value = 3.0
+    nt.links.new(mp.outputs['Vector'], wv.inputs['Vector'])
+    f = math_node(nt, 'MULTIPLY_ADD', nz.outputs['Fac'], 0.65)
+    f.node.inputs[2].default_value = 0.0
+    f = math_node(nt, 'ADD', f, math_node(nt, 'MULTIPLY', wv.outputs['Fac'], 0.45))
+    ramp = nt.nodes.new('ShaderNodeValToRGB')
+    el = ramp.color_ramp.elements
+    el[0].position, el[0].color = 0.20, (0.004, 0.006, 0.025, 1)
+    el[1].position, el[1].color = 0.98, (1.0, 0.92, 0.98, 1)
+    for pos, col in ((0.40, (0.05, 0.12, 0.85, 1)), (0.58, (0.55, 0.10, 0.75, 1)), (0.74, (1.0, 0.18, 0.58, 1)),
+                     (0.86, (0.25, 0.65, 1.0, 1))):
+        e = el.new(pos)
+        e.color = col
+    nt.links.new(f, ramp.inputs['Fac'])
+    nt.links.new(ramp.outputs['Color'], p.inputs['Emission Color'])
+    si(p, 'Emission Strength', 3.2)
+    MAT['pc_lcd_art'] = m
+    return m
+
+
 def rad_core_mat():
     m = new_mat('pc_rad_fins', (0.82, 0.82, 0.81), 0.5, rvar=0.0)
     nt = m.node_tree
@@ -441,6 +489,7 @@ def make_materials():
     rad_core_mat()
     mb_pcb_mat()
     dots_mat()
+    lcd_art_mat()
     new_mat('pc_gpu_ice', (0.80, 0.83, 0.88), 0.32, metal=0.25, coat=0.2, bump=0.008, bscale=1500)
     new_mat('pc_fin_alu', (0.78, 0.80, 0.83), 0.30, metal=1.0, rvar=0.05)
     new_mat('pc_hub_silver', (0.86, 0.87, 0.89), 0.20, metal=1.0, bump=0.015, bscale=4000)
@@ -816,7 +865,7 @@ def case_fan(mbF, mbR, M, size=0.120, depth=0.025, lcd=None):
     """120 mm fan, local +Z = the visible (intake/show) face; struts and motor on the -Z face."""
     h = size / 2
     Ri = 0.0585
-    N = 64
+    N = 48
     e, ch = 0.0018, 0.0012
     dirs = [(math.cos(2 * math.pi * (k + 0.5) / N), math.sin(2 * math.pi * (k + 0.5) / N)) for k in range(N)]
     tO = [rsq(dx, dy, h, 0.010) for dx, dy in dirs]
@@ -912,6 +961,297 @@ def cutter(coll, bm, mat=None):
     o.matrix_world = T          # cutters are built in case-local coords like the parts (parented to the root)
     o.display_type = 'WIRE'
     return o
+
+
+def _import(fn):
+    before = set(bpy.data.objects)
+    fn()
+    return [o for o in bpy.data.objects if o not in before]
+
+
+def _bake(new, M):
+    """Bake each imported mesh's world transform followed by M into its data; drop empties."""
+    meshes = []
+    for o in new:
+        if o.type == 'MESH':
+            if o.data.users > 1:
+                o.data = o.data.copy()
+            W_ = M @ o.matrix_world
+            o.parent = None
+            o.data.transform(W_)
+            if W_.determinant() < 0:
+                bm = bmesh.new()
+                bm.from_mesh(o.data)
+                bmesh.ops.reverse_faces(bm, faces=bm.faces)
+                bm.to_mesh(o.data)
+                bm.free()
+            o.matrix_world = Matrix.Identity(4)
+            meshes.append(o)
+    for o in new:
+        if o.type != 'MESH':
+            bpy.data.objects.remove(o, do_unlink=True)
+    return meshes
+
+
+def _apply_mods(o):
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    me = bpy.data.meshes.new_from_object(o.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
+    old = o.data
+    o.modifiers.clear()
+    o.data = me
+    bpy.data.meshes.remove(old)
+
+
+def optimise(o, angle=1.5, ratio=None):
+    """Safe limited dissolve (UV/material/sharp delimited), optional collapse decimate."""
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    bmesh.ops.dissolve_limit(bm, angle_limit=math.radians(angle), use_dissolve_boundaries=False,
+                             verts=list(bm.verts), edges=list(bm.edges), delimit={'UV', 'MATERIAL', 'SHARP'})
+    bm.to_mesh(o.data)
+    bm.free()
+    if ratio:
+        md = o.modifiers.new('dec', 'DECIMATE')
+        md.ratio = ratio
+        md.use_collapse_triangulate = False
+        _apply_mods(o)
+
+
+def _join(meshes, name):
+    act = meshes[0]
+    if len(meshes) > 1:
+        with bpy.context.temp_override(active_object=act, selected_editable_objects=meshes, selected_objects=meshes):
+            bpy.ops.object.join()
+    act.name = name
+    act.data.name = name
+    return act
+
+
+def _adopt(o, coll, root, objs):
+    for c in list(o.users_collection):
+        c.objects.unlink(o)
+    coll.objects.link(o)
+    o.parent = root
+    o.matrix_parent_inverse = Matrix.Identity(4)
+    o.matrix_basis = Matrix.Identity(4)
+    objs.append(o)
+
+
+def _principled(m):
+    return next((n for n in m.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None) if m and m.use_nodes else None
+
+
+def _whiten(m, col=(0.86, 0.86, 0.85), rough=0.35, metal=0.0):
+    """White/alu override that keeps normal (and roughness) maps but drops branded base-colour images."""
+    p = _principled(m)
+    if p is None:
+        return
+    for l in list(p.inputs['Base Color'].links):
+        m.node_tree.links.remove(l)
+    p.inputs['Base Color'].default_value = (*col, 1)
+    si(p, 'Metallic', metal)
+    if not p.inputs['Roughness'].links:
+        si(p, 'Roughness', rough)
+    for nm in ('Emission Strength',):
+        si(p, nm, 0.0)
+
+
+def _tint(m, tint=GPU_TINT):
+    """Multiply the base colour (texture or value) by a light-blue tint, keeping texture detail."""
+    p = _principled(m)
+    if p is None:
+        return
+    nt = m.node_tree
+    inp = p.inputs['Base Color']
+    if inp.links:
+        src = inp.links[0].from_socket
+        mix = nt.nodes.new('ShaderNodeMix')
+        mix.data_type = 'RGBA'
+        mix.blend_type = 'MULTIPLY'
+        mix.inputs['Factor'].default_value = 1.0
+        nt.links.new(src, sock(mix.inputs, 'A_Color'))
+        sock(mix.inputs, 'B_Color').default_value = (*tint, 1)
+        nt.links.new(sock(mix.outputs, 'Result_Color'), inp)
+    else:
+        c = inp.default_value
+        inp.default_value = (c[0] * tint[0], c[1] * tint[1], c[2] * tint[2], 1)
+
+
+def _external(img, name, clean=None):
+    """Write a (packed/embedded) image to the git-ignored kit texture folder and reload it from there."""
+    out = os.path.join(KIT_DIR, 'textures', 'pc_%s.png' % name)
+    W_, H_ = img.size
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(H_, W_, 4)
+    if clean:
+        clean(px)
+    tmp = bpy.data.images.new('pc_tmp_px', W_, H_, alpha=True)
+    tmp.pixels[:] = px.ravel()
+    tmp.filepath_raw = out
+    tmp.file_format = 'PNG'
+    tmp.save()
+    bpy.data.images.remove(tmp)
+    new = bpy.data.images.load(out, check_existing=False)
+    new.name = 'pc_%s' % name
+    new.colorspace_settings.name = img.colorspace_settings.name
+    new.alpha_mode = img.alpha_mode
+    new.filepath = bpy.path.relpath(out, start=PARTS)
+    img.user_remap(new)
+    return new
+
+
+def _fill_hubs(px):
+    """Face photo (1024x512): repaint the three hub caps as plain brushed-silver discs (no text)."""
+    H_, W_ = px.shape[:2]
+    yy, xx = np.mgrid[0:H_, 0:W_]
+    for cx, cy, r in ((208, 212, 55), (533, 206, 57), (839, 212, 56)):
+        ry = H_ - 1 - cy
+        d = np.sqrt((xx - cx) ** 2 + (yy - ry) ** 2)
+        msk = d < r
+        t = np.clip(d / r, 0, 1)
+        base = 0.80 - 0.16 * t + 0.018 * np.sin(d * 1.3)
+        for ch, k in ((0, 0.98), (1, 0.99), (2, 1.02)):
+            px[..., ch] = np.where(msk, np.clip(base * k, 0, 1), px[..., ch])
+        px[..., 3] = np.where(msk, 1.0, px[..., 3])
+
+
+def _fill_edge(px):
+    """Top-edge photo (1024x128): tile a clean stretch of the strip over the printed words/logos."""
+    H_, W_ = px.shape[:2]
+    src_x0, src_x1 = 490, 640
+
+    def fill(x0, x1, y0, y1):
+        r0, r1 = H_ - y1, H_ - y0
+        patch = px[r0:r1, src_x0:src_x1].copy()
+        w = src_x1 - src_x0
+        for x in range(x0, x1, w):
+            n = min(w, x1 - x)
+            px[r0:r1, x:x + n] = patch[:, :n]
+    for zone in ((55, 172, 76, 101), (196, 322, 68, 108), (334, 476, 76, 101), (664, 1006, 70, 110), (430, 585, 110, 126)):
+        fill(*zone)
+
+
+def import_mobo(coll, root, objs):
+    """'MotherBoard + Components' by Daniel Cardona (Sketchfab, CC BY 4.0) -> white ATX board on the standoffs."""
+    path = os.path.join(MOBO_DIR, 'source', 'maya2sketchfab.fbx')
+    new = _import(lambda: bpy.ops.import_scene.fbx(filepath=path))
+    S_, XF, Y0, ZT = 3.3116, 0.0415, 0.0794, 0.0447      # 92.1 x 73.2 model units -> 305 x 244 mm ATX
+    M = Matrix(((0, S_, 0, 0.052 - Y0 * S_), (-S_, 0, 0, -0.030 + XF * S_), (0, 0, S_, 0.428 - ZT * S_), (0, 0, 0, 1)))
+    meshes = _bake(new, M)
+    # hidden under the pump block: socket, latch, retention frame, CPU
+    hidden = {'CPULatch', 'CPULatchMountM', 'CPUBracketM', 'CPU_BaseM', 'CPULidM'}
+    keep = []
+    for o in meshes:
+        mn = o.data.materials[0].name if o.data.materials and o.data.materials[0] else ''
+        pts = [v.co for v in o.data.vertices]
+        if not pts:
+            bpy.data.objects.remove(o, do_unlink=True)
+            continue
+        lo = V((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+        hi = V((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+        under_pump = lo.x > 0.040 and lo.y > 0.036 and hi.y < 0.133 and lo.z > 0.291 and hi.z < 0.390
+        if mn in hidden or under_pump:
+            bpy.data.objects.remove(o, do_unlink=True)
+            continue
+        if mn in ('CapacitorsM', 'Capacitor1M', 'CylinderPinM', 'Audio1m', 'Audio2m', 'Audio3m', 'Audio4m', 'Audio5m') \
+                and len(o.data.polygons) > 40:
+            md = o.modifiers.new('dec', 'DECIMATE')
+            md.ratio = 0.3
+            _apply_mods(o)
+        keep.append(o)
+    # textures: re-point to the (git-ignored) download folder, relative to parts/
+    tex = {ntpath.splitext(f)[0].lower(): os.path.join(MOBO_DIR, 'textures', f)
+           for f in os.listdir(os.path.join(MOBO_DIR, 'textures'))}
+    for im in bpy.data.images:
+        stem = ntpath.splitext(ntpath.basename(im.filepath))[0].lower()
+        if stem in tex:
+            im.filepath = bpy.path.relpath(tex[stem], start=PARTS)
+            im.reload()
+    # all-white look: PCB, heatsinks, shrouds, slots, RAM; RGB bars take the build's pink/blue ramp
+    mats = {m for o in keep for m in o.data.materials if m}
+    for m in mats:
+        n = m.name.split('.')[0]
+        if n == 'BaseBoardM':
+            continue
+        if n in ('I_O_Cover', 'BoardPlate1m', 'BoardPlate2m', 'BoardChipsetM', 'BoardM2CoverM', 'BoardM2Cover1M'):
+            _whiten(m, (0.87, 0.87, 0.86), 0.30, 0.35)
+        elif n in ('BasePLasticM', 'WhiteBasePlasticM', 'Ram2M', 'Ram3M', 'Ram4M', 'lambert1', 'BatteryM'):
+            _whiten(m, (0.86, 0.86, 0.85), 0.38, 0.0)
+        elif n == 'M2_StickerM':
+            _whiten(m, (0.20, 0.20, 0.21), 0.5, 0.0)
+    for o in keep:
+        for i, m in enumerate(o.data.materials):
+            if not m:
+                continue
+            n = m.name.split('.')[0]
+            if n == 'BaseBoardM':
+                o.data.materials[i] = MAT['pc_mb_pcb']
+            elif n == 'RGBM':
+                o.data.materials[i] = MAT['pc_rgb_diffuser']
+    board = _join(keep, 'pc_mobo_board')
+    optimise(board, 1.0)
+    board.data.shade_smooth()
+    board.data.set_sharp_from_angle(angle=math.radians(35))
+    _adopt(board, coll, root, objs)
+    return board
+
+
+def import_gpukit(coll, root, objs):
+    """White GIGABYTE AERO-style card from the owner's GPU kit (licence unknown, local-only): other cards
+    discarded, logos removed, tinted light blue, scaled to RTX 5070 AERO OC length (324 mm), in the top x16 slot."""
+    path = os.path.join(KIT_DIR, 'source', 'gpukit.glb')
+    new = _import(lambda: bpy.ops.import_scene.gltf(filepath=path))
+    white = None
+    for o in new:
+        if o.parent is None and any(c.type == 'MESH' and c.data.materials and c.data.materials[0]
+                                    and 'pearl_white' in c.data.materials[0].name for c in o.children_recursive):
+            white = o
+    ks = set([white] + list(white.children_recursive))
+    for o in new:
+        if o not in ks:
+            bpy.data.objects.remove(o, do_unlink=True)
+    new = [o for o in new if o in ks]
+    s_ = 0.324 / 10.44                                        # bracket face -> far end = 10.44 kit units
+    M = Matrix(((0, 0, -s_, 0.034 - 2.23 * s_), (0, -s_, 0, 0.2285 - 14.56 * s_), (-s_, 0, 0, 0.2465 - 0.70 * s_),
+                (0, 0, 0, 1)))
+    meshes = _bake(new, M)
+    keep = []
+    for o in meshes:
+        mn = o.data.materials[0].name if o.data.materials and o.data.materials[0] else ''
+        if mn.startswith('Material.015'):                    # glowing hub logo
+            bpy.data.objects.remove(o, do_unlink=True)
+            continue
+        keep.append(o)
+    mats = {m.name: m for o in keep for m in o.data.materials if m}
+    metal = next((m for n_, m in mats.items() if n_.startswith('Metal')), None)
+    for n_, m in mats.items():
+        for node in m.node_tree.nodes:
+            if node.type == 'TEX_IMAGE' and node.image and (node.image.packed_file or not node.image.filepath):
+                if n_.startswith('Material.009'):
+                    _external(node.image, 'gpu_face_clean', _fill_hubs)
+                elif n_.startswith('Material.011'):
+                    _external(node.image, 'gpu_edge_clean', _fill_edge)
+                elif not n_.startswith('Material.012'):
+                    _external(node.image, 'gpu_%s' % node.image.name.replace('.', '_'))
+    for o in keep:
+        for i, m in enumerate(o.data.materials):
+            if m and m.name.startswith('Material.012') and metal:     # branded backplate photo -> plain metal
+                o.data.materials[i] = metal
+    for n_, m in mats.items():
+        if any(n_.startswith(k) for k in ('Material.009', 'Material.011', 'Procedural_pearl', 'Procedural_Silver',
+                                          'material_0', 'Metal')):
+            _tint(m)
+    for i, o in enumerate(keep):
+        mn = o.data.materials[0].name if o.data.materials and o.data.materials[0] else 'part'
+        heavy = len(o.data.polygons) > 8000
+        optimise(o, 1.0, 0.30 if heavy else None)
+        o.name = 'pc_gpukit_%02d_%s' % (i, mn.split('.')[0].lower()[:20])
+        o.data.name = o.name
+        _adopt(o, coll, root, objs)
+    for im in list(bpy.data.images):                         # nothing embedded may survive into pc.blend
+        if im.packed_file and im.users == 0:
+            bpy.data.images.remove(im)
+    return keep
 
 
 def build():
@@ -1087,7 +1427,7 @@ def build():
     cuts = [cutter(coll, lathe_bm([(0.0, -0.01), (0.0575, -0.01), (0.0575, 0.01), (0.0, 0.01)], 64,
                                   frame((FAN_R[0], HD - 0.0015, FAN_R[1]), (0, 1, 0))), 'pc_white_steel'),
             cutter(coll, box_bm((0.019, HD - 0.01, 0.259), (0.050, HD + 0.01, 0.417)), 'pc_white_steel'),
-            cutter(coll, box_bm((-0.092, HD - 0.01, 0.087), (0.018, HD + 0.01, 0.237)), 'pc_white_steel'),
+            cutter(coll, box_bm((-0.075, HD - 0.01, 0.087), (0.040, HD + 0.01, 0.257)), 'pc_white_steel'),
             cutter(coll, box_bm((0.062, HD - 0.01, 0.036), (0.142, HD + 0.01, 0.186)), 'pc_white_steel')]
     boolean_apply(rear, cuts)
     # rear fan guard: thin concentric wire rings + spokes
@@ -1102,15 +1442,15 @@ def build():
     done(mb)
     mb = MB('pc_rear_slots', ['pc_white_steel'])
     # 4 vented slot covers below the graphics card's 3-slot bracket
-    for k in range(4):
+    for k in range(5):
         z0 = 0.0890 + k * 0.0203
-        box(mb, (-0.090, HD - 0.0020, z0), (0.016, HD - 0.0004, z0 + 0.0185), 'pc_white_steel', r=0.0004, seg=1)
+        box(mb, (-0.073, HD - 0.0020, z0), (0.038, HD - 0.0004, z0 + 0.0185), 'pc_white_steel', r=0.0004, seg=1)
         for j in range(8):
-            uu = -0.082 + j * 0.0118
+            uu = -0.066 + j * 0.0125
             box(mb, (uu, HD - 0.0006, z0 + 0.0060), (uu + 0.0078, HD, z0 + 0.0125), 'pc_port_dark', r=0.0003, seg=1)
-    box(mb, (0.018, HD - 0.0004, 0.085), (0.032, HD + 0.0022, 0.240), 'pc_white_steel', r=0.001, seg=1)
+    box(mb, (0.040, HD - 0.0004, 0.085), (0.052, HD + 0.0022, 0.257), 'pc_white_steel', r=0.001, seg=1)
     for k in range(7):
-        thumbscrew(mb, (0.025, HD + 0.0022, 0.0982 + k * 0.0203), (0, 1, 0), mat='pc_metal', r=0.0024, L=0.0022)
+        thumbscrew(mb, (0.046, HD + 0.0022, 0.0982 + k * 0.0203), (0, 1, 0), mat='pc_metal', r=0.0024, L=0.0022)
     done(mb)
 
     # motherboard tray with grommet openings
@@ -1118,7 +1458,7 @@ def build():
     mb = MB('pc_mb_tray', ['pc_white_steel'])
     box(mb, (TU0, -HD + 0.0075, Z0), (TU1, HD - 0.003, Z1), 'pc_white_steel', r=0.0006, seg=1)
     tray = done(mb)
-    holes = [(-0.076, -0.040, 0.285, 0.380), (-0.082, -0.046, 0.200, 0.268), (0.090, 0.152, 0.4295, 0.4385),
+    holes = [(-0.076, -0.040, 0.285, 0.380), (-0.082, -0.046, 0.200, 0.268), (0.128, 0.170, 0.4295, 0.4385),
              (-0.090, 0.090, 0.068, 0.098)]
     boolean_apply(tray, [cutter(coll, box_bm((TU0 - 0.01, a, c), (TU1 + 0.01, b, d), r=0.003, seg=2), 'pc_white_steel')
                          for a, b, c, d in holes])
@@ -1151,142 +1491,17 @@ def build():
         box(mb, (0.080, 0.0665, zz - 0.006), (0.080 + w, 0.0685, zz + 0.006), 'pc_port_dark', r=0.0005, seg=1)
     done(mb)
 
-    # ------------------------------------------------------------------ motherboard (white)
-    BU = 0.052                              # board front surface (components grow toward -u)
-    BV0, BV1, BZ0, BZ1 = -0.030, 0.214, 0.123, 0.428
-    mb = MB('pc_mb', ['pc_mb_pcb'])
-    box(mb, (BU, BV0, BZ0), (BU + 0.0016, BV1, BZ1), 'pc_mb_pcb', r=0.0006, seg=1)
-    # rear I/O shroud with an integrated VRM heatsink: faceted (chamfered top corner) block + accent inlay
-    Mio_ = frame((0.016, 0.0, 0.0), (1, 0, 0), (0, 1, 0))          # local x = v, local y = z, extrude +u
-    prism(mb, [(0.168, 0.252), (BV1 - 0.001, 0.252), (BV1 - 0.001, 0.420), (0.186, 0.420), (0.176, 0.410), (0.168, 0.396)],
-          Mio_, 0.0, BU - 0.016, 'pc_white_alu', ch=0.0015)
-    prism(mb, [(v_, -z_) for v_, z_ in ((0.1695, 0.300), (0.1740, 0.294), (0.1830, 0.294), (0.1830, 0.392), (0.1760, 0.402),
-                                         (0.1695, 0.392))],
-          frame((0.0162, 0.0, 0.0), (-1, 0, 0), (0, 1, 0)), 0.0, 0.0006, 'pc_gpu_accent')
-    box(mb, (0.0145, 0.176, 0.262), (0.0165, 0.178, 0.412), 'pc_heatsink')
-    box(mb, (0.022, 0.150, 0.252), (BU, 0.168, 0.300), 'pc_white_alu', r=0.003, seg=2)
-    # top VRM heatsink with fins
-    box(mb, (0.030, 0.056, 0.384), (BU, 0.166, 0.411), 'pc_white_alu', r=0.002, seg=2)
-    for k in range(21):                                    # fine fins with a raked (faceted) leading edge
-        vv = 0.0575 + k * 0.0051
-        prism(mb, [(0.0310, 0.3865), (0.0310, 0.4090), (0.0232, 0.4090), (0.0210, 0.4045), (0.0210, 0.3905), (0.0232, 0.3865)],
-              frame((0.0, vv, 0.0), (0, 1, 0), (1, 0, 0)) @ Matrix.Scale(-1, 4, (0, 1, 0)), 0.0, 0.0021, 'pc_white_alu')
-    tube(mb, [V((0.0265, 0.160, 0.3980)), V((0.0265, 0.172, 0.3980)), V((0.0240, 0.178, 0.3930))], 0.0022, 'pc_metal',
-         sides=10, step=0.004)
-    # EPS 8-pin headers
-    for v0 in (0.100, 0.124):
-        box(mb, (0.038, v0, 0.413), (BU, v0 + 0.020, 0.427), 'pc_white_plastic', r=0.001, seg=1)
-    # socket retention plate (peeks out around the pump)
-    box(mb, (0.046, 0.070, 0.296), (BU, 0.152, 0.380), 'pc_metal', r=0.002, seg=2)
-    # DIMM slots with latches; modules: PCB sandwiched by two stepped heatspreader halves with a
-    # chevron accent, frosted RGB diffuser bar with white end caps
-    for vc in (0.045, 0.0355, 0.024, 0.0145):
-        box(mb, (0.045, vc - 0.0033, 0.276), (BU, vc + 0.0033, 0.420), 'pc_white_plastic', r=0.0006, seg=1)
-        for zz in (0.2745, 0.4195):
-            box(mb, (0.043, vc - 0.0036, zz - 0.0035), (BU, vc + 0.0036, zz + 0.0035), 'pc_white_plastic', r=0.0008, seg=1)
-        box(mb, (0.0095, vc - 0.0006, 0.2775), (0.0460, vc + 0.0006, 0.4185), 'pc_gpu_pcb')
-        for sg in (1, -1):
-            ol = [(0.0455, 0.0007), (0.0455, 0.0033), (0.0215, 0.0033), (0.0175, 0.0040), (0.0092, 0.0040), (0.0092, 0.0007)]
-            pts = [(u_, vc + sg * w_) for u_, w_ in ol]
-            prism(mb, pts if sg > 0 else pts[::-1], I4, 0.2805, 0.4155, 'pc_white_alu', ch=0.0004)
-            Mfc = frame((0.0, vc + sg * 0.00332, 0.0), (0, sg, 0), (1, 0, 0))
-            for z0 in (0.300, 0.318):
-                pv = [(0.0400, z0), (0.0440, z0), (0.0290, z0 + 0.030), (0.0250, z0 + 0.030)]
-                prism(mb, [(u_, -sg * z_) for u_, z_ in pv], Mfc, -0.0001, 0.0004, 'pc_gpu_accent')
-            ya, yb = sorted((vc + sg * 0.0031, vc + sg * 0.0037))
-            box(mb, (0.0240, ya, 0.360), (0.0400, yb, 0.404), 'pc_white_pcb')
-        box(mb, (0.0012, vc - 0.0029, 0.2830), (0.0094, vc + 0.0029, 0.4130), 'pc_rgb_diffuser', r=0.0012, seg=2)
-        for z0, z1 in ((0.2800, 0.2832), (0.4128, 0.4160)):
-            box(mb, (0.0008, vc - 0.0034, z0), (0.0096, vc + 0.0034, z1), 'pc_white_plastic', r=0.0008, seg=1)
-    # 24-pin header + plug
-    box(mb, (0.040, -0.028, 0.298), (BU, -0.014, 0.356), 'pc_white_plastic', r=0.001, seg=1)
-    box(mb, (0.0405, -0.040, 0.2995), (0.0525, -0.027, 0.3545), 'pc_white_plastic', r=0.0012, seg=1)
-    box(mb, (0.0415, -0.047, 0.300), (0.0515, -0.044, 0.354), 'pc_white_plastic', r=0.0008, seg=1)      # cable comb
-    # PCIe x16 slots with armour, M.2 covers, chipset heatsink, small headers
-    for zz in (0.226, 0.152):
-        box(mb, (0.043, 0.060, zz), (BU, 0.203, zz + 0.0085), 'pc_white_alu', r=0.001, seg=1)
-        box(mb, (0.0425, 0.060, zz + 0.0028), (0.0432, 0.203, zz + 0.0057), 'pc_heatsink')
-    box(mb, (0.045, 0.028, 0.243), (BU, 0.168, 0.270), 'pc_white_alu', r=0.002, seg=2)
-    box(mb, (0.0445, 0.040, 0.2555), (0.0452, 0.156, 0.2575), 'pc_heatsink')
-    box(mb, (0.045, 0.020, 0.168), (BU, 0.140, 0.193), 'pc_white_alu', r=0.002, seg=2)
-    box(mb, (0.040, -0.026, 0.132), (BU, 0.044, 0.214), 'pc_white_alu', r=0.004, seg=3)
-    for k in range(5):
-        zz = 0.140 + k * 0.014
-        box(mb, (0.0392, -0.020, zz), (0.0405, 0.038, zz + 0.004), 'pc_white_pcb', r=0.0005, seg=1)
-    for k, vv in enumerate((0.00, 0.03, 0.06, 0.09, 0.12, 0.15)):
-        box(mb, (0.046, vv, 0.125), (BU, vv + 0.018, 0.131), 'pc_dark_plastic')
-    # extra board detail: I/O-shroud slits, second M.2 fins, screws, x1 slot, slot latches, chipset chevron
-    for k in range(8):
-        zz = 0.300 + k * 0.0135
-        box(mb, (0.0152, 0.174, zz), (0.0164, 0.208, zz + 0.0055), 'pc_heatsink', r=0.0004, seg=1)
-    for zz in (0.2490, 0.2620):
-        box(mb, (0.0445, 0.036, zz), (0.0452, 0.160, zz + 0.0012), 'pc_heatsink')
-    for zz in (0.1740, 0.1860):
-        box(mb, (0.0445, 0.028, zz), (0.0452, 0.132, zz + 0.0012), 'pc_heatsink')
-    for vv, zz in ((0.032, 0.2565), (0.164, 0.2565), (0.024, 0.1805), (0.136, 0.1805), (-0.024, 0.422), (-0.024, 0.270),
-                   (-0.024, 0.128), (0.207, 0.128)):
-        uu = BU if vv < 0 or zz < 0.13 else 0.045
-        lathe(mb, [(0.0, 0.0), (0.0026, 0.0), (0.0026, 0.0006), (0.0018, 0.0012), (0.0, 0.0013)], 'pc_metal',
-              frame((uu, vv, zz), (-1, 0, 0)), seg=16)
-    box(mb, (0.046, 0.160, 0.2005), (BU, 0.188, 0.2065), 'pc_white_plastic', r=0.0006, seg=1)
-    box(mb, (0.0455, 0.162, 0.2025), (0.0462, 0.186, 0.2045), 'pc_port_dark')
-    for zz in (0.226, 0.152):
-        box(mb, (0.0435, 0.051, zz - 0.0006), (BU, 0.060, zz + 0.0091), 'pc_white_plastic', r=0.0008, seg=1)
-    Mch = frame((0.0402, 0.0, 0.0), (-1, 0, 0), (0, 1, 0))
-    for dz in (0.0, 0.010):
-        pv = [(-0.016, 0.205 - dz), (-0.010, 0.205 - dz), (0.018, 0.176 - dz), (0.012, 0.176 - dz)]
-        prism(mb, [(v_, -z_) for v_, z_ in pv], Mch, 0.0, 0.0004, 'pc_gpu_accent')
-    # VRM chokes + solid capacitors in the gaps around the socket
-    for k in range(7):
-        vv = 0.078 + k * 0.0102
-        box(mb, (0.0445, vv, 0.3760), (BU, vv + 0.0080, 0.3835), 'pc_smd_grey', r=0.0006, seg=1)
-    for k in range(6):
-        zz = 0.302 + k * 0.0128
-        box(mb, (0.0450, 0.1612, zz), (BU, 0.1675, zz + 0.0100), 'pc_smd_grey', r=0.0006, seg=1)
-    for k in range(6):
-        zz = 0.303 + k * 0.0125
-        lathe(mb, [(0.0, 0.0), (0.0024, 0.0), (0.0024, 0.0055), (0.0019, 0.0062), (0.0, 0.0062)], 'pc_dark_plastic',
-              frame((BU, 0.0615, zz), (-1, 0, 0)), seg=12)
-        lathe(mb, [(0.0, 0.0062), (0.0019, 0.0062), (0.0019, 0.0065), (0.0, 0.0065)], 'pc_metal',
-              frame((BU, 0.0615, zz), (-1, 0, 0)), seg=12)
-    # faceted accent plates on the M.2 heatsinks, lever tabs on the DIMM latches
-    Mm2 = frame((0.0451, 0.0, 0.0), (-1, 0, 0), (0, 1, 0))
-    for v0, v1, z0, z1 in ((0.100, 0.150, 0.2485, 0.2645), (0.090, 0.130, 0.1725, 0.1885)):
-        pv = [(v0 + 0.004, z0), (v1, z0), (v1, z1 - 0.004), (v1 - 0.004, z1), (v0, z1), (v0, z0 + 0.004)]
-        prism(mb, [(v_, -z_) for v_, z_ in pv], Mm2, 0.0, 0.0006, 'pc_gpu_accent')
-    for vc in (0.045, 0.0355, 0.024, 0.0145):
-        box(mb, (0.0425, vc - 0.0030, 0.4225), (0.0460, vc + 0.0030, 0.4255), 'pc_white_plastic', r=0.0006, seg=1)
-    # fan / ARGB / USB headers with gold pins along the board edges
-    def header(vv, zz, n, along_v):
-        L_ = n * 0.00254
-        lo = (0.0468, vv, zz) if along_v else (0.0468, vv, zz)
-        hi = (BU, vv + L_, zz + 0.0026) if along_v else (BU, vv + 0.0026, zz + L_)
-        box(mb, lo, hi, 'pc_white_plastic', r=0.0003, seg=1)
-        for k in range(n):
-            c = k * 0.00254 + 0.00127
-            pv_, pz_ = (vv + c, zz + 0.0013) if along_v else (vv + 0.0013, zz + c)
-            box(mb, (0.0448, pv_ - 0.0003, pz_ - 0.0003), (0.0470, pv_ + 0.0003, pz_ + 0.0003), 'pc_gold')
-    for vv, zz, n, av in ((0.058, 0.4205, 4, True), (0.078, 0.4205, 4, True), (-0.0275, 0.392, 4, False),
-                          (-0.0275, 0.262, 3, False), (-0.0275, 0.228, 4, False), (-0.0275, 0.170, 10, False),
-                          (0.150, 0.1255, 10, True), (0.182, 0.1255, 4, True), (0.198, 0.1255, 3, True)):
-        header(vv, zz, n, av)
-    # screw standoff pads (thin metal rings) under the board screws
-    for vv, zz in ((-0.024, 0.422), (-0.024, 0.270), (-0.024, 0.128), (0.207, 0.128)):
-        lathe(mb, [(0.0027, 0.0), (0.0038, 0.0), (0.0038, 0.0003), (0.0027, 0.0003)], 'pc_metal',
-              frame((BU - 0.0001, vv, zz), (-1, 0, 0)), seg=20)
-    # scattered SMD resistors/capacitors on the exposed PCB (deterministic)
-    rng = random.Random(11)
-    for (v0, v1, z0, z1), n in (((-0.0285, -0.0170, 0.136, 0.292), 34), ((0.058, 0.200, 0.2365, 0.2420), 26),
-                                ((0.058, 0.200, 0.1612, 0.1660), 22), ((0.140, 0.205, 0.1315, 0.1500), 18),
-                                ((-0.024, 0.038, 0.2160, 0.2410), 22), ((0.170, 0.210, 0.1950, 0.2250), 16),
-                                ((0.050, 0.074, 0.2780, 0.2980), 12)):
-        for _ in range(n):
-            w, h_ = (0.0016, 0.0008) if rng.random() < 0.7 else (0.0022, 0.0013)
-            if rng.random() < 0.5:
-                w, h_ = h_, w
-            vv, zz = rng.uniform(v0, v1 - w), rng.uniform(z0, z1 - h_)
-            mat = rng.choice(('pc_dark_plastic', 'pc_smd_tan', 'pc_smd_grey', 'pc_dark_plastic'))
-            box(mb, (BU - 0.0005, vv, zz), (BU + 0.0001, vv + w, zz + h_), mat)
+    # ------------------------------------------------------------------ motherboard (imported, all white)
+    BU = 0.052
+    import_mobo(coll, root, objs)
+    mb = MB('pc_power_plugs', ['pc_white_plastic'])
+    # 24-pin plug + comb on the board's 24-pin header, 8-pin EPS header + plug at the top edge
+    box(mb, (0.0405, -0.040, 0.2995), (0.0525, -0.029, 0.3545), 'pc_white_plastic', r=0.0012, seg=1)
+    box(mb, (0.0415, -0.047, 0.300), (0.0515, -0.044, 0.354), 'pc_white_plastic', r=0.0008, seg=1)
+    box(mb, (0.0380, 0.1395, 0.4175), (BU, 0.1575, 0.4280), 'pc_dark_plastic', r=0.0008, seg=1)
+    box(mb, (0.0400, 0.1400, 0.4225), (0.0500, 0.1570, 0.4290), 'pc_white_plastic', r=0.0008, seg=1)
+    done(mb)
+    mb = MB('pc_rear_io', ['pc_white_alu'])
     # board I/O in the rear cut-out: Wi-Fi SMA posts, BIOS/CMOS buttons, 8x USB-A, 2x USB-C, RJ45, audio
     box(mb, (0.020, HD - 0.0045, 0.260), (0.049, HD - 0.0005, 0.416), 'pc_white_alu')
     cols = (0.0275, 0.0415)
@@ -1321,85 +1536,73 @@ def build():
     box(mb, (0.0375, HD - 0.0020, 0.2645), (0.0455, HD + 0.0005, 0.2715), 'pc_port_dark', r=0.0008, seg=1)
     done(mb)
 
-    # ------------------------------------------------------------------ AIO pump head
-    PV0, PV1, PZ0, PZ1, PU0 = 0.075, 0.147, 0.302, 0.374, 0.008
-    pc_ = V((PU0, (PV0 + PV1) / 2, (PZ0 + PZ1) / 2))
-    mb = MB('pc_aio_pump', ['pc_white_plastic'])
-    box(mb, (PU0, PV0, PZ0), (0.046, PV1, PZ1), 'pc_white_plastic', r=0.010, seg=4)
-    Mf = frame(pc_, (-1, 0, 0), (0, -1, 0))      # local +Z out of the pump face (-u)
-    lathe(mb, [(0.0287, -0.0002), (0.0287, 0.0010), (0.0300, 0.0014), (0.0322, 0.0014), (0.0334, 0.0008),
-               (0.0334, -0.0003)], 'pc_white_alu', Mf, seg=72)
-    lathe(mb, [(0.0336, -0.0001), (0.0336, 0.0005), (0.0346, 0.0005), (0.0346, -0.0001)], 'pc_rgb_led', Mf, seg=72)
-    # retention bracket bars behind the pump with knurled thumbnuts
-    for zz in (PZ0 + 0.004, PZ1 - 0.004):
-        box(mb, (0.041, 0.062, zz - 0.0035), (0.0475, 0.160, zz + 0.0035), 'pc_white_alu', r=0.0012, seg=2)
-        for vv in (0.066, 0.156):
-            thumbscrew(mb, (0.041, vv, zz), (-1, 0, 0), mat='pc_white_alu', r=0.0036, L=0.006)
-    # swivel fittings on the front (-v) side, turning toward the glass
-    for zz in (0.3255, 0.3505):
-        lathe(mb, [(0.0, 0.0), (0.0078, 0.0), (0.0078, 0.004), (0.0072, 0.0045), (0.0072, 0.0085), (0.0, 0.0085)],
-              'pc_white_alu', frame((0.017, PV0 + 0.0005, zz), (0, -1, 0)), seg=32)
+    # ------------------------------------------------------------------ AIO: ROG Ryujin III 360 ARGB (white) pump block
+    # 89 x 91 mm footprint centred on the socket, 101 mm tall with the tilted 3.5" LCD facing the glass,
+    # on an LGA mounting bracket with four thumb nuts; tubes leave the -v side through black swivel fittings.
+    CV_, CZ_ = 0.0845, 0.3405
+    PV0, PV1, PZ0, PZ1 = CV_ - 0.0445, CV_ + 0.0445, CZ_ - 0.0455, CZ_ + 0.0455
+    FB, FT = -0.049, -0.017                      # front face at the bottom / top edge (screen tilts back 18 deg)
+    mb = MB('pc_cooler_pump', ['pc_white_plastic'])
+    Mside = frame((0.0, PV0 + 0.0005, 0.0), (0, 1, 0), (1, 0, 0))            # local x = u, y = -z, extrude +v
+    prof = [(0.0430, PZ0 + 0.004), (0.0430, PZ1 - 0.004), (0.0395, PZ1), (FT + 0.004, PZ1), (FT, PZ1 - 0.005),
+            (FB, PZ0 + 0.006), (FB + 0.004, PZ0), (0.0395, PZ0)]
+    prism(mb, [(u_, -z_) for u_, z_ in prof], Mside, 0.0, PV1 - PV0 - 0.001, 'pc_white_plastic', ch=0.003)
+    # silver chassis rails along both side edges of the front, visor across the top
+    for vv in (PV0 - 0.0006, PV1 - 0.0034):
+        Mrail = frame((0.0, vv, 0.0), (0, 1, 0), (1, 0, 0))
+        rail = [(FT + 0.004, PZ1 + 0.0008), (FT - 0.002, PZ1 + 0.0008), (FB - 0.003, PZ0 + 0.004), (FB + 0.012, PZ0 - 0.0008),
+                (FB + 0.012, PZ0 + 0.004), (FT + 0.004, PZ1 - 0.004)]
+        prism(mb, [(u_, -z_) for u_, z_ in rail], Mrail, 0.0, 0.004, 'pc_metal', ch=0.0006)
+    box(mb, (FT - 0.002, PV0 - 0.0006, PZ1 - 0.0015), (0.0300, PV1 + 0.0006, PZ1 + 0.0035), 'pc_metal', r=0.0015, seg=2)
+    box(mb, (0.000, PV0 + 0.010, PZ1 + 0.0035), (0.026, PV1 - 0.010, PZ1 + 0.0050), 'pc_white_alu', r=0.0006, seg=1)
+    # tilted LCD bezel on the front face
+    tvec = V((FT - FB, 0.0, (PZ1 - 0.005) - (PZ0 + 0.006))).normalized()
+    nrm = V((-tvec.z, 0.0, tvec.x))                           # outward (toward the glass, slightly up)
+    fc = V(((FB + FT) / 2, CV_, (PZ0 + PZ1) / 2 + 0.0005))
+    Mface = Matrix(((0.0, tvec.x, nrm.x, fc.x), (1.0, 0.0, 0.0, fc.y), (0.0, tvec.z, nrm.z, fc.z), (0, 0, 0, 1)))
+    if Mface.to_3x3().determinant() < 0:
+        Mface = Mface @ Matrix.Scale(-1, 4, (1, 0, 0))
+    ro, ri = rrect(0.0800, 0.0640, 0.0045, 5), rrect(0.0720, 0.0545, 0.0020, 5)
+    R = lambda pts, z: [Mface @ V((p[0], p[1], z)) for p in pts]
+    mb.merge(loft_bm([R(ri, -0.0010), R(ri, 0.0024), R(ro, 0.0024), R(ro, -0.0010)], 0), 'pc_metal')
+    # LGA mounting bracket (behind the block) with four knurled thumb nuts on standoffs
+    box(mb, (0.0430, CV_ - 0.050, CZ_ - 0.054), (0.0470, CV_ + 0.050, CZ_ + 0.054), 'pc_metal', r=0.004, seg=2)
+    for dv in (-0.045, 0.045):
+        for dz in (-0.049, 0.049):
+            lathe(mb, [(0.0, 0.0), (0.0024, 0.0), (0.0024, 0.009), (0.0, 0.009)], 'pc_metal',
+                  frame((BU, CV_ + dv, CZ_ + dz), (-1, 0, 0)), seg=12)
+            thumbscrew(mb, (0.0430, CV_ + dv, CZ_ + dz), (-1, 0, 0), mat='pc_dark_plastic', r=0.0048, L=0.0065)
+    # black swivel fittings on the top face; tubes run along the board's top edge to the radiator's rear tank
+    FITS = ((0.012, 0.060), (0.012, 0.080))
+    for uu, vv in FITS:
+        Mf_ = frame((uu, vv, PZ1 + 0.0030), (0, 0, 1))
+        lathe(mb, [(0.0, 0.0), (0.0085, 0.0), (0.0085, 0.004), (0.0078, 0.0048), (0.0078, 0.0115), (0.0072, 0.012),
+                   (0.0, 0.012)], 'pc_dark_plastic', Mf_, seg=24)
+        prism(mb, star(12, 0.0090, 0.0084), Mf_, 0.0015, 0.0045, 'pc_dark_plastic')
     done(mb)
-    # screen as its own object (object coords = screen plane in metres)
-    sm = bpy.data.meshes.new('pc_aio_screen')
-    bm = lathe_bm([(0.0, 0.0), (0.0290, 0.0)], seg=72)
-    bm.to_mesh(sm)
+    # the LCD (own object: artwork shader in its local XY), 0.8 mm in front of the face, inside the bezel
+    lm = bpy.data.meshes.new('pc_cooler_lcd')
+    bm = bmesh.new()
+    vs = [bm.verts.new((x_, y_, 0.0)) for x_, y_ in rrect(0.0726, 0.0550, 0.0020, 4)]
+    bm.faces.new(vs)
+    bm.to_mesh(lm)
     bm.free()
-    sm.materials.append(MAT['pc_pump_screen'])
-    so = bpy.data.objects.new('pc_aio_screen', sm)
-    coll.objects.link(so)
-    so.parent = root
-    so.matrix_parent_inverse = Matrix.Identity(4)
-    so.matrix_basis = Mf @ Matrix.Translation((0, 0, 0.0005))          # 0.5 mm off the pump face
-    objs.append(so)
-    FRAMED.append(so)
-    cu = bpy.data.curves.new('pc_screen_text', 'FONT')
-    cu.body = '38°C'
-    cu.size = 0.0115
-    cu.align_x = 'CENTER'
-    cu.align_y = 'CENTER'
-    to = bpy.data.objects.new('tmp_text', cu)
-    coll.objects.link(to)
-    bpy.context.view_layer.update()
-    tm = bpy.data.meshes.new_from_object(to.evaluated_get(bpy.context.evaluated_depsgraph_get()))
-    bpy.data.objects.remove(to, do_unlink=True)
-    tm.name = 'pc_aio_screen_text'
-    tm.materials.clear()
-    tm.materials.append(MAT['pc_screen_text'])
-    tob = bpy.data.objects.new('pc_aio_screen_text', tm)
-    coll.objects.link(tob)
-    tob.parent = root
-    tob.matrix_basis = Mf @ Matrix.Translation((0.0, 0.0010, 0.0009))
-    objs.append(tob)
-    FRAMED.append(tob)
-    cu2 = bpy.data.curves.new('pc_screen_label', 'FONT')
-    cu2.body = 'CPU'
-    cu2.size = 0.0048
-    cu2.align_x = 'CENTER'
-    cu2.align_y = 'CENTER'
-    to2 = bpy.data.objects.new('tmp_text2', cu2)
-    coll.objects.link(to2)
-    bpy.context.view_layer.update()
-    tm2 = bpy.data.meshes.new_from_object(to2.evaluated_get(bpy.context.evaluated_depsgraph_get()))
-    bpy.data.objects.remove(to2, do_unlink=True)
-    tm2.name = 'pc_aio_screen_label'
-    tm2.materials.clear()
-    tm2.materials.append(MAT['pc_screen_text'])
-    tob2 = bpy.data.objects.new('pc_aio_screen_label', tm2)
-    coll.objects.link(tob2)
-    tob2.parent = root
-    tob2.matrix_basis = Mf @ Matrix.Translation((0.0, -0.0105, 0.0009))
-    objs.append(tob2)
-    FRAMED.append(tob2)
+    lm.materials.append(MAT['pc_lcd_art'])
+    lo_ = bpy.data.objects.new('pc_cooler_lcd', lm)
+    coll.objects.link(lo_)
+    lo_.parent = root
+    lo_.matrix_basis = Mface @ Matrix.Translation((0, 0, 0.0008))
+    objs.append(lo_)
+    FRAMED.append(lo_)
 
     # ------------------------------------------------------------------ radiator 360 + top fans
-    RU0, RU1, RZ0, RZ1 = -0.135, -0.015, 0.410, 0.437
+    RU0, RU1, RZ0, RZ1 = -0.141, -0.021, 0.4095, 0.4395
     mb = MB('pc_radiator', ['pc_white_alu'])
     box(mb, (RU0, -0.175, RZ0), (RU1, -0.155, RZ1), 'pc_white_alu', r=0.004, seg=3)
-    box(mb, (RU0, 0.205, RZ0), (RU1, 0.222, RZ1), 'pc_white_alu', r=0.004, seg=3)
-    box(mb, (RU0 + 0.003, -0.156, RZ0 + 0.001), (RU1 - 0.003, 0.206, RZ1 - 0.001), 'pc_rad_fins')
+    box(mb, (RU0, 0.2045, RZ0), (RU1, 0.2245, RZ1), 'pc_white_alu', r=0.004, seg=3)
+    box(mb, (RU0 + 0.003, -0.156, RZ0 + 0.001), (RU1 - 0.003, 0.2055, RZ1 - 0.001), 'pc_rad_fins')
     for uu in (RU0, RU1 - 0.003):
-        box(mb, (uu, -0.156, RZ0), (uu + 0.003, 0.206, RZ1), 'pc_white_alu', r=0.0008, seg=1)
+        box(mb, (uu, -0.156, RZ0), (uu + 0.003, 0.2055, RZ1), 'pc_white_alu', r=0.0008, seg=1)
     for k in range(12):
         uu = RU0 + 0.0075 + k * 0.0095
         for z0, z1 in ((RZ0 + 0.0004, RZ0 + 0.0012), (RZ1 - 0.0012, RZ1 - 0.0004)):
@@ -1408,15 +1611,16 @@ def build():
         for uu, ax in ((RU0, -1), (RU1, 1)):
             lathe(mb, [(0.0, 0.0), (0.0022, 0.0), (0.0022, 0.0006), (0.0014, 0.0010), (0.0, 0.0010)], 'pc_metal',
                   frame((uu, vv, (RZ0 + RZ1) / 2), (ax, 0, 0)), seg=12)
-    PORTS = (-0.048, -0.080)
-    for uu in PORTS:
-        lathe(mb, [(0.0, 0.0), (0.0085, 0.0), (0.0085, 0.006), (0.0078, 0.0068), (0.0078, 0.012), (0.0, 0.012)],
-              'pc_white_alu', frame((uu, -0.165, RZ0 + 0.0005), (0, 0, -1)), seg=32)
+    PORTS = (RU1, RU1)                            # port fittings on the rear tank's board-side face, stacked
+    for zz in (0.4170, 0.4320):
+        lathe(mb, [(0.0, 0.0), (0.0068, 0.0), (0.0068, 0.005), (0.0062, 0.0058), (0.0062, 0.012), (0.0, 0.012)],
+              'pc_white_alu', frame((RU1 - 0.0005, 0.2145, zz), (1, 0, 0)), seg=32)
     done(mb)
-    FZ = RZ0 - 0.0125
+    FZ = RZ0 - 0.015
     mbF, mbR = MB('pc_fans_frames', ['pc_white_plastic', 'pc_rgb_led']), MB('pc_fans_rotors', ['pc_fan_blade'])
-    for vv in (-0.095, 0.025, 0.145):
-        case_fan(mbF, mbR, frame((-0.075, vv, FZ), (0, 0, -1), (1, 0, 0)))
+    for vv in (-0.095, 0.025, 0.145):                       # Ryujin III ARGB fans (120 x 120 x 30) under the radiator
+        case_fan(mbF, mbR, frame(((RU0 + RU1) / 2, vv, FZ), (0, 0, -1), (1, 0, 0)), depth=0.030)
+        box(mbF, (RU0 - 0.0014, vv - 0.036, FZ - 0.0110), (RU0 + 0.0004, vv + 0.036, FZ - 0.0040), 'pc_rgb_strip', r=0.0005, seg=1)
     for vv in (-0.112, 0.008, 0.128):
         case_fan(mbF, mbR, frame((-0.045, vv, Z0 + 0.0125 + 0.003), (0, 0, 1), (1, 0, 0)))
     # vertical wall of 3 LCD-hub fans behind the front glass, on a slim bracket
@@ -1430,12 +1634,12 @@ def build():
 
     # AIO tubes (white sleeved, 12.5 mm) from the pump fittings to the radiator ports
     mb = MB('pc_aio_tubes', ['pc_tube_white'])
-    tA = [V((0.017, PV0 - 0.008, 0.3255)), V((0.014, 0.062, 0.3255)), V((0.004, 0.058, 0.3255)), V((-0.012, 0.050, 0.327)),
-          V((-0.022, 0.0, 0.332)), V((-0.034, -0.100, 0.345)), V((PORTS[0], -0.150, 0.360)), V((PORTS[0], -0.165, 0.380)),
-          V((PORTS[0], -0.165, RZ0 - 0.011))]
-    tB = [V((0.017, PV0 - 0.008, 0.3505)), V((0.014, 0.062, 0.3505)), V((0.004, 0.058, 0.3505)), V((-0.012, 0.050, 0.352)),
-          V((-0.024, 0.0, 0.357)), V((-0.055, -0.100, 0.366)), V((PORTS[1], -0.146, 0.372)), V((PORTS[1], -0.165, 0.388)),
-          V((PORTS[1], -0.165, RZ0 - 0.011))]
+    (ua_, va_), (ub_, vb_) = FITS
+    PZT = PZ1 + 0.0030 + 0.012                    # top of the swivel fittings
+    tA = [V((ua_, va_, PZT)), V((ua_, va_ + 0.001, PZT + 0.005)), V((0.004, va_ + 0.014, 0.4170)), V((-0.003, 0.110, 0.4170)),
+          V((-0.003, 0.160, 0.4170)), V((0.004, 0.200, 0.4170)), V((0.004, 0.2145, 0.4170)), V((RU1 + 0.012, 0.2145, 0.4170))]
+    tB = [V((ub_, vb_, PZT)), V((ub_, vb_ + 0.001, PZT + 0.006)), V((0.004, vb_ + 0.016, 0.4320)), V((-0.003, 0.110, 0.4320)),
+          V((-0.003, 0.160, 0.4320)), V((0.004, 0.200, 0.4320)), V((0.004, 0.2145, 0.4320)), V((RU1 + 0.012, 0.2145, 0.4320))]
     for t in (tA, tB):
         tube(mb, t, 0.0063, 'pc_tube_white', sides=16, step=0.004)
         # crimp collars at both ends
@@ -1443,7 +1647,7 @@ def build():
             lathe(mb, [(0.0, 0.0), (0.0074, 0.0), (0.0074, 0.011), (0.0068, 0.012), (0.0, 0.012)], 'pc_white_alu',
                   frame(p, q - p), seg=24)
     # tube clip holding the pair together mid-run
-    pa, pb = tA[5], tB[5]
+    pa, pb = tA[3], tB[3]
     Mcl = frame((pa + pb) / 2, pb - pa, (0, 1, 0))
     L_ = (pb - pa).length
     box(mb, (-0.0035, -0.0045, -L_ / 2), (0.0035, 0.0045, L_ / 2), 'pc_white_plastic', r=0.0015, seg=2, M=Mcl)
@@ -1452,144 +1656,14 @@ def build():
               frame(p, (0, 1, 0)), seg=24)
     done(mb, 50)
 
-    # ------------------------------------------------------------------ GPU (horizontal in the top x16 slot)
-    # Modelled after the owner's reference photo (Gigabyte Eagle OC ICE style): ice-silver/white shroud with
-    # dot-perforated flats and chamfered corners, three overlapping fans (the middle one stands proud of the
-    # outer two in a three-circle cut-out), wide curved frosted blades, brushed-silver domed hubs in a dark
-    # ring, aluminium fin stack visible through the fans and along the edges, heat pipes at the ends, white
-    # backplate, gold PCIe fingers, bracket with 8 hex-slot vents over 3x DP + 1x HDMI. ~300 x 125 x 50 mm
-    # (assumed). No logos/text.
-    GZP = 0.2288                          # PCB underside
-    GU_OUT, GU_IN = -0.084, 0.036         # glass-side (top) edge .. board-side end of the cooler
-    GV0, GV1 = -0.074, 0.226
-    FANS_V = (-0.017, 0.076, 0.169)
-    GUC = -0.024
-    SZ0, SZ1 = 0.1818, 0.1968             # fan cover underside .. top (fin stack above it up to the PCB)
-    FR = 0.0510
-    mb = MB('pc_gpu_shroud', ['pc_gpu_ice'])
-    c_ = 0.016
-    cover = [(GU_IN, GV0 + c_), (GU_IN, GV1 - c_), (GU_IN - c_, GV1), (GU_OUT + c_, GV1), (GU_OUT, GV1 - c_),
-             (GU_OUT, GV0 + c_), (GU_OUT + c_, GV0), (GU_IN - c_, GV0)]
-    prism(mb, cover, I4, SZ0, SZ1, 'pc_gpu_ice', ch=0.0020)
-    shroud = done(mb)
-    cuts = []
-    for vv in FANS_V:
-        cuts.append(cutter(coll, lathe_bm([(0.0, SZ0 - 0.01), (FR, SZ0 - 0.01), (FR, SZ1 + 0.01), (0.0, SZ1 + 0.01)], 72,
-                                          Matrix.Translation((GUC, vv, 0))), 'pc_gpu_ice'))
-    boolean_apply(shroud, cuts)
-    shroud.data.materials.append(MAT['pc_gpu_dots'])
-    di = len(shroud.data.materials) - 1
-    for p_ in shroud.data.polygons:                  # dot perforation on the flat underside only
-        if p_.normal.z < -0.9 and p_.center.z < SZ0 + 0.0005:
-            p_.material_index = di
-    mb = MB('pc_gpu_details', ['pc_gpu_ice'])
-    # corner facets: raised chamfered triangles on the four corners of the underside (dot-perforated)
-    Mun = frame((0.0, 0.0, SZ0 + 0.0003), (0, 0, -1), (1, 0, 0))          # local x = u, y = -v, extrude down
-    for (ua, va, su, sv) in ((GU_OUT + 0.004, GV0 + 0.004, 1, 1), (GU_IN - 0.004, GV0 + 0.004, -1, 1),
-                             (GU_OUT + 0.004, GV1 - 0.004, 1, -1), (GU_IN - 0.004, GV1 - 0.004, -1, -1)):
-        tri = [(ua + su * c_, va), (ua + su * 0.034, va), (ua, va + sv * 0.034), (ua, va + sv * c_)]
-        if su * sv < 0:
-            tri = tri[::-1]
-        prism(mb, [(x_, -y_) for x_, y_ in tri], Mun, 0.0, 0.0013, 'pc_gpu_dots', ch=0.0004)
-    # end caps with chamfered outer corners, board-side wall, glass-side rails framing the exposed fins
-    Mend = frame((GU_OUT + 0.002, 0.0, 0.0), (1, 0, 0), (0, 1, 0))       # local x = v, y = z, extrude +u
-    prism(mb, [(GV0, SZ0), (GV0 + 0.014, SZ0), (GV0 + 0.014, GZP - 0.001), (GV0 + 0.005, GZP - 0.001), (GV0, GZP - 0.012)],
-          Mend, 0.0, GU_IN - GU_OUT - 0.006, 'pc_gpu_ice', ch=0.0012)
-    prism(mb, [(GV1 - 0.016, SZ0), (GV1, SZ0), (GV1, GZP - 0.010), (GV1 - 0.006, GZP - 0.001), (GV1 - 0.016, GZP - 0.001)],
-          Mend, 0.0, GU_IN - GU_OUT - 0.006, 'pc_gpu_ice', ch=0.0012)
-    box(mb, (GU_IN - 0.006, GV0 + 0.012, SZ1 - 0.0005), (GU_IN, GV1 - 0.014, GZP - 0.012), 'pc_gpu_ice', r=0.001, seg=1)
-    box(mb, (GU_OUT - 0.0006, GV0 + 0.012, GZP - 0.0065), (GU_OUT + 0.0050, 0.172, GZP - 0.0015), 'pc_gpu_ice', r=0.0010, seg=1)
-    box(mb, (GU_OUT - 0.0006, 0.204, GZP - 0.0065), (GU_OUT + 0.0050, GV1 - 0.014, GZP - 0.0015), 'pc_gpu_ice', r=0.0010, seg=1)
-    # the middle fan's raised ring frame (it stands proud of the outer two)
-    lathe(mb, [(FR - 0.0004, -0.0003), (FR - 0.0004, 0.0052), (FR + 0.0008, 0.0062), (FR + 0.0026, 0.0062),
-               (FR + 0.0034, 0.0050), (FR + 0.0034, -0.0003)], 'pc_gpu_ice',
-          frame((GUC, FANS_V[1], SZ0), (0, 0, -1), (0, 1, 0)), seg=96)
-    # aluminium fin stack (0.4 mm plates at 2.2 mm pitch) + four nickel heat pipes with U-bends at the far end
-    vv = GV0 + 0.0145
-    while vv < GV1 - 0.0165:
-        box(mb, (GU_OUT + 0.0010, vv, SZ1 - 0.0004), (GU_IN - 0.0065, vv + 0.0004, GZP - 0.0012), 'pc_fin_alu')
-        vv += 0.0022
-    for j, zz in enumerate((0.2025, 0.2085, 0.2145, 0.2205)):
-        uu = GU_OUT + 0.0095 + (j % 2) * 0.0045
-        tube(mb, [V((uu, GV1 - 0.024, zz)), V((uu, GV0 + 0.022, zz)), V((uu + 0.006, GV0 + 0.0155, zz)),
-                  V((uu + 0.016, GV0 + 0.0185, zz)), V((uu + 0.040, GV0 + 0.019, zz))], 0.0026, 'pc_metal', sides=10, step=0.02)
-    # PCB, gold PCIe fingers, backplate (white, flow-through window)
-    box(mb, (GU_OUT + 0.004, -0.030, GZP), (0.041, GV1 - 0.002, GZP + 0.0016), 'pc_gpu_pcb')
-    box(mb, (0.036, 0.100, GZP - 0.0002), (0.046, 0.189, GZP + 0.0018), 'pc_gold')
-    BT = GZP + 0.0046
+    # ------------------------------------------------------------------ GPU (owner's kit card, top x16 slot)
+    import_gpukit(coll, root, objs)
+    GPV = 0.037                                  # 12V-2x6 socket on the card's top (glass-side) edge
+    mb = MB('pc_gpu_power_plug', ['pc_white_plastic'])
+    box(mb, (-0.0930, GPV - 0.0118, 0.2325), (-0.0815, GPV + 0.0118, 0.2465), 'pc_white_plastic', r=0.0010, seg=1)
+    box(mb, (-0.0915, GPV - 0.0040, 0.2463), (-0.0845, GPV + 0.0040, 0.2481), 'pc_white_plastic', r=0.0005, seg=1)
+    box(mb, (-0.0927, GPV - 0.0110, 0.2440), (-0.0870, GPV + 0.0110, 0.2466), 'pc_port_dark')
     done(mb)
-    mb = MB('pc_gpu_backplate', ['pc_white_alu'])
-    box(mb, (GU_OUT + 0.001, GV0 + 0.001, GZP + 0.0016), (GU_IN, GV1 - 0.002, BT), 'pc_white_alu', r=0.0012, seg=2)
-    bplate = done(mb)
-    c_b = cutter(coll, prism_bm(rrect(0.080, 0.040, 0.008, 4), GZP - 0.01, BT + 0.01), 'pc_white_alu')
-    c_b.matrix_world = T @ Matrix.Translation((-0.028, -0.048, 0.0))
-    boolean_apply(bplate, [c_b])
-    mb = MB('pc_gpu_backplate_detail', ['pc_white_alu'])
-    for k in range(8):
-        vv = 0.004 + k * 0.024
-        for uu in (GU_OUT + 0.014, GU_OUT + 0.056):
-            box(mb, (uu, vv, BT - 0.0003), (uu + 0.034, vv + 0.0045, BT + 0.0005), 'pc_port_dark', r=0.0008, seg=1)
-    box(mb, (GU_OUT + 0.0045, -0.020, BT - 0.0002), (GU_OUT + 0.0095, GV1 - 0.020, BT + 0.0008), 'pc_hub_silver', r=0.0004, seg=1)
-    for uu, vv in ((GU_OUT + 0.008, 0.200), (GU_IN - 0.008, 0.200), (GU_OUT + 0.008, 0.010), (GU_IN - 0.008, 0.010),
-                   (GU_OUT + 0.100, 0.100), (GU_OUT + 0.100, 0.160)):
-        lathe(mb, [(0.0, 0.0), (0.0021, 0.0), (0.0021, 0.0006), (0.0013, 0.0010), (0.0, 0.0010)], 'pc_metal',
-              frame((uu, vv, BT), (0, 0, 1)), seg=12)
-    # 12V-2x6 socket on the top edge near the bracket end, with the plug, latch and sense-pin row
-    CV = 0.188
-    box(mb, (GU_OUT - 0.0030, CV - 0.0120, GZP - 0.0040), (GU_OUT + 0.0040, CV + 0.0120, GZP + 0.0040), 'pc_dark_plastic', r=0.0006, seg=1)
-    box(mb, (GU_OUT - 0.0115, CV - 0.0118, GZP - 0.0046), (GU_OUT - 0.0028, CV + 0.0118, GZP + 0.0056), 'pc_white_plastic', r=0.0010, seg=1)
-    box(mb, (GU_OUT - 0.0100, CV - 0.0040, GZP + 0.0054), (GU_OUT - 0.0040, CV + 0.0040, GZP + 0.0072), 'pc_white_plastic', r=0.0005, seg=1)
-    box(mb, (GU_OUT - 0.0112, CV - 0.0110, GZP + 0.0040), (GU_OUT - 0.0060, CV + 0.0110, GZP + 0.0060), 'pc_port_dark')
-    done(mb)
-    # I/O bracket: silver plate with 8 hex-slot vents over 3x DP + 1x HDMI, screw tab and slot tongue
-    BV0_, BV1_ = 0.2265, 0.2285
-    mb = MB('pc_gpu_bracket', ['pc_metal'])
-    box(mb, (-0.092, BV0_, 0.169), (0.016, BV1_, 0.235), 'pc_metal', r=0.0005, seg=1)
-    brk = done(mb)
-    Mb_ = lambda uc, zc: T @ frame((uc, (BV0_ + BV1_) / 2, zc), (0, 1, 0), (1, 0, 0))     # local x = u, y = -z
-    hexs = [(0.0036, -0.0082), (0.0036, 0.0082), (0.0, 0.0106), (-0.0036, 0.0082), (-0.0036, -0.0082), (0.0, -0.0106)]
-    bcuts = []
-    for k in range(8):
-        c = cutter(coll, prism_bm(hexs, -0.004, 0.004), 'pc_port_dark')
-        c.matrix_world = Mb_(-0.0845 + k * 0.0114, 0.1875)
-        bcuts.append(c)
-    dp = [(-0.0092, -0.0036), (0.0092, -0.0036), (0.0092, 0.0020), (0.0072, 0.0040), (-0.0092, 0.0040)]
-    hd = [(-0.0082, -0.0032), (0.0082, -0.0032), (0.0082, 0.0012), (0.0062, 0.0032), (-0.0062, 0.0032), (-0.0082, 0.0012)]
-    PORTS_ = ((-0.072, dp), (-0.050, dp), (-0.028, dp), (-0.006, hd))
-    for uc, shp in PORTS_:
-        c = cutter(coll, prism_bm(shp, -0.004, 0.004), 'pc_metal')
-        c.matrix_world = Mb_(uc, 0.2170)
-        bcuts.append(c)
-    boolean_apply(brk, bcuts)
-    mb = MB('pc_gpu_bracket_detail', ['pc_metal'])
-    for uc, shp in PORTS_:
-        Mp_ = frame((uc, BV0_, 0.2170), (0, 1, 0), (1, 0, 0))
-        inner = offset2d(shp, -0.0005)
-        R = lambda pts, y_: [Mp_ @ V((p.x if hasattr(p, 'x') else p[0], p.y if hasattr(p, 'y') else p[1], y_)) for p in pts]
-        mb.merge(loft_bm([R(inner, -0.0060), R(inner, 0.0025), R(shp, 0.0025), R(shp, -0.0060)], 0), 'pc_metal')
-        prism(mb, inner, Mp_, -0.0062, -0.0058, 'pc_port_dark')
-        box(mb, (-0.0060, -0.0008, -0.0058), (0.0060, 0.0004, -0.0015), 'pc_port_dark', M=Mp_)
-    for uc in (-0.061, -0.039, -0.017):
-        lathe(mb, [(0.0, 0.0), (0.0022, 0.0), (0.0022, 0.0010), (0.0014, 0.0014), (0.0, 0.0014)], 'pc_metal',
-              frame((uc, BV1_, 0.2255), (0, 1, 0)), seg=6)
-    # screw tab folded over at the outer end, slot tongue at the board end
-    box(mb, (-0.0935, BV0_, 0.169), (-0.0915, 0.2320, 0.235), 'pc_metal', r=0.0004, seg=1)
-    box(mb, (0.016, BV0_, 0.176), (0.024, BV1_, 0.186), 'pc_metal', r=0.0004, seg=1)
-    # vent lips visible behind the slots (fin-stack end + dark shadow box)
-    box(mb, (-0.090, BV0_ - 0.0080, 0.1750), (0.0140, BV0_ - 0.0060, 0.2000), 'pc_port_dark')
-    done(mb)
-    # rotors: 9 wide, curved frosted blades; outer fans recessed, middle fan proud; brushed domed hubs in a dark ring
-    mbG = MB('pc_gpu_fans', ['pc_gpu_blade_ice'])
-    for k, vv in enumerate(FANS_V):
-        Mfg = frame((GUC, vv, SZ0), (0, 0, -1), (0, 1, 0)) @ (Matrix.Scale(-1, 4, (1, 0, 0)) if k == 1 else I4)
-        z0, z1 = ((-0.0040, 0.0050) if k == 1 else (-0.0140, -0.0048))
-        rotor(mbG, Mfg, 0.0175, 0.0492, z0, z1, 9, 'pc_gpu_blade_ice', 'pc_white_plastic', 'pc_white_plastic',
-              nr=5, ns=6, sweep=38, thick=0.0012)
-        lathe(mbG, [(0.0150, z1 - 0.0002), (0.0176, z1 - 0.0002), (0.0176, z1 + 0.0006), (0.0150, z1 + 0.0006)],
-              'pc_dark_plastic', Mfg, seg=48)
-        lathe(mbG, [(0.0150, z1 + 0.0005), (0.0145, z1 + 0.0014), (0.0120, z1 + 0.0026), (0.0080, z1 + 0.0034),
-                    (0.0, z1 + 0.0037)], 'pc_hub_silver', Mfg, seg=48)
-    done(mbG, 60)
 
     # ------------------------------------------------------------------ sleeved cables
     mb = MB('pc_cables_sleeved', ['pc_sleeve_white'])
@@ -1598,17 +1672,16 @@ def build():
                 V((0.054, -0.057, 0.327)), V((0.063, -0.058, 0.327)), V((0.075, -0.058, 0.327))],
            12, 2, 0.0043, 0.0040, 0.00185, (0, 0, 1), 'pc_sleeve_white')
     # 12V-2x6 from the GPU top edge up and over into the lower grommet
-    pts, fr = ribbon(mb, [V((GU_OUT - 0.0115, 0.188, GZP + 0.0005)), V((GU_OUT - 0.0175, 0.188, GZP + 0.0005)),
-                          V((-0.1215, 0.160, 0.2240)), V((-0.1235, 0.060, 0.2230)), V((-0.1240, -0.040, 0.2180)),
-                          V((-0.1240, -0.090, 0.2140)), V((-0.108, -0.126, 0.212)),
-                          V((-0.060, -0.142, 0.222)), V((0.008, -0.128, 0.232)), V((0.044, -0.078, 0.234)),
-                          V((0.060, -0.064, 0.234)), V((0.080, -0.064, 0.234))],
+    pts, fr = ribbon(mb, [V((-0.0930, GPV, 0.2395)), V((-0.0990, GPV, 0.2395)), V((-0.1180, GPV - 0.018, 0.2360)),
+                          V((-0.1240, -0.040, 0.2320)), V((-0.1200, -0.100, 0.2300)), V((-0.095, -0.124, 0.230)),
+                          V((-0.050, -0.132, 0.232)), V((0.008, -0.118, 0.234)), V((0.044, -0.078, 0.236)),
+                          V((0.060, -0.064, 0.236)), V((0.080, -0.064, 0.236))],
                      6, 2, 0.0036, 0.0036, 0.00165, (0, 1, 0), 'pc_sleeve_white', sides=6, step=0.005)
     for f_ in (0.16, 0.34, 0.52, 0.72):
         tie(mb, pts, fr, f_, 0.0216, 0.0072, 'pc_white_plastic')
     # EPS 8-pin x2 straight up into the top notch
-    for v0 in (0.110, 0.134):
-        ribbon(mb, [V((0.045, v0, 0.427)), V((0.045, v0, 0.431)), V((0.050, v0, 0.4335)), V((0.058, v0, 0.4340)),
+    for v0 in (0.1485,):
+        ribbon(mb, [V((0.045, v0, 0.4290)), V((0.045, v0, 0.4315)), V((0.050, v0, 0.4335)), V((0.058, v0, 0.4340)),
                     V((0.072, v0, 0.4340))], 4, 2, 0.0042, 0.0042, 0.0017, (0, 1, 0), 'pc_sleeve_white')
     # second 24-pin comb just past the bend, EPS combs
     box(mb, (0.0525, -0.0625, 0.3000), (0.0555, -0.0520, 0.3540), 'pc_white_plastic', r=0.0008, seg=1)
@@ -1637,21 +1710,21 @@ def build():
     pts, fr = ribbon(mb, [V((0.078, -0.058, 0.327)), V((0.090, -0.052, 0.310)), V((0.100, -0.035, 0.272)),
                           V((0.104, 0.000, 0.240)), V((0.104, 0.030, 0.228)), V((0.102, 0.048, 0.205)),
                           V((0.096, 0.058, 0.178)), V((0.092, 0.0645, 0.160))],
-                     6, 2, 0.0058, 0.0058, 0.0027, (0, 0, 1), 'pc_cable_black', sides=5, step=0.008)
+                     6, 2, 0.0058, 0.0058, 0.0027, (0, 0, 1), 'pc_cable_black', sides=4, step=0.010)
     tie(mb, pts, fr, 0.35, 0.035, 0.0115)
     tie(mb, pts, fr, 0.62, 0.035, 0.0115)
     pts, fr = ribbon(mb, [V((0.082, -0.064, 0.236)), V((0.095, -0.056, 0.232)), V((0.118, -0.020, 0.226)),
                           V((0.122, 0.030, 0.212)), V((0.112, 0.052, 0.150)), V((0.095, 0.059, 0.133)),
                           V((0.089, 0.0645, 0.130))],
-                     3, 2, 0.0058, 0.0058, 0.0027, (0, 1, 0), 'pc_cable_black', sides=5, step=0.008)
+                     3, 2, 0.0058, 0.0058, 0.0027, (0, 1, 0), 'pc_cable_black', sides=4, step=0.010)
     tie(mb, pts, fr, 0.45, 0.0175, 0.0115)
-    for k, v0 in enumerate((0.110, 0.134)):
+    for k, v0 in enumerate((0.1485,)):
         zt = (0.100, 0.070)[k]
         pts, fr = ribbon(mb, [V((0.074, v0, 0.434)), V((0.082, v0, 0.428)), V((0.090, v0 - 0.012, 0.400)),
                               V((0.110, 0.085, 0.330)), V((0.130, 0.062 - k * 0.008, 0.260)),
                               V((0.130, 0.056 - k * 0.004, 0.190)), V((0.110, 0.060, zt + 0.004)),
                               V((0.090, 0.0645, zt))],
-                         2, 2, 0.0058, 0.0058, 0.0027, (0, 1, 0), 'pc_cable_black', sides=5, step=0.008)
+                         2, 2, 0.0058, 0.0058, 0.0027, (0, 1, 0), 'pc_cable_black', sides=4, step=0.010)
         tie(mb, pts, fr, 0.55 if k == 0 else 0.40, 0.0175, 0.0115)
     done(mb, 50)
 
@@ -1835,6 +1908,8 @@ def previews(b):
         shot(V((0.300, 1.075, 0.815)), V((0.620, 0.950, 0.960)), 44, 'pc_gpu_ref.png', (1100, 1100))
         for o in hid:
             o.hide_render = False
+    if not only or 'board' in only:      # board + pump LCD through the side glass
+        shot(V((0.575, 0.615, 1.160)), V((0.650, 0.960, 1.095)), 36, 'pc_board.png')
     if not only or 'gpu' in only:        # GPU from slightly below through the side glass
         shot(V((0.560, 0.660, 0.895)), V((0.690, 0.930, 0.972)), 42, 'pc_gpu.png')
     if not only or 'mobo' in only:       # motherboard through the side glass

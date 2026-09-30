@@ -41,23 +41,25 @@ ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 NO_RENDER = '--no-render' in ARGS
 SEAT = Vector((0.0, -0.16, 1.175))
 Z = Vector((0, 0, 1))
-RIBBON_W = 0.025
+RIBBON_W = 0.022                 # grosgrain lanyard ribbon, as in the reference photos
 RIB_T = 0.0005
 ROW_STEP = 0.003
 MEDAL_R = 0.035
-RIBBON_HEX = dict(blue='#2446a8', red='#cc1f27')
+RIBBON_HEX = dict(blue='#233f86', red='#de2a26')   # sampled from medal_ref_gold.jpg / medal_ref_silver.jpg
+CONTOURS = os.path.join(PARTS, 'medal_frc_contours.json')   # v2_medal_trace.py
+BACK_FACING = {'m3'}             # one silver turned so its reverse faces the viewer
 
 # layer 1 = innermost loop ... 4 = outermost (on top). plane: final depth of the lanyard's flat V relative to
 # the neck centre, + toward the seat. drop: D-ring bar below the neck axis. t: lateral offset of the V apex.
 # bow: gentle lateral sag of the tails (mm). twist: 'A'/'B' tail with a half twist. lean: loop lean (deg).
 SPECS = [
-    dict(name='m1', layer=4, plane=+0.021, drop=0.190, t=+0.004, bow=(5, -3), twist='A', lean=6, metal='gold',
+    dict(name='m1', layer=4, plane=+0.024, drop=0.190, t=+0.004, bow=(5, -3), twist='A', lean=6, metal='gold',
          ribbon='blue', off_s=+0.0008),
-    dict(name='m2', layer=3, plane=+0.007, drop=0.160, t=-0.016, bow=(-4, 6), twist=None, lean=-4, metal='silver',
+    dict(name='m2', layer=3, plane=+0.008, drop=0.160, t=-0.016, bow=(-4, 6), twist=None, lean=-4, metal='silver',
          ribbon='red', off_s=-0.0006),
-    dict(name='m3', layer=2, plane=-0.007, drop=0.222, t=+0.018, bow=(3, 5), twist=None, lean=8, metal='silver',
+    dict(name='m3', layer=2, plane=-0.008, drop=0.222, t=+0.018, bow=(3, 5), twist=None, lean=8, metal='silver',
          ribbon='red', off_s=+0.0004),
-    dict(name='m4', layer=1, plane=-0.021, drop=0.176, t=-0.004, bow=(-6, -2), twist=None, lean=-7, metal='silver',
+    dict(name='m4', layer=1, plane=-0.024, drop=0.176, t=-0.004, bow=(-6, -2), twist=None, lean=-7, metal='silver',
          ribbon='red', off_s=-0.0002),
 ]
 
@@ -158,10 +160,10 @@ class MB:
         me = bpy.data.meshes.new(name)
         me.from_pydata([tuple(c) for c in self.v], [], self.f)
         me.update()
-        for i, p in enumerate(me.polygons):
-            p.material_index = self.m[i]
         for m in mats:
             me.materials.append(m)
+        for i, p in enumerate(me.polygons):
+            p.material_index = self.m[i]
         if recalc:
             bm = bmesh.new()
             bm.from_mesh(me)
@@ -309,10 +311,10 @@ def link_new_collection(name, parent=None):
 def setup_render(scene):
     scene.render.engine = 'CYCLES'
     prefs = bpy.context.preferences.addons['cycles'].preferences
-    prefs.compute_device_type = 'OPTIX'
+    prefs.compute_device_type = 'CUDA'
     prefs.refresh_devices()
     for dv in prefs.devices:
-        dv.use = dv.type == 'OPTIX'
+        dv.use = dv.type == 'CUDA'
     scene.cycles.device = 'GPU'
     scene.cycles.samples = 64
     scene.cycles.use_denoising = True
@@ -381,22 +383,78 @@ def offset_poly(poly, off, arc_step=math.radians(8)):
 
 
 # =============================================================================== materials (static)
-def metal_pair(name, polished, antique, r_pol, r_ant):
-    return (metal_mat(f'medals_{name}_polished', polished, r_pol),
-            metal_mat(f'medals_{name}_antique', antique, r_ant, grain=0.14, grain_scale=3500))
+def grosgrain_mat(name, hx):
+    """Solid-colour grosgrain: fine ribs across the width (along the ribbon's length coordinate)."""
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    b = principled(m)
+    b.inputs['Base Color'].default_value = (*hex_rgb(hx), 1.0)
+    b.inputs['Roughness'].default_value = 0.58
+    b.inputs['Sheen Weight'].default_value = 0.35
+    b.inputs['Sheen Roughness'].default_value = 0.4
+    tc = nt.nodes.new('ShaderNodeTexCoord')
+    sep = nt.nodes.new('ShaderNodeSeparateXYZ')
+    nt.links.new(tc.outputs['UV'], sep.inputs['Vector'])
+
+    def mathn(op, a=None, vb=None, b_=None):
+        n = nt.nodes.new('ShaderNodeMath')
+        n.operation = op
+        nt.links.new(a, n.inputs[0])
+        if b_ is not None:
+            nt.links.new(b_, n.inputs[1])
+        elif vb is not None:
+            n.inputs[1].default_value = vb
+        return n.outputs[0]
+    ribs = mathn('ABSOLUTE', mathn('SINE', mathn('MULTIPLY', sep.outputs['Y'], vb=math.pi / 0.00034)))
+    warp = mathn('ABSOLUTE', mathn('SINE', mathn('MULTIPLY', sep.outputs['X'], vb=math.pi / 0.00022)))
+    h = mathn('ADD', mathn('MULTIPLY', ribs, vb=0.85), b_=mathn('MULTIPLY', warp, vb=0.15))
+    bump = nt.nodes.new('ShaderNodeBump')
+    bump.inputs['Strength'].default_value = 0.45
+    bump.inputs['Distance'].default_value = 0.00012
+    nt.links.new(h, bump.inputs['Height'])
+    nt.links.new(bump.outputs['Normal'], b.inputs['Normal'])
+    return m
+
+
+def frc_metal(name, rgb, rough, brushed=0.05):
+    """Plated metal: constant colour/roughness (glTF-safe) + a fine brushed-grain bump (Blender only)."""
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    b = principled(m)
+    b.inputs['Base Color'].default_value = (*rgb, 1.0)
+    b.inputs['Metallic'].default_value = 1.0
+    b.inputs['Roughness'].default_value = rough
+    tc = nt.nodes.new('ShaderNodeTexCoord')
+    mp = nt.nodes.new('ShaderNodeMapping')
+    mp.inputs['Scale'].default_value = (30.0, 3000.0, 3000.0)     # streaks along the medal's X
+    nt.links.new(tc.outputs['Object'], mp.inputs['Vector'])
+    nz = nt.nodes.new('ShaderNodeTexNoise')
+    nz.inputs['Scale'].default_value = 1.0
+    nz.inputs['Detail'].default_value = 6.0
+    nt.links.new(mp.outputs['Vector'], nz.inputs['Vector'])
+    bump = nt.nodes.new('ShaderNodeBump')
+    bump.inputs['Strength'].default_value = brushed
+    bump.inputs['Distance'].default_value = 0.0001
+    nt.links.new(nz.outputs['Fac'], bump.inputs['Height'])
+    nt.links.new(bump.outputs['Normal'], b.inputs['Normal'])
+    return m
 
 
 def build_mats():
     M = {}
     for k, hx in RIBBON_HEX.items():
-        M['ribbon_' + k] = fabric_mat('medals_ribbon_' + k, hx)
-    M['gold'] = metal_pair('gold', (0.90, 0.64, 0.26), (0.32, 0.22, 0.08), 0.24, 0.62)
-    M['silver'] = metal_pair('silver', (0.84, 0.84, 0.82), (0.26, 0.26, 0.26), 0.22, 0.62)
-    M['nickel'] = metal_mat('medals_nickel', (0.70, 0.69, 0.66), 0.25)
+        M['ribbon_' + k] = grosgrain_mat('medals_ribbon_' + k, hx)
+    # antique plating: raised areas polished and bright, recesses oxidised and darker
+    M['gold'] = (frc_metal('medals_gold_polished', (0.93, 0.68, 0.30), 0.30),
+                 frc_metal('medals_gold_antique', (0.09, 0.055, 0.02), 0.55, 0.08))
+    M['silver'] = (frc_metal('medals_silver_polished', (0.86, 0.86, 0.84), 0.30),
+                   frc_metal('medals_silver_antique', (0.07, 0.07, 0.068), 0.55, 0.08))
+    M['steel'] = frc_metal('medals_steel', (0.72, 0.72, 0.72), 0.28, 0.02)
     return M
 
 
-# =============================================================================== medal geometry (reference style)
 def box_relief(mb, cx, cz, sx, sz, y0, h, mat, bev=0.0003, face=1):
     """Raised block on the front (face=+1) or back (face=-1) field: size sx x sz, height h above y0."""
     fr = Matrix.Translation(Vector((cx, face * (y0 + h / 2 - 0.0001), cz)))
@@ -412,47 +470,174 @@ def frame_relief(mb, cx, cz, outer, band, y0, h, mat, face=1):
     box_relief(mb, cx + o2 - b / 2, cz, b, outer - 2 * b, y0, h, mat, face=face)
 
 
-def medal_frc(R):
-    """Cast medal in the reference style. Local frame: X across, +Y = obverse normal, Z up. mat 0 polished,
-    1 antique field. Relief is blank-ish: shapes where the artwork and lettering are, no actual text."""
+def build_medal_mesh(name, R, contours):
+    """FRC 2026 REBUILT medal: disc + raised rim (lathe), pierced tab, and the traced front/back artwork as
+    real relief (filled 2D curves, extruded, soft chamfer). Local frame: X across, +Y = obverse normal, Z up.
+    Material 0 polished, 1 antique. Front: polished art on an antique field; back: antique lettering on a
+    polished field (as in the photos)."""
+    T_f, T_b = 0.0013, -0.0013
     mb = MB()
-    T_f, T_b = 0.0014, -0.0014
-    prof = [(0.0, T_f), (0.5 * R, T_f), (R - 0.0033, T_f), (R - 0.0030, T_f + 0.00045),
-            (R - 0.0026, T_f + 0.0006), (R - 0.0009, T_f + 0.0006), (R - 0.0002, T_f + 0.0002),
-            (R, T_f - 0.0003), (R, T_b + 0.0003), (R - 0.0002, T_b - 0.0002), (R - 0.0009, T_b - 0.0006),
-            (R - 0.0026, T_b - 0.0006), (R - 0.0030, T_b - 0.00045), (R - 0.0033, T_b), (0.5 * R, T_b), (0.0, T_b)]
-    field = {0, 1, 13, 14}
-    lathe(mb, prof, 48, lambda i: 1 if i in field else 0)
-    s = R / 0.035
-    # obverse: framed artwork panel, block relief, corner icons, word-mark band, sub-line
-    frame_relief(mb, 0.0, 0.0055 * s, 0.034 * s, 0.0022 * s, T_f, 0.0006, 0)
-    # (local +X appears on the viewer's LEFT when looking at the obverse, so x positions are mirrored)
-    box_relief(mb, 0.001 * s, 0.0065 * s, 0.017 * s, 0.009 * s, T_f, 0.0011, 0, bev=0.0005)        # the block
-    box_relief(mb, -0.0045 * s, 0.0085 * s, 0.0075 * s, 0.006 * s, T_f + 0.0011, 0.0005, 0, bev=0.0003)
-    box_relief(mb, 0.0105 * s, 0.017 * s, 0.0032 * s, 0.0032 * s, T_f, 0.0004, 0)                 # gear
-    box_relief(mb, -0.0105 * s, 0.017 * s, 0.0026 * s, 0.0034 * s, T_f, 0.0004, 0)                # lock
-    for k in range(3):                                                                            # bricks
-        box_relief(mb, (0.0115 - 0.0028 * k) * s, -0.0045 * s, 0.0024 * s, 0.0014 * s, T_f, 0.0003, 0)
-    box_relief(mb, -0.0105 * s, -0.0045 * s, 0.0036 * s, 0.0008 * s, T_f, 0.0003, 0)              # hammer
-    box_relief(mb, 0.0, -0.0175 * s, 0.031 * s, 0.0058 * s, T_f, 0.0007, 0, bev=0.0004)            # word mark
-    box_relief(mb, 0.0, -0.0238 * s, 0.024 * s, 0.0022 * s, T_f, 0.0004, 0)                       # sub-line
-    # reverse: interlocking-loop logo and four text bands
-    for dx in (-0.0035, 0.0035):
-        torus(mb, Vector((dx * s, T_b - 0.0001, 0.0185 * s)), Vector((0, 1, 0)), 0.0045 * s, 0.0007, seg=18, segm=6,
-              mat=0)
-    box_relief(mb, 0.0, 0.0085 * s, 0.019 * s, 0.0042 * s, -T_b, 0.0005, 0, face=-1)
-    box_relief(mb, 0.0, 0.0015 * s, 0.033 * s, 0.0048 * s, -T_b, 0.0005, 0, face=-1)
-    box_relief(mb, 0.0, -0.0055 * s, 0.044 * s, 0.0048 * s, -T_b, 0.0005, 0, face=-1)
-    box_relief(mb, 0.0, -0.0150 * s, 0.014 * s, 0.0045 * s, -T_b, 0.0005, 0, face=-1)
-    box_relief(mb, 0.0, -0.0245 * s, 0.008 * s, 0.0012 * s, -T_b, 0.0003, 0, face=-1)
-    # pierced tab on top (a thick washer on a short neck)
+    prof = [(0.0, T_f), (0.5 * R, T_f), (R - 0.0028, T_f), (R - 0.0025, T_f + 0.00045), (R - 0.0021, T_f + 0.0006),
+            (R - 0.0009, T_f + 0.0006), (R - 0.0002, T_f + 0.0002), (R, T_f - 0.0003), (R, T_b + 0.0003),
+            (R - 0.0002, T_b - 0.0001), (R - 0.0010, T_b - 0.00035), (R - 0.0018, T_b - 0.00035),
+            (R - 0.0021, T_b), (0.5 * R, T_b), (0.0, T_b)]
+    lathe(mb, prof, 64, lambda i: 1 if i in (0, 1) else 0)
     tab_c = Vector((0, 0, R + 0.0031))
     ring = [(0.0021, -0.0012), (0.0048, -0.0012), (0.0048, 0.0012), (0.0021, 0.0012), (0.0021, -0.0012)]
     sub = MB()
-    lathe(sub, ring, 20, lambda i: 0)
+    lathe(sub, ring, 24, lambda i: 0)
     mb.extend(sub, xf=Matrix.Translation(tab_c))
     rounded_box(mb, Matrix.Translation(Vector((0, 0, R - 0.0002))), (0.0056, 0.0024, 0.0034), 0.0005, mat=0)
-    return mb, tab_c
+    tmp = mb.to_object('_disc_tmp', [bpy.data.materials.new('_a'), bpy.data.materials.new('_b')],
+                       bpy.context.scene.collection, smooth_angle=35)
+    bm = bmesh.new()
+    bm.from_mesh(tmp.data)
+    sc = R / 0.035 * 0.001                      # contour mm -> metres at this medal size
+    BEV = 0.00012
+
+    def inside(pt, loop):
+        c = False
+        n = len(loop)
+        for i in range(n):
+            (x1, y1), (x2, y2) = loop[i], loop[(i + 1) % n]
+            if (y1 > pt[1]) != (y2 > pt[1]) and pt[0] < (x2 - x1) * (pt[1] - y1) / (y2 - y1 + 1e-18) + x1:
+                c = not c
+        return c
+    for side, h, mat in (('front', 0.00045, 0), ('back', 0.00035, 1)):
+        loops = [[(x * sc, y * sc) for x, y in lp] for lp in contours[side]]
+        # even-odd nesting: loops at even depth bound filled areas from outside, odd depth are holes
+        fill_side = []
+        for li, lp in enumerate(loops):
+            depth = sum(1 for lj, other in enumerate(loops) if lj != li and inside(lp[0], other))
+            area = 0.5 * sum(lp[i][0] * lp[(i + 1) % len(lp)][1] - lp[(i + 1) % len(lp)][0] * lp[i][1]
+                             for i in range(len(lp)))
+            s_int = 1.0 if area > 0 else -1.0            # interior is on the left of a CCW loop
+            fill_side.append(s_int * (1.0 if depth % 2 == 0 else -1.0))
+        # walls + top chamfer (the top face comes from a filled curve of the inset outlines)
+        rb = bmesh.new()
+        cu = bpy.data.curves.new(f'_relief_{side}', 'CURVE')
+        cu.dimensions = '2D'
+        cu.fill_mode = 'FRONT'
+        for lp, fs in zip(loops, fill_side):
+            n = len(lp)
+            inset = []
+            for i in range(n):
+                p0, p1, p2 = Vector(lp[i - 1]), Vector(lp[i]), Vector(lp[(i + 1) % n])
+                e1 = (p1 - p0).normalized()
+                e2 = (p2 - p1).normalized()
+                n1 = Vector((-e1.y, e1.x))
+                n2 = Vector((-e2.y, e2.x))
+                nm = (n1 + n2)
+                nm = nm.normalized() if nm.length > 1e-6 else n1
+                k = min(2.0, 1.0 / max(0.35, nm.dot(n1)))
+                inset.append(p1 + nm * (fs * BEV * k))
+            base = [rb.verts.new((p[0], p[1], -0.0001)) for p in lp]
+            mid = [rb.verts.new((p[0], p[1], h - BEV)) for p in lp]
+            top = [rb.verts.new((p.x, p.y, h)) for p in inset]
+            for i in range(n):
+                j = (i + 1) % n
+                rb.faces.new([base[i], base[j], mid[j], mid[i]])
+                rb.faces.new([mid[i], mid[j], top[j], top[i]])
+            sp = cu.splines.new('POLY')
+            sp.points.add(n - 1)
+            for i, p in enumerate(inset):
+                sp.points[i].co = (p.x, p.y, h, 1.0)
+            sp.use_cyclic_u = True
+        co = bpy.data.objects.new(f'_relief_{side}', cu)
+        bpy.context.scene.collection.objects.link(co)
+        dg = bpy.context.evaluated_depsgraph_get()
+        cap = bpy.data.meshes.new_from_object(co.evaluated_get(dg))
+        for v in cap.vertices:                   # a 2D curve flattens z; lift the cap to the relief top
+            v.co.z = h
+        rb.from_mesh(cap)
+        bmesh.ops.remove_doubles(rb, verts=rb.verts, dist=1e-7)
+        # curve (x right, y up, z out) -> medal local. Obverse seen from +Y shows local +X on the viewer's
+        # LEFT, so image x maps to -X on the front and +X on the back.
+        if side == 'front':
+            M_ = Matrix(((-1, 0, 0, 0), (0, 0, 1, T_f), (0, 1, 0, 0), (0, 0, 0, 1)))
+        else:
+            M_ = Matrix(((1, 0, 0, 0), (0, 0, -1, T_b), (0, 1, 0, 0), (0, 0, 0, 1)))
+        rb.transform(M_)
+        bmesh.ops.recalc_face_normals(rb, faces=rb.faces)
+        for f in rb.faces:
+            f.material_index = mat
+        tmp_me = bpy.data.meshes.new('_r')
+        rb.to_mesh(tmp_me)
+        rb.free()
+        bm.from_mesh(tmp_me)
+        bpy.data.meshes.remove(tmp_me)
+        bpy.data.meshes.remove(cap)
+        bpy.data.objects.remove(co, do_unlink=True)
+        bpy.data.curves.remove(cu)
+    me = bpy.data.meshes.new(name)
+    me.materials.append(bpy.data.materials.new('_slot0'))      # two slots before to_mesh so indices survive
+    me.materials.append(bpy.data.materials.new('_slot1'))
+    bm.to_mesh(me)
+    bm.free()
+    bpy.data.objects.remove(tmp, do_unlink=True)
+    me.shade_smooth()
+    me.set_sharp_from_angle(angle=math.radians(35))
+    return me, tab_c
+
+
+def barrel(mb, top, length, r, mat=0, seg=16):
+    fr = Matrix.Translation(top) @ Matrix.Rotation(math.pi, 4, 'X')        # local +Z points down
+    prof = [(0.0, 0.0), (r - 0.0004, 0.0), (r, 0.0004), (r, length - 0.0004), (r - 0.0004, length), (0.0, length)]
+    rings = []
+    for (rr, hh) in prof:
+        if rr < 1e-9:
+            rings.append([mb.vert(fr @ Vector((0, 0, hh)))])
+        else:
+            rings.append([mb.vert(fr @ Vector((rr * math.cos(2 * math.pi * j / seg), rr * math.sin(2 * math.pi * j / seg), hh)))
+                          for j in range(seg)])
+    for i in range(len(rings) - 1):
+        A, B = rings[i], rings[i + 1]
+        for j in range(seg):
+            j2 = (j + 1) % seg
+            if len(A) == 1:
+                mb.face([A[0], B[j2], B[j]], mat)
+            elif len(B) == 1:
+                mb.face([A[j], A[j2], B[0]], mat)
+            else:
+                mb.face([A[j], A[j2], B[j2], B[j]], mat)
+
+
+def build_clasp(mb, c_top, t3, u_face):
+    """Swivel snap hook (D eye the ribbon loop wraps, swivel eye, barrel, hook with spring gate) and a steel
+    double-coil split ring in the plane of the medal's normal. Returns the tab-hole centre in world space."""
+    wu = Z.cross(u_face).normalized()
+    DE_W, DE_H, DE_r = 0.024, 0.008, 0.0010
+    sweep_tube(mb, d_ring_path(c_top, t3, DE_W, DE_H, n=8), DE_r, seg=8)
+    d_bot = c_top - Z * DE_H
+    Re, re_ = 0.0022, 0.0007
+    eye_c = d_bot - Z * (Re - re_ - DE_r)
+    torus(mb, eye_c, t3, Re, re_, seg=16, segm=6)
+    b_top = eye_c - Z * (Re - 0.0003)
+    barrel(mb, b_top, 0.0060, 0.0023)
+    hook_top = b_top - Z * 0.0060
+    HW, HH, hr = 0.0075, 0.016, 0.0011
+    rw = HW / 2
+    path = []
+    for k in range(10):                                   # top semicircle
+        a = math.pi * k / 9
+        path.append(hook_top - Z * rw + wu * (rw * math.cos(a)) + Z * (rw * math.sin(a)))
+    for k in range(10):                                   # bottom semicircle
+        a = math.pi + math.pi * k / 9
+        path.append(hook_top - Z * (HH - rw) + wu * (rw * math.cos(a)) + Z * (rw * math.sin(a)))
+    sweep_tube(mb, list(reversed(path)), hr, seg=8)
+    gate0 = hook_top - Z * rw + wu * (-rw * 0.2)
+    gate1 = hook_top - Z * (HH - rw * 1.2) + wu * (rw * 0.85)
+    sweep_tube(mb, [gate0 + (gate1 - gate0) * (i / 5) for i in range(6)], 0.0006, seg=6, closed=False)
+    hook_bot = hook_top - Z * HH                          # centre of the hook's bottom wire
+    Rs, rs = 0.0055, 0.00065
+    ring_c = hook_bot + Z * (hr + rs) - Z * Rs
+    coil = []
+    for k in range(73):
+        th = 4 * math.pi * k / 72
+        coil.append(ring_c + (u_face * math.sin(th) + Z * math.cos(th)) * Rs + wu * (rs * 2.1 * (th / (2 * math.pi) - 1)))
+    sweep_tube(mb, coil, rs, seg=6, closed=False)
+    hole_r = 0.0021
+    return ring_c - Z * Rs - Z * (hole_r - rs)
 
 
 def sweep_tube(mb, path, radius, seg=12, closed=True, mat=0):
@@ -541,7 +726,7 @@ def build():
     Z_T0, Z_T1 = NC.z - 0.010, NC.z - 0.050
     Z_FAN = NC.z - 0.120
     WS_G = 0.012 / W                 # pinched to 12 mm over the neck bulb's narrow waist
-    AB = 0.00145
+    AB = 0.0013                      # ribbon wraps the snap hook's D eye (wire r 1.0 + half ribbon)
 
     def sm(x):
         x = max(0.0, min(1.0, x))
@@ -708,42 +893,44 @@ def build():
         objs.append(o)
         tris[o.name] = sum(len(p.vertices) - 2 for p in nm.polygons)
 
-    # ---- D-ring, split ring, medal (faces the seat)
+    # ---- hardware + medals (shared meshes per metal; fronts face the seat, m3 shows its reverse)
+    with open(CONTOURS) as f:
+        contours = json.load(f)
+    medal_mesh = {}
+    for metal in ('gold', 'silver'):
+        me_, tab_c = build_medal_mesh(f'medal_frc_{metal}', MEDAL_R, contours)
+        pm, am = M[metal]
+        me_.materials[0] = pm                    # replace in place (clear() would reset the face indices)
+        me_.materials[1] = am
+        print('MEDAL', metal, 'faces per material', [sum(1 for p in me_.polygons if p.material_index == k) for k in (0, 1)])
+        medal_mesh[metal] = me_
+    print('MEDAL mesh tris', {k: sum(len(p.vertices) - 2 for p in v.polygons) for k, v in medal_mesh.items()})
     for ly in lanyards:
         spec = ly['spec']
         nmn = spec['name']
         c_top = to_w(ly['s_k'], ly['t_k'], ly['z_ap'])
-        mbr = MB()
-        DR_W, DR_H, DR_r = 0.028, 0.011, 0.0011
-        sweep_tube(mbr, d_ring_path(c_top, t3, DR_W, DR_H, n=8), DR_r, seg=8)
-        # split ring: plane spanned by the seat direction and Z, hanging from the D-ring's bottom wire
         u_face = (SEAT - c_top)
         u_face.z = 0
         u_face.normalize()
-        Rr, rr = 0.0045, 0.0006
-        d_bottom = c_top - Z * DR_H
-        ring_c = d_bottom - Z * (Rr - DR_r - rr)
-        torus(mbr, ring_c, Z.cross(u_face).normalized(), Rr, rr, seg=18, segm=6, mat=0)
-        clasp = mbr.to_object(f'medal_{nmn}_clasp', [M['nickel']], coll, smooth_angle=45)
+        mbr = MB()
+        hole = build_clasp(mbr, c_top, t3, u_face)
+        clasp = mbr.to_object(f'medal_{nmn}_clasp', [M['steel']], coll, smooth_angle=45)
         objs.append(clasp)
         tris[clasp.name] = sum(len(p.vertices) - 2 for p in clasp.data.polygons)
-        # medal: its tab hole hangs on the split ring's bottom wire
-        mesh, tab_c = medal_frc(MEDAL_R)
-        hole_r = 0.0021
-        ring_bottom_wire = ring_c - Z * Rr
-        tab_world = ring_bottom_wire - Z * (hole_r - rr)          # the ring's wire rests on the top of the hole
-        Mc = tab_world - tab_c
+        Mc = hole - Z * (MEDAL_R + 0.0031)
         x_ax = u_face.cross(Z).normalized()
         xf = Matrix.Translation(Mc) @ Matrix(((x_ax.x, u_face.x, 0, 0), (x_ax.y, u_face.y, 0, 0),
                                               (x_ax.z, u_face.z, 1, 0), (0, 0, 0, 1)))
-        mbx = MB()
-        mbx.extend(mesh, xf=xf)
-        pm, am = M[spec['metal']]
-        med = mbx.to_object(f'medal_{nmn}_disc', [pm, am], coll, smooth_angle=35)
+        if nmn in BACK_FACING:
+            xf = xf @ Matrix.Rotation(math.pi, 4, 'Z')
+        med = bpy.data.objects.new(f'medal_{nmn}_disc', medal_mesh[spec['metal']])
+        coll.objects.link(med)
+        med.matrix_world = xf
         objs.append(med)
         tris[med.name] = sum(len(p.vertices) - 2 for p in med.data.polygons)
         ly['Mc'] = Mc
-        print(f'MEDAL {nmn} {spec["metal"]} centre {tuple(round(x, 4) for x in Mc)} bottom z {Mc.z - MEDAL_R:.4f}')
+        print(f'MEDAL {nmn} {spec["metal"]} {"reverse" if nmn in BACK_FACING else "front"} to the seat, '
+              f'centre {tuple(round(x, 4) for x in Mc)} bottom z {Mc.z - MEDAL_R:.4f}')
 
     # ---- root (parent to NEW_lamp_pivot in the room, keeping transform)
     root = bpy.data.objects.new('NEW_medals_root', None)
@@ -856,9 +1043,20 @@ def previews(b):
     three_q = (-dirv * 0.75 + side_dir * 0.62).normalized()
     shot(target + three_q * 0.5 + Vector((0, 0, 0.06)), target, 50, 'medals_34.png')
     shot(target + side_dir * 0.62 + Vector((0, 0, 0.04)), target, 45, 'medals_side.png')
-    gold = next(ly for ly in b['lanyards'] if ly['spec']['metal'] == 'gold')
-    mt = gold['Mc'] + Vector((0, 0, 0.012))
-    shot(mt - dirv * 0.20 + Vector((0, 0, 0.02)), mt, 60, 'medals_closeup.png')
+    # face-on close-ups for comparison with the reference photos
+    for nm_, fname in (('m1', 'medals_closeup_gold_front.png'), ('m2', 'medals_closeup_silver_front.png'),
+                       ('m3', 'medals_closeup_silver_back.png')):
+        ly = next(l for l in b['lanyards'] if l['spec']['name'] == nm_)
+        n_ = (SEAT - ly['Mc'])
+        n_.z = 0
+        n_.normalize()
+        mt = ly['Mc'] + Vector((0, 0, 0.004))
+        hidden = [o for o in b['coll'].all_objects if o.type == 'MESH' and not o.name.startswith(f'medal_{nm_}_')]
+        for o in hidden:                         # isolate this medal so its neighbours don't block the view
+            o.hide_render = True
+        shot(mt + n_ * 0.24 + Vector((0, 0, 0.004)), mt, 70, fname)
+        for o in hidden:
+            o.hide_render = False
 
 
 # =============================================================================== save / export / verify
