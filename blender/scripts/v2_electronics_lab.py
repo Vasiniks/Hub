@@ -38,7 +38,7 @@ BOX_C = (0.735, 0.665)
 STAGE_C = (0.740, 0.530)
 BB_C = (0.555, 0.675)
 PRE_C = (0.845, 0.400)
-DMM_C = (0.590, 0.415)
+DMM_C = (0.445, 0.465)
 BOX_W, BOX_H, SHEET = 160.0, 150.0, 0.8
 
 
@@ -62,62 +62,94 @@ def lab_mats():
     pbr('dmm_black', (0.03, 0.03, 0.03), 0.45)
     pbr('trimpot_blue', (0.08, 0.25, 0.75), 0.4)
     pbr('rubber_clear', (0.2, 0.2, 0.2), 0.5)
+    pbr('dmm_btn', (0.33, 0.34, 0.36), 0.5, rvar=0.05)
     copper_mat()
 
 
 def copper_mat():
+    """brushed/patinated sheet copper: roughness 0.3-0.5, tarnish, darkening toward the soldered corner seams
+    (object coords: box/lid objects are centred on their own origin), subtle fingerprints."""
     name = 'copper_sheet'
     if name in MATS:
         return name
     m, nt, b = new_mat(name)
     setin(b, 'Metallic', 1.0)
-    tc = node(nt, 'ShaderNodeTexCoord', (-1800, 0))
-    fresh, tarn, dark = lin((0.97, 0.62, 0.48)), lin((0.70, 0.40, 0.27)), lin((0.50, 0.30, 0.25))
-    nz = node(nt, 'ShaderNodeTexNoise', (-1500, 300), Scale=14.0, Detail=5.0, Roughness=0.6)
+    tc = node(nt, 'ShaderNodeTexCoord', (-2000, 0))
+    sx = node(nt, 'ShaderNodeSeparateXYZ', (-1800, 600))
+    nt.links.new(tc.outputs['Object'], sx.inputs[0])
+    fresh, tarn, dark = lin((0.93, 0.58, 0.45)), lin((0.72, 0.43, 0.30)), lin((0.36, 0.22, 0.17))
+    # patina / tarnish variation
+    nz = node(nt, 'ShaderNodeTexNoise', (-1500, 300), Scale=10.0, Detail=5.0, Roughness=0.6)
     nt.links.new(tc.outputs['Object'], nz.inputs['Vector'])
     mr = node(nt, 'ShaderNodeMapRange', (-1300, 300))
-    mr.inputs['From Min'].default_value = 0.38
-    mr.inputs['From Max'].default_value = 0.72
+    mr.inputs['From Min'].default_value = 0.35
+    mr.inputs['From Max'].default_value = 0.75
     nt.links.new(nz.outputs['Fac'], mr.inputs['Value'])
     c1 = node(nt, 'ShaderNodeMix', (-1000, 300))
     c1.data_type = 'RGBA'
     nt.links.new(mr.outputs['Result'], c1.inputs['Factor'])
     c1.inputs[6].default_value = (*fresh, 1)
     c1.inputs[7].default_value = (*tarn, 1)
-    nz2 = node(nt, 'ShaderNodeTexNoise', (-1500, 0), Scale=70.0, Detail=3.0)
-    nt.links.new(tc.outputs['Object'], nz2.inputs['Vector'])
-    spot = math_n(nt, 'MULTIPLY', math_n(nt, 'GREATER_THAN', nz2.outputs['Fac'], 0.66), 0.28)
+    # oxidation near the vertical corner seams: distance to the nearest vertical edge of an 80 mm half-size box
+    ax = math_n(nt, 'SUBTRACT', 0.081, math_n(nt, 'ABSOLUTE', sx.outputs[0]))
+    ay = math_n(nt, 'SUBTRACT', 0.081, math_n(nt, 'ABSOLUTE', sx.outputs[1]))
+    dc = math_n(nt, 'MAXIMUM', math_n(nt, 'ABSOLUTE', ax), math_n(nt, 'ABSOLUTE', ay))
+    nz4 = node(nt, 'ShaderNodeTexNoise', (-1500, 800), Scale=90.0, Detail=3.0)
+    nt.links.new(tc.outputs['Object'], nz4.inputs['Vector'])
+    dcn = math_n(nt, 'ADD', dc, math_n(nt, 'MULTIPLY', nz4.outputs['Fac'], 0.008))
+    seam = math_n(nt, 'SUBTRACT', 1.0, math_n(nt, 'MINIMUM', math_n(nt, 'DIVIDE', dcn, 0.016), 1.0))
+    seam = math_n(nt, 'MULTIPLY', math_n(nt, 'MULTIPLY', seam, seam), 0.75)
     c2 = node(nt, 'ShaderNodeMix', (-800, 300))
     c2.data_type = 'RGBA'
-    nt.links.new(spot, c2.inputs['Factor'])
+    nt.links.new(seam, c2.inputs['Factor'])
     nt.links.new(c1.outputs[2], c2.inputs[6])
     c2.inputs[7].default_value = (*dark, 1)
-    # fingerprints: sparse voronoi cells, ridged, raise roughness and dull the colour a little
-    vo = node(nt, 'ShaderNodeTexVoronoi', (-1500, -300), Scale=55.0)
+    # fingerprints: sparse small voronoi cells with ridge rings
+    vo = node(nt, 'ShaderNodeTexVoronoi', (-1500, -300), Scale=60.0)
     nt.links.new(tc.outputs['Object'], vo.inputs['Vector'])
     sc = node(nt, 'ShaderNodeSeparateColor', (-1300, -400))
     nt.links.new(vo.outputs['Color'], sc.inputs[0])
-    keep = math_n(nt, 'GREATER_THAN', sc.outputs[0], 0.86)
-    inside = math_n(nt, 'LESS_THAN', vo.outputs['Distance'], 0.30)
+    keep = math_n(nt, 'GREATER_THAN', sc.outputs[0], 0.88)
+    inside = math_n(nt, 'LESS_THAN', vo.outputs['Distance'], 0.32)
     fp = math_n(nt, 'MULTIPLY', keep, inside)
-    ridge = math_n(nt, 'ABSOLUTE', math_n(nt, 'SINE', math_n(nt, 'MULTIPLY', vo.outputs['Distance'], 260.0)))
+    ridge = math_n(nt, 'ABSOLUTE', math_n(nt, 'SINE', math_n(nt, 'MULTIPLY', vo.outputs['Distance'], 300.0)))
     fpr = math_n(nt, 'MULTIPLY', fp, math_n(nt, 'ADD', math_n(nt, 'MULTIPLY', ridge, 0.6), 0.4))
     c3 = node(nt, 'ShaderNodeMix', (-600, 300))
     c3.data_type = 'RGBA'
     c3.blend_type = 'MULTIPLY'
-    nt.links.new(math_n(nt, 'MULTIPLY', fpr, 0.12), c3.inputs['Factor'])
+    nt.links.new(math_n(nt, 'MULTIPLY', fpr, 0.1), c3.inputs['Factor'])
     nt.links.new(c2.outputs[2], c3.inputs[6])
     c3.inputs[7].default_value = (0.8, 0.75, 0.72, 1)
     nt.links.new(c3.outputs[2], b.inputs['Base Color'])
-    nz3 = node(nt, 'ShaderNodeTexNoise', (-1100, -700), Scale=400.0, Detail=2.0)
+    # brushed grain: noise stretched along Z (fine vertical lines)
+    mp = node(nt, 'ShaderNodeMapping', (-1700, -800))
+    mp.inputs['Scale'].default_value = (1.0, 1.0, 0.02)
+    nt.links.new(tc.outputs['Object'], mp.inputs['Vector'])
+    br = node(nt, 'ShaderNodeTexNoise', (-1500, -800), Scale=3000.0, Detail=2.0)
+    nt.links.new(mp.outputs['Vector'], br.inputs['Vector'])
+    nz3 = node(nt, 'ShaderNodeTexNoise', (-1300, -1000), Scale=35.0, Detail=2.0)
     nt.links.new(tc.outputs['Object'], nz3.inputs['Vector'])
-    rough = math_n(nt, 'ADD', math_n(nt, 'ADD', 0.3, math_n(nt, 'MULTIPLY', nz3.outputs['Fac'], 0.12)),
-                   math_n(nt, 'ADD', math_n(nt, 'MULTIPLY', fpr, 0.2), math_n(nt, 'MULTIPLY', spot, 0.15)))
+    rough = math_n(nt, 'ADD', math_n(nt, 'ADD', 0.32, math_n(nt, 'MULTIPLY', nz3.outputs['Fac'], 0.14)),
+                   math_n(nt, 'ADD', math_n(nt, 'MULTIPLY', fpr, 0.12), math_n(nt, 'MULTIPLY', seam, 0.1)))
+    rough = math_n(nt, 'ADD', rough, math_n(nt, 'MULTIPLY', br.outputs['Fac'], 0.06))
     nt.links.new(rough, b.inputs['Roughness'])
-    bp = node(nt, 'ShaderNodeBump', (-300, -500), Strength=0.25, Distance=0.00003)
-    nt.links.new(math_n(nt, 'ADD', nz3.outputs['Fac'], math_n(nt, 'MULTIPLY', fpr, 0.5)), bp.inputs['Height'])
+    bp = node(nt, 'ShaderNodeBump', (-300, -600), Strength=0.35, Distance=0.00002)
+    nt.links.new(math_n(nt, 'ADD', br.outputs['Fac'], math_n(nt, 'MULTIPLY', fpr, 0.4)), bp.inputs['Height'])
     nt.links.new(bp.outputs['Normal'], b.inputs['Normal'])
     return name
+
+
+def shell(mb, mat, prof, S, rc, seg=3, cap0=True, cap1=True):
+    """closed/capped sheet shell: prof = [(n, z)], n = outward offset from a square of half-size S."""
+    k = mb.mark()
+    loops = [rr(2 * (S + n), 2 * (S + n), max(rc + n, 0.05), seg, z) for n, z in prof]
+    loft(mb, loops, mat, None, cap0=cap0, cap1=cap1)
+    mb.recalc(k)
+
+
+def arc(cn, cz, r, a0, a1, n):
+    return [(cn + r * math.cos(math.radians(a0 + (a1 - a0) * i / n)), cz + r * math.sin(math.radians(a0 + (a1 - a0) * i / n)))
+            for i in range(n + 1)]
 
 
 # ----------------------------------------------------------------------------- small hardware
@@ -151,26 +183,15 @@ def pan_screw(mb, M, d=3.0, mat='steel'):
     slab(mb, 'steel_dark', M @ T(0, 0, d * 0.55) @ Rz(90), d * 1.2, 0.35, 0.16)
 
 
-def bnc_plug(mb, M, cable_r=1.4):
-    """BNC plug mated on a jack, axis +z from the jack face (z=0); returns cable exit (local) at +z."""
-    kl = knurl_loop(7.0, 40, 0.3)
-    k = mb.mark()
-    loft(mb, [[(x * 0.93, y * 0.93, 0.0) for x, y in kl], [(x, y, 0.8) for x, y in kl], [(x, y, 11.0) for x, y in kl],
-              [(x * 0.9, y * 0.9, 11.6) for x, y in kl]], 'nickel', M, cap0=True, cap1=True)
-    mb.recalc(k)
-    revolve(mb, [(4.6, 11.4), (4.6, 17.0), (4.2, 17.6), (4.2, 19.0)], 20, 'nickel', M)
-    revolve(mb, [(4.4, 19.0), (4.1, 24.0), (3.0, 31.0), (cable_r * 1.25, 38.0), (cable_r * 1.05, 38.5)], 20,
-            'tpe_black', M)
-    return 38.5
-
-
 def bnc_jack_panel(mb, M):
-    """bulkhead BNC jack: flange + nut on the panel (z=0 outer face), barrel to +z."""
+    """BNC jack: hex flange + barrel to +z (z=0 on the mounting face)."""
     k = mb.mark()
     prism(mb, 'nickel', M, [(7.0 * math.cos(math.radians(60 * i + 30)), 7.0 * math.sin(math.radians(60 * i + 30)))
                             for i in range(6)], 0.0, 2.6)
     mb.recalc(k)
-    revolve(mb, [(5.2, 2.6), (4.8, 3.0), (4.8, 5.0)], 20, 'nickel', M)
+    revolve(mb, [(5.2, 2.6), (4.8, 3.0), (4.8, 11.0), (4.2, 11.4), (2.2, 11.4), (2.2, 10.0), (0.0, 10.0)], 20, 'nickel', M)
+    for sgn in (-1, 1):
+        revolve(mb, [(0.0, 0.0), (0.9, 0.0), (0.9, 1.4), (0.0, 1.6)], 8, 'nickel', M @ T(0, sgn * 4.8, 7.0) @ Rx(-90 * sgn))
 
 
 def sma_plug(mb, M, cable_r=1.25):
@@ -216,25 +237,25 @@ def build_stage(coll, parent):
         for sy in (-1, 1):
             disc(mb, 'port_dark', T(sx * 40.0, sy * 27.0, 7.004), 3.1, 16)
             shcs(mb, T(sx * 40.0, sy * 27.0, 7.0 - 3.0 + 0.2), 3.0)
-    # coarse-approach sled (rides on the plate) with the sample post
+    # coarse-approach sled with the sample post and sample disc
     slab(mb, 'anod_black', T(-14.0, 0.0, 7.0), 40.0, 34.0, 11.0, rc=1.2, seg=2, rt=0.4, tseg=1)
     slab(mb, 'anod_black', T(-3.0, 0.0, 18.0), 8.0, 16.0, 20.0, rc=1.0, seg=2, rt=0.4, tseg=1)
     revolve(mb, [(0.0, 0.0), (6.0, 0.0), (6.0, 1.6), (5.7, 1.9), (0.0, 1.9)], 28, 'steel',
             T(1.0, 0.0, 30.0) @ Ry(90))
     disc(mb, 'gold', T(2.95, 0.0, 30.0) @ Ry(90), 4.5, 24)
-    # motor bracket + 28BYJ-48-style stepper (axis along +x), coupler, lead screw
+    # motor bracket + 28BYJ-48-style stepper (axis along -x), coupler, lead screw
     slab(mb, 'anod_black', T(-36.0, 0.0, 18.0), 4.0, 34.0, 32.0, rc=0.8, seg=1, rt=0.4, tseg=1)
     Mm = T(-38.0, 0.0, 34.0) @ Ry(-90)
     revolve(mb, [(0.0, 0.0), (14.0, 0.0), (14.0, 0.6), (13.6, 1.0), (13.6, 17.4), (14.0, 17.8), (14.0, 19.0),
                  (12.8, 19.3), (0.0, 19.3)], 36, 'nickel', Mm)
     prism(mb, 'nickel', Mm @ Rz(90), [(p[0], p[1]) for p in rr(49.0, 7.0, 3.5, 4)], 0.0, 0.8)
     for sy in (-1, 1):
-        revolve(mb, [(0.0, 0.8), (2.6, 0.8), (2.6, 2.2), (0.0, 2.6)], 12, 'steel_dark', Mm @ T(0, sy * 17.5, 0) @ Rx(0))
+        revolve(mb, [(0.0, 0.8), (2.6, 0.8), (2.6, 2.2), (0.0, 2.6)], 12, 'steel_dark', Mm @ T(0, sy * 17.5, 0))
     slab(mb, 'motor_blue', Mm @ T(0.0, 0.0, 2.0) @ T(15.5, 0, 0), 5.0, 16.0, 14.0, rc=0.6, seg=1, rt=0.4, tseg=1)
     revolve(mb, [(2.5, -4.0), (2.5, 0.2), (0.0, 0.2)], 12, 'steel', T(-34.0, 0.0, 34.0 - 8.0) @ Ry(90))
     revolve(mb, [(5.0, 0.0), (5.0, 16.0), (0.0, 16.0), (0.0, 0.0)], 20, 'alu_can', T(-34.0, 0.0, 26.0) @ Ry(90))
     for sgn in (-1, 1):
-        revolve(mb, [(0.9, 2.0), (0.9, 3.4)], 8, 'steel_dark', T(-34.0 + 2.6, 0.0, 26.0 + sgn * 5.0) @ Ry(0))
+        revolve(mb, [(0.9, 2.0), (0.9, 3.4)], 8, 'steel_dark', T(-34.0 + 2.6, 0.0, 26.0 + sgn * 5.0))
     revolve(mb, [(1.5, 0.0), (1.5, 21.0), (0.0, 21.0)], 12, 'steel', T(-18.0, 0.0, 26.0) @ Ry(90))
     # guide rods (chrome) from bracket to upright
     for zz, yy in ((44.0, 10.0), (44.0, -10.0)):
@@ -254,7 +275,7 @@ def build_stage(coll, parent):
                 a1=math.radians(90 * q + 82), closed=False)
     revolve(mb, [(3.3, 8.0), (3.3, 9.0), (1.2, 9.4), (0.8, 10.2), (0.0, 10.2)], 20, 'steel', Mp)
     revolve(mb, [(0.13, 10.2), (0.13, 12.5), (0.01, 13.2)], 8, 'steel', Mp)
-    # fine-adjust thumbscrews in an angled block on the sled
+    # fine-adjust thumbscrews
     slab(mb, 'anod_black', T(-16.0, -12.0, 18.0), 14.0, 10.0, 12.0, rc=0.6, seg=1, rt=0.4, tseg=1)
     slab(mb, 'anod_black', T(-16.0, 12.0, 18.0), 14.0, 10.0, 12.0, rc=0.6, seg=1, rt=0.4, tseg=1)
     for yy in (-12.0, 12.0):
@@ -266,7 +287,6 @@ def build_stage(coll, parent):
     slab(mb, 'anod_black', T(25.0, -30.0, 7.0), 12.0, 3.0, 16.0, rc=0.3, seg=1)
     sma_jack(mb, T(25.0, -31.5, 16.0) @ Rx(90))
     o = mb.finish(parent, coll, sharp=38)
-    # motor wires to a white JST plug resting on the base plate
     w = MB('elec_stm_stage_wires')
     cols = ['wire_blue', 'wire_pink', 'wire_yellow', 'wire_orange', 'wire_red']
     for i, cm in enumerate(cols):
@@ -284,70 +304,82 @@ def build_stage(coll, parent):
 def build_box(coll, parent):
     mb = MB('elec_faraday_box')
     W, H, t = BOX_W, BOX_H, SHEET
+    S = W / 2
     z0 = 1.5
-    k = mb.mark()
-    loops = [rr(W, W, 1.2, 2, z0), rr(W, W, 1.2, 2, z0 + H), rr(W + 12.0, W + 12.0, 1.5, 2, z0 + H),
-             rr(W + 12.0, W + 12.0, 1.5, 2, z0 + H + t), rr(W - 2 * t, W - 2 * t, 0.4, 2, z0 + H + t),
-             rr(W - 2 * t, W - 2 * t, 0.4, 2, z0 + t)]
-    loft(mb, loops, 'copper_sheet', None, cap0=True, cap1=True)
-    mb.recalc(k)
-    # soldered seams: lumpy tin beads down the four outer corners and round the inside floor
+    rb = 1.6
+    # one continuous sheet: rounded bottom bend, wall, hem folded outside at the rim (thickness visible),
+    # inner wall, inner bottom bend, floor
+    prof = [(-rb, z0)] + arc(-rb, z0 + rb, rb, 270, 360, 4)[1:] + [(0.0, H - 6.0), (t, H - 6.0), (t, H)] + \
+        arc(0.0, H, t, 0, 180, 6)[1:] + [(-t, z0 + rb)] + arc(-rb, z0 + rb, rb - t, 360, 270, 4)[1:]
+    shell(mb, 'copper_sheet', prof, S, 2.0, 3)
     rng = random.Random(3)
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            pts = [V((sx * (W / 2 + 0.1), sy * (W / 2 + 0.1), z0 + 2 + (H - 4) * i / 30)) for i in range(31)]
-            sweep(mb, pts, lambda i, n: circle2(0.75 + 0.25 * math.sin(i * 1.7 + sx) + 0.1 * rng.random(), 8),
+    # lapped corner seams: an L-angle strip over each vertical corner, soldered along both free edges
+    for q in range(4):
+        R = Rz(90 * q)
+        outer, inner = [], []
+        for i in range(9):
+            if i < 3:
+                p_o, p_i = (S + t + 0.03, S - 10.0 + i * 3.0), (S + 0.03, S - 10.0 + i * 3.0)
+            elif i < 6:
+                a = math.radians(90 * (i - 3 + 0.5) / 3)
+                cx = cy = S - 2.0
+                p_o = (cx + (2.0 + t + 0.03) * math.cos(a), cy + (2.0 + t + 0.03) * math.sin(a))
+                p_i = (cx + 2.03 * math.cos(a), cy + 2.03 * math.sin(a))
+            else:
+                p_o, p_i = (S - 4.0 - (i - 6) * 3.0, S + t + 0.03), (S - 4.0 - (i - 6) * 3.0, S + 0.03)
+            outer.append(p_o)
+            inner.append(p_i)
+        loop = [(R @ V((x, y, 0))).to_2d() for x, y in outer + inner[::-1]]
+        prism(mb, 'copper_sheet', T(0, 0, 0), [tuple(p) for p in loop], z0 + 3.0, H - 7.0)
+        for (ex, ey) in ((S + t * 0.5, S - 10.0), (S - 10.0, S + t * 0.5)):
+            p = R @ V((ex, ey, 0))
+            pts = [V((p.x, p.y, z0 + 3.2 + (H - 10.4) * i / 26)) for i in range(27)]
+            sweep(mb, pts, lambda i, n, qq=q: circle2(0.55 + 0.18 * math.sin(i * 1.9 + qq) + 0.08 * rng.random(), 7),
                   'solder', up=(1, 0, 0), cap0=True, cap1=True)
+    # solder fillet round the inside floor seam
     for side in range(4):
         R = Rz(90 * side)
-        pts = [R @ V(((-W / 2 + t + 2) + (W - 2 * t - 4) * i / 24, -(W / 2 - t - 0.3), z0 + t + 0.3)) for i in range(25)]
-        sweep(mb, pts, lambda i, n: circle2(0.8 + 0.2 * math.sin(i * 2.3 + side), 6), 'solder', up=(0, 0, 1),
+        pts = [R @ V(((-S + t + 2.5) + (W - 2 * t - 5) * i / 24, -(S - t - 0.35), z0 + t + 0.35)) for i in range(25)]
+        sweep(mb, pts, lambda i, n: circle2(0.75 + 0.2 * math.sin(i * 2.3 + side), 6), 'solder', up=(0, 0, 1),
               cap0=True, cap1=True)
-    # tapped holes in the flange
-    for side in range(4):
+    # inside corner brackets with tapped holes for the lid screws
+    for q in range(4):
+        R = Rz(90 * q)
         for s in (-1, 1):
-            p = Rz(90 * side) @ V((s * 45.0, W / 2 + 3.0, z0 + H + t + 0.005))
-            disc(mb, 'port_dark', T(*p), 1.25, 12)
-    # rubber feet
+            p = R @ V((s * 45.0, S - t - 4.0, 0))
+            slab(mb, 'copper_sheet', T(p.x, p.y, H - 8.0) @ R, 12.0, 8.0, 0.8, rc=0.8, seg=1)
+            disc(mb, 'port_dark', T(p.x, p.y, H - 7.19), 1.25, 12)
     for sx in (-1, 1):
         for sy in (-1, 1):
             revolve(mb, [(0.0, 0.0), (5.0, 0.0), (5.0, 1.0), (4.4, 1.5), (0.0, 1.5)], 16, 'rubber',
                     T(sx * 65.0, sy * 65.0, 0.0))
-    # bulkheads on the front face (y = -W/2): BNC (to the preamp) and a capped SMA
-    Mb = T(65.0, -W / 2, 46.5) @ Rx(90)
-    bnc_jack_panel(mb, Mb)
-    revolve(mb, [(0.0, 0.0), (8.0, 0.0), (8.0, 0.8), (0.0, 0.8)], 6, 'nickel', T(65.0, -W / 2 + t, 46.5) @ Rx(-90))
-    sma_jack(mb, T(40.0, -W / 2, 45.0) @ Rx(90))
-    revolve(mb, [(3.3, 4.0), (3.3, 7.0), (2.9, 7.5), (0.0, 7.5)], 12, 'gold', T(40.0, -W / 2, 45.0) @ Rx(90))
-    ob = mb.finish(parent, coll, sharp=40)
-    # lid: tray (top plate + 15 mm skirt), captive pan-head screws, leaning on the box's left side
+    ob = mb.finish(parent, coll, sharp=50)
+    # lid: tray with a bent (r 1.6) plate-to-skirt edge, rounded folded lip at the skirt bottom
     lid = MB('elec_faraday_lid')
-    Lw = W + 12.0 + 2 * t + 1.0
-    k = lid.mark()
-    loops = [rr(Lw - 2 * t, Lw - 2 * t, 1.2, 2, 0.0), rr(Lw - 2 * t, Lw - 2 * t, 1.2, 2, -15.0), rr(Lw, Lw, 2.0, 2, -15.0),
-             rr(Lw, Lw, 2.0, 2, t)]
-    loft(lid, loops, 'copper_sheet', None, cap0=True, cap1=True)
-    lid.recalc(k)
+    SL = S + t + 1.2 + t
+    rb2 = 1.6
+    prof = [(-rb2, t)] + arc(-rb2, t - rb2, rb2, 90, 0, 4)[1:] + [(0.0, -13.0)] + arc(-t, -13.0, t, 0, -180, 6)[1:] + \
+        [(-2 * t, -9.0), (-t, -8.6)] + [(-t, t - rb2)] + arc(-rb2, t - rb2, rb2 - t, 0, 90, 4)[1:]
+    shell(lid, 'copper_sheet', prof, SL, 2.8, 3)
     for side in range(4):
         for s in (-1, 1):
-            p = Rz(90 * side) @ V((s * 45.0, Lw / 2 - 9.0, t))
+            p = Rz(90 * side) @ V((s * 45.0, SL - 5.0, t))
             pan_screw(lid, T(*p), 3.0)
     revolve(lid, [(0.0, t), (9.0, t), (9.0, t + 1.0), (7.5, t + 2.0), (6.0, t + 12.0), (6.8, t + 14.0), (0.0, t + 15.0)],
             24, 'brass')
+    Lw = 2 * SL
     a = math.radians(8.0)
     sa, ca = math.sin(a), math.cos(a)
-    # plate normal points -x (away from the box's left face); the skirt tips rest on the flange edge
-    xl = BOX_C[0] - W / 2 * MM
+    xl = BOX_C[0] - (S + t) * MM
     Oz = (Lw / 2 * ca + 15.0 * sa)
     zf = z0 + H + t
     xf = (zf - Oz + 15.0 * sa) / ca
-    Ox = -6.0 - sa * xf - 15.0 * ca
+    Ox = -1.0 - sa * xf - 15.0 * ca
     O = V((xl + Ox * MM, BOX_C[1], DESK + Oz * MM))
     Ml = Matrix(((sa, 0.0, -ca, O.x), (0.0, 1.0, 0.0, O.y), (ca, 0.0, sa, O.z), (0, 0, 0, 1)))
-    # lean it on the BACK face instead (clear of the screwdriver on the left): rotate about the box centre
     cx, cy = BOX_C
     Ml = T(cx, cy, 0.0) @ Rz(-90) @ T(-cx, -cy, 0.0) @ Ml
-    ol = lid.finish(None, coll, sharp=40)
+    ol = lid.finish(None, coll, sharp=50)
     ol.parent = parent
     ol.matrix_world = Ml
     return [ob, ol]
@@ -513,95 +545,131 @@ def build_preamp(coll, parent):
 
 # ----------------------------------------------------------------------------- multimeter
 def dmm_textures():
-    cv = Canvas(64.0, 30.0, 16.0)
+    """Fluke-117-style layout (no logos): LCD at the top, 4 buttons, rotary dial, 3 jacks at the bottom.
+    Canvas frame = meter face, x across (74 mm), y along the meter (155 mm, +y = top)."""
     seg = {'0': 'abcdef', '1': 'bc', '2': 'abged', '3': 'abgcd', '4': 'fgbc', '5': 'afgcd', '6': 'afgedc', '7': 'abc',
-           '8': 'abcdefg', '9': 'abcdfg'}
+           '8': 'abcdefg', '9': 'abcdfg', '-': 'g'}
+    cv = Canvas(60.0, 36.0, 16.0)
 
-    def digit(ch, x, y, h=16.0):
+    def digit(ch, x, y, h=17.0):
         w = h * 0.5
-        on = seg[ch]
-        pos = {'a': (x, y + h / 2, w, 1.6), 'g': (x, y, w, 1.6), 'd': (x, y - h / 2, w, 1.6),
-               'f': (x - w / 2, y + h / 4, 1.6, h / 2), 'b': (x + w / 2, y + h / 4, 1.6, h / 2),
-               'e': (x - w / 2, y - h / 4, 1.6, h / 2), 'c': (x + w / 2, y - h / 4, 1.6, h / 2)}
+        on = seg.get(ch, '')
+        pos = {'a': (x, y + h / 2, w, 1.7), 'g': (x, y, w, 1.7), 'd': (x, y - h / 2, w, 1.7),
+               'f': (x - w / 2, y + h / 4, 1.7, h / 2), 'b': (x + w / 2, y + h / 4, 1.7, h / 2),
+               'e': (x - w / 2, y - h / 4, 1.7, h / 2), 'c': (x + w / 2, y - h / 4, 1.7, h / 2)}
         for sname, (px, py, sw, sh) in pos.items():
-            cv.rect('seg' if sname in on else 'ghost', px + 0.12 * (py - y), py, sw * 0.86, sh * 0.86, r=0.4)
-    for i, ch in enumerate('0873'):
-        digit(ch, -18.0 + i * 11.5, -1.0)
-    cv.rect('seg', -18.0 + 0.5 * 11.5 + 0.6, -9.2, 1.4, 1.4, r=0.3)
-    cv.text('MV', 26.5, -8.5, 3.0)
-    cv.text('AUTO', -22.0, 10.5, 2.4)
+            cv.rect('seg' if sname in on else 'ghost', px + 0.1 * (py - y), py, sw * 0.86, sh * 0.86, r=0.4)
+    for i, ch in enumerate('1247'):
+        digit(ch, -17.5 + i * 11.0, -1.5)
+    cv.rect('seg', -17.5 + 1.5 * 11.0 + 0.6, -10.2, 1.5, 1.5, r=0.3)
+    cv.text('V', 25.5, -7.5, 4.2)
+    cv.text('AC', 25.0, 3.0, 2.4)
+    cv.text('AUTO', -19.0, 12.8, 2.3)
+    cv.text('TRUE RMS', 10.0, 12.8, 2.0)
+    for i in range(20):
+        cv.rect('seg' if i < 11 else 'ghost', -26.0 + i * 2.6, -14.8, 1.6, 1.6)
     H, W = cv.H, cv.W
     s = np.clip(cv.layer('seg'), 0, 1)[..., None]
-    gh = np.clip(cv.layer('ghost'), 0, 1)[..., None] * 0.08
+    gh = np.clip(cv.layer('ghost'), 0, 1)[..., None] * 0.07
     tx = np.clip(cv.layer('silk'), 0, 1)[..., None]
-    base = np.array((0.52, 0.58, 0.50), np.float32)
-    col = np.ones((H, W, 3), np.float32) * base
+    col = np.ones((H, W, 3), np.float32) * np.array((0.55, 0.60, 0.53), np.float32)
     col = col * (1 - gh) + np.array((0.12, 0.13, 0.12), np.float32) * gh
-    col = col * (1 - np.maximum(s, tx)) + np.array((0.08, 0.09, 0.08), np.float32) * np.maximum(s, tx)
-    dat = np.stack([np.full((H, W), 0.5, np.float32), np.full((H, W), 0.08, np.float32), np.zeros((H, W), np.float32)], -1)
+    ink = np.maximum(s, tx)
+    col = col * (1 - ink) + np.array((0.07, 0.08, 0.07), np.float32) * ink
+    dat = np.stack([np.full((H, W), 0.5, np.float32), np.full((H, W), 0.18, np.float32), np.zeros((H, W), np.float32)],
+                   -1)
     ic = make_image('elec_dmm_lcd_col', col)
     idt = make_image('elec_dmm_lcd_dat', dat, noncolor=True)
-    m_lcd = image_mat('dmm_lcd', ic, idt, bump_dist=0.00001, rnoise=0.0)
-    # face: dial ring markings and jack labels on dark grey
-    cv = Canvas(134.0, 70.0, 10.0)
-    cx = -8.0
-    for kk in range(12):
-        a = math.radians(90 + 30 * kk)
-        cv.seg('silk', cx + 24 * math.cos(a), 24 * math.sin(a), cx + 27.5 * math.cos(a), 27.5 * math.sin(a), 0.6)
-    for kk, lab in enumerate(['OFF', 'V', 'MV', 'O', 'A', 'MA', 'HZ', 'C', 'NCV', 'UA', '%', 'V']):
-        a = math.radians(90 + 30 * kk)
-        cv.text(lab, cx + 31 * math.cos(a), 31 * math.sin(a), 2.6)
-    for i, lab in enumerate(['10A', 'MA', 'COM', 'V']):
-        cv.text(lab, -58.0, 22.0 - i * 14.0 - 6.0, 2.2)
-    cv.rect('ylw', 40.0, -22.0, 40.0, 10.0, r=1.5, lw=0.5)
+    m_lcd = image_mat('dmm_lcd', ic, idt, bump_dist=0.00001, rnoise=0.02)
+    cv = Canvas(74.0, 155.0, 9.0)
+    dy = -14.0
+    labels = [(150, 'OFF'), (120, 'V~'), (90, 'V='), (60, 'MV'), (30, 'O'), (0, 'HZ'), (-30, 'A~'), (-60, 'A='),
+              (-90, 'NCV')]
+    for ang, lab in labels:
+        a = math.radians(ang)
+        cv.seg('silk', 23.5 * math.cos(a), dy + 23.5 * math.sin(a), 26.5 * math.cos(a), dy + 26.5 * math.sin(a), 0.6)
+        cv.text(lab, 31.0 * math.cos(a), dy + 31.0 * math.sin(a), 2.8)
+    cv.ring('silk', 0.0, dy, 22.8, 23.3)
+    for i, (x, lab) in enumerate(((-22.0, 'A'), (0.0, 'COM'), (22.0, 'V'))):
+        cv.text(lab, x, -69.5, 3.0)
+        cv.ring('silk' if i != 2 else 'red', x, -60.0, 6.2, 6.7)
+    cv.text('10A MAX FUSED', -22.0, -73.8, 1.5)
+    cv.text('600V MAX', 22.0, -73.8, 1.5)
+    cv.rect('ylw', 0.0, 50.0, 64.0, 40.0, r=2.0, lw=0.6)
+    for i, lab in enumerate(('HOLD', 'MIN MAX', 'RANGE', 'LIGHT')):
+        cv.text(lab, -27.0 + i * 18.0, 16.0, 1.6)
     H, W = cv.H, cv.W
     tx = np.clip(cv.layer('silk'), 0, 1)[..., None]
     yl = np.clip(cv.layer('ylw'), 0, 1)[..., None]
-    col = np.ones((H, W, 3), np.float32) * np.array((0.19, 0.20, 0.22), np.float32)
+    rd = np.clip(cv.layer('red'), 0, 1)[..., None]
+    col = np.ones((H, W, 3), np.float32) * np.array((0.17, 0.18, 0.19), np.float32)
     col = col * (1 - tx) + np.array((0.92, 0.92, 0.9), np.float32) * tx
     col = col * (1 - yl) + np.array((0.95, 0.72, 0.1), np.float32) * yl
-    dat = np.stack([np.full((H, W), 0.5, np.float32) + 0.05 * tx[..., 0], 0.55 - 0.1 * tx[..., 0],
-                    np.zeros((H, W), np.float32)], -1)
+    col = col * (1 - rd) + np.array((0.85, 0.12, 0.1), np.float32) * rd
+    dat = np.stack([0.5 + 0.05 * tx[..., 0], 0.55 - 0.1 * tx[..., 0], np.zeros((H, W), np.float32)], -1)
     ic = make_image('elec_dmm_face_col', col)
     idt = make_image('elec_dmm_face_dat', dat, noncolor=True)
     return m_lcd, image_mat('dmm_face', ic, idt, bump_dist=0.00002)
 
 
 def build_dmm(coll, parent):
+    """Fluke-117-style handheld DMM in its holster: 84 x 167 x 46 mm overall, lying on its back, top = +y."""
     m_lcd, m_face = dmm_textures()
     mb = MB('elec_multimeter')
-    L, W, H = 150.0, 78.0, 34.0
+    Wd, Ld, Hh = 84.0, 167.0, 40.0
+    # holster: rubber tub with a raised lip round the face opening and thicker bumper corners
     k = mb.mark()
-    slab(mb, 'dmm_holster', Matrix.Identity(4), L, W, H, rc=9.0, seg=4, rt=5.0, tseg=3, rb=3.0, bseg=2)
+    loops = [rr(Wd - 4, Ld - 4, 9.0, 4, 0.0), rr(Wd, Ld, 11.0, 4, 2.0), rr(Wd, Ld, 11.0, 4, Hh - 3.0),
+             rr(Wd - 3, Ld - 3, 9.5, 4, Hh), rr(Wd - 9, Ld - 9, 6.0, 4, Hh), rr(Wd - 10, Ld - 10, 5.5, 4, Hh - 3.0)]
+    loft(mb, loops, 'dmm_holster', None, cap0=True, cap1=True)
     mb.recalc(k)
-    rings = slab(mb, 'dmm_black', T(0.0, 0.0, H - 3.5), 134.0, 70.0, 3.8, rc=5.0, seg=3, topmat=m_face)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            k = mb.mark()
+            slab(mb, 'dmm_holster', T(sx * (Wd / 2 - 10.5), sy * (Ld / 2 - 10.5), 1.0), 23.0, 23.0, Hh + 0.2,
+                 rc=11.0, seg=4, rt=3.5, tseg=2, rb=2.0, bseg=1)
+            mb.recalc(k)
+    # grip grooves on the long sides
+    for sx in (-1, 1):
+        for i in range(6):
+            slab(mb, 'dmm_black', T(sx * (Wd / 2 + 0.05), -20.0 + i * 8.0, 12.0), 0.6, 3.0, 14.0, rc=0.25, seg=1)
+    # meter face (dark grey case) inside the lip, UV-mapped face print
+    slab(mb, 'dmm_black', T(0.0, 0.0, Hh - 6.0), 74.0, 155.0, 3.6, rc=5.0, seg=3, topmat=m_face)
     for l in mb.flist[-1].loops:
         co = l.vert.co / MM
-        l[mb.uv].uv = ((co.x + 67.0) / 134.0, (co.y + 35.0) / 70.0)
-    rings = slab(mb, 'dmm_black', T(42.0, 0.0, H + 0.2), 66.0, 34.0, 0.25, rc=1.5, seg=2, topmat=m_lcd)
+        l[mb.uv].uv = ((co.x + 37.0) / 74.0, (co.y + 77.5) / 155.0)
+    zf = Hh - 2.4
+    # LCD window (recessed bezel + glass)
+    slab(mb, 'dmm_black', T(0.0, 50.0, zf - 0.1), 64.0, 40.0, 0.2, rc=2.0, seg=2)
+    slab(mb, 'dmm_black', T(0.0, 50.0, zf + 0.25), 61.0, 37.0, 0.05, rc=1.5, seg=2, topmat=m_lcd)
     for l in mb.flist[-1].loops:
         co = l.vert.co / MM
-        l[mb.uv].uv = ((co.x - 42.0 + 32.0) / 64.0, (co.y + 15.0) / 30.0)
-    # rotary dial with grip ridges and pointer
-    dx = -8.0
-    kl = knurl_loop(19.0, 48, 0.8)
-    k = mb.mark()
-    loft(mb, [[(dx + x, y, H + 0.2) for x, y in kl], [(dx + x, y, H + 7.0) for x, y in kl]], 'dmm_black', None,
-         cap0=True, cap1=True)
-    mb.recalc(k)
-    slab(mb, 'dmm_black', T(dx, 0.0, H + 7.0), 34.0, 7.0, 3.0, rc=2.5, seg=3, rt=1.0, tseg=2)
-    slab(mb, 'plastic_white', T(dx, 14.0, H + 10.0) @ Rz(90), 6.0, 1.2, 0.05)
-    # buttons
+        l[mb.uv].uv = ((co.x + 30.0) / 60.0, (co.y - 50.0 + 18.0) / 36.0)
+    # buttons: yellow HOLD + three grey
     for i in range(4):
-        slab(mb, 'dmm_black', T(28.0 + i * 11.0 - 16.0, -26.0, H + 0.2), 8.0, 5.0, 1.2, rc=1.0, seg=2, rt=0.5, tseg=1)
-    # jacks: 10A, mA, COM, VΩ along the -x end
-    jys = [22.0 - i * 14.0 - 6.0 + 2.5 for i in range(4)]
-    for jy, rim in zip(jys, ('dmm_black', 'dmm_black', 'dmm_black', 'dmm_red')):
-        revolve(mb, [(0.0, H - 1.2), (2.2, H - 1.2), (2.2, H + 0.2), (4.2, H + 0.2), (4.6, H + 0.9), (4.0, H + 1.2),
-                     (2.2, H + 1.2)], 20, rim, T(-52.0, jy, 0.0))
+        mat = 'dmm_holster' if i == 0 else 'dmm_btn'
+        k = mb.mark()
+        slab(mb, mat, T(-27.0 + i * 18.0, 22.0, zf), 14.0, 7.0, 1.6, rc=2.2, seg=2, rt=0.7, tseg=2)
+        mb.recalc(k)
+    # rotary dial: knurled skirt + raised grip bar with pointer
+    dyd = -14.0
+    kl = knurl_loop(21.0, 60, 0.7)
+    k = mb.mark()
+    loft(mb, [[(x, dyd + y, zf) for x, y in kl], [(x, dyd + y, zf + 5.0) for x, y in kl],
+              [(x * 0.95, dyd + y * 0.95, zf + 5.6) for x, y in kl]], 'dmm_black', None, cap0=True, cap1=True)
+    mb.recalc(k)
+    k = mb.mark()
+    slab(mb, 'dmm_btn', T(0.0, dyd, zf + 5.4) @ Rz(120 - 90), 9.0, 40.0, 5.0, rc=4.0, seg=3, rt=2.0, tseg=2)
+    mb.recalc(k)
+    slab(mb, 'plastic_white', T(0.0, dyd, zf + 10.41) @ Rz(120 - 90) @ T(0.0, 13.5, 0.0), 1.4, 9.0, 0.03)
+    # input jacks at the bottom: A, COM, V
+    jx = [-22.0, 0.0, 22.0]
+    for x, rim in zip(jx, ('dmm_black', 'dmm_black', 'dmm_red')):
+        revolve(mb, [(0.0, zf - 8.0), (2.1, zf - 8.0), (2.1, zf), (4.6, zf), (5.0, zf + 1.0), (4.4, zf + 1.6),
+                     (2.1, zf + 1.6)], 20, rim, T(x, -60.0, 0.0))
     o = mb.finish(parent, coll, sharp=40)
     Mw = parent.matrix_world
-    return [o], wm(Mw, (-52.0, jys[2], H)), wm(Mw, (-52.0, jys[3], H))
+    return [o], wm(Mw, (0.0, -60.0, zf + 1.6)), wm(Mw, (22.0, -60.0, zf + 1.6))
 
 
 def probe(mb, Mw_probe, colour):
@@ -644,18 +712,8 @@ def build_wiring(coll, parent, uno_M, bb_M, pre_pts, box_M, stage_M, dmm_pts):
         revolve(mb, [(0.0010, 0.0), (0.00095, 0.0011), (0.00078, 0.0027), (0.00066, 0.0032)], 8, col, T(*a) @ T(0, 0, -0.003))
         revolve(mb, [(0.0010, 0.0), (0.00095, 0.0011), (0.00078, 0.0027), (0.00066, 0.0032)], 8, col, T(*b) @ T(0, 0, -0.003))
         cable(mb, pts, 0.00065, col, sides=7, step=0.002)
-    # coax 1: RG174, preamp BNC (+y) -> box front BNC (-y)
+    L1 = 0.0
     bnc_pre, sma_pre = pre_pts
-    e1 = bnc_plug(mb, T(*bnc_pre) @ Rx(-90) @ Matrix.Scale(MM, 4))
-    p_pre = bnc_pre + V((0, e1 * MM, 0))
-    box_bnc = wm(box_M, (65.0, -BOX_W / 2 - 2.6, 46.5))
-    e2 = bnc_plug(mb, T(*box_bnc) @ Rx(90) @ Matrix.Scale(MM, 4))
-    p_box = box_bnc - V((0, e2 * MM, 0))
-    zc = DESK + 0.0014
-    pts = [p_box, V((p_box.x, 0.530, p_box.z - 0.009)), V((p_box.x + 0.002, 0.515, zc + 0.008)),
-           V((0.806, 0.500, zc)), V((0.815, 0.486, zc)), V((0.826, 0.476, zc + 0.002)),
-           p_pre + V((0.0, 0.012, 0.004)), p_pre]
-    L1 = cable(mb, pts, 0.0014, 'coax_black', sides=10)
     # coax 2: RG316, preamp SMA (-x) -> stage SMA (-y)
     e3 = sma_plug(mb, T(*sma_pre) @ Ry(-90) @ Matrix.Scale(MM, 4))
     p3 = sma_pre - V((e3 * MM, 0, 0))
@@ -670,18 +728,29 @@ def build_wiring(coll, parent, uno_M, bb_M, pre_pts, box_M, stage_M, dmm_pts):
     L2 = cable(mb, pts, 0.00125, 'coax_brown', sides=10)
     # multimeter leads: banana plugs in COM / VΩ, leads to probes lying left of the meter
     com, vo = dmm_pts
-    for (jack, colour, tip_xy, rot) in ((com, 'dmm_black', (0.418, 0.372), 205.0), (vo, 'dmm_red', (0.428, 0.412), 198.0)):
+    dz = DESK + 0.0021
+    leads = (
+        (com, 'dmm_black', (0.545, 0.433), 5.0,
+         [(0.0, 0.0, 0.017), (0.024, -0.018, 0.021), (0.059, -0.028, -0.009), (0.071, -0.025, None), (0.076, -0.018, None),
+          (0.094, 0.022, None), (0.090, 0.050, None), (0.080, 0.040, None)]),
+        (vo, 'dmm_red', (0.548, 0.395), 10.0,
+         [(0.0, 0.0, 0.017), (0.017, -0.018, 0.019), (0.042, -0.028, -0.014), (0.052, -0.027, None),
+          (0.060, -0.022, None)]),
+    )
+    for jack, colour, rear_xy, rot, rel in leads:
         Mj = T(*jack)
         revolve(mb, [(0.0, 0.0), (0.0021, 0.0), (0.0021, 0.004), (0.0042, 0.0045), (0.0042, 0.018), (0.0036, 0.024),
                      (0.0024, 0.034), (0.0019, 0.036)], 18, colour, Mj)
         top = jack + V((0, 0, 0.036))
         r = math.radians(rot)
         d = V((math.cos(r), math.sin(r), 0))
-        rear = V((tip_xy[0], tip_xy[1], DESK)) - d * 0.0985
+        rear = V((rear_xy[0], rear_xy[1], DESK))
         Mp = T(rear.x, rear.y, DESK + 0.0065) @ Rz(rot) @ Matrix.Scale(MM, 4)
         probe(mb, Mp, colour)
-        pts = [top, top + V((0, 0, 0.02)), top + V((-0.03, 0.008, 0.022)), V((top.x - 0.05, top.y - 0.002, DESK + 0.01)),
-               rear - d * 0.03 + V((0, 0, 0.0015)), rear - d * 0.004 + V((0, 0, 0.0055)), rear + V((0, 0, 0.0065))]
+        pts = [top]
+        for dx, dy, dzz in rel:
+            pts.append(V((top.x + dx, top.y + dy, dz if dzz is None else top.z + dzz)))
+        pts += [rear - d * 0.03 + V((0, 0, 0.0017)), rear - d * 0.004 + V((0, 0, 0.0055)), rear + V((0, 0, 0.0065))]
         cable(mb, pts, 0.0017, colour, sides=10)
     o = mb.finish(parent, coll, sharp=55)
     return [o], (L1, L2)
@@ -716,7 +785,7 @@ def build_lab(mod, coll, root):
     bpy.context.view_layer.update()
     objs, bnc_p, sma_p = build_preamp(coll, e)
     out['preamp'] = objs
-    dmm_M = T(DMM_C[0], DMM_C[1], DESK)
+    dmm_M = T(DMM_C[0], DMM_C[1], DESK) @ Rz(-8)
     e = empty('elec_multimeter_grp', dmm_M)
     bpy.context.view_layer.update()
     objs, com, vo = build_dmm(coll, e)
