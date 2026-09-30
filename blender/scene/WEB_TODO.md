@@ -15,6 +15,13 @@ wired into `src/` — it is a to-do list for the web pass (non-Blender work → 
 - **Room is 0.55 m wider** (left wall -0.30 m, right wall +0.25 m): `ROOM.leftWallX`/`rightWallX` and `SHELF.x` in
   `src/scene/layout.ts`; area-light volumes and AO snapshot bounds may need re-baking/recomputing.
 
+- **Sunset is now the main look** (supersedes afternoon): key sun ≈ #ff9552, elevation 9°, coming from ~40° right
+  (angled down the street so it clears the houses), AgX Medium High Contrast at +0.45 EV, thin interior haze.
+  Outside: deep orange horizon, lamp-lit house windows, porch lights and street light on.
+- **Robot status light** (amber FRC RSL on top of the robot) pulses slowly: emission 0→7 on a 4 s sine — animate in
+  the runtime (emissive intensity), don't bake it.
+- **A1 mini** has a lit touchscreen and a green power LED (emissive).
+
 ## Assets to export and wire in
 - New parts in `blender/scene/parts/*.blend` (mouse, macbook + riser, keyboard, medals, telecaster stand, tele_gb,
   curtains, painting, and in-progress: cables, electronics/mug/notes, speedcube, monitor) need GLB export through the
