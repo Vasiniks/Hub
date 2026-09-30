@@ -34,10 +34,10 @@ def bind(mod):
 
 
 DESK = 0.735
-BOX_C = (0.735, 0.735)
-STAGE_C = (0.740, 0.600)
-BB_C = (0.555, 0.745)
-PRE_C = (0.845, 0.470)
+BOX_C = (0.735, 0.665)
+STAGE_C = (0.740, 0.530)
+BB_C = (0.555, 0.675)
+PRE_C = (0.845, 0.400)
 DMM_C = (0.590, 0.415)
 BOX_W, BOX_H, SHEET = 160.0, 150.0, 0.8
 
@@ -344,6 +344,9 @@ def build_box(coll, parent):
     Ox = -6.0 - sa * xf - 15.0 * ca
     O = V((xl + Ox * MM, BOX_C[1], DESK + Oz * MM))
     Ml = Matrix(((sa, 0.0, -ca, O.x), (0.0, 1.0, 0.0, O.y), (ca, 0.0, sa, O.z), (0, 0, 0, 1)))
+    # lean it on the BACK face instead (clear of the screwdriver on the left): rotate about the box centre
+    cx, cy = BOX_C
+    Ml = T(cx, cy, 0.0) @ Rz(-90) @ T(-cx, -cy, 0.0) @ Ml
     ol = lid.finish(None, coll, sharp=40)
     ol.parent = parent
     ol.matrix_world = Ml
@@ -649,8 +652,8 @@ def build_wiring(coll, parent, uno_M, bb_M, pre_pts, box_M, stage_M, dmm_pts):
     e2 = bnc_plug(mb, T(*box_bnc) @ Rx(90) @ Matrix.Scale(MM, 4))
     p_box = box_bnc - V((0, e2 * MM, 0))
     zc = DESK + 0.0014
-    pts = [p_box, V((p_box.x, 0.600, p_box.z - 0.008)), V((p_box.x + 0.002, 0.585, zc + 0.008)),
-           V((0.805, 0.570, zc)), V((0.812, 0.557, zc)), V((0.824, 0.550, zc + 0.002)),
+    pts = [p_box, V((p_box.x, 0.530, p_box.z - 0.009)), V((p_box.x + 0.002, 0.515, zc + 0.008)),
+           V((0.806, 0.500, zc)), V((0.815, 0.486, zc)), V((0.826, 0.476, zc + 0.002)),
            p_pre + V((0.0, 0.012, 0.004)), p_pre]
     L1 = cable(mb, pts, 0.0014, 'coax_black', sides=10)
     # coax 2: RG316, preamp SMA (-x) -> stage SMA (-y)
@@ -662,8 +665,8 @@ def build_wiring(coll, parent, uno_M, bb_M, pre_pts, box_M, stage_M, dmm_pts):
     e4 = sma_plug(mb, Ms)
     p4 = st_sma + dirn * e4 * MM
     zc2 = DESK + 0.00125
-    pts = [p4, p4 + dirn * 0.008 + V((0, 0, -0.006)), V((0.768, 0.522, zc2)), V((0.780, 0.495, zc2)),
-           V((0.795, 0.474, zc2 + 0.001)), p3 - V((0.008, 0, 0.002)), p3]
+    pts = [p4, p4 + dirn * 0.008 + V((0, 0, -0.006)), V((0.767, 0.455, zc2)), V((0.776, 0.425, zc2)),
+           V((0.787, 0.400, zc2 + 0.001)), p3 - V((0.008, 0, 0.002)), p3]
     L2 = cable(mb, pts, 0.00125, 'coax_brown', sides=10)
     # multimeter leads: banana plugs in COM / VΩ, leads to probes lying left of the meter
     com, vo = dmm_pts
