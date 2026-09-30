@@ -18,10 +18,11 @@ ONLY = next((a.split('=')[1].split(',') for a in ARGS if a.startswith('--only=')
 SEAT = V((0.0, -0.16, 1.175))
 
 scene = bpy.context.scene
-old = bpy.data.collections.get('NEW_bambu')
-if old is not None:
-    for o in [x for x in old.all_objects if x is not None]:
-        o.hide_render = True
+for cname in ('NEW_bambu', 'NEW_bambu_mini'):      # retired A1 + any older merge of this asset
+    old = bpy.data.collections.get(cname)
+    if old is not None:
+        for o in [x for x in old.all_objects if x is not None]:
+            o.hide_render = True
 with bpy.data.libraries.load(os.path.join(PARTS, 'bambu_mini.blend'), link=False) as (src, dst):
     dst.collections = ['NEW_bambu_mini']
 new = dst.collections[0]

@@ -107,17 +107,8 @@ log('imported', len(meshes), 'meshes', TRIS_SRC, 'tris')
 bed_top = max(v.co.z for v in bpy.data.objects['PEI_Plate'].data.vertices)
 noz_tip = min(v.co.z for v in bpy.data.objects['Nozzle'].data.vertices)
 DROP = noz_tip - (bed_top + (BENCHY_H + 0.3) / 1000.0 / SCALE)
-CABLE_TOP = 0.585            # cable/PTFE ends at the column top stay put; below Z_LO they move fully
-Z_LO = 0.36
-for o in meshes:
-    if GROUP[o.name] not in ('Motor', 'Toolhead'):
-        continue
-    if o.name in ('CableTrans', 'CableSOlid'):
-        for v in o.data.vertices:
-            t = min(1.0, max(0.0, (CABLE_TOP - v.co.z) / (CABLE_TOP - Z_LO)))
-            t = t * t * (3 - 2 * t)
-            v.co.z -= DROP * t
-    else:
+for o in meshes:                  # the whole carriage group moves rigidly (both cable loops end on moving parts)
+    if GROUP[o.name] in ('Motor', 'Toolhead'):
         o.data.transform(Matrix.Translation((0, 0, -DROP)))
 log('carriage lowered by %.1f mm (real)' % (DROP * SCALE * 1000))
 
@@ -145,6 +136,55 @@ COL_LO = V([min(p[i] for p in _c) for i in range(3)])
 COL_HI = V([max(p[i] for p in _c) for i in range(3)])
 _pt = pts_of('CableTrans')
 PTFE_TOP = max(_pt, key=lambda p: p.z)
+
+
+def bbox_of(name):
+    pp = pts_of(name)
+    return V([min(p[i] for p in pp) for i in range(3)]), V([max(p[i] for p in pp) for i in range(3)])
+
+
+CLIP_LO, CLIP_HI = bbox_of('FilamentClip')      # filament inlet / runout clip on the right of the Z carriage
+STOP_LO, STOP_HI = bbox_of('Stopper')
+CPL_LO, CPL_HI = bbox_of('CableClip')          # PTFE push-fit coupling on top of the extruder
+log('clip', tuple(round(x, 4) for x in CLIP_LO), tuple(round(x, 4) for x in CLIP_HI), 'stopper',
+    tuple(round(x, 4) for x in STOP_LO), tuple(round(x, 4) for x in STOP_HI), 'coupling',
+    tuple(round(x, 4) for x in CPL_LO), tuple(round(x, 4) for x in CPL_HI))
+_ct = bpy.data.objects['CableTrans']
+# march along the source tube from its lower end (the carriage-side box) to the toolhead: slab centroids every 3 mm
+# (the mesh has long edges between sparse rings, so march on an area-uniform point sample of its surface)
+_bmc = bmesh.new()
+_bmc.from_mesh(_ct.data)
+bmesh.ops.triangulate(_bmc, faces=_bmc.faces)
+_tri = np.array([[l.vert.co[:] for l in f.loops] for f in _bmc.faces])
+_bmc.free()
+_area = 0.5 * np.linalg.norm(np.cross(_tri[:, 1] - _tri[:, 0], _tri[:, 2] - _tri[:, 0]), axis=1)
+_rng = np.random.default_rng(7)
+_pick = _rng.choice(len(_tri), 60000, p=_area / _area.sum())
+_uv = _rng.random((60000, 2))
+_fl = _uv.sum(1) > 1
+_uv[_fl] = 1 - _uv[_fl]
+_t = _tri[_pick]
+_vs = _t[:, 0] + (_t[:, 1] - _t[:, 0]) * _uv[:, :1] + (_t[:, 2] - _t[:, 0]) * _uv[:, 1:]
+_zl = _vs[:, 2].min()
+_end = _vs[_vs[:, 2] < _zl + 0.0012]
+_c = _end.mean(0)
+PTFE_SRC_R = float(np.linalg.norm(_end - _c, axis=1).max())
+_d = np.array([0.0, 0.0, 1.0])
+SRC_PATH = [V(_c.tolist())]
+for _ in range(600):
+    rel = _vs - _c
+    along = rel @ _d
+    sel = _vs[(np.abs(along - 0.003) < 0.0015) & (np.linalg.norm(rel, axis=1) < 4 * PTFE_SRC_R + 0.003)]
+    if len(sel) < 3:
+        break
+    cn = sel.mean(0)
+    _d = (cn - _c) / np.linalg.norm(cn - _c)
+    _c = cn
+    SRC_PATH.append(V(_c.tolist()))
+log('source PTFE: radius %.1f mm, centreline %d pts, %s -> %s' % (PTFE_SRC_R * 1000, len(SRC_PATH),
+    tuple(round(x, 4) for x in SRC_PATH[0]), tuple(round(x, 4) for x in SRC_PATH[-1])))
+meshes.remove(_ct)
+bpy.data.objects.remove(_ct, do_unlink=True)
 log('nozzle tip', tuple(round(x, 4) for x in NOZ), 'over bed by %.1f mm' % ((NOZ.z - BED_TOP) * 1000),
     'column top', tuple(round(x, 4) for x in COL_LO), tuple(round(x, 4) for x in COL_HI), 'ptfe top',
     tuple(round(x, 4) for x in PTFE_TOP))
@@ -327,7 +367,7 @@ if COMPARE and not NO_RENDER:
 
 # ============================================================================== 4a. visibility culling
 t0 = time.time()
-SEE_THROUGH = {'Glas', 'Lens', 'Lens_2', 'CableTrans'}
+SEE_THROUGH = {'Glas', 'Lens', 'Lens_2'}
 bm_all = bmesh.new()
 owner = []
 for i, o in enumerate(meshes):
@@ -677,13 +717,13 @@ def lathe(name, prof, m, segs=64, closed=True):
     return finish(from_bm(name, bm), m, 40)
 
 
-def tube(name, pts, radius, m, res=10, bev=6):
+def tube(name, pts, radius, m, res=10, bev=6, caps=True, flip=False):
     cu = bpy.data.curves.new(name, 'CURVE')
     cu.dimensions = '3D'
     cu.resolution_u = res
     cu.bevel_depth = radius
     cu.bevel_resolution = bev // 2
-    cu.use_fill_caps = True
+    cu.use_fill_caps = caps
     sp = cu.splines.new('BEZIER')
     sp.bezier_points.add(len(pts) - 1)
     for bp, p in zip(sp.bezier_points, pts):
@@ -696,6 +736,8 @@ def tube(name, pts, radius, m, res=10, bev=6):
     bpy.data.objects.remove(tmp, do_unlink=True)
     bpy.data.curves.remove(cu)
     me.name = name
+    if flip:
+        me.flip_normals()
     return finish(bpy.data.objects.new(name, me), m, 60)
 
 
@@ -715,7 +757,29 @@ cyl('bambu_mini_holder_axle', 0.0245, (SX - SPOOL_W / 2 - 0.012, cy_, SZ), (post
     verts=40, cap_bevel=0.0015)
 cyl('bambu_mini_holder_axle_cap', 0.028, (SX - SPOOL_W / 2 - 0.016, cy_, SZ), (SX - SPOOL_W / 2 - 0.012, cy_, SZ),
     'holder_white', verts=40, cap_bevel=0.0012)
-spool_M = Matrix.Translation(V((SX, cy_, SZ))) @ Matrix.Rotation(math.radians(90), 4, 'Y')
+# spool on a roller stand on the table, right of the printer, axis left-right (the holder arm stays, empty)
+BOX_C = V((SRC_PATH[0].x, SRC_PATH[0].y, CLIP_LO.z))             # bottom (filament inlet) of the right-side box
+SP_X = CLIP_HI.x + 0.078                     # flanges ~40 mm clear of the box / carriage's whole Z travel
+SP_Y = BOX_C.y - 0.123
+ROLL_R, ROLL_DY, BASE_T = 0.011, 0.060, 0.010
+ROLL_Z = BASE_T + 0.004 + ROLL_R
+SP_Z = ROLL_Z + math.sqrt((SPOOL_R + ROLL_R) ** 2 - ROLL_DY ** 2)   # flange rims resting on both rollers
+spool_M = Matrix.Translation(V((SP_X, SP_Y, SP_Z))) @ Matrix.Rotation(math.radians(90), 4, 'Y')
+STAND_LO = V((SP_X - 0.048, SP_Y - 0.085, 0.0))
+STAND_HI = V((SP_X + 0.048, SP_Y + 0.085, BASE_T))
+mat('stand_grey', (0.55, 0.56, 0.57), 0.45, bump=0.04, bscale=1400)
+mat('roller', (0.12, 0.12, 0.13), 0.35)
+rbox('bambu_mini_spoolstand_base', STAND_LO, STAND_HI, 0.004, 'stand_grey', segs=3)
+for sy in (-1, 1):
+    ry = SP_Y + sy * ROLL_DY
+    cyl('bambu_mini_spoolstand_roller_%d' % (sy > 0), ROLL_R, (SP_X - 0.040, ry, ROLL_Z), (SP_X + 0.040, ry, ROLL_Z),
+        'roller', verts=32, cap_bevel=0.0012)
+    for sx in (-1, 1):
+        xx = SP_X + sx * 0.043
+        rbox('bambu_mini_spoolstand_cheek_%d%d' % (sy > 0, sx > 0), (xx - 0.003, ry - 0.009, BASE_T - 0.001),
+             (xx + 0.003, ry + 0.009, ROLL_Z + 0.006), 0.0015, 'stand_grey', segs=2)
+        cyl('bambu_mini_spoolstand_axle_%d%d' % (sy > 0, sx > 0), 0.003, (xx - 0.0035 * sx, ry, ROLL_Z),
+            (xx + 0.0045 * sx, ry, ROLL_Z), 'stand_grey', verts=16)
 W = SPOOL_W / 2
 fl_t = 0.0028
 prof_fl = [(0.0275, -W), (SPOOL_R - 0.0005, -W), (SPOOL_R, -W + fl_t * 0.5), (SPOOL_R - 0.0005, -W + fl_t),
@@ -732,12 +796,79 @@ spool.append(lathe('bambu_mini_spool_filament', [(0.0385, -W + fl_t + 0.0002), (
                    'filament_spool', segs=96))
 for o in spool:
     o.data.transform(spool_M)
-# filament leaves the front-bottom of the winding and drops into the PTFE tube's upper end
-a_ = math.radians(40)
-start = V((SX + 0.012, cy_ - R_FIL * math.sin(a_), SZ - R_FIL * math.cos(a_)))
-end = PTFE_TOP + V((0, 0, 0.004))
-tube('bambu_mini_filament_strand', [start, start.lerp(end, 0.5) + V((0, -0.006, 0.004)), end], 0.000875,
-     'filament_strand', res=10, bev=4)
+# ---- filament path: spool (table) -> short free span up into the box on the printer's right (the FBX's
+# filament inlet / runout box on the Z carriage) -> PTFE from the box's top fitting along the model's own route
+# -> toolhead push-fit coupling. The FBX's PTFE mesh renders almost fully transparent through its opacity map, so
+# it is replaced by a real tube swept along its centreline.
+mat('black_collet', (0.03, 0.03, 0.035), 0.45)
+m_ptfe = mat('ptfe', (0.95, 0.95, 0.94), 0.32)
+bsp = next(n for n in m_ptfe.node_tree.nodes if n.type == 'BSDF_PRINCIPLED')
+bsp.inputs['Transmission Weight'].default_value = 0.72
+bsp.inputs['IOR'].default_value = 1.35
+m_ptfe.diffuse_color = (0.93, 0.93, 0.92, 0.6)
+# inlet collet under the box (the filament enters from below)
+cyl('bambu_mini_box_inlet_collet', 0.0034, BOX_C + V((0, 0, -0.004)), BOX_C + V((0, 0, 0.0008)), 'black_collet',
+    verts=24, cap_bevel=0.0005)
+# free span: leaves the winding tangentially at the back-top and curves up into the inlet
+IN_PT = BOX_C + V((0, 0, -0.004))
+dvec = V((IN_PT.y - SP_Y, IN_PT.z - SP_Z))
+dd = dvec.length
+cand = [math.atan2(dvec.y, dvec.x) + sg * math.acos(R_FIL / dd) for sg in (1, -1)]
+ang = max(cand, key=lambda a: math.sin(a))                          # the upper tangent (unwinds over the top)
+TAN = V((SP_X - 0.012, SP_Y + R_FIL * math.cos(ang), SP_Z + R_FIL * math.sin(ang)))
+tdir = V((0, -math.sin(ang), math.cos(ang)))                        # winding tangent direction at that point
+if tdir.dot(IN_PT - TAN) < 0:
+    tdir = -tdir
+span = (IN_PT - TAN).length
+_lclear = math.sqrt((SPOOL_R + 0.007) ** 2 - R_FIL ** 2)        # stays in the spool's plane until past the rims
+free = [TAN - tdir * 0.0008, TAN + tdir * _lclear * 0.5, TAN + tdir * _lclear, IN_PT + V((0, 0, -0.035)), IN_PT,
+        IN_PT + V((0, 0, 0.007))]
+tube('bambu_mini_filament_free', free, 0.000875, 'filament_strand', res=12, bev=4)
+FREE_PTS = free
+# PTFE along the source centreline: seated 2 mm into the box's top fitting and 2 mm into the toolhead coupling
+CPL = V(((CPL_LO.x + CPL_HI.x) / 2, (CPL_LO.y + CPL_HI.y) / 2, CPL_HI.z))
+src = [q for q in SRC_PATH[::6] if (q - CPL).length > 0.016 and (q - SRC_PATH[0]).length > 0.006]
+path = [SRC_PATH[0] + V((0, 0, -0.002)), SRC_PATH[0] + V((0, 0, 0.003))] + src +     [CPL + V((0, 0, 0.008)), CPL + V((0, 0, -0.002))]
+log('PTFE ends: box %s, toolhead coupling %s (source tube ended %.1f mm from it)' % (
+    tuple(round(x, 4) for x in path[0]), tuple(round(x, 4) for x in path[-1]), (SRC_PATH[-1] - CPL).length * 1000))
+tube('bambu_mini_ptfe_tube', path, 0.0020, 'ptfe', res=8, bev=8, caps=False)
+tube('bambu_mini_ptfe_tube_bore', path, 0.0010, 'ptfe', res=8, bev=4, caps=False, flip=True)
+tube('bambu_mini_filament_in_tube', [BOX_C + V((0, 0, 0.004))] + path[1:-1] + [CPL + V((0, 0, -0.006))], 0.000875,
+     'filament_strand', res=8, bev=4, caps=False)
+
+
+def curve_samples(pts):
+    """dense samples of the same AUTO-handle bezier the tube uses"""
+    cu = bpy.data.curves.new('tmp_s', 'CURVE')
+    cu.dimensions = '3D'
+    cu.resolution_u = 32
+    sp = cu.splines.new('BEZIER')
+    sp.bezier_points.add(len(pts) - 1)
+    for bp, p in zip(sp.bezier_points, pts):
+        bp.co = V(p)
+        bp.handle_left_type = bp.handle_right_type = 'AUTO'
+    tmp = bpy.data.objects.new('tmp_s', cu)
+    scene.collection.objects.link(tmp)
+    bpy.context.view_layer.update()
+    me = bpy.data.meshes.new_from_object(tmp.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    out = [V(v.co) for v in me.vertices]
+    bpy.data.objects.remove(tmp, do_unlink=True)
+    bpy.data.curves.remove(cu)
+    bpy.data.meshes.remove(me)
+    return out
+
+
+PTFE_PTS = curve_samples(path)
+FREE_SMP = curve_samples(free)
+PTFE_LEN = sum((b - a).length for a, b in zip(PTFE_PTS, PTFE_PTS[1:]))
+_bend = []
+for a, b, c in zip(PTFE_PTS[2:-2], PTFE_PTS[3:-1], PTFE_PTS[4:]):
+    t1, t2 = (b - a), (c - b)
+    if t1.length > 1e-6 and t2.length > 1e-6:
+        an = t1.angle(t2)
+        if an > 1e-4:
+            _bend.append(((t1.length + t2.length) / 2) / an)
+PTFE_MIN_R = min(_bend)
 
 # ---- half-finished 3DBenchy (cut at 24 of 48 mm), bow to the front, nozzle over the cabin's front pillar
 B_M = (Matrix.Translation(V((NOZ.x, NOZ.y, BED_TOP))) @ Matrix.Rotation(math.radians(-90), 4, 'Z') @
@@ -845,6 +976,7 @@ THETA = math.atan2(d.x, -d.y)                         # local -Y (front) -> towa
 rotM = Matrix.Rotation(THETA, 4, 'Z')
 # centre the rotated printer's footprint (what stands on the table: base, feet, column foot) on the table
 foot = [rotM @ V(v.co) for o in PRINTER for v in o.data.vertices if v.co.z < 0.03]
+foot += [rotM @ V((x, y, 0)) for x in (STAND_LO.x, STAND_HI.x) for y in (STAND_LO.y, STAND_HI.y)]
 fc = V(((min(p.x for p in foot) + max(p.x for p in foot)) / 2, (min(p.y for p in foot) + max(p.y for p in foot)) / 2))
 PLACE = Matrix.Translation(V((TABLE_C.x - fc.x, TABLE_C.y - fc.y, TABLE_H))) @ rotM
 root.location = (TABLE_C.x, TABLE_C.y, 0.0)
@@ -869,7 +1001,41 @@ DIMS_SPOOL = [round((max(p[i] for p in allp) - min(p[i] for p in allp)) * 1000, 
 pei = [V(v.co) for v in bpy.data.objects['bambu_mini_heatbed'].data.vertices if v.co.z > BED_TOP - 0.0006]
 log('DIMS_MM frame W x D x H', DIMS, '| with spool', DIMS_SPOOL, '| PEI top %.1f x %.1f mm' % (
     (max(p.x for p in pei) - min(p.x for p in pei)) * 1000, (max(p.y for p in pei) - min(p.y for p in pei)) * 1000))
+_fp = [PLACE @ V(v.co) for o in PRINTER for v in o.data.vertices if v.co.z < 0.03]
+_fp += [PLACE @ V((x, y, 0)) for x in (STAND_LO.x, STAND_HI.x) for y in (STAND_LO.y, STAND_HI.y)]
+_tx0, _tx1 = TABLE_C.x - 0.28, TABLE_C.x + 0.28
+_ty0, _ty1 = TABLE_C.y - 0.235, TABLE_C.y + 0.235
+log('footprint margin to the table-top edges: %.1f mm' % (1000 * min(min(q.x - _tx0, _tx1 - q.x, q.y - _ty0,
+                                                                         _ty1 - q.y) for q in _fp)))
 log('PRINTER_WORLD_BBOX', bb([PLACE @ p for p in allp]), 'rotation %.1f deg' % math.degrees(THETA))
+# PTFE clearance: nearest printer / holder / spool surface from the tube axis (ignoring 10 mm at each fitting)
+_bm = bmesh.new()
+for o in PRINTER + [o for o in EXTRA if not o.name.startswith(('bambu_mini_ptfe', 'bambu_mini_filament',
+                                                                  'bambu_mini_box_inlet'))]:
+    _bm.from_mesh(o.data)
+_bvh = BVHTree.FromBMesh(_bm)
+_bm.free()
+_clear = []
+_acc = 0.0
+for a, b in zip(PTFE_PTS, PTFE_PTS[1:]):
+    _acc += (b - a).length
+    if 0.010 < _acc < PTFE_LEN - 0.010:
+        _clear.append((_bvh.find_nearest(b)[3] - 0.002, tuple(round(x, 4) for x in b)))
+_worst = min(_clear)
+_facc, _fl = 0.0, sum((b - a).length for a, b in zip(FREE_SMP, FREE_SMP[1:]))
+_fclear = []
+for a, b in zip(FREE_SMP, FREE_SMP[1:]):
+    _facc += (b - a).length
+    if 0.012 < _facc < _fl - 0.012:
+        _fclear.append((_bvh.find_nearest(b)[3] - 0.000875, tuple(round(x, 4) for x in b)))
+log('free filament span %.0f mm, min clearance %.1f mm at %s' % (_fl * 1000, min(_fclear)[0] * 1000,
+                                                                  min(_fclear)[1]))
+_far = CPL + V((-0.180, 0, 0))
+FIT_C = path[0]
+PTFE_MIN_R = min(_bend)
+log('PTFE length %.0f mm, min bend radius %.0f mm, min clearance to printer surfaces %.1f mm at %s; straight '
+    'distance inlet->coupling with the toolhead at the far-left end %.0f mm' % (
+        PTFE_LEN * 1000, PTFE_MIN_R * 1000, _worst[0] * 1000, _worst[1], (_far - FIT_C).length * 1000))
 TRIS_EXTRA = sum(tris_of(o.data) for o in EXTRA)
 TRIS_TABLE = sum(tris_of(o.data) for o in TABLE)
 log('TRIS printer %d + spool/holder/Benchy %d + table %d = %d' % (TRIS_PRINTER, TRIS_EXTRA, TRIS_TABLE,
@@ -899,6 +1065,10 @@ def previews():
     if not ONLY or 'benchy' in ONLY:
         shot(cam, P(NOZ.x + 0.07, NOZ.y - 0.15, BED_TOP + 0.05), P(NOZ.x, NOZ.y, BED_TOP + 0.014), 55,
              os.path.join(PARTS, 'bambu_mini_benchy.png'))
+    if not ONLY or 'inlet' in ONLY:
+        shot(cam, P(0.33, 0.27, 0.33), P(0.165, 0.03, 0.15), 36, os.path.join(PARTS, 'bambu_mini_inlet.png'))
+    if not ONLY or 'toolhead' in ONLY:
+        shot(cam, P(0.20, -0.30, 0.36), P(0.075, 0.03, 0.235), 38, os.path.join(PARTS, 'bambu_mini_toolhead.png'))
     if not ONLY or 'table' in ONLY:
         shot(cam, V((0.55, -0.45, 1.20)), V((1.50, 0.85, 0.60)), 30, os.path.join(PARTS, 'bambu_mini_table.png'),
              (1000, 1150))
