@@ -425,3 +425,30 @@ kbd {
   .panel { filter: none; transform: translate(0, -50%); }
   .music.is-playing .music-glyph i { animation: none; height: 7px; }
 }
+
+/* CC BY attribution for the models that require it (src/ui/credits.ts). */
+.credits {
+  position: fixed;
+  right: 20px;
+  bottom: 14px;
+  z-index: 15;
+  max-width: min(46vw, 640px);
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: right;
+  color: var(--ink-faint);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
+.credits a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+}
+
+.credits a:hover,
+.credits a:focus-visible {
+  color: var(--ink);
+  border-bottom-color: var(--ink-faint);
+}

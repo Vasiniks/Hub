@@ -17,6 +17,7 @@ import { createInteraction, OVERLAY_LAYER, type InteractTarget } from './interac
 import { createPanel, createHint, createObjectNav, createShelfCaption } from './ui/panel';
 import { createLoader } from './ui/loading';
 import { createMusicWidget } from './ui/music';
+import { showCredits } from './ui/credits';
 import { loadBakedRoom } from './scene/bakedRoom';
 import { applyV2Look } from './scene/v2Look';
 import { V2_TUNING } from './scene/v2Layout';
@@ -1063,6 +1064,8 @@ async function startV2() {
     // Official Spotify embed; swap the id, or hand createMusicWidget a TrackSource, to change it.
     spotifyId: '1WA80p54KvFTWDxOGC2jNI',
   });
+  // The CC BY models' attribution, from the props export.
+  void showCredits(`${import.meta.env.BASE_URL}assets/v2/props/CREDITS.json`);
 
   // Everything that happens because of an object (hover, outline, label, click to examine,
   // panel, Esc / click-outside, keyboard nav) is the default room's interaction modules behind
