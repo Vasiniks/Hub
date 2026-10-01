@@ -17,7 +17,8 @@ import { createInteraction, OVERLAY_LAYER, type InteractTarget } from './interac
 import { createPanel, createHint, createObjectNav, createShelfCaption } from './ui/panel';
 import { createLoader } from './ui/loading';
 import { createMusicWidget } from './ui/music';
-import { loadBakedRoom, V2_EXPOSURE } from './scene/bakedRoom';
+import { loadBakedRoom } from './scene/bakedRoom';
+import { applyV2Look } from './scene/v2Look';
 import { V2_TUNING } from './scene/v2Layout';
 import { BloomPass } from './scene/bloom';
 import { findNodes, loadV2Props } from './scene/v2Props';
@@ -1036,8 +1037,8 @@ async function startV2() {
   const lamp = new THREE.SpotLight(0x000000, 0);
   // deepLadder: weak GPUs may drop MSAA and go below 1× (see stepDownQuality in renderer.ts).
   const view = createRenderer(canvas, scene, camera, sun, lamp, { deepLadder: true });
-  // Sunset grade: AgX (set by createRenderer) at the bake's +0.45 EV.
-  view.renderer.toneMappingExposure = V2_EXPOSURE;
+  // Sunset grade: Blender's own view (AgX, look Medium High Contrast) at the bake's +0.45 EV.
+  await applyV2Look(view, scene, camera, baked);
   // The bake already holds every bounce, shaft and glow: no live post-light effects.
   view.ao.enabled = false;
   view.volumetric.enabled = false;

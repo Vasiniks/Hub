@@ -1,0 +1,48 @@
+{
+ "CAM_stand": {
+  "frame_fraction_missing": 0.143,
+  "frame_fraction_baked_shown": 0.586,
+  "luma_at_missing": {
+   "cycles_full_ref": 42.1,
+   "cycles_bake_props_hidden": 25.9,
+   "web": 25.0
+  },
+  "share_dark_lt25": {
+   "web_at_missing": 0.666,
+   "web_elsewhere_baked": 0.448,
+   "cycles_bake_props_hidden_at_missing": 0.651
+  },
+  "web_vs_cycles_props_hidden": {
+   "mae": [
+    2.87,
+    1.99,
+    1.95
+   ],
+   "mae_mean": 2.27,
+   "mae_at_missing": 1.99
+  }
+ },
+ "CAM_seat": {
+  "frame_fraction_missing": 0.234,
+  "frame_fraction_baked_shown": 0.265,
+  "luma_at_missing": {
+   "cycles_full_ref": 89.7,
+   "cycles_bake_props_hidden": 46.8,
+   "web": 46.0
+  },
+  "share_dark_lt25": {
+   "web_at_missing": 0.546,
+   "web_elsewhere_baked": 0.198,
+   "cycles_bake_props_hidden_at_missing": 0.543
+  },
+  "web_vs_cycles_props_hidden": {
+   "mae": [
+    2.67,
+    2.29,
+    2.23
+   ],
+   "mae_mean": 2.4,
+   "mae_at_missing": 2.11
+  }
+ }
+}
