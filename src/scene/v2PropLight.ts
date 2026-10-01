@@ -35,7 +35,11 @@ const LAMP = {
 export interface V2PropLight {
   sun: THREE.DirectionalLight;
   lamp: THREE.SpotLight;
-  /** Re-record the room as image-based light with the props hidden (they must not light themselves). */
+  /**
+   * Re-record the room as image-based light with only the PBR props hidden: they must not light
+   * themselves. The pre-lit props stay in, because their colour already is baked radiance (the desk
+   * clutter, the lamp's arm and head) — a metal can beside the lamp should reflect them.
+   */
   captureWithoutProps(capture: () => void): void;
 }
 
@@ -84,10 +88,23 @@ export function createV2PropLight(scene: THREE.Scene, shell: THREE.Object3D | un
     sun,
     lamp,
     captureWithoutProps(capture) {
-      const was = propsRoot.visible;
-      propsRoot.visible = false;
+      const hidden: THREE.Object3D[] = [];
+      propsRoot.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh || !mesh.visible) return;
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        // Pre-lit (MeshBasic) surfaces and emitters stay: what they show is already light.
+        const lit = mats.every((m) => (m as THREE.MeshBasicMaterial).isMeshBasicMaterial);
+        const emits = mats.some((m) => {
+          const s = m as THREE.MeshStandardMaterial;
+          return s.isMeshStandardMaterial && s.emissiveIntensity > 0 && (s.emissive.getHex() !== 0 || !!s.emissiveMap);
+        });
+        if (lit || emits) return;
+        mesh.visible = false;
+        hidden.push(mesh);
+      });
       capture();
-      propsRoot.visible = was;
+      for (const m of hidden) m.visible = true;
     },
   };
 }
