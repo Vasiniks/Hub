@@ -4,20 +4,20 @@
   "NEW_macbook"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 10000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 14742,
- "tris_after": 9704,
+ "tris_after": 14742,
  "objects": [
   {
    "name": "NEW_mbp_base",
    "tris_before": 5094,
-   "tris_after": 3296
+   "tris_after": 5094
   },
   {
    "name": "NEW_mbp_lid",
    "tris_before": 1452,
-   "tris_after": 938
+   "tris_after": 1452
   },
   {
    "name": "NEW_mbp_core",
@@ -37,22 +37,22 @@
   {
    "name": "NEW_mbp_hinge_barrel",
    "tris_before": 332,
-   "tris_after": 214
+   "tris_after": 332
   },
   {
    "name": "NEW_mbp_vent_fins",
    "tris_before": 1452,
-   "tris_after": 938
+   "tris_after": 1452
   },
   {
    "name": "NEW_mbp_feet",
    "tris_before": 1776,
-   "tris_after": 1148
+   "tris_after": 1776
   },
   {
    "name": "NEW_mbp_screws",
    "tris_before": 840,
-   "tris_after": 542
+   "tris_after": 840
   },
   {
    "name": "NEW_mbp_screw_sockets",
@@ -62,25 +62,40 @@
   {
    "name": "NEW_stand_sheet",
    "tris_before": 2460,
-   "tris_after": 1592
+   "tris_after": 2460
   },
   {
    "name": "NEW_stand_deck_pads",
    "tris_before": 424,
-   "tris_after": 274
+   "tris_after": 424
   },
   {
    "name": "NEW_stand_base_pads",
    "tris_before": 424,
-   "tris_after": 274
+   "tris_after": 424
   }
  ],
  "skipped": {},
+ "reduction": {
+  "NEW_mbp_base": "kept (custom normals)",
+  "NEW_mbp_lid": "kept (custom normals)",
+  "NEW_mbp_core": "kept",
+  "NEW_mbp_port_inserts": "kept",
+  "NEW_mbp_magsafe_pins": "kept",
+  "NEW_mbp_hinge_barrel": "kept (custom normals)",
+  "NEW_mbp_vent_fins": "dissolve",
+  "NEW_mbp_feet": "kept (custom normals)",
+  "NEW_mbp_screws": "kept (custom normals)",
+  "NEW_mbp_screw_sockets": "kept",
+  "NEW_stand_sheet": "kept (custom normals)",
+  "NEW_stand_deck_pads": "kept (custom normals)",
+  "NEW_stand_base_pads": "kept (custom normals)"
+ },
  "atlas": {
   "pbr_res": 1024,
-  "lit_res": 512,
+  "lit_res": 1024,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
    "pbr": "pack_islands"
   }
  },
@@ -90,7 +105,13 @@
   "normal": "macbook_normal.png",
   "lit": "macbook_lit.png"
  },
- "lit_scale": 0.017,
+ "lit_scale": 0.011,
+ "lit_atlases": {
+  "main": {
+   "res": 1024,
+   "litScale": 0.011
+  }
+ },
  "material_modes": {
   "macbook_lit": "lit",
   "macbook_pbr": "pbr"
@@ -110,6 +131,7 @@
  "emissive_materials": [],
  "emissive_strength_max": 1.0,
  "emissive_nodes": [],
+ "screen_nodes": [],
  "anchors": {
   "NEW_macbook_laptop": {
    "blender_world": [
@@ -143,7 +165,7 @@
  "meshes": {
   "NEW_macbook_laptop__mesh": {
    "parent": "NEW_macbook_laptop",
-   "tris": 7564,
+   "tris": 11434,
    "materials": [
     "macbook_pbr",
     "macbook_lit"
@@ -163,7 +185,7 @@
   },
   "NEW_macbook_root__mesh": {
    "parent": "NEW_macbook_root",
-   "tris": 2140,
+   "tris": 3308,
    "materials": [
     "macbook_pbr",
     "macbook_lit"
@@ -185,36 +207,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0086,
+   "normal_bumpy_fraction": 0.0065,
    "s2a": [],
    "base_mean": [
-    0.636,
-    0.644,
-    0.663
+    0.635,
+    0.641,
+    0.661
    ],
    "ao_mean": 0.282,
-   "coverage_px": 0.724
+   "coverage_px": 0.653
   },
   "lit": {
-   "lit_scale": 0.017,
+   "lit_scale": 0.011,
+   "res": 1024,
+   "uv": "smart",
+   "texels_per_mm": 1.854,
    "raw_mean": 0.0001,
-   "denoised_mean": 0.0001,
+   "denoised_mean": 0.0,
    "p50": 0.0,
-   "clipped_fraction": 0.00171,
-   "coverage_px": 0.574,
+   "clipped_fraction": 0.00097,
+   "coverage_px": 0.582,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 39.1,
-  "rough": 15.5,
-  "metal": 15.9,
-  "ao": 17.8,
-  "normal": 33.9,
-  "lit": 57.1,
-  "lit_denoise": 0.9
+  "base": 9.6,
+  "rough": 9.5,
+  "metal": 9.6,
+  "ao": 10.9,
+  "normal": 9.7,
+  "lit": 17.3
  },
  "glb": "macbook.glb",
- "glb_bytes": 406304,
- "seconds": 269.7
+ "glb_bytes": 645268,
+ "seconds": 87.8
 }

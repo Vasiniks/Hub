@@ -4,18 +4,21 @@
   "NEW_redbull"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 4000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 15095,
- "tris_after": 1784,
+ "tris_after": 1069,
  "objects": [
   {
    "name": "RedBull_can",
    "tris_before": 15095,
-   "tris_after": 1784
+   "tris_after": 1069
   }
  ],
  "skipped": {},
+ "reduction": {
+  "RedBull_can": "collapse 0.60"
+ },
  "atlas": {
   "pbr_res": 512,
   "lit_res": null,
@@ -29,6 +32,7 @@
   "normal": "redbull_normal.png"
  },
  "lit_scale": null,
+ "lit_atlases": {},
  "material_modes": {
   "redbull_pbr": "pbr"
  },
@@ -43,6 +47,7 @@
  "emissive_materials": [],
  "emissive_strength_max": 1.0,
  "emissive_nodes": [],
+ "screen_nodes": [],
  "anchors": {
   "NEW_redbull_root": {
    "blender_world": [
@@ -62,7 +67,7 @@
  "meshes": {
   "NEW_redbull_root__mesh": {
    "parent": "NEW_redbull_root",
-   "tris": 1784,
+   "tris": 1069,
    "materials": [
     "redbull_pbr",
     "redbull_pbr",
@@ -88,25 +93,25 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0109,
+   "normal_bumpy_fraction": 0.0082,
    "s2a": [],
    "base_mean": [
-    0.67,
     0.671,
+    0.672,
     0.757
    ],
-   "ao_mean": 0.782,
-   "coverage_px": 0.603
+   "ao_mean": 0.778,
+   "coverage_px": 0.525
   }
  },
  "bake_seconds": {
-  "base": 2.1,
-  "rough": 2.0,
-  "metal": 2.2,
-  "ao": 2.6,
-  "normal": 2.0
+  "base": 1.4,
+  "rough": 1.4,
+  "metal": 1.4,
+  "ao": 1.7,
+  "normal": 1.4
  },
  "glb": "redbull.glb",
- "glb_bytes": 108728,
- "seconds": 14.0
+ "glb_bytes": 109592,
+ "seconds": 9.2
 }

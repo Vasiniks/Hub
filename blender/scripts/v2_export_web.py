@@ -67,15 +67,16 @@ USE_CPU = '--cpu' in ARGS
 AO_SAMPLES = arg("--ao-samples", 128, int)
 LIT = '--pbr-only' not in ARGS          # default: lit bake in the full room (owner, 2026-10-01)
 LIT_SAMPLES = arg('--lit-samples', 256, int)
-LIT_K_MAX = 8.0
-IMG_QUALITY = arg('--quality', 82, int)
+LIT_K_MAX = 2.0
+IMG_QUALITY = arg('--quality', 92, int)
 BAKE_MANIFEST = os.path.join(REPO, 'blender', 'bake', 'sunset', 'manifest.json')
 
 # --------------------------------------------------------------------------------------------- sets
 # src: collection names, or 'obj:<glob>' for loose objects in the Scene Collection.
-# budget: total triangles after decimation (None = keep).  res: atlas size (<= 2048).
+# budget: unused since 2026-10-01 (no budgets; see the reduce step).  res: PBR atlas size,
+# lit: lit atlas size.  collapse: (glob, ratio >= 0.6) dense organic scans only.  keep: globs never
+# touched.  own_atlas: [dict(name, globs, res, uv)] separate lit atlases.  uv: 'smart' | 'orig'.
 # weights: (glob, w) UV-area multipliers (texel density), first match wins.
-# ratio: (glob, r) per-object decimation multipliers relative to the set ratio.
 # s2a: globs of objects whose normal map is baked from the full-resolution mesh.
 # keepers: material name -> output node name ('' = keep the object's own name).
 KEEPERS = {'robot_rsl_amber': 'Robot_rsl_lens', 'bambu_mini_screen_lit': 'bambu_mini_screen'}
@@ -83,7 +84,8 @@ KEEPERS = {'robot_rsl_amber': 'Robot_rsl_lens', 'bambu_mini_screen_lit': 'bambu_
 # 0..1 across the visible face, u to the right and v up as seen from the seat; never in an atlas
 SCREENS = {'mon_screen_antiglare': dict(node='mon_screen', material='mon_screen',
                                         base=(0.004, 0.004, 0.005, 1.0), rough=0.15)}
-SEAT = Vector((0.0, -0.16, 1.175))   # CAM_seat: where 'front' is seen from
+SEAT = Vector((0.0, -0.16, 1.175))
+KEEP_ALPHA = ('speedcube_emblem*',)   # true decals keep an alpha-masked cut-out in lit mode   # CAM_seat: where 'front' is seen from
 CREDITS = {
     'teto_plush': '"Kasane Teto fatass plush" by revsworks, CC BY 4.0 '
                   '(https://sketchfab.com/3d-models/kasane-teto-fatass-plush-bd8157eb42a04161b2628e58dfd2a852)',
@@ -98,63 +100,58 @@ SETS = {
     # ---- desk set
     'monitor': dict(src=['NEW_monitor'], budget=None, res=512, lit=1024,
                     weights=[('NEW_monitor_screen', 0.3), ('NEW_monitor_rear*', 0.6)]),
-    'keyboard': dict(src=['NEW_keyboard'], budget=20000, res=256, lit=1024,
+    'keyboard': dict(src=['NEW_keyboard'], budget=None, res=256, lit=1024,
                      weights=[('NEW_keyboard_keycaps', 2.0), ('NEW_keyboard_bottom*', 0.4),
                               ('NEW_keyboard_cable', 0.03),
                               ('NEW_keyboard_switches', 0.3), ('NEW_keyboard_plate', 0.3)]),
-    'macbook': dict(src=['NEW_macbook'], budget=10000, res=1024, lit=512,
+    'macbook': dict(src=['NEW_macbook'], budget=None, res=1024, lit=1024,
                     weights=[('NEW_mbp_vent*', 0.3), ('NEW_mbp_feet', 0.3), ('NEW_stand_base_pads', 0.3)]),
-    'mouse_mx': dict(src=['NEW_mouse_mx'], budget=12000, res=256, lit=1024, credits=['mx_master_3s'],
+    'mouse_mx': dict(src=['NEW_mouse_mx'], budget=None, res=256, lit=1024, uv='orig', collapse=[('MouseMX_Shell', 0.6)], credits=['mx_master_3s'],
                      weights=[('MouseMX_Shell', 2.0), ('MouseMX_Base*', 0.4)]),
-    'lamp': dict(src=['NEW_lamp', 'NEW_medals'], budget=20000, res=1024, lit=1024,
+    'lamp': dict(src=['NEW_lamp', 'NEW_medals'], budget=None, res=1024, lit=2048, keep=['medal_*'],
+                 # the medal ribbons bake with black jagged patches the Cycles render doesn't have
+                 # (they twist through each other right under the lamp's disk light): keep them PBR
+                 force_pbr=['medal_*_ribbon'],
                  weights=[('medal_*_disc', 3.0), ('medal_*_ribbon', 1.5)],
-                 ratio=[('medal_*_disc', 0.45), ('lamp_*', 2.0)],
                  s2a=['medal_*_disc']),
-    'pc': dict(src=['NEW_pc', 'NEW_plush_teto'], budget=48000, res=1024, lit=1024,
+    'pc': dict(src=['NEW_pc', 'NEW_plush_teto'], budget=None, res=1024, lit=2048, collapse=[('Circle*', 0.6), ('Plane*', 0.6), ('NurbsPath*', 0.6), ('Spiral', 0.6)], own_atlas=[dict(name='plush', globs=['Circle*', 'Plane*', 'NurbsPath*', 'Spiral'], res=1024, uv='smart')],
                credits=['motherboard', 'teto_plush'],
                weights=[('Circle*', 2.5), ('Plane*', 2.5), ('NurbsPath*', 2.5), ('Spiral', 2.5),
                         ('pc_case_*', 1.0), ('pc_glass_panels', 0.2), ('pc_rear_*', 0.4),
-                        ('pc_fans_*', 0.6), ('pc_mobo_board', 1.2), ('pc_lcd_*', 2.0)],
-               ratio=[('Circle*', 3.0), ('Plane*', 3.0), ('NurbsPath*', 3.0), ('Spiral', 3.0),
-                      ('pc_rear_*', 0.6), ('pc_fans_*', 0.8), ('pc_cables_sleeved', 0.6),
-                      ('pc_lcd_*', 4.0)]),
-    'electronics': dict(src=['NEW_electronics'], budget=30000, res=1024, lit=1024,
+                        ('pc_fans_*', 0.6), ('pc_mobo_board', 1.2), ('pc_lcd_*', 2.0)]),
+    'electronics': dict(src=['NEW_electronics'], budget=None, res=1024, lit=2048,
+                        keep=['elec_sticky_notes', 'elec_notepad'],
                         weights=[('elec_notepad', 1.5), ('elec_sticky_notes', 1.5)]),
-    'speedcube': dict(src=['NEW_speedcube'], budget=12000, res=256, lit=512,
-                      weights=[('NEW_speedcube_emblem18', 2.0), ('NEW_speedcube_core', 0.2)],
-                      ratio=[('NEW_speedcube_emblem18', 3.0), ('NEW_speedcube_core', 0.5)]),
-    'lorenz': dict(src=['NEW_lorenz'], budget=15000, res=512, lit=1024,
+    'speedcube': dict(src=['NEW_speedcube'], budget=None, res=256, lit=1024,
+                      weights=[('NEW_speedcube_emblem18', 2.0), ('NEW_speedcube_core', 0.2)]),
+    'lorenz': dict(src=['NEW_lorenz'], budget=None, res=512, lit=1024, keep=['NEW_lorenz_paper_*', 'NEW_lorenz_staple'],
                    weights=[('NEW_lorenz_paper_page1', 5.0), ('NEW_lorenz_paper_page*', 3.0),
                             ('NEW_lorenz_wire', 0.6)],
-                   ratio=[('NEW_lorenz_paper*', 3.0), ('NEW_lorenz_base', 2.0)],
                    nodes=[('NEW_lorenz_paper_*', 'paper'), ('NEW_lorenz_staple', 'paper'),
                           ('*', 'lorenz_sculpture')]),
-    'cables': dict(src=['NEW_cables'], budget=15000, res=512, lit=512,
+    'cables': dict(src=['NEW_cables'], budget=None, res=512, lit=1024,
                    weights=[('*_cable', 0.08), ('*_cord', 0.08)]),
-    'redbull': dict(src=['NEW_redbull'], budget=4000, res=512, lit=512),
-    'teto_pear': dict(src=['NEW_teto_pear'], budget=None, res=256, lit=512),
+    'redbull': dict(src=['NEW_redbull'], budget=None, res=512, lit=1024, uv='orig', collapse=[('RedBull_can', 0.6)]),
+    'teto_pear': dict(src=['NEW_teto_pear'], budget=None, res=256, lit=1024, uv='orig'),
     # ---- the rest
-    'robot': dict(src=['NEW_robot'], budget=62000, cull=0.012, weld=0.0005, res=1024, lit=1024,
-                  weights=[('Robot_bumper_fabric', 1.5), ('Robot_number_*', 2.0)],
-                  ratio=[('Robot_number_*', 3.0), ('Robot_bumper_fabric', 3.0), ('Robot_aluminium', 6.0),
-                         ('Robot_black_anodised', 2.0), ('Robot_polycarbonate', 0.6)]),
-    'bambu_mini': dict(src=['NEW_bambu_mini'], budget=28000, res=512, lit=1024, credits=['bambu_a1_mini'],
+    'robot': dict(src=['NEW_robot'], budget=None, res=1024, lit=2048,
+                  weights=[('Robot_bumper_fabric', 1.5), ('Robot_number_*', 2.0)]),
+    'bambu_mini': dict(src=['NEW_bambu_mini'], budget=None, res=512, lit=2048, uv='orig', collapse=[('bambu_mini_base', 0.6), ('bambu_mini_toolhead', 0.6), ('bambu_mini_heatbed', 0.6), ('bambu_mini_carriage', 0.6)], credits=['bambu_a1_mini'],
                        nodes=[('bambu_mini_spool*', 'bambu_mini_spool_stand'),
                               ('bambu_mini_table_*', 'bambu_mini_table_parts'), ('*', 'bambu_mini_printer')],
                        weights=[('bambu_mini_base', 1.5), ('bambu_mini_toolhead', 1.5)]),
-    'telecaster': dict(src=['NEW_telecaster', 'NEW_tele_gb'], budget=22000, cull=0.004, res=512, lit=1024,
+    'telecaster': dict(src=['NEW_telecaster', 'NEW_tele_gb'], budget=None, res=512, lit=2048, uv='orig', collapse=[('TeleGB_tuning pegs', 0.6)],
                        weights=[('TeleGB_Deka', 2.5), ('TeleGB_fingerboard*', 2.0), ('TeleStand', 0.5),
-                                ('TeleGB_Spring*', 0.2), ('TeleGB_Strings', 0.2)],
-                       ratio=[('TeleStand', 0.5), ('TeleGB_Deka', 3.0), ('TeleGB_fingerboard', 2.0)]),
-    'painting': dict(src=['NEW_painting'], budget=None, res=256, lit=1024,
+                                ('TeleGB_Spring*', 0.2), ('TeleGB_Strings', 0.2)]),
+    'painting': dict(src=['NEW_painting'], budget=None, res=256, lit=1024, uv='orig',
                      weights=[('painting_canvas', 6.0)]),
-    'bookrack': dict(src=['NEW_bookrack'], budget=8000, res=256, lit=1024,
+    'bookrack': dict(src=['NEW_bookrack'], budget=None, res=256, lit=1024,
                      weights=[('bookrack_screw*', 0.2)],
                      nodes=[('Mesh_1??.001', '='), ('*', 'bookrack_hardware')]),
-    'chair': dict(src=['obj:chair_base*'], budget=8000, res=512, lit=1024, nodes=[('*', 'chair')]),
-    'desk_misc': dict(src=['obj:driver_*', 'obj:tote*', 'obj:Mesh_14[2-6]'], budget=None, res=512, lit=512,
+    'chair': dict(src=['obj:chair_base*'], budget=None, res=512, lit=1024, nodes=[('*', 'chair')]),
+    'desk_misc': dict(src=['obj:driver_*', 'obj:tote*', 'obj:Mesh_14[2-6]'], budget=None, res=512, lit=1024,
                       nodes=[('driver_*', 'screwdriver'), ('tote*.001', 'tote_2'), ('tote*', 'tote_1')]),
-    'fixtures': dict(src=['NEW_roomshell', 'NEW_curtains'], budget=10000, res=512, lit=1024),
+    'fixtures': dict(src=['NEW_roomshell', 'NEW_curtains'], budget=None, res=512, lit=1024),
 }
 DESK_SET = ['monitor', 'keyboard', 'macbook', 'mouse_mx', 'lamp', 'pc', 'electronics', 'speedcube',
             'lorenz', 'cables', 'redbull', 'teto_pear']
@@ -484,6 +481,41 @@ def decimate_to(me, ratio, weld=0.00005):
     return out
 
 
+def reduce_mesh(me, collapse=None, weld=0.00005):
+    """Weld + limited dissolve (0.5 deg, delimited by material/seam/sharp/UV/normal); then, only if
+    collapse is given, quadric collapse to max(0.6, collapse) of the dissolved triangle count."""
+    sc = bpy.context.scene
+    o = bpy.data.objects.new('__red', me)
+    sc.collection.objects.link(o)
+    mw = o.modifiers.new('WELD', 'WELD')
+    mw.merge_threshold = weld
+    md = o.modifiers.new('DIS', 'DECIMATE')
+    md.decimate_type = 'DISSOLVE'
+    md.angle_limit = math.radians(0.5)
+    for dl in ({'MATERIAL', 'SEAM', 'SHARP', 'UV', 'NORMAL'}, {'MATERIAL', 'SEAM', 'SHARP', 'UV'}):
+        try:
+            md.delimit = dl
+            break
+        except TypeError:
+            pass
+    g = bpy.context.evaluated_depsgraph_get()
+    out = bpy.data.meshes.new_from_object(o.evaluated_get(g))
+    if collapse:
+        o.modifiers.clear()
+        o.data = out
+        m = o.modifiers.new('DEC', 'DECIMATE')
+        m.decimate_type = 'COLLAPSE'
+        m.ratio = max(0.6, min(1.0, collapse))
+        m.use_collapse_triangulate = True
+        g = bpy.context.evaluated_depsgraph_get()
+        out2 = bpy.data.meshes.new_from_object(o.evaluated_get(g))
+        bpy.data.objects.remove(o)
+        bpy.data.meshes.remove(out)
+        return out2
+    bpy.data.objects.remove(o)
+    return out
+
+
 def smooth_by_angle(me, deg=35.0):
     try:
         me.shade_smooth()
@@ -566,21 +598,110 @@ def select_only(objs, active=None):
     bpy.context.view_layer.objects.active = active or (objs[0] if objs else None)
 
 
-def atlas_unwrap(objs, weights, res):
+def uv_problem(me, layer, res=256):
+    """Why a mesh's own UVs can't be reused for a bake atlas, or None: folds/overlaps inside an
+    island (pack_islands can't separate those; e.g. a projection unwrap whose sides land on the
+    top), or an extreme bbox aspect (curve strips that would dominate the pack)."""
+    uv = layer.data
+    a = np.empty(len(uv) * 2, dtype=np.float32)
+    uv.foreach_get('uv', a)
+    a = a.reshape(-1, 2)
+    me.calc_loop_triangles()
+    lt = np.empty(len(me.loop_triangles) * 3, dtype=np.int32)
+    me.loop_triangles.foreach_get('loops', lt)
+    t = a[lt].reshape(-1, 3, 2)
+    lo_, hi_ = a.min(0), a.max(0)
+    span = np.maximum(hi_ - lo_, 1e-9)
+    if span.max() / span.min() > 8:
+        return f'aspect {span.max() / span.min():.0f}:1'
+    t = (t - lo_) / span.max() * (res - 1)
+    hits = np.zeros((res, res), dtype=np.int32)
+    for tri in t:
+        x0, y0 = np.floor(tri.min(0)).astype(int)
+        x1, y1 = np.ceil(tri.max(0)).astype(int)
+        if x1 - x0 > res or y1 - y0 > res:
+            continue
+        xs, ys = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5)
+        p0, p1, p2 = tri
+        d = (p1[1] - p2[1]) * (p0[0] - p2[0]) + (p2[0] - p1[0]) * (p0[1] - p2[1])
+        if abs(d) < 1e-12:
+            continue
+        l1 = ((p1[1] - p2[1]) * (xs - p2[0]) + (p2[0] - p1[0]) * (ys - p2[1])) / d
+        l2 = ((p2[1] - p0[1]) * (xs - p2[0]) + (p0[0] - p2[0]) * (ys - p2[1])) / d
+        inside = (l1 >= 0) & (l2 >= 0) & (1 - l1 - l2 >= 0)
+        yy, xx = ys[inside].astype(int), xs[inside].astype(int)
+        ok = (xx >= 0) & (xx < res) & (yy >= 0) & (yy < res)
+        np.add.at(hits, (yy[ok], xx[ok]), 1)
+    covered = (hits > 0).sum()
+    over = (hits > 1).sum() / max(1, covered)
+    return f'{over:.0%} of texels overlap' if over > 0.03 else None
+
+
+def atlas_unwrap(objs, weights, res, uv_mode='smart'):
+    """uv_mode 'smart': smart project everything. 'orig': keep each mesh's own UV islands (scans:
+    no diamond-shaped islands), only meshes without UVs get a smart project; islands are then
+    scaled to their 3D area, weighted and repacked without overlaps."""
+    need_smart, need_reunwrap = [], []
     for o in objs:
         me = o.data
-        uv = me.uv_layers.new(name='atlas')
+        orig = [u for u in me.uv_layers if u.name != 'atlas']
+        bad = uv_mode == 'orig' and orig and uv_problem(me, orig[0])
+        if bad:
+            log(f'  {o.name}: own UVs rejected ({bad})')
+        if uv_mode == 'orig' and orig and (not bad or 'overlap' in bad):
+            me.uv_layers.active = orig[0]
+            uv = me.uv_layers.new(name='atlas', do_init=True)
+            if bad:      # folds: re-unwrap along the scan's own island boundaries
+                need_reunwrap.append(o)
+        else:
+            uv = me.uv_layers.new(name='atlas')
+            need_smart.append(o)
         me.uv_layers.active = uv
-    select_only(objs)
     bpy.context.scene.tool_settings.use_uv_select_sync = True
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.mesh.reveal()
-    bpy.ops.mesh.select_all(action='SELECT')
     t = time.time()
-    bpy.ops.uv.smart_project(angle_limit=math.radians(72), island_margin=0.0, area_weight=0.0,
-                             correct_aspect=True, scale_to_bounds=False)
-    bpy.ops.object.mode_set(mode='OBJECT')
-    log(f'  smart_project {time.time() - t:.1f}s')
+    if need_smart:
+        select_only(need_smart)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.reveal()
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.uv.smart_project(angle_limit=math.radians(72), island_margin=0.0, area_weight=0.0,
+                                 correct_aspect=True, scale_to_bounds=False)
+        bpy.ops.object.mode_set(mode='OBJECT')
+    if need_reunwrap:
+        select_only(need_reunwrap)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.reveal()
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.uv.seams_from_islands(mark_seams=True, mark_sharp=False)
+        bpy.ops.uv.unwrap(method='ANGLE_BASED', fill_holes=True, correct_aspect=True, margin=0.0)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for o in need_reunwrap:
+            log(f'  {o.name}: re-unwrapped along its own islands -> {uv_problem(o.data, o.data.uv_layers["atlas"]) or "ok"}')
+    if True:
+        # one uniform scale per object so its UV area matches its world area: equal texel density for
+        # every mesh whatever its unwrap (smart project packs each call into 0..1 at its own scale);
+        # per object, not per island: degenerate zero-area islands in scans would otherwise blow up
+        # and shrink everything else in the pack
+        for o in objs:
+            me = o.data
+            me.calc_loop_triangles()
+            uv = me.uv_layers['atlas'].data
+            a = np.empty(len(uv) * 2, dtype=np.float32)
+            uv.foreach_get('uv', a)
+            a = a.reshape(-1, 2)
+            lt = np.empty(len(me.loop_triangles) * 3, dtype=np.int32)
+            me.loop_triangles.foreach_get('loops', lt)
+            t3 = a[lt].reshape(-1, 3, 2)
+            uv_area = 0.5 * np.abs(np.cross(t3[:, 1] - t3[:, 0], t3[:, 2] - t3[:, 0])).sum()
+            mt = me.copy()
+            mt.transform(o.matrix_world)
+            w_area = sum(pp.area for pp in mt.polygons)
+            bpy.data.meshes.remove(mt)
+            if uv_area > 1e-12 and w_area > 0:
+                a *= math.sqrt(w_area / uv_area)
+                uv.foreach_set('uv', a.ravel())
+    log(f'  unwrap ({uv_mode}, {len(need_smart)}/{len(objs)} smart) {time.time() - t:.1f}s')
+    select_only(objs)
     # texel-density weights: scale each object's islands, then repack everything together
     for o in objs:
         w = match(o.name.replace('__lo', ''), weights, 1.0)
@@ -590,13 +711,32 @@ def atlas_unwrap(objs, weights, res):
             uv.foreach_get('uv', a)
             a *= math.sqrt(w)
             uv.foreach_set('uv', a)
+    # bring everything into the 0..1 tile with one uniform transform: pack_islands keeps islands in
+    # their closest UDIM tile, so weighted islands beyond 1.0 would otherwise be packed into other
+    # tiles and wrap onto texels used by other surfaces
+    lo_uv, hi_uv = np.array([np.inf, np.inf]), np.array([-np.inf, -np.inf])
+    for o in objs:
+        uv = o.data.uv_layers['atlas'].data
+        if len(uv):
+            a = np.empty(len(uv) * 2, dtype=np.float32)
+            uv.foreach_get('uv', a)
+            a = a.reshape(-1, 2)
+            lo_uv, hi_uv = np.minimum(lo_uv, a.min(0)), np.maximum(hi_uv, a.max(0))
+    span = float(max((hi_uv - lo_uv).max(), 1e-9)) * 1.001
+    for o in objs:
+        uv = o.data.uv_layers['atlas'].data
+        if len(uv):
+            a = np.empty(len(uv) * 2, dtype=np.float32)
+            uv.foreach_get('uv', a)
+            a = ((a.reshape(-1, 2) - lo_uv) / span).astype(np.float32)
+            uv.foreach_set('uv', a.ravel())
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.select_all(action='SELECT')
-    margin_px = max(2, round(3 * res / 2048))
+    margin_px = max(4, round(6 * res / 2048))   # room for mip levels: no dark seams at a distance
     packed = 'pack_islands'
     t = time.time()
     try:
-        bpy.ops.uv.pack_islands(udim_source='CLOSEST_UDIM', rotate=True, rotate_method='AXIS_ALIGNED',
+        bpy.ops.uv.pack_islands(udim_source='ACTIVE_UDIM', rotate=True, rotate_method='AXIS_ALIGNED',
                                 scale=True, margin_method='FRACTION', margin=margin_px / res,
                                 shape_method='AABB')
         log(f'  pack_islands {time.time() - t:.1f}s')
@@ -606,8 +746,61 @@ def atlas_unwrap(objs, weights, res):
                                  area_weight=0.0, correct_aspect=True, scale_to_bounds=False)
         packed = 'smart_project (unweighted)'
     bpy.ops.object.mode_set(mode='OBJECT')
-    cov = None
-    return packed, cov
+    lo_uv, hi_uv = np.array([np.inf, np.inf]), np.array([-np.inf, -np.inf])
+    for o in objs:
+        uv = o.data.uv_layers['atlas'].data
+        if len(uv):
+            a = np.empty(len(uv) * 2, dtype=np.float32)
+            uv.foreach_get('uv', a)
+            a = a.reshape(-1, 2)
+            lo_uv, hi_uv = np.minimum(lo_uv, a.min(0)), np.maximum(hi_uv, a.max(0))
+    log(f'  atlas UV range {lo_uv.round(4).tolist()} .. {hi_uv.round(4).tolist()}')
+    if lo_uv.min() < -1e-4 or hi_uv.max() > 1.0001:
+        # the packer spilled into other UDIM tiles: scale the whole (disjoint) layout into 0..1
+        f = 0.999 / float(max(hi_uv.max(), 1e-9))
+        log(f'  packer spilled outside 0..1; uniform rescale x{f:.3f}')
+        for o in objs:
+            uv = o.data.uv_layers['atlas'].data
+            if len(uv):
+                a = np.empty(len(uv) * 2, dtype=np.float32)
+                uv.foreach_get('uv', a)
+                uv.foreach_set('uv', (np.maximum(a, 0) * f).astype(np.float32))
+        lo_uv, hi_uv = np.maximum(lo_uv, 0) * f, hi_uv * f
+        # and pack again from there: starting inside the tile, the packer usually fills it
+        select_only(objs)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        try:
+            bpy.ops.uv.pack_islands(udim_source='ACTIVE_UDIM', rotate=True, rotate_method='AXIS_ALIGNED',
+                                    scale=True, margin_method='FRACTION', margin=margin_px / res,
+                                    shape_method='AABB')
+        except (RuntimeError, TypeError):
+            pass
+        bpy.ops.object.mode_set(mode='OBJECT')
+        lo2, hi2 = np.array([np.inf, np.inf]), np.array([-np.inf, -np.inf])
+        for o in objs:
+            uv = o.data.uv_layers['atlas'].data
+            if len(uv):
+                a = np.empty(len(uv) * 2, dtype=np.float32)
+                uv.foreach_get('uv', a)
+                a = a.reshape(-1, 2)
+                lo2, hi2 = np.minimum(lo2, a.min(0)), np.maximum(hi2, a.max(0))
+        log(f'  repacked: UV range {lo2.round(4).tolist()} .. {hi2.round(4).tolist()}')
+        if lo2.min() >= -1e-4 and hi2.max() <= 1.0001:
+            lo_uv, hi_uv = lo2, hi2
+        else:      # still spilling: fall back to the uniform rescale once more
+            f = 0.999 / float(max(hi2.max(), 1e-9))
+            for o in objs:
+                uv = o.data.uv_layers['atlas'].data
+                if len(uv):
+                    a = np.empty(len(uv) * 2, dtype=np.float32)
+                    uv.foreach_get('uv', a)
+                    uv.foreach_set('uv', (np.maximum(a, 0) * f).astype(np.float32))
+            lo_uv, hi_uv = np.maximum(lo2, 0) * f, hi2 * f
+            log(f'  still spilling: final uniform rescale x{f:.3f}')
+    if lo_uv.min() < -1e-4 or hi_uv.max() > 1.0001:
+        raise RuntimeError(f'atlas UVs left the 0..1 tile: {lo_uv} .. {hi_uv}')
+    return packed, None
 
 
 def separate_material(o, mat, new_name):
@@ -998,56 +1191,66 @@ def export_set(name):
                 c.data.materials.append(neutral)
     log(f'{name}: materials ' + json.dumps({k: v['kind'] for k, v in kinds.items()
                                             if v['kind'] != 'opaque'}) + f' (+{sum(v["kind"] == "opaque" for v in kinds.values())} opaque)')
-    # ---------------------------------------------------------------- decimate
-    budget = None if '--no-decimate' in ARGS else cfg.get('budget')
+    # ---------------------------------------------------------------- reduce
+    # Coordinator, 2026-10-01 (after the owner saw the first bake): no budgets. Every mesh gets
+    # weld + limited dissolve only (lossless on CAD). Quadric collapse only on the dense organic
+    # scans listed in cfg['collapse'] (ratio >= 0.6 of the dissolved count). cfg['keep'] objects
+    # (stacked or thin: the paper pages) are not touched at all, and neither are meshes with
+    # authored custom normals that are not collapse targets (dissolve would drop their normals).
+    budget = None
 
     def protected(c):
         return all(s.material is None or kinds[s.material.name]['kind'] == 'keeper'
                    for s in c.material_slots) or ntris(c.data) < NO_DECIMATE_BELOW
     after = dict(before)
-    # many-small-part CAD meshes stall the collapse: drop loose parts smaller than cfg['cull'] metres
-    culled = {}
-    if cfg.get('cull') and budget is not None and tot_before > budget:
+    reduced = {}
+    if '--no-decimate' not in ARGS:
         for k, c in lo.items():
-            if not protected(c):
-                n0 = ntris(c.data)
-                cull_small_parts(c, cfg['cull'])
-                if ntris(c.data) < n0:
-                    culled[k] = n0 - ntris(c.data)
-        log(f'{name}: culled loose parts < {cfg["cull"] * 1000:.0f} mm: {sum(culled.values())} tris')
-    if budget is not None and tot_before > budget:
-        fixed = sum(before[k] for k, c in lo.items() if protected(c))
-        for it in range(5):
-            cur = {k: ntris(c.data) for k, c in lo.items()}
-            if sum(cur.values()) <= budget:
-                break
-            var = {k: v for k, v in cur.items() if not protected(lo[k])}
-            want = budget - (sum(cur.values()) - sum(var.values()))
-            # weighted shares: r_i = base * w_i, sum(var_i * r_i) = want
-            ws = {k: match(k, cfg.get('ratio'), 1.0) for k in var}
-            denom = sum(var[k] * ws[k] for k in var)
-            base = max(0.02, want * (0.97 if it == 0 else 0.93) / max(1, denom))
-            for k in var:
-                r = min(1.0, base * ws[k])
-                if r >= 0.995:
-                    continue
-                c = lo[k]
-                old = c.data
-                c.data = decimate_to(old, r, cfg.get('weld', 0.00005))
-                smooth_by_angle(c.data)
-                if old.users == 0:
-                    bpy.data.meshes.remove(old)
-            log(f'{name}: decimate pass {it}: base ratio {base:.3f} -> '
-                f'{sum(ntris(c.data) for c in lo.values())} tris (budget {budget}, fixed {fixed})')
-        after = {k: ntris(c.data) for k, c in lo.items()}
+            cr = match(k, cfg.get('collapse'))
+            if protected(c) or match(k, [(g, True) for g in cfg.get('keep', [])], False):
+                reduced[k] = 'kept'
+                continue
+            if c.data.has_custom_normals and not cr:
+                reduced[k] = 'kept (custom normals)'
+                continue
+            old = c.data
+            c.data = reduce_mesh(old, cr, cfg.get('weld', 0.00005))
+            reduced[k] = f'collapse {max(0.6, cr):.2f}' if cr else 'dissolve'
+            if cr:
+                smooth_by_angle(c.data, 60.0)
+            if old.users == 0:
+                bpy.data.meshes.remove(old)
+            after[k] = ntris(c.data)
+        log(f'{name}: reduced {tot_before} -> {sum(after.values())} tris; ' +
+            json.dumps({k: v for k, v in reduced.items() if v.startswith('collapse')}))
+    two_sided_objs = set()
+    for k, c in lo.items():
+        if match(k, [(g, True) for g in cfg.get('two_sided', [])], False):
+            bm = bmesh.new()
+            bm.from_mesh(c.data)
+            faces = list(bm.faces)
+            dup = bmesh.ops.duplicate(bm, geom=faces + list({e for f in faces for e in f.edges})
+                                      + list({v for f in faces for v in f.verts}))
+            bmesh.ops.reverse_faces(bm, faces=[g for g in dup['geom'] if isinstance(g, bmesh.types.BMFace)])
+            bm.to_mesh(c.data)
+            bm.free()
+            two_sided_objs.add(c)
+            reduced[k] = reduced.get(k, '') + ' +back faces (two-sided bake)'
+            after[k] = ntris(c.data)
     tot_after = sum(after.values())
     # ---------------------------------------------------------------- lit / pbr split
     # LIT: non-metal surfaces -> one Cycles DIFFUSE (direct+indirect+colour) bake in the full room,
     #      exported KHR_materials_unlit.  PBR: metal (metallic >= 0.5), emissive, keepers, glass.
     if LIT:
-        for v in kinds.values():
+        for mn, v in kinds.items():
             if v['kind'] in ('opaque', 'cutout') and v.get('metal'):
                 v['kind'] = 'metal'
+            elif v['kind'] == 'cutout' and not match(mn, [(g, True) for g in KEEP_ALPHA], False):
+                # perforations etc.: a MASK cut-out aliases into speckle at atlas resolution. The
+                # DIFFUSE bake of an alpha surface is already alpha-weighted (holes come out dark),
+                # so the opaque texture mips down to the right average.
+                v['kind'] = 'opaque'
+                v['flattened_alpha'] = True
     else:
         for v in kinds.values():
             if v['kind'] == 'metal':
@@ -1069,7 +1272,8 @@ def export_set(name):
                 del lo[k]
     lit_objs, pbr_objs = [], []
     for k, c in lo.items():
-        pm = {s.material for s in c.material_slots if s.material and kinds[s.material.name]['kind'] in PBR_KINDS}
+        pm = {s.material for s in c.material_slots if s.material and (kinds[s.material.name]['kind'] in PBR_KINDS
+              or match(k, [(g, True) for g in cfg.get('force_pbr', [])], False))}
         parts_ = []
         if pm:
             piece = separate_material(c, pm, c.name + 'P')
@@ -1084,10 +1288,21 @@ def export_set(name):
         f'{len(pbr_objs)} pbr parts ({sum(ntris(o.data) for o in pbr_objs)} tris)')
     # ---------------------------------------------------------------- atlas UVs (one per mode)
     res_lit = max(256, min(2048, int(cfg.get('lit', 1024) * RS)))
+    # lit atlases: cfg['own_atlas'] gives dense scans (the plush) their own texture
+    lit_groups = {}
+    for c in lit_objs:
+        src = c.name[:-4] if c.name.endswith('__lo') else c.name
+        g = next((a for a in cfg.get('own_atlas', []) if match(src, [(x, True) for x in a['globs']], False)), None)
+        key = g['name'] if g else 'main'
+        if key not in lit_groups:
+            lit_groups[key] = dict(objs=[], res=max(256, min(2048, int((g or {}).get('res', cfg.get('lit', 1024)) * RS))),
+                                   uv=(g or {}).get('uv', cfg.get('uv', 'smart')))
+        lit_groups[key]['objs'].append(c)
+    lit_group_of = {c: k for k, gg in lit_groups.items() for c in gg['objs']}
     tu = time.time()
     packer = {}
-    if lit_objs:
-        packer['lit'] = atlas_unwrap(lit_objs, cfg.get('weights'), res_lit)[0]
+    for key, gg in lit_groups.items():
+        packer['lit_' + key] = atlas_unwrap(gg['objs'], cfg.get('weights'), gg['res'], gg['uv'])[0]
     if pbr_objs:
         packer['pbr'] = atlas_unwrap(pbr_objs, cfg.get('weights'), res)[0]
     coverage = None
@@ -1202,49 +1417,54 @@ def export_set(name):
                             base_mean=[round(float(x), 3) for x in P['base'][covered][:, :3].mean(0)] if covered.any() else None,
                             ao_mean=round(float(P['ao'][covered][:, 0].mean()), 3) if covered.any() else None,
                             coverage_px=round(float(covered.mean()), 3))
-    if lit_objs:
-        lit_cut = any(kinds[s.material.name]['kind'] == 'cutout' for c in lit_objs for s in c.material_slots
-                      if s.material)
-        mk = emit_bake(lit_objs, 'mask', res_lit, True, margin=0)
+    for key, gg in lit_groups.items():
+        g_objs, r = gg['objs'], gg['res']
+        suffix = '' if key == 'main' else '_' + key
+        lit_cut = any(kinds[s_.material.name]['kind'] == 'cutout' for c in g_objs for s_ in c.material_slots
+                      if s_.material)
+        mk = emit_bake(g_objs, 'mask', r, True, margin=0)
         covered_l = pixels(mk)[:, 0] > 0.5
-        alpha_l = emit_bake(lit_objs, 'alpha', res_lit, True) if lit_cut else None
+        alpha_l = emit_bake(g_objs, 'alpha', r, True) if lit_cut else None
         tb = time.time()
         sc.cycles.samples = LIT_SAMPLES
         sc.cycles.use_adaptive_sampling = False
-        li = bpy.data.images.new(f'{name}_lit_raw', res_lit, res_lit, alpha=False, float_buffer=True)
+        li = bpy.data.images.new(f'{name}{suffix}_lit_raw', r, r, alpha=False, float_buffer=True)
         li.colorspace_settings.name = 'Linear Rec.709'
-        bake(lit_objs, 'DIFFUSE', li, mats, pass_filter={'DIRECT', 'INDIRECT', 'COLOR'})
-        timings['lit'] = round(time.time() - tb, 1)
-        tb = time.time()
+        bake(g_objs, 'DIFFUSE', li, mats, pass_filter={'DIRECT', 'INDIRECT', 'COLOR'})
+        timings['lit' + suffix] = round(time.time() - tb, 1)
         raw = pixels(li)[:, :3]
-        lin = denoise_pixels(li, res_lit, os.path.join(texdir, f'{name}_lit_dn.exr'))
-        timings['lit_denoise'] = round(time.time() - tb, 1)
-        lin = np.maximum(lin, 0.0)
+        lin = np.maximum(denoise_pixels(li, r, os.path.join(texdir, f'{name}{suffix}_lit_dn.exr')), 0.0)
         cov_vals = lin[covered_l].max(axis=1) if covered_l.any() else np.ones(1)
-        # store lin / K: K is the 99.8th percentile (rounded up to 2 significant digits), so dark
-        # props keep 8-bit precision and bright ones are not clipped; the runtime multiplies by K
-        # Capped at LIT_K_MAX: AgX (Blender and three) saturates at 0.18 * 2^4.03 = 2.9 scene-linear,
-        # 2.15 after the +0.45 EV exposure, so radiance above 8 renders white anyway; the cap keeps
-        # 8-bit precision for the rest (the lamp head next to its disk light reaches 160+).
+        # Store lin / K in sRGB. K = 99.9th percentile, rounded up to 2 significant digits and
+        # capped at LIT_K_MAX = 2: AgX at +0.45 EV is already near white at scene-linear ~2.5, so a
+        # larger K buys nothing visible and costs 8-bit precision in the darks (coordinator, 2026-10-01).
         K = float(min(max(np.percentile(cov_vals, 99.9), 1e-3), LIT_K_MAX))
         e = math.floor(math.log10(K)) - 1
         K = round(math.ceil(K / 10 ** e) * 10 ** e, 6)
         enc = np.clip(lin / K, 0, 1)
         enc = np.where(enc <= 0.0031308, enc * 12.92, 1.055 * np.power(enc, 1 / 2.4) - 0.055)
-        out = np.ones((res_lit * res_lit, 4), dtype=np.float32)
+        out = np.ones((r * r, 4), dtype=np.float32)
         out[:, :3] = enc
         if alpha_l is not None:
             out[:, 3] = pixels(alpha_l)[:, 0]
-        lit_img = bpy.data.images.new(f'{name}_lit', res_lit, res_lit, alpha=alpha_l is not None)
+        lit_img = bpy.data.images.new(f'{name}{suffix}_lit', r, r, alpha=alpha_l is not None)
         lit_img.colorspace_settings.name = 'sRGB'
         lit_img.pixels.foreach_set(out.ravel())
-        tex_lit['lit'] = save_png(lit_img, os.path.join(texdir, f'{name}_lit.png'))
-        tex_lit['scale'] = K
-        stats['lit'] = dict(lit_scale=K, raw_mean=round(float(raw[covered_l].mean()), 4) if covered_l.any() else None,
-                            denoised_mean=round(float(lin[covered_l].mean()), 4) if covered_l.any() else None,
-                            p50=round(float(np.percentile(cov_vals, 50)), 4),
-                            clipped_fraction=round(float((cov_vals > K).mean()), 5),
-                            coverage_px=round(float(covered_l.mean()), 3), samples=LIT_SAMPLES)
+        # texel density: covered texels over the world-space area of the group's faces
+        area_mm2 = 0.0
+        for c in g_objs:
+            mt = c.data.copy()
+            mt.transform(c.matrix_world)
+            area_mm2 += sum(pp.area for pp in mt.polygons) * 1e6
+            bpy.data.meshes.remove(mt)
+        tpm = math.sqrt(float(covered_l.sum()) / max(area_mm2, 1e-9))
+        tex_lit[key] = dict(path=save_png(lit_img, os.path.join(texdir, f'{name}{suffix}_lit.png')), scale=K, res=r)
+        stats['lit' + suffix] = dict(lit_scale=K, res=r, uv=gg['uv'], texels_per_mm=round(tpm, 3),
+                                     raw_mean=round(float(raw[covered_l].mean()), 4) if covered_l.any() else None,
+                                     denoised_mean=round(float(lin[covered_l].mean()), 4) if covered_l.any() else None,
+                                     p50=round(float(np.percentile(cov_vals, 50)), 4),
+                                     clipped_fraction=round(float((cov_vals > K).mean()), 5),
+                                     coverage_px=round(float(covered_l.mean()), 3), samples=LIT_SAMPLES)
     log(f'{name}: bake seconds {timings} on {sc.cycles.device}; textures pbr {sorted(k for k in tex if tex[k] is not True)} '
         f'lit {sorted(tex_lit)}; ' + json.dumps(stats))
     # ---------------------------------------------------------------- build export materials
@@ -1272,9 +1492,7 @@ def export_set(name):
     def family(kind):
         if kind not in fam:
             if LIT and kind in ('opaque', 'cutout'):
-                nm = f'{name}_lit' + ('_cutout' if kind == 'cutout' else '')
-                fam[kind] = build_lit_material(nm, tex_lit['lit'], kind == 'cutout', tex_lit['scale'])
-                mode_of[nm] = 'lit'
+                return None      # lit materials are assigned per object below (one per lit atlas)
             else:
                 nm = f'{name}_' + {'opaque': 'pbr', 'metal': 'pbr', 'cutout': 'pbr_cutout', 'emit': 'emit'}[kind]
                 fam[kind] = build_material(nm, tex, 'opaque' if kind == 'metal' else kind, emit_strength=smax)
@@ -1312,6 +1530,26 @@ def export_set(name):
             mode_of[orig_name] = 'pbr_emissive'
         else:
             web[m.name] = family(k)
+    lit_fam = {}
+
+    def pbr_family(kind):      # lit-kind materials on parts forced to PBR
+        if kind != 'cutout' and 'metal' in fam:
+            return fam['metal']
+        nm = f'{name}_pbr' + ('_cutout' if kind == 'cutout' else '')
+        if nm not in fam:
+            fam[nm] = build_material(nm, tex, kind if kind == 'cutout' else 'opaque', emit_strength=smax)
+            mode_of[nm] = 'pbr'
+        return fam[nm]
+
+    def lit_family(key, kind, one_sided=False):
+        if (key, kind, one_sided) not in lit_fam:
+            nm = f'{name}_lit' + ('' if key == 'main' else '_' + key) + ('_cutout' if kind == 'cutout' else '')                 + ('_1s' if one_sided else '')
+            t = tex_lit[key]
+            m_ = build_lit_material(nm, t['path'], kind == 'cutout', t['scale'])
+            m_.use_backface_culling = one_sided     # glTF doubleSided = false
+            lit_fam[(key, kind, one_sided)] = m_
+            mode_of[nm] = 'lit'
+        return lit_fam[(key, kind, one_sided)]
     # remove the original UV layers, rename the atlas
     for c in objs:
         for u in [u for u in c.data.uv_layers if u.name != 'atlas']:
@@ -1319,7 +1557,11 @@ def export_set(name):
         c.data.uv_layers['atlas'].name = 'UVMap'
         for s_ in c.material_slots:
             if s_.material:
-                s_.material = web[s_.material.name]
+                kd = kinds[s_.material.name]['kind']
+                if LIT and kd in ('opaque', 'cutout') and c in lit_group_of:
+                    s_.material = lit_family(lit_group_of[c], kd, c in two_sided_objs)
+                else:
+                    s_.material = web[s_.material.name] or pbr_family(kd)
     screen_nodes = []
     for c, cfg_s in screen_objs.items():
         sm = bpy.data.materials.get(cfg_s['material']) or build_material(
@@ -1331,8 +1573,8 @@ def export_set(name):
         screen_nodes.append(dict(node=cfg_s['node'], material=sm.name,
                                  uv='UV0 0..1 across the visible face; u to the right, v up, seen from CAM_seat'))
     tex_all = dict(tex)
-    if tex_lit:
-        tex_all['lit'] = tex_lit['lit']
+    for key, t in tex_lit.items():
+        tex_all['lit' + ('' if key == 'main' else '_' + key)] = t['path']
     # free the source objects' names for the output nodes
     for o in list(bpy.data.objects):
         if not o.name.endswith(('__lo', '__hi')):
@@ -1463,10 +1705,12 @@ def export_set(name):
                 budget=budget, within_budget=(budget is None or final_tris <= budget * 1.02),
                 tris_before=tot_before, tris_after=final_tris,
                 objects=[dict(name=o, tris_before=before[o], tris_after=after[o]) for o in before],
-                skipped=skipped, atlas=dict(pbr_res=res if pbr_objs else None,
+                skipped=skipped, reduction=reduced, atlas=dict(pbr_res=res if pbr_objs else None,
                                             lit_res=res_lit if lit_objs else None, packer=packer),
                 textures={k: os.path.basename(v) for k, v in tex_all.items() if isinstance(v, str)},
-                lit_scale=tex_lit.get('scale'),
+                lit_scale=tex_lit['main']['scale'] if 'main' in tex_lit else
+                (next(iter(tex_lit.values()))['scale'] if tex_lit else None),
+                lit_atlases={k: dict(res=t['res'], litScale=t['scale']) for k, t in tex_lit.items()},
                 material_modes={m: mode_of.get(m, 'pbr') for m in sorted({s_.material.name for o in out_objs
                                 if o.type == 'MESH' for s_ in o.material_slots if s_.material})},
                 material_kinds={k: v['kind'] for k, v in kinds.items()},

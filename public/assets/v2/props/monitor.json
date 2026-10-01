@@ -7,7 +7,7 @@
  "budget": null,
  "within_budget": true,
  "tris_before": 8610,
- "tris_after": 8610,
+ "tris_after": 8490,
  "objects": [
   {
    "name": "NEW_monitor_bezel",
@@ -32,7 +32,7 @@
   {
    "name": "NEW_monitor_io",
    "tris_before": 880,
-   "tris_after": 880
+   "tris_after": 760
   },
   {
    "name": "NEW_monitor_io_tongues",
@@ -76,21 +76,41 @@
   }
  ],
  "skipped": {},
+ "reduction": {
+  "NEW_monitor_bezel": "dissolve",
+  "NEW_monitor_glass_border": "kept",
+  "NEW_monitor_screen": "kept",
+  "NEW_monitor_rear_housing": "dissolve",
+  "NEW_monitor_io": "dissolve",
+  "NEW_monitor_io_tongues": "dissolve",
+  "NEW_monitor_led": "kept",
+  "NEW_monitor_joystick": "kept",
+  "NEW_monitor_carriage": "dissolve",
+  "NEW_monitor_slider": "kept",
+  "NEW_monitor_column": "dissolve",
+  "NEW_monitor_base": "dissolve",
+  "NEW_monitor_feet": "dissolve"
+ },
  "atlas": {
   "pbr_res": 512,
   "lit_res": 1024,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
    "pbr": "pack_islands"
   }
  },
  "textures": {
   "base": "monitor_basecolor.png",
   "orm": "monitor_orm.png",
-  "normal": "monitor_normal.png",
   "lit": "monitor_lit.png"
  },
- "lit_scale": 0.03,
+ "lit_scale": 0.034,
+ "lit_atlases": {
+  "main": {
+   "res": 1024,
+   "litScale": 0.034
+  }
+ },
  "material_modes": {
   "mon_power_led": "pbr_emissive",
   "mon_screen": "pbr_screen",
@@ -176,7 +196,7 @@
   },
   "NEW_monitor_lift__mesh": {
    "parent": "NEW_monitor_lift",
-   "tris": 6180,
+   "tris": 6060,
    "materials": [
     "monitor_lit",
     "monitor_pbr",
@@ -219,36 +239,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0027,
+   "normal_bumpy_fraction": 0.0018,
    "s2a": [],
    "base_mean": [
-    0.354,
-    0.364,
-    0.383
+    0.347,
+    0.358,
+    0.377
    ],
-   "ao_mean": 0.516,
-   "coverage_px": 0.528
+   "ao_mean": 0.52,
+   "coverage_px": 0.519
   },
   "lit": {
-   "lit_scale": 0.03,
+   "lit_scale": 0.034,
+   "res": 1024,
+   "uv": "smart",
+   "texels_per_mm": 0.614,
    "raw_mean": 0.0022,
    "denoised_mean": 0.0022,
    "p50": 0.0,
-   "clipped_fraction": 0.00089,
-   "coverage_px": 0.364,
+   "clipped_fraction": 0.00096,
+   "coverage_px": 0.331,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 6.4,
-  "rough": 6.3,
-  "metal": 6.4,
-  "ao": 6.7,
-  "normal": 6.4,
-  "lit": 16.6,
-  "lit_denoise": 0.2
+  "base": 6.6,
+  "rough": 6.5,
+  "metal": 6.6,
+  "ao": 6.9,
+  "normal": 6.6,
+  "lit": 16.3
  },
  "glb": "monitor.glb",
- "glb_bytes": 377340,
- "seconds": 67.4
+ "glb_bytes": 403964,
+ "seconds": 69.5
 }

@@ -4,25 +4,25 @@
   "NEW_mouse_mx"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 12000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 23024,
- "tris_after": 11616,
+ "tris_after": 14274,
  "objects": [
   {
    "name": "MouseMX_Shell",
    "tris_before": 19232,
-   "tris_after": 9500
+   "tris_after": 10844
   },
   {
    "name": "MouseMX_ScrollWheel",
    "tris_before": 1728,
-   "tris_after": 852
+   "tris_after": 1586
   },
   {
    "name": "MouseMX_ThumbWheel",
    "tris_before": 1152,
-   "tris_after": 568
+   "tris_after": 1148
   },
   {
    "name": "MouseMX_BasePlate",
@@ -46,11 +46,20 @@
   }
  ],
  "skipped": {},
+ "reduction": {
+  "MouseMX_Shell": "collapse 0.60",
+  "MouseMX_ScrollWheel": "dissolve",
+  "MouseMX_ThumbWheel": "dissolve",
+  "MouseMX_BasePlate": "dissolve",
+  "MouseMX_FootL": "kept",
+  "MouseMX_FootR": "kept",
+  "MouseMX_USBC": "kept"
+ },
  "atlas": {
   "pbr_res": 256,
   "lit_res": 1024,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
    "pbr": "pack_islands"
   }
  },
@@ -61,6 +70,12 @@
   "lit": "mouse_mx_lit.png"
  },
  "lit_scale": 0.17,
+ "lit_atlases": {
+  "main": {
+   "res": 1024,
+   "litScale": 0.17
+  }
+ },
  "material_modes": {
   "mouse_mx_lit": "lit",
   "mouse_mx_pbr": "pbr"
@@ -79,6 +94,7 @@
  "emissive_materials": [],
  "emissive_strength_max": 1.0,
  "emissive_nodes": [],
+ "screen_nodes": [],
  "anchors": {
   "NEW_mouse_mx_root": {
    "blender_world": [
@@ -98,7 +114,7 @@
  "meshes": {
   "NEW_mouse_mx_root__mesh": {
    "parent": "NEW_mouse_mx_root",
-   "tris": 11616,
+   "tris": 14274,
    "materials": [
     "mouse_mx_lit",
     "mouse_mx_pbr"
@@ -125,36 +141,38 @@
  ],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.3952,
+   "normal_bumpy_fraction": 0.4081,
    "s2a": [],
    "base_mean": [
-    0.555,
-    0.562,
-    0.578
+    0.556,
+    0.564,
+    0.58
    ],
-   "ao_mean": 0.18,
-   "coverage_px": 0.384
+   "ao_mean": 0.177,
+   "coverage_px": 0.334
   },
   "lit": {
    "lit_scale": 0.17,
-   "raw_mean": 0.0338,
-   "denoised_mean": 0.0341,
-   "p50": 0.0188,
-   "clipped_fraction": 0.00111,
-   "coverage_px": 0.519,
+   "res": 1024,
+   "uv": "orig",
+   "texels_per_mm": 4.45,
+   "raw_mean": 0.0414,
+   "denoised_mean": 0.0418,
+   "p50": 0.0595,
+   "clipped_fraction": 0.0009,
+   "coverage_px": 0.586,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 16.9,
-  "rough": 16.1,
-  "metal": 15.3,
-  "ao": 11.1,
-  "normal": 3.4,
-  "lit": 73.6,
-  "lit_denoise": 0.3
+  "base": 2.7,
+  "rough": 2.6,
+  "metal": 2.6,
+  "ao": 2.7,
+  "normal": 2.6,
+  "lit": 24.0
  },
  "glb": "mouse_mx.glb",
- "glb_bytes": 422000,
- "seconds": 182.7
+ "glb_bytes": 474228,
+ "seconds": 49.3
 }

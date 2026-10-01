@@ -4,15 +4,15 @@
   "NEW_bookrack"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 8000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 13004,
- "tris_after": 7430,
+ "tris_after": 13004,
  "objects": [
   {
    "name": "bookrack_screws",
    "tris_before": 1512,
-   "tris_after": 872
+   "tris_after": 1512
   },
   {
    "name": "bookrack_screw_recess",
@@ -22,82 +22,82 @@
   {
    "name": "Mesh_165.001",
    "tris_before": 804,
-   "tris_after": 446
+   "tris_after": 804
   },
   {
    "name": "Mesh_166.001",
    "tris_before": 804,
-   "tris_after": 464
+   "tris_after": 804
   },
   {
    "name": "Mesh_167.001",
    "tris_before": 804,
-   "tris_after": 348
+   "tris_after": 804
   },
   {
    "name": "Mesh_168.001",
    "tris_before": 804,
-   "tris_after": 464
+   "tris_after": 804
   },
   {
    "name": "Mesh_169.001",
    "tris_before": 804,
-   "tris_after": 464
+   "tris_after": 804
   },
   {
    "name": "Mesh_170.001",
    "tris_before": 804,
-   "tris_after": 364
+   "tris_after": 804
   },
   {
    "name": "Mesh_171.001",
    "tris_before": 804,
-   "tris_after": 464
+   "tris_after": 804
   },
   {
    "name": "Mesh_172.001",
    "tris_before": 804,
-   "tris_after": 464
+   "tris_after": 804
   },
   {
    "name": "Mesh_173.001",
    "tris_before": 804,
-   "tris_after": 464
+   "tris_after": 804
   },
   {
    "name": "Mesh_174.001",
    "tris_before": 804,
-   "tris_after": 356
+   "tris_after": 804
   },
   {
    "name": "Mesh_175.001",
    "tris_before": 804,
-   "tris_after": 464
+   "tris_after": 804
   },
   {
    "name": "Mesh_176.001",
    "tris_before": 804,
-   "tris_after": 464
+   "tris_after": 804
   },
   {
    "name": "Mesh_177.001",
    "tris_before": 300,
-   "tris_after": 172
+   "tris_after": 300
   },
   {
    "name": "Mesh_178.001",
    "tris_before": 300,
-   "tris_after": 172
+   "tris_after": 300
   },
   {
    "name": "Mesh_160.001",
    "tris_before": 300,
-   "tris_after": 172
+   "tris_after": 300
   },
   {
    "name": "Mesh_161.001",
    "tris_before": 300,
-   "tris_after": 172
+   "tris_after": 300
   },
   {
    "name": "Mesh_162.001",
@@ -124,11 +124,34 @@
    "bookrack_bookend_R"
   ]
  },
+ "reduction": {
+  "bookrack_screws": "dissolve",
+  "bookrack_screw_recess": "kept",
+  "Mesh_165.001": "kept (custom normals)",
+  "Mesh_166.001": "kept (custom normals)",
+  "Mesh_167.001": "kept (custom normals)",
+  "Mesh_168.001": "kept (custom normals)",
+  "Mesh_169.001": "kept (custom normals)",
+  "Mesh_170.001": "kept (custom normals)",
+  "Mesh_171.001": "kept (custom normals)",
+  "Mesh_172.001": "kept (custom normals)",
+  "Mesh_173.001": "kept (custom normals)",
+  "Mesh_174.001": "kept (custom normals)",
+  "Mesh_175.001": "kept (custom normals)",
+  "Mesh_176.001": "kept (custom normals)",
+  "Mesh_177.001": "kept (custom normals)",
+  "Mesh_178.001": "kept (custom normals)",
+  "Mesh_160.001": "kept (custom normals)",
+  "Mesh_161.001": "kept (custom normals)",
+  "Mesh_162.001": "kept",
+  "Mesh_163.001": "kept",
+  "Mesh_164.001": "kept"
+ },
  "atlas": {
   "pbr_res": 256,
   "lit_res": 1024,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
    "pbr": "pack_islands"
   }
  },
@@ -138,7 +161,13 @@
   "normal": "bookrack_normal.png",
   "lit": "bookrack_lit.png"
  },
- "lit_scale": 0.62,
+ "lit_scale": 0.43,
+ "lit_atlases": {
+  "main": {
+   "res": 1024,
+   "litScale": 0.43
+  }
+ },
  "material_modes": {
   "bookrack_lit": "lit",
   "bookrack_pbr": "pbr"
@@ -468,26 +497,26 @@
  "meshes": {
   "bookrack_hardware__mesh": {
    "parent": "bookrack_hardware",
-   "tris": 1160,
+   "tris": 1800,
    "materials": [
     "bookrack_pbr"
    ],
    "blender_bbox": [
     [
      -2.077,
-     0.4877,
-     0.9112
+     0.4878,
+     0.9113
     ],
     [
-     -1.9117,
-     1.1123,
+     -1.9118,
+     1.1122,
      1.1033
     ]
    ]
   },
   "Mesh_165.001__mesh": {
    "parent": "Mesh_165.001",
-   "tris": 446,
+   "tris": 804,
    "materials": [
     "bookrack_lit"
    ],
@@ -506,7 +535,7 @@
   },
   "Mesh_166.001__mesh": {
    "parent": "Mesh_166.001",
-   "tris": 464,
+   "tris": 804,
    "materials": [
     "bookrack_lit"
    ],
@@ -525,7 +554,7 @@
   },
   "Mesh_167.001__mesh": {
    "parent": "Mesh_167.001",
-   "tris": 348,
+   "tris": 804,
    "materials": [
     "bookrack_lit"
    ],
@@ -544,7 +573,7 @@
   },
   "Mesh_168.001__mesh": {
    "parent": "Mesh_168.001",
-   "tris": 464,
+   "tris": 804,
    "materials": [
     "bookrack_lit"
    ],
@@ -563,7 +592,7 @@
   },
   "Mesh_169.001__mesh": {
    "parent": "Mesh_169.001",
-   "tris": 464,
+   "tris": 804,
    "materials": [
     "bookrack_lit"
    ],
@@ -582,7 +611,7 @@
   },
   "Mesh_170.001__mesh": {
    "parent": "Mesh_170.001",
-   "tris": 364,
+   "tris": 804,
    "materials": [
     "bookrack_lit"
    ],
@@ -601,7 +630,7 @@
   },
   "Mesh_171.001__mesh": {
    "parent": "Mesh_171.001",
-   "tris": 464,
+   "tris": 804,
    "materials": [
     "bookrack_lit"
    ],
@@ -620,7 +649,7 @@
   },
   "Mesh_172.001__mesh": {
    "parent": "Mesh_172.001",
-   "tris": 464,
+   "tris": 804,
    "materials": [
     "bookrack_lit"
    ],
@@ -639,7 +668,7 @@
   },
   "Mesh_173.001__mesh": {
    "parent": "Mesh_173.001",
-   "tris": 464,
+   "tris": 804,
    "materials": [
     "bookrack_lit"
    ],
@@ -658,7 +687,7 @@
   },
   "Mesh_174.001__mesh": {
    "parent": "Mesh_174.001",
-   "tris": 356,
+   "tris": 804,
    "materials": [
     "bookrack_lit"
    ],
@@ -677,7 +706,7 @@
   },
   "Mesh_175.001__mesh": {
    "parent": "Mesh_175.001",
-   "tris": 464,
+   "tris": 804,
    "materials": [
     "bookrack_lit"
    ],
@@ -696,7 +725,7 @@
   },
   "Mesh_176.001__mesh": {
    "parent": "Mesh_176.001",
-   "tris": 464,
+   "tris": 804,
    "materials": [
     "bookrack_lit"
    ],
@@ -715,37 +744,37 @@
   },
   "Mesh_177.001__mesh": {
    "parent": "Mesh_177.001",
-   "tris": 172,
+   "tris": 300,
    "materials": [
     "bookrack_lit"
    ],
    "blender_bbox": [
     [
      -2.01,
-     0.8625,
+     0.8624,
      1.1
     ],
     [
      -1.91,
-     0.8723,
+     0.8724,
      1.2
     ]
    ]
   },
   "Mesh_178.001__mesh": {
    "parent": "Mesh_178.001",
-   "tris": 172,
+   "tris": 300,
    "materials": [
     "bookrack_lit"
    ],
    "blender_bbox": [
     [
-     -2.0633,
+     -2.0632,
      1.1624,
      1.1018
     ],
     [
-     -1.8939,
+     -1.894,
      1.1764,
      1.324
     ]
@@ -753,38 +782,38 @@
   },
   "Mesh_160.001__mesh": {
    "parent": "Mesh_160.001",
-   "tris": 172,
+   "tris": 300,
    "materials": [
     "bookrack_lit"
    ],
    "blender_bbox": [
     [
-     -2.022,
+     -2.0221,
      0.8831,
      1.1
     ],
     [
-     -1.926,
-     0.9791,
+     -1.9259,
+     0.9792,
      1.152
     ]
    ]
   },
   "Mesh_161.001__mesh": {
    "parent": "Mesh_161.001",
-   "tris": 172,
+   "tris": 300,
    "materials": [
     "bookrack_lit"
    ],
    "blender_bbox": [
     [
-     -2.0316,
-     0.9958,
+     -2.0315,
+     0.9959,
      1.1
     ],
     [
-     -1.9644,
-     1.063,
+     -1.9645,
+     1.0629,
      1.175
     ]
    ]
@@ -850,36 +879,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0275,
+   "normal_bumpy_fraction": 0.0363,
    "s2a": [],
    "base_mean": [
-    0.613,
-    0.534,
-    0.366
+    0.606,
+    0.53,
+    0.37
    ],
-   "ao_mean": 0.421,
-   "coverage_px": 0.336
+   "ao_mean": 0.407,
+   "coverage_px": 0.166
   },
   "lit": {
-   "lit_scale": 0.62,
-   "raw_mean": 0.0038,
-   "denoised_mean": 0.0038,
+   "lit_scale": 0.43,
+   "res": 1024,
+   "uv": "smart",
+   "texels_per_mm": 0.389,
+   "raw_mean": 0.0017,
+   "denoised_mean": 0.0016,
    "p50": 0.0,
-   "clipped_fraction": 0.00096,
-   "coverage_px": 0.674,
+   "clipped_fraction": 0.00099,
+   "coverage_px": 0.406,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 6.4,
-  "rough": 6.4,
+  "base": 6.6,
+  "rough": 6.5,
   "metal": 6.4,
   "ao": 6.5,
-  "normal": 6.4,
-  "lit": 36.8,
-  "lit_denoise": 0.2
+  "normal": 6.6,
+  "lit": 33.5
  },
  "glb": "bookrack.glb",
- "glb_bytes": 365560,
- "seconds": 99.8
+ "glb_bytes": 682004,
+ "seconds": 96.4
 }

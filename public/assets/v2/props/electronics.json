@@ -4,10 +4,10 @@
   "NEW_electronics"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 30000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 94596,
- "tris_after": 28576,
+ "tris_after": 86768,
  "objects": [
   {
    "name": "elec_uno_pcb",
@@ -17,12 +17,12 @@
   {
    "name": "elec_uno_parts",
    "tris_before": 11736,
-   "tris_after": 3553
+   "tris_after": 10836
   },
   {
    "name": "elec_esp32_module_pcb",
    "tris_before": 572,
-   "tris_after": 172
+   "tris_after": 572
   },
   {
    "name": "elec_esp32_module_parts",
@@ -37,67 +37,67 @@
   {
    "name": "elec_esp32_parts",
    "tris_before": 8894,
-   "tris_after": 2692
+   "tris_after": 8176
   },
   {
    "name": "elec_pico_pcb",
    "tris_before": 3688,
-   "tris_after": 1116
+   "tris_after": 3672
   },
   {
    "name": "elec_pico_parts",
    "tris_before": 2926,
-   "tris_after": 886
+   "tris_after": 2570
   },
   {
    "name": "elec_hub_body",
    "tris_before": 958,
-   "tris_after": 290
+   "tris_after": 944
   },
   {
    "name": "elec_hub_parts",
    "tris_before": 2486,
-   "tris_after": 752
+   "tris_after": 1754
   },
   {
    "name": "elec_hub_cable_braid",
    "tris_before": 4764,
-   "tris_after": 1443
+   "tris_after": 3112
   },
   {
    "name": "elec_notepad",
    "tris_before": 9898,
-   "tris_after": 2998
+   "tris_after": 9898
   },
   {
    "name": "elec_sticky_notes",
    "tris_before": 1440,
-   "tris_after": 300
+   "tris_after": 1440
   },
   {
    "name": "elec_rotring600",
    "tris_before": 3564,
-   "tris_after": 1078
+   "tris_after": 2612
   },
   {
    "name": "elec_stm_stage",
    "tris_before": 4572,
-   "tris_after": 1384
+   "tris_after": 4458
   },
   {
    "name": "elec_stm_stage_wires",
    "tris_before": 3632,
-   "tris_after": 1099
+   "tris_after": 3584
   },
   {
    "name": "elec_faraday_box",
    "tris_before": 5756,
-   "tris_after": 1742
+   "tris_after": 5404
   },
   {
    "name": "elec_faraday_lid",
    "tris_before": 1804,
-   "tris_after": 546
+   "tris_after": 1786
   },
   {
    "name": "elec_breadboard",
@@ -112,27 +112,27 @@
   {
    "name": "elec_teensy_parts",
    "tris_before": 8218,
-   "tris_after": 2489
+   "tris_after": 7838
   },
   {
    "name": "elec_preamp_pcb",
    "tris_before": 348,
-   "tris_after": 104
+   "tris_after": 348
   },
   {
    "name": "elec_preamp_parts",
    "tris_before": 4072,
-   "tris_after": 1233
+   "tris_after": 3698
   },
   {
    "name": "elec_multimeter",
    "tris_before": 3024,
-   "tris_after": 916
+   "tris_after": 3008
   },
   {
    "name": "elec_lab_wiring",
    "tris_before": 11576,
-   "tris_after": 3506
+   "tris_after": 10390
   }
  ],
  "skipped": {
@@ -141,11 +141,38 @@
    "elec_mug_coffee"
   ]
  },
+ "reduction": {
+  "elec_uno_pcb": "kept",
+  "elec_uno_parts": "dissolve",
+  "elec_esp32_module_pcb": "dissolve",
+  "elec_esp32_module_parts": "kept",
+  "elec_esp32_pcb": "kept",
+  "elec_esp32_parts": "dissolve",
+  "elec_pico_pcb": "dissolve",
+  "elec_pico_parts": "dissolve",
+  "elec_hub_body": "dissolve",
+  "elec_hub_parts": "dissolve",
+  "elec_hub_cable_braid": "dissolve",
+  "elec_notepad": "kept",
+  "elec_sticky_notes": "kept",
+  "elec_rotring600": "dissolve",
+  "elec_stm_stage": "dissolve",
+  "elec_stm_stage_wires": "dissolve",
+  "elec_faraday_box": "dissolve",
+  "elec_faraday_lid": "dissolve",
+  "elec_breadboard": "kept",
+  "elec_teensy_pcb": "kept",
+  "elec_teensy_parts": "dissolve",
+  "elec_preamp_pcb": "dissolve",
+  "elec_preamp_parts": "dissolve",
+  "elec_multimeter": "dissolve",
+  "elec_lab_wiring": "dissolve"
+ },
  "atlas": {
   "pbr_res": 1024,
-  "lit_res": 1024,
+  "lit_res": 2048,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
    "pbr": "pack_islands"
   }
  },
@@ -155,7 +182,13 @@
   "normal": "electronics_normal.png",
   "lit": "electronics_lit.png"
  },
- "lit_scale": 6.1,
+ "lit_scale": 2.0,
+ "lit_atlases": {
+  "main": {
+   "res": 2048,
+   "litScale": 2.0
+  }
+ },
  "material_modes": {
   "electronics_lit": "lit",
   "electronics_pbr": "pbr",
@@ -255,6 +288,7 @@
  ],
  "emissive_strength_max": 1.0,
  "emissive_nodes": [],
+ "screen_nodes": [],
  "anchors": {
   "elec_uno": {
    "blender_world": [
@@ -442,17 +476,17 @@
  "meshes": {
   "elec_uno__mesh": {
    "parent": "elec_uno",
-   "tris": 3741,
+   "tris": 11128,
    "materials": [
-    "electronics_lit",
     "electronics_pbr",
+    "electronics_lit",
     "led_green_on.003"
    ],
    "blender_bbox": [
     [
      0.4183,
      0.6494,
-     0.7349
+     0.735
     ],
     [
      0.4717,
@@ -463,17 +497,17 @@
   },
   "elec_esp32__mesh": {
    "parent": "elec_esp32",
-   "tris": 3028,
+   "tris": 8984,
    "materials": [
-    "electronics_lit",
     "electronics_pbr",
+    "electronics_lit",
     "led_red_on.003"
    ],
    "blender_bbox": [
     [
      0.921,
      0.374,
-     0.7349
+     0.735
     ],
     [
      0.949,
@@ -484,16 +518,16 @@
   },
   "elec_pico__mesh": {
    "parent": "elec_pico",
-   "tris": 1902,
+   "tris": 6242,
    "materials": [
-    "electronics_lit",
     "electronics_pbr",
+    "electronics_lit",
     "led_green_on.003"
    ],
    "blender_bbox": [
     [
-     0.4148,
-     0.7743,
+     0.4145,
+     0.7745,
      0.735
     ],
     [
@@ -505,7 +539,7 @@
   },
   "elec_hub__mesh": {
    "parent": "elec_hub",
-   "tris": 1042,
+   "tris": 2698,
    "materials": [
     "electronics_pbr",
     "electronics_lit",
@@ -518,7 +552,7 @@
      0.735
     ],
     [
-     0.3537,
+     0.3538,
      0.9777,
      0.7507
     ]
@@ -526,7 +560,7 @@
   },
   "elec_hub_cable__mesh": {
    "parent": "elec_hub_cable",
-   "tris": 1443,
+   "tris": 3112,
    "materials": [
     "electronics_pbr",
     "electronics_lit"
@@ -546,19 +580,19 @@
   },
   "elec_notes__mesh": {
    "parent": "elec_notes",
-   "tris": 4376,
+   "tris": 13950,
    "materials": [
-    "electronics_lit",
-    "electronics_pbr"
+    "electronics_pbr",
+    "electronics_lit"
    ],
    "blender_bbox": [
     [
      -0.7342,
-     0.3761,
+     0.376,
      0.7344
     ],
     [
-     -0.425,
+     -0.4249,
      0.6412,
      0.7537
     ]
@@ -566,7 +600,7 @@
   },
   "elec_stm_stage_grp__mesh": {
    "parent": "elec_stm_stage_grp",
-   "tris": 2483,
+   "tris": 8042,
    "materials": [
     "electronics_pbr",
     "electronics_lit"
@@ -575,38 +609,38 @@
     [
      0.6773,
      0.4945,
-     0.7351
+     0.735
     ],
     [
-     0.7873,
-     0.5628,
-     0.7959
+     0.7875,
+     0.563,
+     0.796
     ]
    ]
   },
   "elec_faraday_grp__mesh": {
    "parent": "elec_faraday_grp",
-   "tris": 2272,
+   "tris": 7190,
    "materials": [
     "electronics_pbr",
     "electronics_lit"
    ],
    "blender_bbox": [
     [
-     0.6524,
+     0.6522,
      0.5838,
      0.735
     ],
     [
-     0.8176,
+     0.8178,
      0.7872,
-     0.9008
+     0.901
     ]
    ]
   },
   "elec_breadboard_grp__mesh": {
    "parent": "elec_breadboard_grp",
-   "tris": 2557,
+   "tris": 7978,
    "materials": [
     "electronics_lit",
     "electronics_pbr"
@@ -626,16 +660,16 @@
   },
   "elec_preamp_grp__mesh": {
    "parent": "elec_preamp_grp",
-   "tris": 1310,
+   "tris": 4046,
    "materials": [
-    "electronics_lit",
     "electronics_pbr",
+    "electronics_lit",
     "led_green_on.003"
    ],
    "blender_bbox": [
     [
      0.8145,
-     0.3804,
+     0.38,
      0.735
     ],
     [
@@ -647,7 +681,7 @@
   },
   "elec_multimeter_grp__mesh": {
    "parent": "elec_multimeter_grp",
-   "tris": 916,
+   "tris": 3008,
    "materials": [
     "electronics_lit",
     "electronics_lit",
@@ -659,12 +693,12 @@
    ],
    "blender_bbox": [
     [
-     0.3906,
+     0.3907,
      0.3753,
      0.735
     ],
     [
-     0.4994,
+     0.4993,
      0.5547,
      0.783
     ]
@@ -672,14 +706,14 @@
   },
   "elec_lab_wiring_grp__mesh": {
    "parent": "elec_lab_wiring_grp",
-   "tris": 3506,
+   "tris": 10390,
    "materials": [
-    "electronics_lit",
-    "electronics_pbr"
+    "electronics_pbr",
+    "electronics_lit"
    ],
    "blender_bbox": [
     [
-     0.4325,
+     0.4324,
      0.3723,
      0.7352
     ],
@@ -694,36 +728,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.048,
+   "normal_bumpy_fraction": 0.0252,
    "s2a": [],
    "base_mean": [
-    0.754,
-    0.498,
-    0.396
+    0.751,
+    0.493,
+    0.388
    ],
-   "ao_mean": 0.489,
-   "coverage_px": 0.457
+   "ao_mean": 0.463,
+   "coverage_px": 0.194
   },
   "lit": {
-   "lit_scale": 6.1,
-   "raw_mean": 0.1588,
-   "denoised_mean": 0.1599,
-   "p50": 0.0003,
-   "clipped_fraction": 0.00094,
-   "coverage_px": 0.569,
+   "lit_scale": 2.0,
+   "res": 2048,
+   "uv": "smart",
+   "texels_per_mm": 2.011,
+   "raw_mean": 0.1616,
+   "denoised_mean": 0.1628,
+   "p50": 0.0001,
+   "clipped_fraction": 0.04124,
+   "coverage_px": 0.465,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 24.8,
-  "rough": 25.3,
-  "metal": 24.7,
-  "ao": 27.4,
-  "normal": 25.0,
-  "lit": 48.9,
-  "lit_denoise": 0.8
+  "base": 25.9,
+  "rough": 26.3,
+  "metal": 26.0,
+  "ao": 27.0,
+  "normal": 25.9,
+  "lit": 95.3
  },
  "glb": "electronics.glb",
- "glb_bytes": 1736400,
- "seconds": 236.0
+ "glb_bytes": 4292088,
+ "seconds": 295.1
 }

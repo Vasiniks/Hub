@@ -4,15 +4,15 @@
   "obj:chair_base*"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 8000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 13846,
- "tris_after": 7743,
+ "tris_after": 13846,
  "objects": [
   {
    "name": "chair_base",
    "tris_before": 5362,
-   "tris_after": 2967
+   "tris_after": 5362
   },
   {
    "name": "chair_base_1",
@@ -22,26 +22,38 @@
   {
    "name": "chair_base_2",
    "tris_before": 5932,
-   "tris_after": 3302
+   "tris_after": 5932
   },
   {
    "name": "chair_base_3",
    "tris_before": 2432,
-   "tris_after": 1354
+   "tris_after": 2432
   }
  ],
  "skipped": {},
+ "reduction": {
+  "chair_base": "kept (custom normals)",
+  "chair_base_1": "kept",
+  "chair_base_2": "kept (custom normals)",
+  "chair_base_3": "kept (custom normals)"
+ },
  "atlas": {
   "pbr_res": null,
   "lit_res": 1024,
   "packer": {
-   "lit": "pack_islands"
+   "lit_main": "pack_islands"
   }
  },
  "textures": {
   "lit": "chair_lit.png"
  },
- "lit_scale": 0.0039,
+ "lit_scale": 0.004,
+ "lit_atlases": {
+  "main": {
+   "res": 1024,
+   "litScale": 0.004
+  }
+ },
  "material_modes": {
   "chair_lit": "lit"
  },
@@ -88,20 +100,20 @@
  "meshes": {
   "chair__mesh": {
    "parent": "chair",
-   "tris": 7743,
+   "tris": 13846,
    "materials": [
     "chair_lit"
    ],
    "blender_bbox": [
     [
-     -0.0139,
+     -0.014,
      -0.8003,
-     0.0008
+     0.0009
     ],
     [
      0.9273,
-     0.1359,
-     1.1201
+     0.136,
+     1.12
     ]
    ]
   }
@@ -109,20 +121,22 @@
  "credits": [],
  "bake_stats": {
   "lit": {
-   "lit_scale": 0.0039,
+   "lit_scale": 0.004,
+   "res": 1024,
+   "uv": "smart",
+   "texels_per_mm": 0.304,
    "raw_mean": 0.0004,
    "denoised_mean": 0.0003,
-   "p50": 0.0001,
-   "clipped_fraction": 0.00089,
-   "coverage_px": 0.51,
+   "p50": 0.0,
+   "clipped_fraction": 0.00098,
+   "coverage_px": 0.312,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "lit": 15.3,
-  "lit_denoise": 0.8
+  "lit": 12.2
  },
  "glb": "chair.glb",
- "glb_bytes": 491944,
- "seconds": 22.7
+ "glb_bytes": 830556,
+ "seconds": 18.8
 }

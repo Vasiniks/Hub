@@ -4,25 +4,25 @@
   "NEW_keyboard"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 20000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 32462,
- "tris_after": 19433,
+ "tris_after": 32382,
  "objects": [
   {
    "name": "NEW_keyboard_top_case",
    "tris_before": 1512,
-   "tris_after": 878
+   "tris_after": 1484
   },
   {
    "name": "NEW_keyboard_bottom_case",
    "tris_before": 1520,
-   "tris_after": 884
+   "tris_after": 1488
   },
   {
    "name": "NEW_keyboard_lightstrip",
    "tris_before": 344,
-   "tris_after": 200
+   "tris_after": 344
   },
   {
    "name": "NEW_keyboard_plate",
@@ -32,12 +32,12 @@
   {
    "name": "NEW_keyboard_keycaps",
    "tris_before": 22860,
-   "tris_after": 13298
+   "tris_after": 22840
   },
   {
    "name": "NEW_keyboard_switches",
    "tris_before": 1914,
-   "tris_after": 1113
+   "tris_after": 1914
   },
   {
    "name": "NEW_keyboard_display_panel",
@@ -62,7 +62,7 @@
   {
    "name": "NEW_keyboard_feet_pads",
    "tris_before": 1008,
-   "tris_after": 586
+   "tris_after": 1008
   },
   {
    "name": "NEW_keyboard_flip_feet",
@@ -77,15 +77,31 @@
   {
    "name": "NEW_keyboard_cable",
    "tris_before": 1980,
-   "tris_after": 1150
+   "tris_after": 1980
   }
  ],
  "skipped": {},
+ "reduction": {
+  "NEW_keyboard_top_case": "dissolve",
+  "NEW_keyboard_bottom_case": "dissolve",
+  "NEW_keyboard_lightstrip": "dissolve",
+  "NEW_keyboard_plate": "kept",
+  "NEW_keyboard_keycaps": "dissolve",
+  "NEW_keyboard_switches": "dissolve",
+  "NEW_keyboard_display_panel": "kept",
+  "NEW_keyboard_display_matrix": "kept",
+  "NEW_keyboard_indicators": "kept",
+  "NEW_keyboard_mode_switch": "kept",
+  "NEW_keyboard_feet_pads": "dissolve",
+  "NEW_keyboard_flip_feet": "kept",
+  "NEW_keyboard_usb_plug": "kept",
+  "NEW_keyboard_cable": "dissolve"
+ },
  "atlas": {
   "pbr_res": 256,
   "lit_res": 1024,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
    "pbr": "pack_islands"
   }
  },
@@ -94,7 +110,13 @@
   "orm": "keyboard_orm.png",
   "lit": "keyboard_lit.png"
  },
- "lit_scale": 0.66,
+ "lit_scale": 0.7,
+ "lit_atlases": {
+  "main": {
+   "res": 1024,
+   "litScale": 0.7
+  }
+ },
  "material_modes": {
   "keyboard_lit": "lit",
   "keyboard_pbr": "pbr"
@@ -124,6 +146,7 @@
  "emissive_materials": [],
  "emissive_strength_max": 1.0,
  "emissive_nodes": [],
+ "screen_nodes": [],
  "anchors": {
   "NEW_keyboard_root": {
    "blender_world": [
@@ -143,7 +166,7 @@
  "meshes": {
   "NEW_keyboard_root__mesh": {
    "parent": "NEW_keyboard_root",
-   "tris": 19433,
+   "tris": 32382,
    "materials": [
     "keyboard_lit",
     "keyboard_pbr"
@@ -173,28 +196,30 @@
     0.785
    ],
    "ao_mean": 0.002,
-   "coverage_px": 0.702
+   "coverage_px": 0.66
   },
   "lit": {
-   "lit_scale": 0.66,
-   "raw_mean": 0.011,
-   "denoised_mean": 0.0109,
+   "lit_scale": 0.7,
+   "res": 1024,
+   "uv": "smart",
+   "texels_per_mm": 0.981,
+   "raw_mean": 0.0118,
+   "denoised_mean": 0.0116,
    "p50": 0.0,
-   "clipped_fraction": 0.00175,
-   "coverage_px": 0.546,
+   "clipped_fraction": 0.00074,
+   "coverage_px": 0.477,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 8.4,
-  "rough": 7.5,
-  "metal": 7.8,
-  "ao": 7.8,
-  "normal": 7.3,
-  "lit": 109.1,
-  "lit_denoise": 0.2
+  "base": 1.3,
+  "rough": 1.4,
+  "metal": 1.4,
+  "ao": 1.4,
+  "normal": 1.4,
+  "lit": 28.7
  },
  "glb": "keyboard.glb",
- "glb_bytes": 701740,
- "seconds": 261.4
+ "glb_bytes": 1099204,
+ "seconds": 58.0
 }
