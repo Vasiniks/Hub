@@ -50,10 +50,15 @@ const arrivalEnabled = params.get('arrive') !== '0' && hourOverride === null;
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const hint = createHint();
-// Six real stages on either path; `?v2` names its own (download, renderer, then the same warm-up).
-const loader = params.has('v2')
-  ? createLoader(['room', 'renderer', 'environment', 'shaders', 'passes', 'measure'], 'loading the baked room')
-  : createLoader(['assets', 'scene', 'light', 'shaders', 'passes', 'calibrate']);
+/**
+ * The baked sunset room is the site. The original procedural room is kept, unchanged, behind
+ * `?v1` (`start()` below) until the owner decides to remove it.
+ */
+const legacyRoom = params.has('v1');
+// Six real stages on either path; each names its own (download, renderer, then the same warm-up).
+const loader = legacyRoom
+  ? createLoader(['assets', 'scene', 'light', 'shaders', 'passes', 'calibrate'])
+  : createLoader(['room', 'renderer', 'environment', 'shaders', 'passes', 'measure'], 'loading the baked room');
 
 async function start() {
   const scene = new THREE.Scene();
@@ -1052,6 +1057,13 @@ async function startV2() {
   // v2 room has none (see v2Layout.ts), so the rig moves the camera only.
   const rig = new CameraRig(camera, null, reducedMotion, V2_TUNING);
 
+  createMusicWidget({
+    title: 'Fortress of Lies',
+    artist: 'Keiichi Okabe · NieR:Automata',
+    // Official Spotify embed; swap the id, or hand createMusicWidget a TrackSource, to change it.
+    spotifyId: '1WA80p54KvFTWDxOGC2jNI',
+  });
+
   // Everything that happens because of an object (hover, outline, label, click to examine,
   // panel, Esc / click-outside, keyboard nav) is the default room's interaction modules behind
   // one `register()` call per object (src/interaction/props.ts).
@@ -1285,7 +1297,7 @@ async function startV2() {
   requestAnimationFrame(frame);
 }
 
-if (new URLSearchParams(location.search).has('v2')) {
+if (!legacyRoom) {
   startV2().catch((err) => {
     console.error(err);
     loader.fail('This room needs WebGL. Try a current desktop browser.');
