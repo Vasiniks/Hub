@@ -1,11 +1,11 @@
 // Bookshelf browsing: enter, step both ways, inspect, back out. Screenshots each state.
 import { chromium } from 'playwright-core';
+import { base, chrome } from './verify-env.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 const outDir = process.argv[2] ?? 'shelf-shots';
 const hour = process.argv[3] ?? '21.6';
 fs.mkdirSync(outDir, { recursive: true });
-const chrome = process.env.CHROME_PATH ?? '/Applications/Google Chrome 3.app/Contents/MacOS/Google Chrome';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: Number(process.env.DSF ?? 1) });
@@ -16,7 +16,7 @@ const room = (fn, arg) => page.evaluate(fn, arg);
 const shot = (n) => page.screenshot({ path: path.join(outDir, `${n}.png`) });
 const log = [];
 
-await page.goto(`http://127.0.0.1:5173/?debug&hour=${hour}`, { waitUntil: 'load' });
+await page.goto(`${base}/?debug&hour=${hour}`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__room !== undefined, { timeout: 30000 });
 await page.mouse.move(720, 450);
 await wait(2500);

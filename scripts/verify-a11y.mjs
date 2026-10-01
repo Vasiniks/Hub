@@ -1,11 +1,11 @@
 // Keyboard-only, reduced-motion, and "click while standing" verification.
 import { chromium } from 'playwright-core';
+import { base, chrome } from './verify-env.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const outDir = process.argv[2] ?? 'verify-a11y-out';
 fs.mkdirSync(outDir, { recursive: true });
-const chrome = process.env.CHROME_PATH ?? '/Applications/Google Chrome 3.app/Contents/MacOS/Google Chrome';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
 const results = {};
@@ -18,7 +18,7 @@ const errors = [];
   page.on('pageerror', (e) => errors.push(`kb: ${e.message}`));
   page.on('console', (m) => m.type() === 'error' && errors.push(`kb console: ${m.text()}`));
   const room = (fn, arg) => page.evaluate(fn, arg);
-  await page.goto('http://127.0.0.1:5173/?debug&hour=21', { waitUntil: 'load' });
+  await page.goto(`${base}/?debug&hour=21`, { waitUntil: 'load' });
   await page.waitForFunction(() => window.__room !== undefined);
   await wait(2500);
 
@@ -63,7 +63,7 @@ const errors = [];
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(`stand: ${e.message}`));
   const room = (fn, arg) => page.evaluate(fn, arg);
-  await page.goto('http://127.0.0.1:5173/?debug&hour=21', { waitUntil: 'load' });
+  await page.goto(`${base}/?debug&hour=21`, { waitUntil: 'load' });
   await page.waitForFunction(() => window.__room !== undefined);
   await page.mouse.move(720, 450);
   await wait(2500);
