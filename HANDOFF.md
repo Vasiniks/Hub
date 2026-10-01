@@ -1,5 +1,74 @@
 # Handoff: the room, as it stands
 
+> **Read this box first (2026-10-01).** The Blender remodel is now **the website**: `main` ships the baked sunset room
+> at https://vasiniks.github.io/Hub/. Everything below the box was written before that and is history where it
+> disagrees; the "Web integration — paused" section at the end is superseded by the box.
+
+## State as of 2026-10-01 (web integration finished)
+
+**What ships.** The default URL opens the baked sunset room (`startV2` in `src/main.ts`). The old procedural room is
+kept, unchanged, behind **`?v1`**; removing it is the owner's call (see *Open*). In the room:
+
+- **Baked shell, desk, furniture, curtains** from `blender/bake/sunset/` with their RGBM lightmaps
+  (`public/assets/v2/room/`, now lossless WebP, bit-identical to the PNGs) and real albedo atlases.
+- **Grade:** Blender's own view — AgX + look *Medium High Contrast* at +0.45 EV — as a 33³ LUT evaluated from Blender
+  5.2's `config.ocio` (`src/scene/v2Look.ts`, `public/assets/v2/grade/`). Against the Cycles references the error went
+  24.6 → 7.3 (stand) and 24.5 → 10.1 (seat) on 8-bit steps; the floor (Cycles' own bake preview) is 6.7 / 9.0.
+- **The street** outside as two baked panorama cards, 6 triangles + 268 KB WebP, replacing 390 k triangles
+  (`src/scene/exteriorBackdrop.ts`, `public/assets/v2/exterior/`). The window glass refracts at IOR 1.5 to match the
+  approved stills (which look through a zero-thickness refracting plane, ~1.5× magnified); `exterior.json`
+  `glass.ior = 1` gives a plain window, no re-bake.
+- **All 20 prop sets** (`public/assets/v2/props/`, exporter `blender/scripts/v2_export_web.py`), 329 k tris. Non-metal
+  surfaces are **pre-lit**: a Cycles diffuse bake (direct + indirect + colour) inside the full sunset room, shipped as
+  `KHR_materials_unlit` with radiance / `litScale` (glTF extras, capped at 8) — no live light touches them. Metals,
+  emissives and glass stay PBR, lit by an environment capture of the baked room plus the sunset sun and lamp disk
+  from room.blend (`src/scene/v2PropLight.ts`); the baked room itself is MeshBasic and cannot be lit twice.
+- **Geometry is meshopt-compressed** (`scripts/meshopt-glb.mjs`, after `optimize-glb.mjs`; 16-bit positions/UVs kept).
+  Room + props GLBs 12.2 MB → 6.9 MB; a parked frame differs by 0.65/255 mean. A visitor downloads ≈ 11 MB in all.
+- **Walk / sit / look / examine:** the old room's rig and interaction modules, reused through a prop registry
+  (`src/interaction/props.ts`, table in `src/data/v2Props.ts`). Interactive now: FRC robot, Lorenz sculpture, lab
+  bench (STM corner), notes (notepad + paper), bookshelf (baked board + exported books). Panel copy comes from
+  `src/data/projects.ts` and is **still placeholder** — the owner's to write.
+- **Moving parts:** the robot's status lens pulses 0 → 7 on a 4 s sine; the monitor runs the Lorenz attractor
+  (`src/scene/v2Animate.ts`). The A1 mini's screen and PC RGB are static emissives.
+- **Loader:** the desk monitor's attractor, which the visitor can drop points into (`src/ui/loadingTrace*.ts`,
+  worker + OffscreenCanvas; +3.2 kB gzip, no measurable load cost).
+- **Credits:** the four CC BY models are credited in a line at the bottom right, read from
+  `public/assets/v2/props/CREDITS.json` (`src/ui/credits.ts`).
+- **Low-end GPUs:** before the reveal, `startV2` times real frames and steps down a ladder — 1.5× → 1.25× → 1×, then
+  MSAA off, then 0.85×, 0.7× — until a frame fits 15.5 ms (`stepDownQuality` in `renderer.ts`); a slowdown later
+  steps down again. Under software rendering (SwiftShader) it went 339 ms → 76 ms per frame; on the RTX 5070 it stays
+  at full quality (~1.2 ms). Not yet tried on a real low-end machine or the M2 Pro.
+
+**Verified** in Chromium on this Windows machine (RTX 5070, D3D11): `scripts/verify-v2.mjs` against the production
+build (`vite build --base=/Hub/` + `vite preview`) — stand, look limits, sit, seated look, hover, focus, panel, Esc,
+click-outside, keyboard nav, click-while-standing — 0 failures, 0 console errors, ~180 fps. `npm run build` is clean.
+
+**Owner decisions taken 2026-10-01** (recorded in `assets/MANIFEST.md`): the licensing gate is **lifted** — the
+Greg Bennett guitar, Teto pear, Red Bull can, GPU kit and the speedcube "18" logo all ship. The web code was written
+by Claude subagents directly, not through OpenCode, for this pass. `blender-remodel`'s `.blend` files were already in
+`main` from the earlier `?v2` merge.
+
+**Open**
+- **Remove v1?** Deleting the old room's code and assets was refused by the auto-mode safety check as irreversible,
+  so it sits behind `?v1` instead. Deleting it (`start()`, its scene modules, `public/assets/processed`,
+  `public/assets/textures`, `ltc.bin`) is a one-commit job once the owner says so. The `verify-room/-shelf/-books/…`
+  scripts test v1 and now need `?v1`.
+- **Panel copy** is placeholder everywhere (as it was in v1).
+- **Known visual compromises:** robot 63 k tris (thin plates shred below that) and its polycarbonate hopper shows
+  some faceting up close; ~6% of the lamp head's lit texels clip (white under AgX anyway); the PC's saturated pinks
+  lose ~7% to WebP chroma; environment specular on baked trim is built but off (it made the match worse);
+  no chair motion when sitting (the camera moves; the chair is a static prop).
+- The old PNG lightmaps are still in `public/assets/v2/room/` beside the WebP (unused at runtime).
+
+**Rebuild the web assets** (each Blender run through a lock, one at a time — the owner's live window shares the
+GPU): props `blender -b blender/scene/room.blend --python blender/scripts/v2_export_web.py -- <set|all>` →
+`PROPS_SRC=tmp/props_raw PROPS_DST=public/assets/v2/props node scripts/optimize-glb.mjs` →
+`node scripts/props-manifest.mjs` → `node scripts/meshopt-glb.mjs`. Exterior: `blender/scripts/v2_exterior_web.py`
+then `scripts/encode-exterior.mjs`. Grade LUT and albedo atlases: `scripts/v2look/`.
+
+---
+
 Written 2026-09-30 on branch **`blender-remodel`** (pushed; `main` is untouched and still ships the old web build).
 This is the whole state of the project for whoever picks it up next — human or agent. Read it before touching
 anything; it exists so the next pass does not redo work or undo decisions the owner already made.
@@ -165,7 +234,7 @@ The owner's earlier instruction: non-Blender (website) work goes through **OpenC
 
 ---
 
-# Web integration — paused 2026-10-01
+# Web integration — paused 2026-10-01 (history; superseded by the box at the top)
 
 Everything below was started after the Blender remodel landed, and is **paused mid-flight** at the
 owner's request. Nothing here is merged except where it says so. Five OpenCode agents were stopped;
