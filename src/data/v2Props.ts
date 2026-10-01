@@ -49,15 +49,22 @@ export const v2Props: V2PropDef[] = [
   {
     id: 'lorenz',
     label: 'Lorenz attractor',
-    source: { file: 'lorenz' },
+    source: { props: ['lorenz_sculpture'] },
     panel: projectPanel('polyhedron', 'Lorenz attractor'),
   },
   {
+    // The STM corner: stage, copper Faraday box, preamp, meter and the Teensy breadboard.
     id: 'lab-bench',
     label: 'Lab bench',
-    source: { file: 'electronics' },
+    source: { props: ['elec_stm_stage_grp', 'elec_faraday_grp', 'elec_preamp_grp', 'elec_multimeter_grp', 'elec_breadboard_grp'] },
     panel: projectPanel('dev-board'),
     lift: false,
+  },
+  {
+    id: 'notebooks',
+    label: 'Notes',
+    source: { props: ['elec_notes', 'paper'] },
+    panel: projectPanel('notebooks'),
   },
   {
     // The wall shelf, baked into the furniture atlas. Its books and items are not in the bake (they

@@ -1036,7 +1036,7 @@ async function startV2() {
   // Live sun + lamp for the PBR props only; the baked room ignores live light (v2PropLight.ts).
   const propLight = createV2PropLight(scene, baked.atlases.shell, propFiles.group);
   // The robot's pulsing status light and the attractor on the monitor (v2Animate.ts).
-  const animations = createV2Animations(propFiles.group, reducedMotion);
+  const animations = createV2Animations(propFiles.group, reducedMotion, new THREE.Vector3(...V2_TUNING.seat.position));
   loader.advance('starting the renderer');
 
   // Dummy lights: only to satisfy createRenderer's signature (volumetric + lamp-shadow
@@ -1209,6 +1209,7 @@ async function startV2() {
       __room: {
         mode: () => rig.mode,
         calibration: () => calibration,
+        animations: () => animations.info(),
         frames: () => frameCount,
         camera: () => ({ position: camera.position.toArray(), quaternion: camera.quaternion.toArray() }),
         programs: () => (view.renderer.info.programs ?? []).map((p) => p.name),
