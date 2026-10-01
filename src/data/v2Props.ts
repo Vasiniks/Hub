@@ -20,6 +20,8 @@ export interface V2PropDef {
   focus?: PropFocus;
   dot?: [number, number, number];
   lift?: boolean;
+  /** Per-frame animation (the robot's status lens, a screen); `activity` 0→1 under attention. */
+  tick?: (time: number, activity: number) => void;
 }
 
 export const v2Props: V2PropDef[] = [

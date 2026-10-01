@@ -1,10 +1,11 @@
 // Finds shader programs compiled after the loading screen: sweeps the clock and the main
 // interactions, logging any new program and the frame time it cost.
 import { chromium } from 'playwright-core';
+import { base as envBase, chrome } from './verify-env.mjs';
 const start = Number(process.argv[2] ?? 13);
-const base = process.env.BASE ?? 'http://127.0.0.1:5173';
+const base = process.env.BASE ?? envBase;
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome 3.app/Contents/MacOS/Google Chrome', headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on('pageerror', (e) => console.log('ERR', e.message));
 await page.goto(`${base}/?debug&pr=1&hour=${start}`, { waitUntil: 'load' });

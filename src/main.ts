@@ -1067,7 +1067,7 @@ async function startV2() {
       skippedProps.push(def.id);
       continue;
     }
-    props.register({ id: def.id, label: def.label, node: nodes, panel: def.panel, focus: def.focus, dot: def.dot, lift: def.lift });
+    props.register({ ...def, node: nodes });
   }
 
   function sitV2() {
