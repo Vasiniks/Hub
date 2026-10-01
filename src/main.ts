@@ -10,7 +10,6 @@ import { showCredits } from './ui/credits';
 import { loadBakedRoom } from './scene/bakedRoom';
 import { applyV2Look } from './scene/v2Look';
 import { V2_TUNING } from './scene/v2Layout';
-import { BloomPass } from './scene/bloom';
 import { findNodes, loadV2Props } from './scene/v2Props';
 import { createV2PropLight } from './scene/v2PropLight';
 import { createV2Animations } from './scene/v2Animate';
@@ -90,22 +89,10 @@ async function startV2() {
   const animations = createV2Animations(propFiles.group, reducedMotion, new THREE.Vector3(...V2_TUNING.seat.position));
   loader.advance('starting the renderer');
 
-  // Dummy lights: only to satisfy createRenderer's signature (volumetric + lamp-shadow
-  // passes). They are never added to the scene and never light anything — every baked
-  // material is unlit-by-live-lights by construction (see bakedRoom.ts).
-  const sun = new THREE.DirectionalLight(0x000000, 0);
-  const lamp = new THREE.SpotLight(0x000000, 0);
-  // deepLadder: weak GPUs may drop MSAA and go below 1× (see stepDownQuality in renderer.ts).
-  const view = createRenderer(canvas, scene, camera, sun, lamp, { deepLadder: true });
+  // Weak GPUs step down resolution, then MSAA, then below 1× (see stepDownQuality in renderer.ts).
+  const view = createRenderer(canvas, scene, camera);
   // Sunset grade: Blender's own view (AgX, look Medium High Contrast) at the bake's +0.45 EV.
   await applyV2Look(view, scene, camera, baked);
-  // The bake already holds every bounce, shaft and glow: no live post-light effects.
-  view.ao.enabled = false;
-  view.volumetric.enabled = false;
-  // `instanceof`, not `constructor.name`: the production build renames classes.
-  for (const p of view.composer.passes) {
-    if (p instanceof BloomPass) p.enabled = false;
-  }
 
   // The same first-person rig as the default room — same file, same spring, same sit
   // transition — driven by the v2 room's own poses and limits (V2_TUNING). No chair: the
@@ -245,7 +232,7 @@ async function startV2() {
     }
     props.update(dt, elapsed);
     animations.update(dt, elapsed, camera, props.focusedId ? 1 : 0);
-    view.render(dt, elapsed, !reducedMotion);
+    view.render(dt);
 
     if (firstFrame && !calibrating) {
       firstFrame = false;

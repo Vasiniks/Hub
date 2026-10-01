@@ -9,9 +9,10 @@
 **What ships.** The site is the baked sunset room (`startV2` in `src/main.ts`). The old procedural room was
 **removed** on 2026-10-01 at the owner's request: its entry path, scene modules (room, desk, bookshelf, objects, dust,
 assets, build, merge, exterior, ltc), book data and shelf UI, its public assets (`processed/`, `textures/`,
-`ltc.bin`) and the verify/perf scripts that drove it. The renderer still contains its light passes (AO, volumetric
-shafts, rect-area lights, the lamp disk shadow, bloom), all disabled on this path — stripping them out of
-`renderer.ts` is a follow-up refactor, not a behaviour change. In the room:
+`ltc.bin`) and the verify/perf scripts that drove it. Its light passes are gone from the renderer too (AO, volumetric shafts,
+rect-area lights, the lamp disk shadow, bloom, the cinematic grade, time-of-day lighting): `renderer.ts` is now one
+MSAA scene pass, the hover outline and one composite through Blender's display LUT, plus the props' environment
+capture. In the room:
 
 - **Baked shell, desk, furniture, curtains** from `blender/bake/sunset/` with their RGBM lightmaps
   (`public/assets/v2/room/`, now lossless WebP, bit-identical to the PNGs) and real albedo atlases.
@@ -58,8 +59,6 @@ by Claude subagents directly, not through OpenCode, for this pass. `blender-remo
 `main` from the earlier `?v2` merge.
 
 **Open**
-- **Renderer clean-up:** the old room's passes still live in `src/scene/renderer.ts` (disabled here); removing them
-  would save their render-target memory on weak GPUs.
 - **Panel copy** is placeholder everywhere (as it was in v1).
 - **Known visual compromises:** robot 63 k tris (thin plates shred below that) and its polycarbonate hopper shows
   some faceting up close; ~6% of the lamp head's lit texels clip (white under AgX anyway); the PC's saturated pinks
