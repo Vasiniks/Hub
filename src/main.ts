@@ -1006,7 +1006,7 @@ function gpuFence(gl: WebGL2RenderingContext) {
  */
 async function startV2() {
   const scene = new THREE.Scene();
-  // Placeholder until the exterior workstream lands: the window currently looks onto this.
+  // Behind the exterior cards; only seen if they fail to load.
   scene.background = new THREE.Color('#c4b6a8');
   scene.fog = null;
 
