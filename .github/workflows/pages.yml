@@ -1,0 +1,49 @@
+# Build the room and publish it to GitHub Pages.
+#
+# Pages serves this repo at https://vasiniks.github.io/Hub/, so the bundle is built with that
+# sub-path as its base. Every asset fetch in the runtime already goes through
+# `import.meta.env.BASE_URL`, which is what `--base` sets, so nothing else needs to know the path.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# The deploy job needs these; nothing here writes to the repository.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time. A newer push supersedes a run that has not finished.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # `npm run build` is tsc --noEmit && vite build, so a type error fails the deploy.
+      - run: npm run build -- --base=/Hub/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
