@@ -45,6 +45,24 @@ capture. In the room:
   steps down again. Under software rendering (SwiftShader) it went 339 ms → 76 ms per frame; on the RTX 5070 it stays
   at full quality (~1.2 ms). Not yet tried on a real low-end machine or the M2 Pro.
 
+**Re-bake, 2026-10-01 afternoon** (owner: "the bake is horrible"). Diagnosed with Playwright close-ups of every
+prop against Cycles renders from the same 25 cameras (`C:/Users/Vas/Documents/Github/closeup-poses.json`,
+references in `closeup-cycles/`). Causes and fixes:
+- **Props** (`v2_export_web.py`): quadric collapse to tight budgets before the bake shredded thin CAD and made stacked
+  parts intersect, which baked black (the paper's black wedge, the PC top speckles). Now weld + 0.5° limited dissolve
+  only, collapse (≥0.6) only on dense scans, medal relief baked to normals. Lit atlases 1024–2048 (PC split into case,
+  interior, plush), k capped at 2 and WebP q92 (k up to 8 at q82 had crushed the darks). Painted labels (the Red Bull
+  can) and rough metal (the robot) bake lit; only polished metal stays PBR. A UDIM spill in `pack_islands` (robot,
+  guitar) is fixed and asserted. 1.09 M → 898 k tris, props 13.2 MB after meshopt.
+- **Room** (`v2_bake_sunset.py`): tile-cut islands denoised separately gave the ceiling panels and seams; Blender's
+  per-object bake margin painted ~10 px sky-blue bands over neighbours. Now one island per face/run, visibility-tested
+  density (211 px/m on every seen shell face, was 113; ceiling was 8–68), 1024 spp, half-gutter margin with
+  same-island refill. Room 5.1 → 7.4 MB. Full report: `.claude/briefs/report-room-rebake.md`.
+- **Runtime:** the props' environment capture keeps the pre-lit props in view (only PBR props are hidden).
+Still different from Cycles: polished brass/aluminium read a little bright (environment-lit), some book spines show
+warm stripes, medal ribbons ship PBR (their lit bake showed unexplained black patches). The curtains ship as their
+cage mesh (subdivided would be ~280 k tris).
+
 **Agents and reports.** Claude Code does not let subagents write report files, so a workstream's report is its final
 message and the coordinator commits it (`.claude/briefs/_common.md` rule 10). The 2026-10-01 reports are
 `.claude/briefs/report-{v2-rig,loading,web-exterior,v2-look,web-props}.md`.
