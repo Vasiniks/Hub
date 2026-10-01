@@ -244,18 +244,66 @@ kbd {
 
 
 /* ---- Loading state -------------------------------------------------------
-   A bar on an empty field. It only moves when a preparation stage finishes. */
+   A bar that only moves when a preparation stage finishes. Above it, the desk
+   monitor's Lorenz system, already running: a button, so a click or Enter drops
+   a point into it. Gone with the loader; it never reports progress. */
 .loader {
   position: fixed;
   inset: 0;
   z-index: 40;
   display: grid;
   place-content: center;
-  gap: 18px;
+  justify-items: center;
+  gap: 14px;
   background: #0f1216;
   transition: opacity 400ms var(--ease-out);
 }
 .loader.is-done { opacity: 0; pointer-events: none; }
+.loader-toy {
+  display: block;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: crosshair;
+  border-radius: calc(var(--radius) + 1px);
+  /* Hidden (and unfocusable) until the figure is actually running: never a dead "click me". */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 300ms var(--ease-out), visibility 0s linear;
+}
+.loader-toy[data-live] { visibility: visible; }
+.loader-toy[data-live],
+.loader-toy[data-live] + .loader-caption { opacity: 1; }
+.loader-toy:focus-visible { outline: 1px solid var(--ink-soft); outline-offset: 4px; }
+.loader-toy:disabled { cursor: default; }
+.loader-trace {
+  display: block;
+  width: min(384px, 72vw);
+  height: auto;
+  aspect-ratio: 2 / 1;
+  background: #04070a;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  transition: border-color 200ms var(--ease-out);
+}
+.loader-toy:hover .loader-trace { border-color: rgba(233, 236, 239, 0.22); }
+.loader-caption {
+  margin: 0 0 10px;
+  text-align: center;
+  font: 400 11px/1.4 var(--font);
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: rgba(233, 236, 239, 0.34);
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+/* After the first drop the instruction gives way to what the visitor just saw. */
+.loader-caption-after { display: none; }
+.loader-toy[data-dropped] + .loader-caption .loader-caption-before { display: none; }
+.loader-toy[data-dropped] + .loader-caption .loader-caption-after { display: inline; }
 .loader-track {
   width: 260px;
   height: 2px;
@@ -371,7 +419,7 @@ kbd {
 .shelf-caption span { font: 400 12px/1.4 var(--font); color: var(--ink-faint); }
 
 @media (prefers-reduced-motion: reduce) {
-  #veil, .hint, .hover-label, .panel, .loader, .loader-fill, .music, .shelf-caption {
+  #veil, .hint, .hover-label, .panel, .loader, .loader-fill, .loader-toy, .loader-trace, .loader-caption, .music, .shelf-caption {
     transition-duration: 1ms !important;
   }
   .panel { filter: none; transform: translate(0, -50%); }

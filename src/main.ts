@@ -48,7 +48,10 @@ const arrivalEnabled = params.get('arrive') !== '0' && hourOverride === null;
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const hint = createHint();
-const loader = createLoader(['assets', 'scene', 'light', 'shaders', 'passes', 'calibrate']);
+// Six real stages on either path; `?v2` names its own (download, renderer, then the same warm-up).
+const loader = params.has('v2')
+  ? createLoader(['room', 'renderer', 'environment', 'shaders', 'passes', 'measure'], 'loading the baked room')
+  : createLoader(['assets', 'scene', 'light', 'shaders', 'passes', 'calibrate']);
 
 async function start() {
   const scene = new THREE.Scene();
@@ -1011,7 +1014,6 @@ async function startV2() {
   camera.layers.enable(OVERLAY_LAYER);
 
   const base = `${import.meta.env.BASE_URL}assets/v2/room/`;
-  loader.advance('baked room');
   // Props load alongside the bake; with no manifest yet this resolves empty.
   const [baked, propFiles] = await Promise.all([
     loadBakedRoom(base),
@@ -1021,7 +1023,7 @@ async function startV2() {
   if (propFiles.props.length) scene.add(propFiles.group);
   // Live sun + lamp for the PBR props only; the baked room ignores live light (v2PropLight.ts).
   const propLight = createV2PropLight(scene, baked.atlases.shell, propFiles.group);
-  loader.advance('lightmaps');
+  loader.advance('starting the renderer');
 
   // Dummy lights: only to satisfy createRenderer's signature (volumetric + lamp-shadow
   // passes). They are never added to the scene and never light anything — every baked
@@ -1264,7 +1266,6 @@ async function startV2() {
     }
     return { frameMs: +cost.toFixed(2), chosen: view.pixelRatio(), msaa: view.msaa(), steps, trace };
   }
-  loader.advance('measuring');
   const calibration = await calibrate();
   calibrating = false;
   // The calibration frames advanced the clocks; put them back so the visitor starts at zero.

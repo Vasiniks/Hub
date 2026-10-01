@@ -4,11 +4,21 @@
  * The fill position is always "stages finished / stages total". Nothing is interpolated toward
  * a guess and nothing advances on a timer, so the bar never claims progress that has not
  * happened. The CSS transition only smooths the travel between two real positions.
+ *
+ * The wait itself belongs to the room: the desk monitor's Lorenz system, already running, that
+ * the visitor can drop points into (`loadingTrace.ts`). It is Canvas2D, started here, and
+ * stopped synchronously in `hide()`/`fail()` — it never holds the reveal hostage and never
+ * touches the bar.
  */
-export function createLoader(stages: readonly string[]) {
+import { loadingTrace } from './loadingTrace';
+
+/** `firstLabel` names the first stage when the markup's generic one would be vaguer. */
+export function createLoader(stages: readonly string[], firstLabel?: string) {
   const root = document.getElementById('loader')!;
   const fill = document.getElementById('loader-fill')!;
   const label = document.getElementById('loader-label')!;
+  const trace = loadingTrace();
+  if (firstLabel) label.textContent = firstLabel;
   let done = 0;
   /** When each stage finished, in ms since navigation start — read by the startup profiler. */
   const marks: { stage: string; at: number }[] = [];
@@ -25,11 +35,14 @@ export function createLoader(stages: readonly string[]) {
       if (next) label.textContent = next;
     },
     fail(message: string) {
+      trace.stop();
       label.textContent = message;
       root.classList.add('is-failed');
     },
     /** Resolves once the bar has faded, so the first real frame lands on an empty screen. */
     hide(): Promise<void> {
+      // Stop the trace first, synchronously: nothing the visitor started outlives the loader.
+      trace.stop();
       fill.style.transform = 'scaleX(1)';
       root.classList.add('is-done');
       return new Promise((resolve) =>
