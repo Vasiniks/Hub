@@ -1,0 +1,112 @@
+{
+ "set": "redbull",
+ "sources": [
+  "NEW_redbull"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": 4000,
+ "within_budget": true,
+ "tris_before": 15095,
+ "tris_after": 1784,
+ "objects": [
+  {
+   "name": "RedBull_can",
+   "tris_before": 15095,
+   "tris_after": 1784
+  }
+ ],
+ "skipped": {},
+ "atlas": {
+  "pbr_res": 512,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "redbull_basecolor.png",
+  "orm": "redbull_orm.png",
+  "normal": "redbull_normal.png"
+ },
+ "lit_scale": null,
+ "material_modes": {
+  "redbull_pbr": "pbr"
+ },
+ "material_kinds": {
+  "Material": "metal",
+  "Material.043": "metal",
+  "Material.044": "metal",
+  "Material.045": "metal",
+  "body": "metal",
+  "redbull_tops": "metal"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "anchors": {
+  "NEW_redbull_root": {
+   "blender_world": [
+    -0.47,
+    0.72,
+    0.735
+   ],
+   "three_world": [
+    -0.47,
+    0.735,
+    -0.72
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_redbull_root__mesh": {
+   "parent": "NEW_redbull_root",
+   "tris": 1784,
+   "materials": [
+    "redbull_pbr",
+    "redbull_pbr",
+    "redbull_pbr",
+    "redbull_pbr",
+    "redbull_pbr",
+    "redbull_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -0.5048,
+     0.6852,
+     0.735
+    ],
+    [
+     -0.4352,
+     0.7548,
+     0.8695
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.0109,
+   "s2a": [],
+   "base_mean": [
+    0.67,
+    0.671,
+    0.757
+   ],
+   "ao_mean": 0.782,
+   "coverage_px": 0.603
+  }
+ },
+ "bake_seconds": {
+  "base": 2.1,
+  "rough": 2.0,
+  "metal": 2.2,
+  "ao": 2.6,
+  "normal": 2.0
+ },
+ "glb": "redbull.glb",
+ "glb_bytes": 108728,
+ "seconds": 14.0
+}

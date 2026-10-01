@@ -1,0 +1,160 @@
+{
+ "set": "mouse_mx",
+ "sources": [
+  "NEW_mouse_mx"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": 12000,
+ "within_budget": true,
+ "tris_before": 23024,
+ "tris_after": 11616,
+ "objects": [
+  {
+   "name": "MouseMX_Shell",
+   "tris_before": 19232,
+   "tris_after": 9500
+  },
+  {
+   "name": "MouseMX_ScrollWheel",
+   "tris_before": 1728,
+   "tris_after": 852
+  },
+  {
+   "name": "MouseMX_ThumbWheel",
+   "tris_before": 1152,
+   "tris_after": 568
+  },
+  {
+   "name": "MouseMX_BasePlate",
+   "tris_before": 356,
+   "tris_after": 140
+  },
+  {
+   "name": "MouseMX_FootL",
+   "tris_before": 212,
+   "tris_after": 212
+  },
+  {
+   "name": "MouseMX_FootR",
+   "tris_before": 220,
+   "tris_after": 220
+  },
+  {
+   "name": "MouseMX_USBC",
+   "tris_before": 124,
+   "tris_after": 124
+  }
+ ],
+ "skipped": {},
+ "atlas": {
+  "pbr_res": 256,
+  "lit_res": 1024,
+  "packer": {
+   "lit": "pack_islands",
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "mouse_mx_basecolor.png",
+  "orm": "mouse_mx_orm.png",
+  "normal": "mouse_mx_normal.png",
+  "lit": "mouse_mx_lit.png"
+ },
+ "lit_scale": 0.17,
+ "material_modes": {
+  "mouse_mx_lit": "lit",
+  "mouse_mx_pbr": "pbr"
+ },
+ "material_kinds": {
+  "MX_BaseSilver.001": "opaque",
+  "MX_BlackPlastic.001": "opaque",
+  "MX_Feet.001": "opaque",
+  "MX_PaleGrey.001": "opaque",
+  "MX_SatinSilver.001": "opaque",
+  "MX_SideButton": "opaque",
+  "MX_Steel.001": "metal",
+  "MX_Steel_Thumb.001": "metal",
+  "MX_WellDark.001": "opaque"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "anchors": {
+  "NEW_mouse_mx_root": {
+   "blender_world": [
+    0.33,
+    0.45,
+    0.735
+   ],
+   "three_world": [
+    0.33,
+    0.735,
+    -0.45
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_mouse_mx_root__mesh": {
+   "parent": "NEW_mouse_mx_root",
+   "tris": 11616,
+   "materials": [
+    "mouse_mx_lit",
+    "mouse_mx_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.2795,
+     0.3823,
+     0.735
+    ],
+    [
+     0.3806,
+     0.5177,
+     0.786
+    ]
+   ]
+  }
+ },
+ "credits": [
+  {
+   "key": "mx_master_3s",
+   "text": "\"Mouse Logitech MX Master 3S white\" by Guibazilla, CC BY 4.0 (https://sketchfab.com/3d-models/mouse-logitech-mx-master-3s-white-dc82de97cbe64c6a8deae3328208c984)"
+  }
+ ],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.3952,
+   "s2a": [],
+   "base_mean": [
+    0.555,
+    0.562,
+    0.578
+   ],
+   "ao_mean": 0.18,
+   "coverage_px": 0.384
+  },
+  "lit": {
+   "lit_scale": 0.17,
+   "raw_mean": 0.0338,
+   "denoised_mean": 0.0341,
+   "p50": 0.0188,
+   "clipped_fraction": 0.00111,
+   "coverage_px": 0.519,
+   "samples": 256
+  }
+ },
+ "bake_seconds": {
+  "base": 16.9,
+  "rough": 16.1,
+  "metal": 15.3,
+  "ao": 11.1,
+  "normal": 3.4,
+  "lit": 73.6,
+  "lit_denoise": 0.3
+ },
+ "glb": "mouse_mx.glb",
+ "glb_bytes": 422000,
+ "seconds": 182.7
+}

@@ -1,0 +1,220 @@
+{
+ "set": "macbook",
+ "sources": [
+  "NEW_macbook"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": 10000,
+ "within_budget": true,
+ "tris_before": 14742,
+ "tris_after": 9704,
+ "objects": [
+  {
+   "name": "NEW_mbp_base",
+   "tris_before": 5094,
+   "tris_after": 3296
+  },
+  {
+   "name": "NEW_mbp_lid",
+   "tris_before": 1452,
+   "tris_after": 938
+  },
+  {
+   "name": "NEW_mbp_core",
+   "tris_before": 108,
+   "tris_after": 108
+  },
+  {
+   "name": "NEW_mbp_port_inserts",
+   "tris_before": 104,
+   "tris_after": 104
+  },
+  {
+   "name": "NEW_mbp_magsafe_pins",
+   "tris_before": 60,
+   "tris_after": 60
+  },
+  {
+   "name": "NEW_mbp_hinge_barrel",
+   "tris_before": 332,
+   "tris_after": 214
+  },
+  {
+   "name": "NEW_mbp_vent_fins",
+   "tris_before": 1452,
+   "tris_after": 938
+  },
+  {
+   "name": "NEW_mbp_feet",
+   "tris_before": 1776,
+   "tris_after": 1148
+  },
+  {
+   "name": "NEW_mbp_screws",
+   "tris_before": 840,
+   "tris_after": 542
+  },
+  {
+   "name": "NEW_mbp_screw_sockets",
+   "tris_before": 216,
+   "tris_after": 216
+  },
+  {
+   "name": "NEW_stand_sheet",
+   "tris_before": 2460,
+   "tris_after": 1592
+  },
+  {
+   "name": "NEW_stand_deck_pads",
+   "tris_before": 424,
+   "tris_after": 274
+  },
+  {
+   "name": "NEW_stand_base_pads",
+   "tris_before": 424,
+   "tris_after": 274
+  }
+ ],
+ "skipped": {},
+ "atlas": {
+  "pbr_res": 1024,
+  "lit_res": 512,
+  "packer": {
+   "lit": "pack_islands",
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "macbook_basecolor.png",
+  "orm": "macbook_orm.png",
+  "normal": "macbook_normal.png",
+  "lit": "macbook_lit.png"
+ },
+ "lit_scale": 0.017,
+ "material_modes": {
+  "macbook_lit": "lit",
+  "macbook_pbr": "pbr"
+ },
+ "material_kinds": {
+  "mbp_alu_silver_blasted": "metal",
+  "mbp_bezel_black": "opaque",
+  "mbp_feet_rubber": "opaque",
+  "mbp_hinge_cover_dark": "metal",
+  "mbp_magsafe_pins": "metal",
+  "mbp_port_interior": "opaque",
+  "mbp_port_tongue": "opaque",
+  "mbp_screw_steel": "metal",
+  "stand_alu_spacegrey_anod": "metal",
+  "stand_silicone_pad": "opaque"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "anchors": {
+  "NEW_macbook_laptop": {
+   "blender_world": [
+    -0.05,
+    0.7115,
+    0.7891
+   ],
+   "three_world": [
+    -0.05,
+    0.7891,
+    -0.7115
+   ],
+   "parent": "NEW_macbook_root",
+   "is_pivot": false
+  },
+  "NEW_macbook_root": {
+   "blender_world": [
+    -0.05,
+    0.7336,
+    0.735
+   ],
+   "three_world": [
+    -0.05,
+    0.735,
+    -0.7336
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_macbook_laptop__mesh": {
+   "parent": "NEW_macbook_laptop",
+   "tris": 7564,
+   "materials": [
+    "macbook_pbr",
+    "macbook_lit"
+   ],
+   "blender_bbox": [
+    [
+     -0.2063,
+     0.601,
+     0.7568
+    ],
+    [
+     0.1063,
+     0.8173,
+     0.8371
+    ]
+   ]
+  },
+  "NEW_macbook_root__mesh": {
+   "parent": "NEW_macbook_root",
+   "tris": 2140,
+   "materials": [
+    "macbook_pbr",
+    "macbook_lit"
+   ],
+   "blender_bbox": [
+    [
+     -0.185,
+     0.6,
+     0.735
+    ],
+    [
+     0.085,
+     0.8675,
+     0.8205
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.0086,
+   "s2a": [],
+   "base_mean": [
+    0.636,
+    0.644,
+    0.663
+   ],
+   "ao_mean": 0.282,
+   "coverage_px": 0.724
+  },
+  "lit": {
+   "lit_scale": 0.017,
+   "raw_mean": 0.0001,
+   "denoised_mean": 0.0001,
+   "p50": 0.0,
+   "clipped_fraction": 0.00171,
+   "coverage_px": 0.574,
+   "samples": 256
+  }
+ },
+ "bake_seconds": {
+  "base": 39.1,
+  "rough": 15.5,
+  "metal": 15.9,
+  "ao": 17.8,
+  "normal": 33.9,
+  "lit": 57.1,
+  "lit_denoise": 0.9
+ },
+ "glb": "macbook.glb",
+ "glb_bytes": 406304,
+ "seconds": 269.7
+}

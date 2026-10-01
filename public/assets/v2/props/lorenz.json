@@ -1,0 +1,170 @@
+{
+ "set": "lorenz",
+ "sources": [
+  "NEW_lorenz"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": 15000,
+ "within_budget": true,
+ "tris_before": 39832,
+ "tris_after": 10216,
+ "objects": [
+  {
+   "name": "NEW_lorenz_paper_page4",
+   "tris_before": 1424,
+   "tris_after": 64
+  },
+  {
+   "name": "NEW_lorenz_paper_page3",
+   "tris_before": 1424,
+   "tris_after": 16
+  },
+  {
+   "name": "NEW_lorenz_paper_page2",
+   "tris_before": 1424,
+   "tris_after": 28
+  },
+  {
+   "name": "NEW_lorenz_paper_page1",
+   "tris_before": 1424,
+   "tris_after": 36
+  },
+  {
+   "name": "NEW_lorenz_staple",
+   "tris_before": 704,
+   "tris_after": 184
+  },
+  {
+   "name": "NEW_lorenz_felt_pad",
+   "tris_before": 288,
+   "tris_after": 288
+  },
+  {
+   "name": "NEW_lorenz_base",
+   "tris_before": 2592,
+   "tris_after": 1362
+  },
+  {
+   "name": "NEW_lorenz_wire",
+   "tris_before": 29664,
+   "tris_after": 7794
+  },
+  {
+   "name": "NEW_lorenz_stand",
+   "tris_before": 600,
+   "tris_after": 156
+  },
+  {
+   "name": "NEW_lorenz_solder",
+   "tris_before": 288,
+   "tris_after": 288
+  }
+ ],
+ "skipped": {},
+ "atlas": {
+  "pbr_res": 512,
+  "lit_res": 1024,
+  "packer": {
+   "lit": "pack_islands",
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "lorenz_basecolor.png",
+  "orm": "lorenz_orm.png",
+  "normal": "lorenz_normal.png",
+  "lit": "lorenz_lit.png"
+ },
+ "lit_scale": 4.6000000000000005,
+ "material_modes": {
+  "lorenz_lit": "lit",
+  "lorenz_pbr": "pbr"
+ },
+ "material_kinds": {
+  "lorenz_black_granite.001": "opaque",
+  "lorenz_brass_polished.001": "metal",
+  "lorenz_felt.001": "opaque",
+  "lorenz_paper_back": "opaque",
+  "lorenz_paper_page1": "opaque",
+  "lorenz_paper_page2": "opaque",
+  "lorenz_paper_page3": "opaque",
+  "lorenz_paper_page4": "opaque",
+  "lorenz_staple_steel": "metal"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "anchors": {
+  "NEW_lorenz_root": {
+   "blender_world": [
+    -0.4525,
+    0.9291,
+    0.735
+   ],
+   "three_world": [
+    -0.4525,
+    0.735,
+    -0.9291
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_lorenz_root__mesh": {
+   "parent": "NEW_lorenz_root",
+   "tris": 10216,
+   "materials": [
+    "lorenz_lit",
+    "lorenz_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -1.0146,
+     0.4232,
+     0.7351
+    ],
+    [
+     -0.384,
+     0.9907,
+     0.9238
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.7329,
+   "s2a": [],
+   "base_mean": [
+    0.937,
+    0.843,
+    0.635
+   ],
+   "ao_mean": 0.59,
+   "coverage_px": 0.057
+  },
+  "lit": {
+   "lit_scale": 4.6000000000000005,
+   "raw_mean": 0.1651,
+   "denoised_mean": 0.1651,
+   "p50": 0.0019,
+   "clipped_fraction": 0.00195,
+   "coverage_px": 0.657,
+   "samples": 256
+  }
+ },
+ "bake_seconds": {
+  "base": 5.2,
+  "rough": 5.2,
+  "metal": 5.2,
+  "ao": 5.3,
+  "normal": 5.3,
+  "lit": 29.9,
+  "lit_denoise": 0.8
+ },
+ "glb": "lorenz.glb",
+ "glb_bytes": 602580,
+ "seconds": 72.5
+}

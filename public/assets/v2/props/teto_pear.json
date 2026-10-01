@@ -1,0 +1,95 @@
+{
+ "set": "teto_pear",
+ "sources": [
+  "NEW_teto_pear"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 1192,
+ "tris_after": 1192,
+ "objects": [
+  {
+   "name": "tetopear",
+   "tris_before": 1192,
+   "tris_after": 1192
+  }
+ ],
+ "skipped": {},
+ "atlas": {
+  "pbr_res": null,
+  "lit_res": 512,
+  "packer": {
+   "lit": "pack_islands"
+  }
+ },
+ "textures": {
+  "lit": "teto_pear_lit.png"
+ },
+ "lit_scale": 0.16,
+ "material_modes": {
+  "teto_pear_lit": "lit"
+ },
+ "material_kinds": {
+  "tetopear": "opaque"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "anchors": {
+  "NEW_teto_pear_root": {
+   "blender_world": [
+    -0.05,
+    0.945,
+    0.7452
+   ],
+   "three_world": [
+    -0.05,
+    0.7452,
+    -0.945
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_teto_pear_root__mesh": {
+   "parent": "NEW_teto_pear_root",
+   "tris": 1192,
+   "materials": [
+    "teto_pear_lit"
+   ],
+   "blender_bbox": [
+    [
+     0.2946,
+     0.76,
+     0.7345
+    ],
+    [
+     0.3453,
+     0.8108,
+     0.8095
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "lit": {
+   "lit_scale": 0.16,
+   "raw_mean": 0.0389,
+   "denoised_mean": 0.0386,
+   "p50": 0.075,
+   "clipped_fraction": 0.00105,
+   "coverage_px": 0.58,
+   "samples": 256
+  }
+ },
+ "bake_seconds": {
+  "lit": 6.3,
+  "lit_denoise": 1.3
+ },
+ "glb": "teto_pear.glb",
+ "glb_bytes": 55720,
+ "seconds": 10.6
+}
