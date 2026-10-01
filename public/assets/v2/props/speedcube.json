@@ -4,164 +4,200 @@
   "NEW_speedcube"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 12000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 34184,
- "tris_after": 11632,
+ "tris_after": 27262,
  "objects": [
   {
    "name": "NEW_speedcube_piece_---",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1074
   },
   {
    "name": "NEW_speedcube_piece_--0",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1108
   },
   {
    "name": "NEW_speedcube_piece_--+",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1074
   },
   {
    "name": "NEW_speedcube_piece_-0-",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1108
   },
   {
    "name": "NEW_speedcube_piece_-00",
    "tris_before": 948,
-   "tris_after": 316
+   "tris_after": 786
   },
   {
    "name": "NEW_speedcube_piece_-0+",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1108
   },
   {
    "name": "NEW_speedcube_piece_-+-",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1074
   },
   {
    "name": "NEW_speedcube_piece_-+0",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1108
   },
   {
    "name": "NEW_speedcube_piece_-++",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1074
   },
   {
    "name": "NEW_speedcube_piece_0--",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1108
   },
   {
    "name": "NEW_speedcube_piece_0-0",
    "tris_before": 948,
-   "tris_after": 316
+   "tris_after": 786
   },
   {
    "name": "NEW_speedcube_piece_0-+",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1108
   },
   {
    "name": "NEW_speedcube_piece_00-",
    "tris_before": 948,
-   "tris_after": 316
+   "tris_after": 786
   },
   {
    "name": "NEW_speedcube_piece_00+",
    "tris_before": 948,
-   "tris_after": 316
+   "tris_after": 786
   },
   {
    "name": "NEW_speedcube_piece_0+-",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1108
   },
   {
    "name": "NEW_speedcube_piece_0+0",
    "tris_before": 948,
-   "tris_after": 316
+   "tris_after": 786
   },
   {
    "name": "NEW_speedcube_piece_0++",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1108
   },
   {
    "name": "NEW_speedcube_piece_+--",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1074
   },
   {
    "name": "NEW_speedcube_piece_+-0",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1108
   },
   {
    "name": "NEW_speedcube_piece_+-+",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1074
   },
   {
    "name": "NEW_speedcube_piece_+0-",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1108
   },
   {
    "name": "NEW_speedcube_piece_+00",
    "tris_before": 948,
-   "tris_after": 316
+   "tris_after": 786
   },
   {
    "name": "NEW_speedcube_piece_+0+",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1108
   },
   {
    "name": "NEW_speedcube_piece_++-",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1074
   },
   {
    "name": "NEW_speedcube_piece_++0",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1108
   },
   {
    "name": "NEW_speedcube_piece_+++",
    "tris_before": 1368,
-   "tris_after": 456
+   "tris_after": 1074
   },
   {
    "name": "NEW_speedcube_core",
    "tris_before": 624,
-   "tris_after": 104
+   "tris_after": 624
   },
   {
    "name": "NEW_speedcube_emblem18",
    "tris_before": 512,
-   "tris_after": 512
+   "tris_after": 34
   }
  ],
  "skipped": {},
+ "reduction": {
+  "NEW_speedcube_piece_---": "dissolve",
+  "NEW_speedcube_piece_--0": "dissolve",
+  "NEW_speedcube_piece_--+": "dissolve",
+  "NEW_speedcube_piece_-0-": "dissolve",
+  "NEW_speedcube_piece_-00": "dissolve",
+  "NEW_speedcube_piece_-0+": "dissolve",
+  "NEW_speedcube_piece_-+-": "dissolve",
+  "NEW_speedcube_piece_-+0": "dissolve",
+  "NEW_speedcube_piece_-++": "dissolve",
+  "NEW_speedcube_piece_0--": "dissolve",
+  "NEW_speedcube_piece_0-0": "dissolve",
+  "NEW_speedcube_piece_0-+": "dissolve",
+  "NEW_speedcube_piece_00-": "dissolve",
+  "NEW_speedcube_piece_00+": "dissolve",
+  "NEW_speedcube_piece_0+-": "dissolve",
+  "NEW_speedcube_piece_0+0": "dissolve",
+  "NEW_speedcube_piece_0++": "dissolve",
+  "NEW_speedcube_piece_+--": "dissolve",
+  "NEW_speedcube_piece_+-0": "dissolve",
+  "NEW_speedcube_piece_+-+": "dissolve",
+  "NEW_speedcube_piece_+0-": "dissolve",
+  "NEW_speedcube_piece_+00": "dissolve",
+  "NEW_speedcube_piece_+0+": "dissolve",
+  "NEW_speedcube_piece_++-": "dissolve",
+  "NEW_speedcube_piece_++0": "dissolve",
+  "NEW_speedcube_piece_+++": "dissolve",
+  "NEW_speedcube_core": "dissolve",
+  "NEW_speedcube_emblem18": "dissolve"
+ },
  "atlas": {
   "pbr_res": null,
-  "lit_res": 512,
+  "lit_res": 1024,
   "packer": {
-   "lit": "pack_islands"
+   "lit_main": "pack_islands"
   }
  },
  "textures": {
   "lit": "speedcube_lit.png"
  },
- "lit_scale": 2.8000000000000003,
+ "lit_scale": 2.0,
+ "lit_atlases": {
+  "main": {
+   "res": 1024,
+   "litScale": 2.0
+  }
+ },
  "material_modes": {
   "speedcube_lit": "lit",
   "speedcube_lit_cutout": "lit"
@@ -179,6 +215,7 @@
  "emissive_materials": [],
  "emissive_strength_max": 1.0,
  "emissive_nodes": [],
+ "screen_nodes": [],
  "anchors": {
   "NEW_speedcube_root": {
    "blender_world": [
@@ -198,7 +235,7 @@
  "meshes": {
   "NEW_speedcube_root__mesh": {
    "parent": "NEW_speedcube_root",
-   "tris": 11632,
+   "tris": 27262,
    "materials": [
     "speedcube_lit",
     "speedcube_lit_cutout"
@@ -220,20 +257,22 @@
  "credits": [],
  "bake_stats": {
   "lit": {
-   "lit_scale": 2.8000000000000003,
-   "raw_mean": 0.0967,
-   "denoised_mean": 0.0968,
-   "p50": 0.0006,
-   "clipped_fraction": 0.00157,
-   "coverage_px": 0.499,
+   "lit_scale": 2.0,
+   "res": 1024,
+   "uv": "smart",
+   "texels_per_mm": 2.766,
+   "raw_mean": 0.1004,
+   "denoised_mean": 0.1,
+   "p50": 0.0004,
+   "clipped_fraction": 0.01971,
+   "coverage_px": 0.491,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "lit": 65.1,
-  "lit_denoise": 0.2
+  "lit": 56.3
  },
  "glb": "speedcube.glb",
- "glb_bytes": 400752,
- "seconds": 194.5
+ "glb_bytes": 887704,
+ "seconds": 137.6
 }

@@ -1,12 +1,12 @@
 {
- "generated": "2026-10-01T05:31:00.937Z",
+ "generated": "2026-10-01T17:54:01.735Z",
  "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
  "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
  "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
  "materials": "Two baked atlases per asset. mode \"lit\": non-metal surfaces, KHR_materials_unlit, baseColor = the Cycles DIFFUSE bake (direct + indirect + colour) of the sunset room, stored as linear/litScale in sRGB: multiply the colour by material.userData.litScale (glTF extras) to restore it; no lights touch them. mode \"pbr\": metals (metallic >= 0.5), emissive parts, glass and keepers: baseColor + ORM (R=AO, G=roughness, B=metallic) (+ normal), lit at runtime by an environment capture of the baked room. Keepers (Robot_rsl_lens, bambu_mini_screen) are their own nodes and materials.",
  "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
- "totalBytes": 10082584,
- "totalTris": 329133,
+ "totalBytes": 26542108,
+ "totalTris": 953052,
  "credits": {
   "teto_plush": {
    "title": "Kasane Teto fatass plush",
@@ -41,20 +41,20 @@
   {
    "name": "bambu_mini",
    "file": "bambu_mini.glb",
-   "bytes": 645604,
-   "tris": 27179,
+   "bytes": 1437000,
+   "tris": 75380,
    "trisSource": 116961,
-   "budget": 28000,
-   "textureBytes": 85904,
+   "budget": null,
+   "textureBytes": 232986,
    "textures": [
     {
      "name": "bambu_mini_lit",
      "mime": "image/webp",
      "size": [
-      1024,
-      1024
+      2048,
+      2048
      ],
-     "bytes": 62028
+     "bytes": 199646
     },
     {
      "name": "bambu_mini_emissive",
@@ -63,7 +63,7 @@
       256,
       256
      ],
-     "bytes": 356
+     "bytes": 594
     },
     {
      "name": "bambu_mini_normal",
@@ -72,7 +72,7 @@
       512,
       512
      ],
-     "bytes": 3156
+     "bytes": 7646
     },
     {
      "name": "bambu_mini_orm",
@@ -81,7 +81,7 @@
       256,
       256
      ],
-     "bytes": 7678
+     "bytes": 10508
     },
     {
      "name": "bambu_mini_basecolor",
@@ -90,30 +90,23 @@
       512,
       512
      ],
-     "bytes": 12686
+     "bytes": 14592
     }
    ],
    "materials": [
     {
      "name": "bambu_mini_ptfe_web",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "BLEND",
      "textures": []
     },
     {
      "name": "bambu_mini_lit",
      "mode": "lit",
-     "litScale": 0.33,
+     "litScale": 0.34,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
-     "textures": [
-      "baseColor"
-     ]
-    },
-    {
-     "name": "bambu_mini_lit_cutout",
-     "mode": "lit",
-     "litScale": 0.33,
-     "alphaMode": "MASK",
      "textures": [
       "baseColor"
      ]
@@ -121,6 +114,7 @@
     {
      "name": "bambu_mini_screen_lit",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -133,6 +127,7 @@
     {
      "name": "bambu_mini_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -141,7 +136,52 @@
      ]
     }
    ],
-   "litScale": 0.33,
+   "litScale": 0.34,
+   "litAtlases": {
+    "lit": {
+     "res": 2048,
+     "litScale": 0.34,
+     "texelsPerMm": 1.266,
+     "clipped": 0.00003
+    }
+   },
+   "reduction": {
+    "bambu_mini_base": "collapse 0.60",
+    "bambu_mini_toolhead": "collapse 0.60",
+    "bambu_mini_heatbed": "collapse 0.60",
+    "bambu_mini_carriage": "collapse 0.60",
+    "bambu_mini_spoolstand_base": "kept",
+    "bambu_mini_spoolstand_roller_0": "dissolve",
+    "bambu_mini_spoolstand_cheek_00": "kept",
+    "bambu_mini_spoolstand_axle_00": "kept",
+    "bambu_mini_spoolstand_cheek_01": "kept",
+    "bambu_mini_spoolstand_axle_01": "kept",
+    "bambu_mini_spoolstand_roller_1": "dissolve",
+    "bambu_mini_spoolstand_cheek_10": "kept",
+    "bambu_mini_spoolstand_axle_10": "kept",
+    "bambu_mini_spoolstand_cheek_11": "kept",
+    "bambu_mini_spoolstand_axle_11": "kept",
+    "bambu_mini_spool_flange_L": "dissolve",
+    "bambu_mini_spool_flange_R": "dissolve",
+    "bambu_mini_spool_core": "dissolve",
+    "bambu_mini_spool_filament": "dissolve",
+    "bambu_mini_box_inlet_collet": "dissolve",
+    "bambu_mini_filament_free": "dissolve",
+    "bambu_mini_ptfe_tube": "dissolve",
+    "bambu_mini_ptfe_tube_bore": "dissolve",
+    "bambu_mini_filament_in_tube": "dissolve",
+    "bambu_mini_benchy_hull": "dissolve",
+    "bambu_mini_benchy_cabin": "kept",
+    "bambu_mini_benchy_bollards": "kept",
+    "bambu_mini_benchy_hawse_0": "kept",
+    "bambu_mini_benchy_hawse_1": "kept",
+    "bambu_mini_table_glide_11": "dissolve",
+    "bambu_mini_table_glide_10": "dissolve",
+    "bambu_mini_table_glide_01": "dissolve",
+    "bambu_mini_table_glide_00": "dissolve",
+    "bambu_mini_table_drawer_knob": "dissolve",
+    "bambu_mini_table_drawer_cavity": "kept"
+   },
    "nodes": [
     "bambu_mini_printer__glass_bambu_mini_ptfe",
     "bambu_mini_printer__mesh",
@@ -251,11 +291,11 @@
   {
    "name": "bookrack",
    "file": "bookrack.glb",
-   "bytes": 209568,
-   "tris": 7430,
+   "bytes": 343140,
+   "tris": 13004,
    "trisSource": 13004,
-   "budget": 8000,
-   "textureBytes": 43458,
+   "budget": null,
+   "textureBytes": 110706,
    "textures": [
     {
      "name": "bookrack_normal",
@@ -264,7 +304,7 @@
       256,
       256
      ],
-     "bytes": 1338
+     "bytes": 3300
     },
     {
      "name": "bookrack_orm",
@@ -273,7 +313,7 @@
       256,
       256
      ],
-     "bytes": 10376
+     "bytes": 22682
     },
     {
      "name": "bookrack_basecolor",
@@ -282,7 +322,7 @@
       256,
       256
      ],
-     "bytes": 6576
+     "bytes": 15272
     },
     {
      "name": "bookrack_lit",
@@ -291,13 +331,14 @@
       1024,
       1024
      ],
-     "bytes": 25168
+     "bytes": 69452
     }
    ],
    "materials": [
     {
      "name": "bookrack_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -308,14 +349,46 @@
     {
      "name": "bookrack_lit",
      "mode": "lit",
-     "litScale": 0.62,
+     "litScale": 0.43,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
      ]
     }
    ],
-   "litScale": 0.62,
+   "litScale": 0.43,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 0.43,
+     "texelsPerMm": 0.389,
+     "clipped": 0.00099
+    }
+   },
+   "reduction": {
+    "bookrack_screws": "dissolve",
+    "bookrack_screw_recess": "kept",
+    "Mesh_165.001": "kept (custom normals)",
+    "Mesh_166.001": "kept (custom normals)",
+    "Mesh_167.001": "kept (custom normals)",
+    "Mesh_168.001": "kept (custom normals)",
+    "Mesh_169.001": "kept (custom normals)",
+    "Mesh_170.001": "kept (custom normals)",
+    "Mesh_171.001": "kept (custom normals)",
+    "Mesh_172.001": "kept (custom normals)",
+    "Mesh_173.001": "kept (custom normals)",
+    "Mesh_174.001": "kept (custom normals)",
+    "Mesh_175.001": "kept (custom normals)",
+    "Mesh_176.001": "kept (custom normals)",
+    "Mesh_177.001": "kept (custom normals)",
+    "Mesh_178.001": "kept (custom normals)",
+    "Mesh_160.001": "kept (custom normals)",
+    "Mesh_161.001": "kept (custom normals)",
+    "Mesh_162.001": "kept",
+    "Mesh_163.001": "kept",
+    "Mesh_164.001": "kept"
+   },
    "nodes": [
     "bookrack_hardware__mesh",
     "bookrack_hardware",
@@ -666,11 +739,11 @@
   {
    "name": "cables",
    "file": "cables.glb",
-   "bytes": 307092,
-   "tris": 14535,
+   "bytes": 880868,
+   "tris": 50514,
    "trisSource": 53320,
-   "budget": 15000,
-   "textureBytes": 27050,
+   "budget": null,
+   "textureBytes": 91748,
    "textures": [
     {
      "name": "cables_orm",
@@ -679,7 +752,7 @@
       256,
       256
      ],
-     "bytes": 5746
+     "bytes": 8190
     },
     {
      "name": "cables_basecolor",
@@ -688,22 +761,23 @@
       512,
       512
      ],
-     "bytes": 6218
+     "bytes": 9564
     },
     {
      "name": "cables_lit",
      "mime": "image/webp",
      "size": [
-      512,
-      512
+      1024,
+      1024
      ],
-     "bytes": 15086
+     "bytes": 73994
     }
    ],
    "materials": [
     {
      "name": "cables_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -714,6 +788,7 @@
      "name": "cables_lit",
      "mode": "lit",
      "litScale": 1.4,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -722,6 +797,7 @@
     {
      "name": "magsafe_led_amber.001",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -731,6 +807,38 @@
     }
    ],
    "litScale": 1.4,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 1.4,
+     "texelsPerMm": 1.044,
+     "clipped": 0.0009
+    }
+   },
+   "reduction": {
+    "cables_monitor_dp_plug": "dissolve",
+    "cables_monitor_c7_plug": "dissolve",
+    "cables_monitor_dp_usbc_plug": "dissolve",
+    "cables_macbook_magsafe_plug": "dissolve",
+    "cables_bundle_wraps": "dissolve",
+    "cables_power_strip": "dissolve",
+    "cables_power_strip_details": "dissolve",
+    "cables_power_brick": "kept (custom normals)",
+    "cables_power_brick_details": "kept",
+    "cables_brick_usbc_plug": "dissolve",
+    "cables_brick_ac_head": "dissolve",
+    "cables_mains_plug_monitor": "dissolve",
+    "cables_mains_plug_brick": "dissolve",
+    "cables_coil_usbc_plug": "dissolve",
+    "cables_coil_usba_plug": "dissolve",
+    "cables_coil_velcro": "dissolve",
+    "cables_monitor_dp_cable": "dissolve",
+    "cables_monitor_power_cable": "dissolve",
+    "cables_macbook_charge_cable": "dissolve",
+    "cables_brick_ac_cord": "dissolve",
+    "cables_strip_cord": "dissolve",
+    "cables_coil_cable": "dissolve"
+   },
    "nodes": [
     "NEW_cables_root__mesh",
     "NEW_cables_root"
@@ -774,11 +882,11 @@
   {
    "name": "chair",
    "file": "chair.glb",
-   "bytes": 279444,
-   "tris": 7743,
+   "bytes": 477144,
+   "tris": 13846,
    "trisSource": 13846,
-   "budget": 8000,
-   "textureBytes": 104788,
+   "budget": null,
+   "textureBytes": 184928,
    "textures": [
     {
      "name": "chair_lit",
@@ -787,21 +895,36 @@
       1024,
       1024
      ],
-     "bytes": 104788
+     "bytes": 184928
     }
    ],
    "materials": [
     {
      "name": "chair_lit",
      "mode": "lit",
-     "litScale": 0.0039,
+     "litScale": 0.004,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
      ]
     }
    ],
-   "litScale": 0.0039,
+   "litScale": 0.004,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 0.004,
+     "texelsPerMm": 0.304,
+     "clipped": 0.00098
+    }
+   },
+   "reduction": {
+    "chair_base": "kept (custom normals)",
+    "chair_base_1": "kept",
+    "chair_base_2": "kept (custom normals)",
+    "chair_base_3": "kept (custom normals)"
+   },
    "nodes": [
     "chair__mesh",
     "chair",
@@ -848,20 +971,20 @@
   {
    "name": "desk_misc",
    "file": "desk_misc.glb",
-   "bytes": 302308,
+   "bytes": 460516,
    "tris": 8308,
    "trisSource": 8308,
    "budget": null,
-   "textureBytes": 60194,
+   "textureBytes": 218404,
    "textures": [
     {
      "name": "desk_misc_lit",
      "mime": "image/webp",
      "size": [
-      512,
-      512
+      1024,
+      1024
      ],
-     "bytes": 26196
+     "bytes": 131308
     },
     {
      "name": "desk_misc_normal",
@@ -870,7 +993,7 @@
       512,
       512
      ],
-     "bytes": 9654
+     "bytes": 23022
     },
     {
      "name": "desk_misc_orm",
@@ -879,7 +1002,7 @@
       256,
       256
      ],
-     "bytes": 12370
+     "bytes": 25982
     },
     {
      "name": "desk_misc_basecolor",
@@ -888,7 +1011,7 @@
       512,
       512
      ],
-     "bytes": 11974
+     "bytes": 38092
     }
    ],
    "materials": [
@@ -896,6 +1019,7 @@
      "name": "desk_misc_lit",
      "mode": "lit",
      "litScale": 0.12,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -904,6 +1028,7 @@
     {
      "name": "desk_misc_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -913,6 +1038,37 @@
     }
    ],
    "litScale": 0.12,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 0.12,
+     "texelsPerMm": 0.482,
+     "clipped": 0.00004
+    }
+   },
+   "reduction": {
+    "driver_handle": "kept (custom normals)",
+    "driver_grip": "kept",
+    "driver_grip2": "kept",
+    "driver_bolster": "kept",
+    "driver_shaft": "kept",
+    "driver_tip": "kept",
+    "tote": "kept (custom normals)",
+    "tote_ribs": "kept (custom normals)",
+    "tote_ledge": "kept (custom normals)",
+    "tote_divider": "kept",
+    "tote_feet": "kept (custom normals)",
+    "tote.001": "kept (custom normals)",
+    "tote_ribs.001": "kept (custom normals)",
+    "tote_ledge.001": "kept (custom normals)",
+    "tote_divider.001": "kept",
+    "tote_feet.001": "kept (custom normals)",
+    "Mesh_142": "kept (custom normals)",
+    "Mesh_143": "kept (custom normals)",
+    "Mesh_144": "kept (custom normals)",
+    "Mesh_145": "kept (custom normals)",
+    "Mesh_146": "kept (custom normals)"
+   },
    "nodes": [
     "tote_1__mesh",
     "tote_1",
@@ -1024,20 +1180,20 @@
   {
    "name": "electronics",
    "file": "electronics.glb",
-   "bytes": 948556,
-   "tris": 28576,
+   "bytes": 2454984,
+   "tris": 86768,
    "trisSource": 94596,
-   "budget": 30000,
-   "textureBytes": 168564,
+   "budget": null,
+   "textureBytes": 488928,
    "textures": [
     {
      "name": "electronics_lit",
      "mime": "image/webp",
      "size": [
-      1024,
-      1024
+      2048,
+      2048
      ],
-     "bytes": 28582
+     "bytes": 194902
     },
     {
      "name": "electronics_normal",
@@ -1046,7 +1202,7 @@
       1024,
       1024
      ],
-     "bytes": 35484
+     "bytes": 28138
     },
     {
      "name": "electronics_orm",
@@ -1055,7 +1211,7 @@
       512,
       512
      ],
-     "bytes": 39260
+     "bytes": 87088
     },
     {
      "name": "electronics_basecolor",
@@ -1064,14 +1220,15 @@
       1024,
       1024
      ],
-     "bytes": 65238
+     "bytes": 178800
     }
    ],
    "materials": [
     {
      "name": "electronics_lit",
      "mode": "lit",
-     "litScale": 6.1,
+     "litScale": 2,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -1080,6 +1237,7 @@
     {
      "name": "electronics_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -1090,6 +1248,7 @@
     {
      "name": "led_red_on.003",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -1101,6 +1260,7 @@
     {
      "name": "led_blue_on.003",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -1112,6 +1272,7 @@
     {
      "name": "led_green_on.003",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -1121,7 +1282,42 @@
      ]
     }
    ],
-   "litScale": 6.1,
+   "litScale": 2,
+   "litAtlases": {
+    "lit": {
+     "res": 2048,
+     "litScale": 2,
+     "texelsPerMm": 2.011,
+     "clipped": 0.04124
+    }
+   },
+   "reduction": {
+    "elec_uno_pcb": "kept",
+    "elec_uno_parts": "dissolve",
+    "elec_esp32_module_pcb": "dissolve",
+    "elec_esp32_module_parts": "kept",
+    "elec_esp32_pcb": "kept",
+    "elec_esp32_parts": "dissolve",
+    "elec_pico_pcb": "dissolve",
+    "elec_pico_parts": "dissolve",
+    "elec_hub_body": "dissolve",
+    "elec_hub_parts": "dissolve",
+    "elec_hub_cable_braid": "dissolve",
+    "elec_notepad": "kept",
+    "elec_sticky_notes": "kept",
+    "elec_rotring600": "dissolve",
+    "elec_stm_stage": "dissolve",
+    "elec_stm_stage_wires": "dissolve",
+    "elec_faraday_box": "dissolve",
+    "elec_faraday_lid": "dissolve",
+    "elec_breadboard": "kept",
+    "elec_teensy_pcb": "kept",
+    "elec_teensy_parts": "dissolve",
+    "elec_preamp_pcb": "dissolve",
+    "elec_preamp_parts": "dissolve",
+    "elec_multimeter": "dissolve",
+    "elec_lab_wiring": "dissolve"
+   },
    "nodes": [
     "elec_breadboard_grp__mesh",
     "elec_breadboard_grp",
@@ -1400,11 +1596,11 @@
   {
    "name": "fixtures",
    "file": "fixtures.glb",
-   "bytes": 271584,
-   "tris": 9804,
+   "bytes": 758184,
+   "tris": 34763,
    "trisSource": 35471,
-   "budget": 10000,
-   "textureBytes": 48146,
+   "budget": null,
+   "textureBytes": 104708,
    "textures": [
     {
      "name": "fixtures_normal",
@@ -1413,7 +1609,7 @@
       512,
       512
      ],
-     "bytes": 5610
+     "bytes": 5814
     },
     {
      "name": "fixtures_orm",
@@ -1422,7 +1618,7 @@
       256,
       256
      ],
-     "bytes": 4386
+     "bytes": 9854
     },
     {
      "name": "fixtures_basecolor",
@@ -1431,7 +1627,7 @@
       512,
       512
      ],
-     "bytes": 4500
+     "bytes": 11814
     },
     {
      "name": "fixtures_lit",
@@ -1440,13 +1636,14 @@
       1024,
       1024
      ],
-     "bytes": 33650
+     "bytes": 77226
     }
    ],
    "materials": [
     {
      "name": "fixtures_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -1457,7 +1654,8 @@
     {
      "name": "fixtures_lit",
      "mode": "lit",
-     "litScale": 1.7,
+     "litScale": 1.6,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -1466,6 +1664,7 @@
     {
      "name": "rs_thermo_digits",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -1477,6 +1676,7 @@
     {
      "name": "rs_smoke_led",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -1486,7 +1686,88 @@
      ]
     }
    ],
-   "litScale": 1.7,
+   "litScale": 1.6,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 1.6,
+     "texelsPerMm": 0.843,
+     "clipped": 0.00099
+    }
+   },
+   "reduction": {
+    "rs_window_operator": "dissolve",
+    "rs_window_crank": "dissolve",
+    "rs_window_locks": "dissolve",
+    "rs_door_hinges": "dissolve",
+    "rs_door_lever": "dissolve",
+    "rs_door_stop": "kept",
+    "rs_door_stop_tip": "dissolve",
+    "rs_outlet_window_plate": "dissolve",
+    "rs_outlet_window_device": "dissolve",
+    "rs_outlet_window_plug": "kept",
+    "rs_plug_cord": "dissolve",
+    "rs_outlet_left_plate": "dissolve",
+    "rs_outlet_left_device": "dissolve",
+    "rs_outlet_right_plate": "dissolve",
+    "rs_outlet_right_device": "dissolve",
+    "rs_switch_door_plate": "dissolve",
+    "rs_switch_door_device": "dissolve",
+    "rs_thermostat_body": "dissolve",
+    "rs_thermostat_screen": "kept",
+    "rs_thermostat_digits": "kept",
+    "rs_thermostat_buttons": "kept",
+    "rs_ceiling_light_base": "dissolve",
+    "rs_ceiling_light_diffuser": "dissolve",
+    "rs_smoke_alarm": "dissolve",
+    "rs_smoke_alarm_ribs": "dissolve",
+    "rs_smoke_alarm_led": "kept",
+    "rs_register_frame": "kept",
+    "rs_register_louvers": "dissolve",
+    "rs_register_boot": "kept",
+    "rs_nail_holes": "kept",
+    "curtain_ring_00": "dissolve",
+    "curtain_clip_00": "kept",
+    "curtain_ring_01": "dissolve",
+    "curtain_clip_01": "kept",
+    "curtain_ring_02": "dissolve",
+    "curtain_clip_02": "kept",
+    "curtain_ring_03": "dissolve",
+    "curtain_clip_03": "kept",
+    "curtain_ring_04": "dissolve",
+    "curtain_clip_04": "kept",
+    "curtain_ring_05": "dissolve",
+    "curtain_clip_05": "kept",
+    "curtain_ring_06": "dissolve",
+    "curtain_clip_06": "kept",
+    "curtain_ring_07": "dissolve",
+    "curtain_clip_07": "kept",
+    "curtain_ring_08": "dissolve",
+    "curtain_clip_08": "kept",
+    "curtain_ring_09": "dissolve",
+    "curtain_clip_09": "kept",
+    "curtain_ring_10": "dissolve",
+    "curtain_clip_10": "kept",
+    "curtain_ring_11": "dissolve",
+    "curtain_clip_11": "kept",
+    "curtain_ring_12": "dissolve",
+    "curtain_clip_12": "kept",
+    "curtain_ring_13": "dissolve",
+    "curtain_clip_13": "kept",
+    "curtain_ring_14": "dissolve",
+    "curtain_clip_14": "kept",
+    "curtain_ring_15": "dissolve",
+    "curtain_clip_15": "kept",
+    "curtain_rod": "dissolve",
+    "curtain_finial_L": "dissolve",
+    "curtain_finial_R": "dissolve",
+    "curtain_bracket_arm_L": "kept",
+    "curtain_bracket_plate_L": "dissolve",
+    "curtain_bracket_cup_L": "dissolve",
+    "curtain_bracket_arm_R": "kept",
+    "curtain_bracket_plate_R": "dissolve",
+    "curtain_bracket_cup_R": "dissolve"
+   },
    "nodes": [
     "fixtures__mesh",
     "fixtures_root",
@@ -1558,11 +1839,11 @@
   {
    "name": "keyboard",
    "file": "keyboard.glb",
-   "bytes": 362388,
-   "tris": 19433,
+   "bytes": 580164,
+   "tris": 32382,
    "trisSource": 32462,
-   "budget": 20000,
-   "textureBytes": 44492,
+   "budget": null,
+   "textureBytes": 92348,
    "textures": [
     {
      "name": "keyboard_lit",
@@ -1571,7 +1852,7 @@
       1024,
       1024
      ],
-     "bytes": 42580
+     "bytes": 89994
     },
     {
      "name": "keyboard_orm",
@@ -1580,7 +1861,7 @@
       256,
       256
      ],
-     "bytes": 1164
+     "bytes": 1522
     },
     {
      "name": "keyboard_basecolor",
@@ -1589,14 +1870,15 @@
       256,
       256
      ],
-     "bytes": 748
+     "bytes": 832
     }
    ],
    "materials": [
     {
      "name": "keyboard_lit",
      "mode": "lit",
-     "litScale": 0.66,
+     "litScale": 0.7,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -1605,6 +1887,7 @@
     {
      "name": "keyboard_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -1612,7 +1895,31 @@
      ]
     }
    ],
-   "litScale": 0.66,
+   "litScale": 0.7,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 0.7,
+     "texelsPerMm": 0.981,
+     "clipped": 0.00074
+    }
+   },
+   "reduction": {
+    "NEW_keyboard_top_case": "dissolve",
+    "NEW_keyboard_bottom_case": "dissolve",
+    "NEW_keyboard_lightstrip": "dissolve",
+    "NEW_keyboard_plate": "kept",
+    "NEW_keyboard_keycaps": "dissolve",
+    "NEW_keyboard_switches": "dissolve",
+    "NEW_keyboard_display_panel": "kept",
+    "NEW_keyboard_display_matrix": "kept",
+    "NEW_keyboard_indicators": "kept",
+    "NEW_keyboard_mode_switch": "kept",
+    "NEW_keyboard_feet_pads": "dissolve",
+    "NEW_keyboard_flip_feet": "kept",
+    "NEW_keyboard_usb_plug": "kept",
+    "NEW_keyboard_cable": "dissolve"
+   },
    "nodes": [
     "NEW_keyboard_root__mesh",
     "NEW_keyboard_root"
@@ -1644,20 +1951,20 @@
   {
    "name": "lamp",
    "file": "lamp.glb",
-   "bytes": 816308,
-   "tris": 19350,
+   "bytes": 3517128,
+   "tris": 96222,
    "trisSource": 98334,
-   "budget": 20000,
-   "textureBytes": 310870,
+   "budget": null,
+   "textureBytes": 683366,
    "textures": [
     {
      "name": "lamp_lit",
      "mime": "image/webp",
      "size": [
-      1024,
-      1024
+      2048,
+      2048
      ],
-     "bytes": 56730
+     "bytes": 203596
     },
     {
      "name": "lamp_normal",
@@ -1666,7 +1973,7 @@
       1024,
       1024
      ],
-     "bytes": 130030
+     "bytes": 107326
     },
     {
      "name": "lamp_orm",
@@ -1675,7 +1982,7 @@
       512,
       512
      ],
-     "bytes": 45446
+     "bytes": 123026
     },
     {
      "name": "lamp_basecolor",
@@ -1684,14 +1991,15 @@
       1024,
       1024
      ],
-     "bytes": 78664
+     "bytes": 249418
     }
    ],
    "materials": [
     {
      "name": "lamp_lit",
      "mode": "lit",
-     "litScale": 8,
+     "litScale": 2,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -1700,6 +2008,7 @@
     {
      "name": "lamp_diffuser",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -1711,6 +2020,7 @@
     {
      "name": "lamp_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -1719,7 +2029,34 @@
      ]
     }
    ],
-   "litScale": 8,
+   "litScale": 2,
+   "litAtlases": {
+    "lit": {
+     "res": 2048,
+     "litScale": 2,
+     "texelsPerMm": 2.475,
+     "clipped": 0.28027
+    }
+   },
+   "reduction": {
+    "lamp_body.001": "dissolve",
+    "lamp_arm": "dissolve",
+    "lamp_head.001": "dissolve",
+    "lamp_diffuser_bezel": "dissolve",
+    "lamp_diffuser_disc": "dissolve",
+    "medal_m1_ribbon": "kept",
+    "medal_m2_ribbon": "kept",
+    "medal_m3_ribbon": "kept",
+    "medal_m4_ribbon": "kept",
+    "medal_m1_clasp": "kept",
+    "medal_m1_disc": "kept",
+    "medal_m2_clasp": "kept",
+    "medal_m2_disc": "kept",
+    "medal_m3_clasp": "kept",
+    "medal_m3_disc": "kept",
+    "medal_m4_clasp": "kept",
+    "medal_m4_disc": "kept"
+   },
    "nodes": [
     "NEW_lamp_pivot__mesh",
     "NEW_lamp_pivot",
@@ -1780,11 +2117,11 @@
   {
    "name": "lorenz",
    "file": "lorenz.glb",
-   "bytes": 376884,
-   "tris": 10216,
+   "bytes": 860324,
+   "tris": 39682,
    "trisSource": 39832,
-   "budget": 15000,
-   "textureBytes": 98206,
+   "budget": null,
+   "textureBytes": 148726,
    "textures": [
     {
      "name": "lorenz_lit",
@@ -1793,7 +2130,7 @@
       1024,
       1024
      ],
-     "bytes": 14858
+     "bytes": 33636
     },
     {
      "name": "lorenz_normal",
@@ -1802,7 +2139,7 @@
       512,
       512
      ],
-     "bytes": 40778
+     "bytes": 39410
     },
     {
      "name": "lorenz_orm",
@@ -1811,7 +2148,7 @@
       256,
       256
      ],
-     "bytes": 24360
+     "bytes": 32108
     },
     {
      "name": "lorenz_basecolor",
@@ -1820,14 +2157,15 @@
       512,
       512
      ],
-     "bytes": 18210
+     "bytes": 43572
     }
    ],
    "materials": [
     {
      "name": "lorenz_lit",
      "mode": "lit",
-     "litScale": 4.8,
+     "litScale": 2,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -1836,6 +2174,7 @@
     {
      "name": "lorenz_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -1844,7 +2183,27 @@
      ]
     }
    ],
-   "litScale": 4.8,
+   "litScale": 2,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 2,
+     "texelsPerMm": 1.16,
+     "clipped": 0.03766
+    }
+   },
+   "reduction": {
+    "NEW_lorenz_paper_page4": "kept",
+    "NEW_lorenz_paper_page3": "kept",
+    "NEW_lorenz_paper_page2": "kept",
+    "NEW_lorenz_paper_page1": "kept",
+    "NEW_lorenz_staple": "kept",
+    "NEW_lorenz_felt_pad": "kept",
+    "NEW_lorenz_base": "dissolve",
+    "NEW_lorenz_wire": "dissolve",
+    "NEW_lorenz_stand": "dissolve",
+    "NEW_lorenz_solder": "kept"
+   },
    "nodes": [
     "lorenz_sculpture__mesh",
     "lorenz_sculpture",
@@ -1907,11 +2266,11 @@
   {
    "name": "macbook",
    "file": "macbook.glb",
-   "bytes": 233604,
-   "tris": 9704,
+   "bytes": 380760,
+   "tris": 14742,
    "trisSource": 14742,
-   "budget": 10000,
-   "textureBytes": 36806,
+   "budget": null,
+   "textureBytes": 93846,
    "textures": [
     {
      "name": "macbook_normal",
@@ -1920,7 +2279,7 @@
       1024,
       1024
      ],
-     "bytes": 6828
+     "bytes": 9170
     },
     {
      "name": "macbook_orm",
@@ -1929,7 +2288,7 @@
       512,
       512
      ],
-     "bytes": 11366
+     "bytes": 24664
     },
     {
      "name": "macbook_basecolor",
@@ -1938,22 +2297,23 @@
       1024,
       1024
      ],
-     "bytes": 11570
+     "bytes": 24004
     },
     {
      "name": "macbook_lit",
      "mime": "image/webp",
      "size": [
-      512,
-      512
+      1024,
+      1024
      ],
-     "bytes": 7042
+     "bytes": 36008
     }
    ],
    "materials": [
     {
      "name": "macbook_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -1964,14 +2324,38 @@
     {
      "name": "macbook_lit",
      "mode": "lit",
-     "litScale": 0.017,
+     "litScale": 0.011,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
      ]
     }
    ],
-   "litScale": 0.017,
+   "litScale": 0.011,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 0.011,
+     "texelsPerMm": 1.854,
+     "clipped": 0.00097
+    }
+   },
+   "reduction": {
+    "NEW_mbp_base": "kept (custom normals)",
+    "NEW_mbp_lid": "kept (custom normals)",
+    "NEW_mbp_core": "kept",
+    "NEW_mbp_port_inserts": "kept",
+    "NEW_mbp_magsafe_pins": "kept",
+    "NEW_mbp_hinge_barrel": "kept (custom normals)",
+    "NEW_mbp_vent_fins": "dissolve",
+    "NEW_mbp_feet": "kept (custom normals)",
+    "NEW_mbp_screws": "kept (custom normals)",
+    "NEW_mbp_screw_sockets": "kept",
+    "NEW_stand_sheet": "kept (custom normals)",
+    "NEW_stand_deck_pads": "kept (custom normals)",
+    "NEW_stand_base_pads": "kept (custom normals)"
+   },
    "nodes": [
     "NEW_macbook_laptop__mesh",
     "NEW_macbook_laptop",
@@ -2019,11 +2403,11 @@
   {
    "name": "monitor",
    "file": "monitor.glb",
-   "bytes": 207132,
-   "tris": 8610,
+   "bytes": 236756,
+   "tris": 8490,
    "trisSource": 8610,
    "budget": null,
-   "textureBytes": 38194,
+   "textureBytes": 71584,
    "textures": [
     {
      "name": "monitor_lit",
@@ -2032,16 +2416,7 @@
       1024,
       1024
      ],
-     "bytes": 26036
-    },
-    {
-     "name": "monitor_normal",
-     "mime": "image/webp",
-     "size": [
-      512,
-      512
-     ],
-     "bytes": 938
+     "bytes": 52398
     },
     {
      "name": "monitor_orm",
@@ -2050,7 +2425,7 @@
       256,
       256
      ],
-     "bytes": 5484
+     "bytes": 9748
     },
     {
      "name": "monitor_basecolor",
@@ -2059,20 +2434,22 @@
       512,
       512
      ],
-     "bytes": 5736
+     "bytes": 9438
     }
    ],
    "materials": [
     {
      "name": "mon_screen",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": []
     },
     {
      "name": "monitor_lit",
      "mode": "lit",
-     "litScale": 0.03,
+     "litScale": 0.034,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -2081,26 +2458,49 @@
     {
      "name": "monitor_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
-      "ORM",
-      "normal"
+      "ORM"
      ]
     },
     {
      "name": "mon_power_led",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
-      "ORM",
-      "normal"
+      "ORM"
      ]
     }
    ],
-   "litScale": 0.03,
+   "litScale": 0.034,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 0.034,
+     "texelsPerMm": 0.614,
+     "clipped": 0.00096
+    }
+   },
+   "reduction": {
+    "NEW_monitor_bezel": "dissolve",
+    "NEW_monitor_glass_border": "kept",
+    "NEW_monitor_screen": "kept",
+    "NEW_monitor_rear_housing": "dissolve",
+    "NEW_monitor_io": "dissolve",
+    "NEW_monitor_io_tongues": "dissolve",
+    "NEW_monitor_led": "kept",
+    "NEW_monitor_joystick": "kept",
+    "NEW_monitor_carriage": "dissolve",
+    "NEW_monitor_slider": "kept",
+    "NEW_monitor_column": "dissolve",
+    "NEW_monitor_base": "dissolve",
+    "NEW_monitor_feet": "dissolve"
+   },
    "nodes": [
     "mon_screen",
     "NEW_monitor_lift__mesh",
@@ -2161,11 +2561,11 @@
   {
    "name": "mouse_mx",
    "file": "mouse_mx.glb",
-   "bytes": 244756,
-   "tris": 11616,
+   "bytes": 278836,
+   "tris": 14274,
    "trisSource": 23024,
-   "budget": 12000,
-   "textureBytes": 63014,
+   "budget": null,
+   "textureBytes": 78330,
    "textures": [
     {
      "name": "mouse_mx_lit",
@@ -2174,7 +2574,7 @@
       1024,
       1024
      ],
-     "bytes": 41496
+     "bytes": 45604
     },
     {
      "name": "mouse_mx_normal",
@@ -2183,7 +2583,7 @@
       256,
       256
      ],
-     "bytes": 9964
+     "bytes": 15096
     },
     {
      "name": "mouse_mx_orm",
@@ -2192,7 +2592,7 @@
       256,
       256
      ],
-     "bytes": 7920
+     "bytes": 12402
     },
     {
      "name": "mouse_mx_basecolor",
@@ -2201,7 +2601,7 @@
       256,
       256
      ],
-     "bytes": 3634
+     "bytes": 5228
     }
    ],
    "materials": [
@@ -2209,6 +2609,7 @@
      "name": "mouse_mx_lit",
      "mode": "lit",
      "litScale": 0.17,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -2217,6 +2618,7 @@
     {
      "name": "mouse_mx_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -2226,6 +2628,23 @@
     }
    ],
    "litScale": 0.17,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 0.17,
+     "texelsPerMm": 4.45,
+     "clipped": 0.0009
+    }
+   },
+   "reduction": {
+    "MouseMX_Shell": "collapse 0.60",
+    "MouseMX_ScrollWheel": "dissolve",
+    "MouseMX_ThumbWheel": "dissolve",
+    "MouseMX_BasePlate": "dissolve",
+    "MouseMX_FootL": "kept",
+    "MouseMX_FootR": "kept",
+    "MouseMX_USBC": "kept"
+   },
    "nodes": [
     "NEW_mouse_mx_root__mesh",
     "NEW_mouse_mx_root"
@@ -2259,11 +2678,11 @@
   {
    "name": "painting",
    "file": "painting.glb",
-   "bytes": 71612,
+   "bytes": 115940,
    "tris": 954,
    "trisSource": 954,
    "budget": null,
-   "textureBytes": 54798,
+   "textureBytes": 99126,
    "textures": [
     {
      "name": "painting_lit",
@@ -2272,7 +2691,7 @@
       1024,
       1024
      ],
-     "bytes": 54798
+     "bytes": 99126
     }
    ],
    "materials": [
@@ -2280,6 +2699,7 @@
      "name": "painting_lit",
      "mode": "lit",
      "litScale": 0.053,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -2287,6 +2707,23 @@
     }
    ],
    "litScale": 0.053,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 0.053,
+     "texelsPerMm": 0.998,
+     "clipped": 0.00095
+    }
+   },
+   "reduction": {
+    "painting_stretcher": "kept",
+    "painting_canvas": "kept",
+    "painting_frame_top": "kept",
+    "painting_frame_bottom": "kept",
+    "painting_frame_left": "kept",
+    "painting_frame_right": "kept",
+    "painting_frame_tray": "kept"
+   },
    "nodes": [
     "painting__mesh",
     "painting_root"
@@ -2318,21 +2755,12 @@
   {
    "name": "pc",
    "file": "pc.glb",
-   "bytes": 1304200,
-   "tris": 46575,
+   "bytes": 5941732,
+   "tris": 212788,
    "trisSource": 245380,
-   "budget": 48000,
-   "textureBytes": 273958,
+   "budget": null,
+   "textureBytes": 673264,
    "textures": [
-    {
-     "name": "pc_lit",
-     "mime": "image/webp",
-     "size": [
-      1024,
-      1024
-     ],
-     "bytes": 102662
-    },
     {
      "name": "pc_normal",
      "mime": "image/webp",
@@ -2340,7 +2768,7 @@
       1024,
       1024
      ],
-     "bytes": 38124
+     "bytes": 11452
     },
     {
      "name": "pc_orm",
@@ -2349,7 +2777,7 @@
       512,
       512
      ],
-     "bytes": 48630
+     "bytes": 69654
     },
     {
      "name": "pc_basecolor",
@@ -2358,7 +2786,16 @@
       1024,
       1024
      ],
-     "bytes": 63936
+     "bytes": 123810
+    },
+    {
+     "name": "pc_lit",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 320260
     },
     {
      "name": "pc_emissive",
@@ -2367,34 +2804,37 @@
       512,
       512
      ],
-     "bytes": 20606
+     "bytes": 22718
+    },
+    {
+     "name": "pc_plush_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 125370
     }
    ],
    "materials": [
     {
      "name": "pc_glass_web",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "BLEND",
      "textures": []
     },
     {
      "name": "pc_glass_edge_web",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "BLEND",
      "textures": []
     },
     {
-     "name": "pc_lit",
-     "mode": "lit",
-     "litScale": 5.6,
-     "alphaMode": "OPAQUE",
-     "textures": [
-      "baseColor"
-     ]
-    },
-    {
      "name": "pc_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -2403,8 +2843,19 @@
      ]
     },
     {
+     "name": "pc_lit",
+     "mode": "lit",
+     "litScale": 2,
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
      "name": "pc_emit",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -2415,17 +2866,9 @@
      ]
     },
     {
-     "name": "pc_lit_cutout",
-     "mode": "lit",
-     "litScale": 5.6,
-     "alphaMode": "MASK",
-     "textures": [
-      "baseColor"
-     ]
-    },
-    {
      "name": "pc_led_white",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -2437,6 +2880,7 @@
     {
      "name": "pc_led_green",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -2448,6 +2892,7 @@
     {
      "name": "pc_led_amber",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -2459,6 +2904,7 @@
     {
      "name": "pc_screen_text",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -2466,9 +2912,108 @@
       "ORM",
       "normal"
      ]
+    },
+    {
+     "name": "pc_lit_plush",
+     "mode": "lit",
+     "litScale": 0.27,
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
     }
    ],
-   "litScale": 5.6,
+   "litScale": 2,
+   "litAtlases": {
+    "lit": {
+     "res": 2048,
+     "litScale": 2,
+     "texelsPerMm": 0.175,
+     "clipped": 0.01979
+    },
+    "lit_plush": {
+     "res": 1024,
+     "litScale": 0.27,
+     "texelsPerMm": 0.942,
+     "clipped": 0.00077
+    }
+   },
+   "reduction": {
+    "pc_case_base_rail": "dissolve",
+    "pc_case_base": "dissolve",
+    "pc_case_top": "kept",
+    "pc_case_top_mesh": "kept",
+    "pc_case_io": "dissolve",
+    "pc_glass_panels": "kept",
+    "pc_case_led_strips": "kept",
+    "pc_case_frame": "dissolve",
+    "pc_case_rear": "dissolve",
+    "pc_rear_guard": "dissolve",
+    "pc_rear_slots": "dissolve",
+    "pc_mb_tray": "kept",
+    "pc_mb_grommets": "dissolve",
+    "pc_psu": "dissolve",
+    "pc_mobo_board": "kept (custom normals)",
+    "pc_power_plugs": "kept",
+    "pc_rear_io": "dissolve",
+    "pc_cooler_pump": "dissolve",
+    "pc_cooler_lcd": "kept",
+    "pc_radiator": "dissolve",
+    "pc_fans_frames": "dissolve",
+    "pc_fans_rotors": "dissolve",
+    "pc_aio_tubes": "dissolve",
+    "pc_gpukit_00_brushed_nickel": "kept (custom normals)",
+    "pc_gpukit_01_black_plastic_pl": "kept (custom normals)",
+    "pc_gpukit_02_brushed_gold": "kept (custom normals)",
+    "pc_gpukit_03_material": "kept (custom normals)",
+    "pc_gpukit_04_metal": "kept (custom normals)",
+    "pc_gpukit_05_material": "kept (custom normals)",
+    "pc_gpukit_06_material": "kept (custom normals)",
+    "pc_gpukit_07_material": "kept",
+    "pc_gpukit_08_material": "kept",
+    "pc_gpukit_09_material": "kept (custom normals)",
+    "pc_gpukit_10_material_0": "kept (custom normals)",
+    "pc_gpukit_11_procedural_silver": "kept (custom normals)",
+    "pc_gpukit_12_material": "kept (custom normals)",
+    "pc_gpukit_13_metal": "kept (custom normals)",
+    "pc_gpukit_14_material": "kept (custom normals)",
+    "pc_gpu_power_plug": "kept",
+    "pc_cables_sleeved": "dissolve",
+    "pc_rear_chamber": "dissolve",
+    "pc_power_cable": "dissolve",
+    "pc_lcd_0": "kept",
+    "pc_lcd_0_text0": "dissolve",
+    "pc_lcd_0_text1": "kept",
+    "pc_lcd_1": "kept",
+    "pc_lcd_1_text0": "dissolve",
+    "pc_lcd_1_text1": "kept",
+    "pc_lcd_2": "kept",
+    "pc_lcd_2_text0": "kept",
+    "pc_lcd_2_text1": "kept",
+    "pc_lcd_3": "kept",
+    "pc_lcd_3_text0": "dissolve",
+    "pc_lcd_3_text1": "kept",
+    "Circle": "collapse 0.60",
+    "Circle.001": "kept",
+    "Circle.002": "collapse 0.60",
+    "Circle.003": "collapse 0.60",
+    "Circle.004": "collapse 0.60",
+    "Circle.005": "collapse 0.60",
+    "Circle.006": "collapse 0.60",
+    "Circle.007": "collapse 0.60",
+    "Circle.008": "kept",
+    "Circle.009": "collapse 0.60",
+    "NurbsPath": "collapse 0.60",
+    "NurbsPath.001": "collapse 0.60",
+    "NurbsPath.002": "collapse 0.60",
+    "Plane": "collapse 0.60",
+    "Plane.001": "collapse 0.60",
+    "Plane.002": "collapse 0.60",
+    "Plane.003": "kept",
+    "Plane.004": "kept",
+    "Spiral": "collapse 0.60"
+   },
    "nodes": [
     "NEW_pc_root__glass_pc_glass",
     "NEW_pc_root__glass_pc_glass_edge",
@@ -2581,11 +3126,11 @@
   {
    "name": "redbull",
    "file": "redbull.glb",
-   "bytes": 82868,
-   "tris": 1784,
+   "bytes": 91212,
+   "tris": 1069,
    "trisSource": 15095,
-   "budget": 4000,
-   "textureBytes": 42144,
+   "budget": null,
+   "textureBytes": 61656,
    "textures": [
     {
      "name": "redbull_normal",
@@ -2594,7 +3139,7 @@
       512,
       512
      ],
-     "bytes": 2386
+     "bytes": 5440
     },
     {
      "name": "redbull_orm",
@@ -2603,7 +3148,7 @@
       256,
       256
      ],
-     "bytes": 5888
+     "bytes": 10218
     },
     {
      "name": "redbull_basecolor",
@@ -2612,13 +3157,14 @@
       512,
       512
      ],
-     "bytes": 33870
+     "bytes": 45998
     }
    ],
    "materials": [
     {
      "name": "redbull_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -2628,6 +3174,10 @@
     }
    ],
    "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "RedBull_can": "collapse 0.60"
+   },
    "nodes": [
     "NEW_redbull_root__mesh",
     "NEW_redbull_root"
@@ -2659,29 +3209,20 @@
   {
    "name": "robot",
    "file": "robot.glb",
-   "bytes": 2652712,
-   "tris": 63055,
+   "bytes": 4469060,
+   "tris": 129694,
    "trisSource": 131522,
-   "budget": 62000,
-   "textureBytes": 385478,
+   "budget": null,
+   "textureBytes": 226040,
    "textures": [
     {
      "name": "robot_lit",
      "mime": "image/webp",
      "size": [
-      1024,
-      1024
+      2048,
+      2048
      ],
-     "bytes": 45422
-    },
-    {
-     "name": "robot_normal",
-     "mime": "image/webp",
-     "size": [
-      1024,
-      1024
-     ],
-     "bytes": 58892
+     "bytes": 225512
     },
     {
      "name": "robot_orm",
@@ -2690,29 +3231,22 @@
       512,
       512
      ],
-     "bytes": 91000
-    },
-    {
-     "name": "robot_basecolor",
-     "mime": "image/webp",
-     "size": [
-      1024,
-      1024
-     ],
-     "bytes": 190164
+     "bytes": 528
     }
    ],
    "materials": [
     {
      "name": "robot_polycarbonate.001_web",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "BLEND",
      "textures": []
     },
     {
      "name": "robot_lit",
      "mode": "lit",
-     "litScale": 0.17,
+     "litScale": 0.25,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -2721,22 +3255,48 @@
     {
      "name": "robot_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
-     "textures": [
-      "baseColor",
-      "ORM",
-      "normal"
-     ]
+     "textures": []
     },
     {
      "name": "robot_rsl_amber",
      "mode": "pbr",
+     "doubleSided": true,
      "emissive": true,
      "alphaMode": "OPAQUE",
      "textures": []
     }
    ],
-   "litScale": 0.17,
+   "litScale": 0.25,
+   "litAtlases": {
+    "lit": {
+     "res": 2048,
+     "litScale": 0.25,
+     "texelsPerMm": 0.687,
+     "clipped": 0.00088
+    }
+   },
+   "reduction": {
+    "Robot_white_plastic": "kept",
+    "Robot_foam_ball": "dissolve",
+    "Robot_aluminium": "dissolve",
+    "Robot_black_anodised": "dissolve",
+    "Robot_rubber": "dissolve",
+    "Robot_grey_plastic": "dissolve",
+    "Robot_purple_anodised": "dissolve",
+    "Robot_polycarbonate": "dissolve",
+    "Robot_orange": "dissolve",
+    "Robot_blue_anodised": "dissolve",
+    "Robot_green_pcb": "dissolve",
+    "Robot_nylon_tan": "kept",
+    "Robot_red_anodised": "kept",
+    "Robot_black_plastic": "kept",
+    "Robot_bumper_fabric": "dissolve",
+    "Robot_number_1360_posX": "dissolve",
+    "Robot_number_1360_negX": "dissolve",
+    "Robot_rsl_lens": "kept"
+   },
    "nodes": [
     "NEW_robot_root__glass_robot_polycarbonate.001",
     "NEW_robot_root__mesh",
@@ -2797,27 +3357,28 @@
   {
    "name": "speedcube",
    "file": "speedcube.glb",
-   "bytes": 206932,
-   "tris": 11632,
+   "bytes": 490404,
+   "tris": 27262,
    "trisSource": 34184,
-   "budget": 12000,
-   "textureBytes": 18602,
+   "budget": null,
+   "textureBytes": 89664,
    "textures": [
     {
      "name": "speedcube_lit",
      "mime": "image/webp",
      "size": [
-      512,
-      512
+      1024,
+      1024
      ],
-     "bytes": 18602
+     "bytes": 89664
     }
    ],
    "materials": [
     {
      "name": "speedcube_lit",
      "mode": "lit",
-     "litScale": 2.8,
+     "litScale": 2,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -2826,14 +3387,53 @@
     {
      "name": "speedcube_lit_cutout",
      "mode": "lit",
-     "litScale": 2.8,
+     "litScale": 2,
+     "doubleSided": true,
      "alphaMode": "MASK",
      "textures": [
       "baseColor"
      ]
     }
    ],
-   "litScale": 2.8,
+   "litScale": 2,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 2,
+     "texelsPerMm": 2.766,
+     "clipped": 0.01971
+    }
+   },
+   "reduction": {
+    "NEW_speedcube_piece_---": "dissolve",
+    "NEW_speedcube_piece_--0": "dissolve",
+    "NEW_speedcube_piece_--+": "dissolve",
+    "NEW_speedcube_piece_-0-": "dissolve",
+    "NEW_speedcube_piece_-00": "dissolve",
+    "NEW_speedcube_piece_-0+": "dissolve",
+    "NEW_speedcube_piece_-+-": "dissolve",
+    "NEW_speedcube_piece_-+0": "dissolve",
+    "NEW_speedcube_piece_-++": "dissolve",
+    "NEW_speedcube_piece_0--": "dissolve",
+    "NEW_speedcube_piece_0-0": "dissolve",
+    "NEW_speedcube_piece_0-+": "dissolve",
+    "NEW_speedcube_piece_00-": "dissolve",
+    "NEW_speedcube_piece_00+": "dissolve",
+    "NEW_speedcube_piece_0+-": "dissolve",
+    "NEW_speedcube_piece_0+0": "dissolve",
+    "NEW_speedcube_piece_0++": "dissolve",
+    "NEW_speedcube_piece_+--": "dissolve",
+    "NEW_speedcube_piece_+-0": "dissolve",
+    "NEW_speedcube_piece_+-+": "dissolve",
+    "NEW_speedcube_piece_+0-": "dissolve",
+    "NEW_speedcube_piece_+00": "dissolve",
+    "NEW_speedcube_piece_+0+": "dissolve",
+    "NEW_speedcube_piece_++-": "dissolve",
+    "NEW_speedcube_piece_++0": "dissolve",
+    "NEW_speedcube_piece_+++": "dissolve",
+    "NEW_speedcube_core": "dissolve",
+    "NEW_speedcube_emblem18": "dissolve"
+   },
    "nodes": [
     "NEW_speedcube_root__mesh",
     "NEW_speedcube_root"
@@ -2865,20 +3465,20 @@
   {
    "name": "telecaster",
    "file": "telecaster.glb",
-   "bytes": 520776,
-   "tris": 21437,
+   "bytes": 2712552,
+   "tris": 91718,
    "trisSource": 108089,
-   "budget": 22000,
-   "textureBytes": 93816,
+   "budget": null,
+   "textureBytes": 247250,
    "textures": [
     {
      "name": "telecaster_lit",
      "mime": "image/webp",
      "size": [
-      1024,
-      1024
+      2048,
+      2048
      ],
-     "bytes": 53912
+     "bytes": 247072
     },
     {
      "name": "telecaster_orm",
@@ -2887,23 +3487,15 @@
       256,
       256
      ],
-     "bytes": 14732
-    },
-    {
-     "name": "telecaster_basecolor",
-     "mime": "image/webp",
-     "size": [
-      512,
-      512
-     ],
-     "bytes": 25172
+     "bytes": 178
     }
    ],
    "materials": [
     {
      "name": "telecaster_lit",
      "mode": "lit",
-     "litScale": 0.066,
+     "litScale": 0.069,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -2912,14 +3504,81 @@
     {
      "name": "telecaster_pbr",
      "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
-     "textures": [
-      "baseColor",
-      "ORM"
-     ]
+     "textures": []
     }
    ],
-   "litScale": 0.066,
+   "litScale": 0.069,
+   "litAtlases": {
+    "lit": {
+     "res": 2048,
+     "litScale": 0.069,
+     "texelsPerMm": 1.925,
+     "clipped": 0.00089
+    }
+   },
+   "reduction": {
+    "TeleStand": "dissolve",
+    "TeleGB_nut": "kept (custom normals)",
+    "TeleGB_tuning pegs": "collapse 0.60",
+    "TeleGB_fingerboard": "kept (custom normals)",
+    "TeleGB_fingerboard.001": "kept (custom normals)",
+    "TeleGB_Anker": "kept",
+    "TeleGB_Back_cil": "kept (custom normals)",
+    "TeleGB_Bridg": "kept",
+    "TeleGB_Deka": "kept (custom normals)",
+    "TeleGB_Griph": "kept (custom normals)",
+    "TeleGB_Holder_down_1": "kept",
+    "TeleGB_Holder_down_2": "kept",
+    "TeleGB_Holder_top_1": "kept",
+    "TeleGB_Holder_top_2": "kept",
+    "TeleGB_Humbucker": "kept",
+    "TeleGB_Jack": "kept",
+    "TeleGB_Lads": "kept (custom normals)",
+    "TeleGB_Magnet_1": "kept (custom normals)",
+    "TeleGB_Nakladka_1": "kept",
+    "TeleGB_Nakladka_back_1": "kept",
+    "TeleGB_Nakladka_back_2": "kept",
+    "TeleGB_Nakladka": "kept (custom normals)",
+    "TeleGB_Pod_string_1_1": "kept",
+    "TeleGB_Pod_string_1_2": "kept",
+    "TeleGB_Pod_string_1_3": "kept",
+    "TeleGB_Pod_string_1_4": "kept",
+    "TeleGB_Pod_string_2_1": "kept",
+    "TeleGB_Pod_string_2_2": "kept",
+    "TeleGB_Pod_string_2_3": "kept",
+    "TeleGB_Pod_string_2_4": "kept",
+    "TeleGB_Pod_string_3_1": "kept",
+    "TeleGB_Pod_string_3_2": "kept",
+    "TeleGB_Pod_string_3_3": "kept",
+    "TeleGB_Pod_string_3_4": "kept",
+    "TeleGB_Pod_string_4_1": "kept",
+    "TeleGB_Pod_string_4_2": "kept",
+    "TeleGB_Pod_string_4_3": "kept",
+    "TeleGB_Pod_string_4_4": "kept",
+    "TeleGB_Pod_string_5_1": "kept",
+    "TeleGB_Pod_string_5_2": "kept",
+    "TeleGB_Pod_string_5_3": "kept",
+    "TeleGB_Pod_string_5_4": "kept",
+    "TeleGB_Pod_string_6_1": "kept",
+    "TeleGB_Pod_string_6_2": "kept",
+    "TeleGB_Pod_string_6_3": "kept",
+    "TeleGB_Pod_string_6_4": "kept",
+    "TeleGB_Ruchka_1": "kept (custom normals)",
+    "TeleGB_Ruchka_2": "kept (custom normals)",
+    "TeleGB_Ruchka_3_0": "kept",
+    "TeleGB_Ruchka_3": "kept",
+    "TeleGB_Singl": "kept",
+    "TeleGB_Spring_1": "kept (custom normals)",
+    "TeleGB_Spring_2": "kept (custom normals)",
+    "TeleGB_Spring_3": "kept (custom normals)",
+    "TeleGB_Spring_4": "kept (custom normals)",
+    "TeleGB_Spring_5": "kept (custom normals)",
+    "TeleGB_Spring_6": "kept (custom normals)",
+    "TeleGB_Strings": "kept (custom normals)",
+    "TeleGB_Плоскость": "kept"
+   },
    "nodes": [
     "NEW_telecaster_guitar__mesh",
     "NEW_telecaster_guitar",
@@ -2968,20 +3627,20 @@
   {
    "name": "teto_pear",
    "file": "teto_pear.glb",
-   "bytes": 38256,
+   "bytes": 55404,
    "tris": 1192,
    "trisSource": 1192,
    "budget": null,
-   "textureBytes": 18868,
+   "textureBytes": 38578,
    "textures": [
     {
      "name": "teto_pear_lit",
      "mime": "image/webp",
      "size": [
-      512,
-      512
+      1024,
+      1024
      ],
-     "bytes": 18868
+     "bytes": 38578
     }
    ],
    "materials": [
@@ -2989,6 +3648,7 @@
      "name": "teto_pear_lit",
      "mode": "lit",
      "litScale": 0.16,
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -2996,6 +3656,17 @@
     }
    ],
    "litScale": 0.16,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 0.16,
+     "texelsPerMm": 7.71,
+     "clipped": 0.00016
+    }
+   },
+   "reduction": {
+    "tetopear": "kept (custom normals)"
+   },
    "nodes": [
     "NEW_teto_pear_root__mesh",
     "NEW_teto_pear_root"

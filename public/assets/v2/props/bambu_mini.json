@@ -4,30 +4,30 @@
   "NEW_bambu_mini"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 28000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 116961,
- "tris_after": 27179,
+ "tris_after": 75380,
  "objects": [
   {
    "name": "bambu_mini_base",
    "tris_before": 9849,
-   "tris_after": 2201
+   "tris_after": 5648
   },
   {
    "name": "bambu_mini_toolhead",
    "tris_before": 45157,
-   "tris_after": 10092
+   "tris_after": 26868
   },
   {
    "name": "bambu_mini_heatbed",
    "tris_before": 15034,
-   "tris_after": 3360
+   "tris_after": 9006
   },
   {
    "name": "bambu_mini_carriage",
    "tris_before": 26167,
-   "tris_after": 5848
+   "tris_after": 14958
   },
   {
    "name": "bambu_mini_spoolstand_base",
@@ -37,7 +37,7 @@
   {
    "name": "bambu_mini_spoolstand_roller_0",
    "tris_before": 892,
-   "tris_after": 198
+   "tris_after": 764
   },
   {
    "name": "bambu_mini_spoolstand_cheek_00",
@@ -62,7 +62,7 @@
   {
    "name": "bambu_mini_spoolstand_roller_1",
    "tris_before": 892,
-   "tris_after": 198
+   "tris_after": 764
   },
   {
    "name": "bambu_mini_spoolstand_cheek_10",
@@ -87,52 +87,52 @@
   {
    "name": "bambu_mini_spool_flange_L",
    "tris_before": 720,
-   "tris_after": 160
+   "tris_after": 720
   },
   {
    "name": "bambu_mini_spool_flange_R",
    "tris_before": 720,
-   "tris_after": 160
+   "tris_after": 720
   },
   {
    "name": "bambu_mini_spool_core",
    "tris_before": 384,
-   "tris_after": 84
+   "tris_after": 384
   },
   {
    "name": "bambu_mini_spool_filament",
    "tris_before": 1152,
-   "tris_after": 256
+   "tris_after": 1152
   },
   {
    "name": "bambu_mini_box_inlet_collet",
    "tris_before": 668,
-   "tris_after": 148
+   "tris_after": 572
   },
   {
    "name": "bambu_mini_filament_free",
    "tris_before": 972,
-   "tris_after": 216
+   "tris_after": 588
   },
   {
    "name": "bambu_mini_ptfe_tube",
    "tris_before": 4032,
-   "tris_after": 900
+   "tris_after": 3484
   },
   {
    "name": "bambu_mini_ptfe_tube_bore",
    "tris_before": 2688,
-   "tris_after": 600
+   "tris_after": 2404
   },
   {
    "name": "bambu_mini_filament_in_tube",
    "tris_before": 2688,
-   "tris_after": 600
+   "tris_after": 2404
   },
   {
    "name": "bambu_mini_benchy_hull",
    "tris_before": 350,
-   "tris_after": 78
+   "tris_after": 350
   },
   {
    "name": "bambu_mini_benchy_cabin",
@@ -157,27 +157,27 @@
   {
    "name": "bambu_mini_table_glide_11",
    "tris_before": 668,
-   "tris_after": 148
+   "tris_after": 668
   },
   {
    "name": "bambu_mini_table_glide_10",
    "tris_before": 668,
-   "tris_after": 148
+   "tris_after": 668
   },
   {
    "name": "bambu_mini_table_glide_01",
    "tris_before": 668,
-   "tris_after": 148
+   "tris_after": 668
   },
   {
    "name": "bambu_mini_table_glide_00",
    "tris_before": 668,
-   "tris_after": 148
+   "tris_after": 668
   },
   {
    "name": "bambu_mini_table_drawer_knob",
    "tris_before": 560,
-   "tris_after": 124
+   "tris_after": 558
   },
   {
    "name": "bambu_mini_table_drawer_cavity",
@@ -201,11 +201,48 @@
    "bambu_mini_table_apron_back"
   ]
  },
+ "reduction": {
+  "bambu_mini_base": "collapse 0.60",
+  "bambu_mini_toolhead": "collapse 0.60",
+  "bambu_mini_heatbed": "collapse 0.60",
+  "bambu_mini_carriage": "collapse 0.60",
+  "bambu_mini_spoolstand_base": "kept",
+  "bambu_mini_spoolstand_roller_0": "dissolve",
+  "bambu_mini_spoolstand_cheek_00": "kept",
+  "bambu_mini_spoolstand_axle_00": "kept",
+  "bambu_mini_spoolstand_cheek_01": "kept",
+  "bambu_mini_spoolstand_axle_01": "kept",
+  "bambu_mini_spoolstand_roller_1": "dissolve",
+  "bambu_mini_spoolstand_cheek_10": "kept",
+  "bambu_mini_spoolstand_axle_10": "kept",
+  "bambu_mini_spoolstand_cheek_11": "kept",
+  "bambu_mini_spoolstand_axle_11": "kept",
+  "bambu_mini_spool_flange_L": "dissolve",
+  "bambu_mini_spool_flange_R": "dissolve",
+  "bambu_mini_spool_core": "dissolve",
+  "bambu_mini_spool_filament": "dissolve",
+  "bambu_mini_box_inlet_collet": "dissolve",
+  "bambu_mini_filament_free": "dissolve",
+  "bambu_mini_ptfe_tube": "dissolve",
+  "bambu_mini_ptfe_tube_bore": "dissolve",
+  "bambu_mini_filament_in_tube": "dissolve",
+  "bambu_mini_benchy_hull": "dissolve",
+  "bambu_mini_benchy_cabin": "kept",
+  "bambu_mini_benchy_bollards": "kept",
+  "bambu_mini_benchy_hawse_0": "kept",
+  "bambu_mini_benchy_hawse_1": "kept",
+  "bambu_mini_table_glide_11": "dissolve",
+  "bambu_mini_table_glide_10": "dissolve",
+  "bambu_mini_table_glide_01": "dissolve",
+  "bambu_mini_table_glide_00": "dissolve",
+  "bambu_mini_table_drawer_knob": "dissolve",
+  "bambu_mini_table_drawer_cavity": "kept"
+ },
  "atlas": {
   "pbr_res": 512,
-  "lit_res": 1024,
+  "lit_res": 2048,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
    "pbr": "pack_islands"
   }
  },
@@ -216,10 +253,15 @@
   "emit": "bambu_mini_emissive.png",
   "lit": "bambu_mini_lit.png"
  },
- "lit_scale": 0.33,
+ "lit_scale": 0.34,
+ "lit_atlases": {
+  "main": {
+   "res": 2048,
+   "litScale": 0.34
+  }
+ },
  "material_modes": {
   "bambu_mini_lit": "lit",
-  "bambu_mini_lit_cutout": "lit",
   "bambu_mini_pbr": "pbr",
   "bambu_mini_ptfe_web": "glass",
   "bambu_mini_screen_lit": "pbr_emissive_keeper"
@@ -230,9 +272,9 @@
   "bambu_mini_filament_spool.001": "opaque",
   "bambu_mini_filament_strand.001": "opaque",
   "bambu_mini_glide.001": "opaque",
-  "bambu_mini_head.001": "cutout",
+  "bambu_mini_head.001": "opaque",
   "bambu_mini_heatbed.001": "opaque",
-  "bambu_mini_motor.001": "cutout",
+  "bambu_mini_motor.001": "opaque",
   "bambu_mini_nickel.001": "metal",
   "bambu_mini_print.001": "opaque",
   "bambu_mini_print_top.001": "opaque",
@@ -327,25 +369,24 @@
    "parent": "bambu_mini_printer",
    "tris": 4,
    "materials": [
-    "bambu_mini_lit",
     "bambu_mini_screen_lit"
    ],
    "blender_bbox": [
     [
-     1.3851,
-     0.7543,
-     0.6593
+     1.3854,
+     0.7553,
+     0.6597
     ],
     [
      1.456,
      0.8277,
-     0.6973
+     0.6974
     ]
    ]
   },
   "bambu_mini_printer__glass_bambu_mini_ptfe": {
    "parent": "bambu_mini_printer",
-   "tris": 1500,
+   "tris": 5888,
    "materials": [
     "bambu_mini_ptfe_web"
    ],
@@ -358,34 +399,33 @@
     [
      1.6436,
      0.9055,
-     0.9724
+     0.9723
     ]
    ]
   },
   "bambu_mini_printer__mesh": {
    "parent": "bambu_mini_printer",
-   "tris": 23031,
+   "tris": 60882,
    "materials": [
     "bambu_mini_lit",
-    "bambu_mini_screen_lit",
-    "bambu_mini_lit_cutout"
+    "bambu_mini_screen_lit"
    ],
    "blender_bbox": [
     [
-     1.3169,
-     0.7375,
-     0.6479
+     1.3168,
+     0.7376,
+     0.648
     ],
     [
      1.6764,
-     1.1111,
+     1.1112,
      0.9712
     ]
    ]
   },
   "bambu_mini_spool_stand__mesh": {
    "parent": "bambu_mini_spool_stand",
-   "tris": 1916,
+   "tris": 5364,
    "materials": [
     "bambu_mini_lit"
    ],
@@ -396,15 +436,15 @@
      0.648
     ],
     [
-     1.6867,
+     1.6869,
      0.7878,
-     0.8666
+     0.8664
     ]
    ]
   },
   "bambu_mini_table_parts__mesh": {
    "parent": "bambu_mini_table_parts",
-   "tris": 728,
+   "tris": 3242,
    "materials": [
     "bambu_mini_lit",
     "bambu_mini_pbr"
@@ -413,7 +453,7 @@
     [
      1.2456,
      0.61,
-     -0.0
+     0.0
     ],
     [
      1.7544,
@@ -431,37 +471,39 @@
  ],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.1617,
+   "normal_bumpy_fraction": 0.1865,
    "s2a": [],
    "base_mean": [
-    0.662,
-    0.672,
-    0.683
+    0.695,
+    0.704,
+    0.712
    ],
-   "ao_mean": 0.709,
-   "coverage_px": 0.075
+   "ao_mean": 0.708,
+   "coverage_px": 0.066
   },
   "lit": {
-   "lit_scale": 0.33,
-   "raw_mean": 0.0055,
-   "denoised_mean": 0.0055,
-   "p50": 0.0002,
-   "clipped_fraction": 0.00078,
-   "coverage_px": 0.353,
+   "lit_scale": 0.34,
+   "res": 2048,
+   "uv": "orig",
+   "texels_per_mm": 1.266,
+   "raw_mean": 0.0053,
+   "denoised_mean": 0.0052,
+   "p50": 0.0001,
+   "clipped_fraction": 3e-05,
+   "coverage_px": 0.316,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 4.8,
-  "rough": 4.7,
-  "metal": 4.7,
-  "emit": 4.7,
-  "ao": 5.1,
-  "normal": 4.9,
-  "lit": 55.0,
-  "lit_denoise": 0.8
+  "base": 4.9,
+  "rough": 4.9,
+  "metal": 4.9,
+  "emit": 4.8,
+  "ao": 5.3,
+  "normal": 5.2,
+  "lit": 94.1
  },
  "glb": "bambu_mini.glb",
- "glb_bytes": 1321612,
- "seconds": 175.3
+ "glb_bytes": 2855024,
+ "seconds": 184.3
 }

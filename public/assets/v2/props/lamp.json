@@ -5,103 +5,122 @@
   "NEW_medals"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 20000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 98334,
- "tris_after": 19350,
+ "tris_after": 96222,
  "objects": [
   {
    "name": "lamp_body.001",
    "tris_before": 2370,
-   "tris_after": 1276
+   "tris_after": 1596
   },
   {
    "name": "lamp_arm",
    "tris_before": 1776,
-   "tris_after": 956
+   "tris_after": 1162
   },
   {
    "name": "lamp_head.001",
    "tris_before": 3584,
-   "tris_after": 1930
+   "tris_after": 3354
   },
   {
    "name": "lamp_diffuser_bezel",
    "tris_before": 1792,
-   "tris_after": 964
+   "tris_after": 1792
   },
   {
    "name": "lamp_diffuser_disc",
    "tris_before": 1024,
-   "tris_after": 518
+   "tris_after": 530
   },
   {
    "name": "medal_m1_ribbon",
    "tris_before": 3256,
-   "tris_after": 876
+   "tris_after": 3256
   },
   {
    "name": "medal_m2_ribbon",
    "tris_before": 2776,
-   "tris_after": 746
+   "tris_after": 2776
   },
   {
    "name": "medal_m3_ribbon",
    "tris_before": 3556,
-   "tris_after": 956
+   "tris_after": 3556
   },
   {
    "name": "medal_m4_ribbon",
    "tris_before": 2916,
-   "tris_after": 784
+   "tris_after": 2916
   },
   {
    "name": "medal_m1_clasp",
    "tris_before": 2076,
-   "tris_after": 558
+   "tris_after": 2076
   },
   {
    "name": "medal_m1_disc",
    "tris_before": 16745,
-   "tris_after": 2028
+   "tris_after": 16745
   },
   {
    "name": "medal_m2_clasp",
    "tris_before": 2076,
-   "tris_after": 558
+   "tris_after": 2076
   },
   {
    "name": "medal_m2_disc",
    "tris_before": 16745,
-   "tris_after": 2028
+   "tris_after": 16745
   },
   {
    "name": "medal_m3_clasp",
    "tris_before": 2076,
-   "tris_after": 558
+   "tris_after": 2076
   },
   {
    "name": "medal_m3_disc",
    "tris_before": 16745,
-   "tris_after": 2028
+   "tris_after": 16745
   },
   {
    "name": "medal_m4_clasp",
    "tris_before": 2076,
-   "tris_after": 558
+   "tris_after": 2076
   },
   {
    "name": "medal_m4_disc",
    "tris_before": 16745,
-   "tris_after": 2028
+   "tris_after": 16745
   }
  ],
  "skipped": {},
+ "reduction": {
+  "lamp_body.001": "dissolve",
+  "lamp_arm": "dissolve",
+  "lamp_head.001": "dissolve",
+  "lamp_diffuser_bezel": "dissolve",
+  "lamp_diffuser_disc": "dissolve",
+  "medal_m1_ribbon": "kept",
+  "medal_m2_ribbon": "kept",
+  "medal_m3_ribbon": "kept",
+  "medal_m4_ribbon": "kept",
+  "medal_m1_clasp": "kept",
+  "medal_m1_disc": "kept",
+  "medal_m2_clasp": "kept",
+  "medal_m2_disc": "kept",
+  "medal_m3_clasp": "kept",
+  "medal_m3_disc": "kept",
+  "medal_m4_clasp": "kept",
+  "medal_m4_disc": "kept"
+ },
  "atlas": {
   "pbr_res": 1024,
-  "lit_res": 1024,
+  "lit_res": 2048,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
    "pbr": "pack_islands"
   }
  },
@@ -111,7 +130,13 @@
   "normal": "lamp_normal.png",
   "lit": "lamp_lit.png"
  },
- "lit_scale": 8.0,
+ "lit_scale": 2.0,
+ "lit_atlases": {
+  "main": {
+   "res": 2048,
+   "litScale": 2.0
+  }
+ },
  "material_modes": {
   "lamp_diffuser": "pbr_emissive",
   "lamp_lit": "lit",
@@ -168,7 +193,7 @@
  "meshes": {
   "NEW_lamp_root__mesh": {
    "parent": "NEW_lamp_root",
-   "tris": 1276,
+   "tris": 1596,
    "materials": [
     "lamp_lit"
    ],
@@ -187,7 +212,7 @@
   },
   "NEW_lamp_pivot__mesh": {
    "parent": "NEW_lamp_pivot",
-   "tris": 18074,
+   "tris": 94626,
    "materials": [
     "lamp_lit",
     "lamp_diffuser",
@@ -195,9 +220,9 @@
    ],
    "blender_bbox": [
     [
-     -0.7213,
-     0.6897,
-     0.7747
+     -0.7214,
+     0.6896,
+     0.7745
     ],
     [
      -0.4254,
@@ -210,53 +235,55 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.371,
+   "normal_bumpy_fraction": 0.2921,
    "s2a": [
     [
      "medal_m1_disc",
-     50891
+     13172
     ],
     [
      "medal_m2_disc",
-     50675
+     13032
     ],
     [
      "medal_m3_disc",
-     50955
+     12880
     ],
     [
      "medal_m4_disc",
-     50776
+     13007
     ]
    ],
    "base_mean": [
-    0.858,
-    0.848,
-    0.83
+    0.787,
+    0.587,
+    0.593
    ],
-   "ao_mean": 0.47,
-   "coverage_px": 0.487
+   "ao_mean": 0.421,
+   "coverage_px": 0.199
   },
   "lit": {
-   "lit_scale": 8.0,
-   "raw_mean": 3.0086,
-   "denoised_mean": 3.0125,
-   "p50": 0.2959,
-   "clipped_fraction": 0.12914,
-   "coverage_px": 0.412,
+   "lit_scale": 2.0,
+   "res": 2048,
+   "uv": "smart",
+   "texels_per_mm": 2.475,
+   "raw_mean": 3.8823,
+   "denoised_mean": 3.8863,
+   "p50": 0.2976,
+   "clipped_fraction": 0.28027,
+   "coverage_px": 0.435,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 12.0,
-  "rough": 12.2,
-  "metal": 12.0,
-  "ao": 14.3,
-  "normal": 17.9,
-  "lit": 26.8,
-  "lit_denoise": 0.8
+  "base": 19.7,
+  "rough": 19.6,
+  "metal": 19.9,
+  "ao": 21.3,
+  "normal": 23.8,
+  "lit": 66.9
  },
  "glb": "lamp.glb",
- "glb_bytes": 1260560,
- "seconds": 122.4
+ "glb_bytes": 5290816,
+ "seconds": 201.3
 }

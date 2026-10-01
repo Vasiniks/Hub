@@ -5,20 +5,20 @@
   "NEW_plush_teto"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 48000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 245380,
- "tris_after": 46575,
+ "tris_after": 212788,
  "objects": [
   {
    "name": "pc_case_base_rail",
    "tris_before": 796,
-   "tris_after": 104
+   "tris_after": 790
   },
   {
    "name": "pc_case_base",
    "tris_before": 876,
-   "tris_after": 114
+   "tris_after": 848
   },
   {
    "name": "pc_case_top",
@@ -33,7 +33,7 @@
   {
    "name": "pc_case_io",
    "tris_before": 2648,
-   "tris_after": 349
+   "tris_after": 2614
   },
   {
    "name": "pc_glass_panels",
@@ -48,22 +48,22 @@
   {
    "name": "pc_case_frame",
    "tris_before": 1604,
-   "tris_after": 212
+   "tris_after": 1548
   },
   {
    "name": "pc_case_rear",
    "tris_before": 384,
-   "tris_after": 60
+   "tris_after": 376
   },
   {
    "name": "pc_rear_guard",
    "tris_before": 1392,
-   "tris_after": 110
+   "tris_after": 1392
   },
   {
    "name": "pc_rear_slots",
    "tris_before": 5132,
-   "tris_after": 406
+   "tris_after": 4436
   },
   {
    "name": "pc_mb_tray",
@@ -73,17 +73,17 @@
   {
    "name": "pc_mb_grommets",
    "tris_before": 516,
-   "tris_after": 72
+   "tris_after": 516
   },
   {
    "name": "pc_psu",
    "tris_before": 1008,
-   "tris_after": 132
+   "tris_after": 992
   },
   {
    "name": "pc_mobo_board",
    "tris_before": 41400,
-   "tris_after": 5480
+   "tris_after": 41400
   },
   {
    "name": "pc_power_plugs",
@@ -93,12 +93,12 @@
   {
    "name": "pc_rear_io",
    "tris_before": 2344,
-   "tris_after": 185
+   "tris_after": 2292
   },
   {
    "name": "pc_cooler_pump",
    "tris_before": 3232,
-   "tris_after": 426
+   "tris_after": 3176
   },
   {
    "name": "pc_cooler_lcd",
@@ -108,57 +108,57 @@
   {
    "name": "pc_radiator",
    "tris_before": 2140,
-   "tris_after": 282
+   "tris_after": 2084
   },
   {
    "name": "pc_fans_frames",
    "tris_before": 32700,
-   "tris_after": 3462
+   "tris_after": 28460
   },
   {
    "name": "pc_fans_rotors",
    "tris_before": 20080,
-   "tris_after": 2126
+   "tris_after": 20040
   },
   {
    "name": "pc_aio_tubes",
    "tris_before": 3852,
-   "tris_after": 508
+   "tris_after": 3240
   },
   {
    "name": "pc_gpukit_00_brushed_nickel",
    "tris_before": 5362,
-   "tris_after": 708
+   "tris_after": 5362
   },
   {
    "name": "pc_gpukit_01_black_plastic_pl",
    "tris_before": 1819,
-   "tris_after": 263
+   "tris_after": 1819
   },
   {
    "name": "pc_gpukit_02_brushed_gold",
    "tris_before": 1985,
-   "tris_after": 262
+   "tris_after": 1985
   },
   {
    "name": "pc_gpukit_03_material",
    "tris_before": 774,
-   "tris_after": 101
+   "tris_after": 774
   },
   {
    "name": "pc_gpukit_04_metal",
    "tris_before": 2587,
-   "tris_after": 341
+   "tris_after": 2587
   },
   {
    "name": "pc_gpukit_05_material",
    "tris_before": 401,
-   "tris_after": 52
+   "tris_after": 401
   },
   {
    "name": "pc_gpukit_06_material",
    "tris_before": 3438,
-   "tris_after": 454
+   "tris_after": 3438
   },
   {
    "name": "pc_gpukit_07_material",
@@ -173,32 +173,32 @@
   {
    "name": "pc_gpukit_09_material",
    "tris_before": 958,
-   "tris_after": 247
+   "tris_after": 958
   },
   {
    "name": "pc_gpukit_10_material_0",
    "tris_before": 6911,
-   "tris_after": 1192
+   "tris_after": 6911
   },
   {
    "name": "pc_gpukit_11_procedural_silver",
    "tris_before": 3238,
-   "tris_after": 439
+   "tris_after": 3238
   },
   {
    "name": "pc_gpukit_12_material",
    "tris_before": 1351,
-   "tris_after": 178
+   "tris_after": 1351
   },
   {
    "name": "pc_gpukit_13_metal",
    "tris_before": 2402,
-   "tris_after": 317
+   "tris_after": 2402
   },
   {
    "name": "pc_gpukit_14_material",
    "tris_before": 5802,
-   "tris_after": 960
+   "tris_after": 5802
   },
   {
    "name": "pc_gpu_power_plug",
@@ -208,17 +208,17 @@
   {
    "name": "pc_cables_sleeved",
    "tris_before": 18380,
-   "tris_after": 1460
+   "tris_after": 16812
   },
   {
    "name": "pc_rear_chamber",
    "tris_before": 7096,
-   "tris_after": 562
+   "tris_after": 6532
   },
   {
    "name": "pc_power_cable",
    "tris_before": 5884,
-   "tris_after": 778
+   "tris_after": 3728
   },
   {
    "name": "pc_lcd_0",
@@ -228,7 +228,7 @@
   {
    "name": "pc_lcd_0_text0",
    "tris_before": 327,
-   "tris_after": 173
+   "tris_after": 321
   },
   {
    "name": "pc_lcd_0_text1",
@@ -243,7 +243,7 @@
   {
    "name": "pc_lcd_1_text0",
    "tris_before": 473,
-   "tris_after": 250
+   "tris_after": 470
   },
   {
    "name": "pc_lcd_1_text1",
@@ -273,7 +273,7 @@
   {
    "name": "pc_lcd_3_text0",
    "tris_before": 402,
-   "tris_after": 212
+   "tris_after": 399
   },
   {
    "name": "pc_lcd_3_text1",
@@ -283,7 +283,7 @@
   {
    "name": "Circle",
    "tris_before": 25344,
-   "tris_after": 10066
+   "tris_after": 14466
   },
   {
    "name": "Circle.001",
@@ -293,32 +293,32 @@
   {
    "name": "Circle.002",
    "tris_before": 3040,
-   "tris_after": 1206
+   "tris_after": 1814
   },
   {
    "name": "Circle.003",
    "tris_before": 3072,
-   "tris_after": 1220
+   "tris_after": 1742
   },
   {
    "name": "Circle.004",
    "tris_before": 2752,
-   "tris_after": 1092
+   "tris_after": 1624
   },
   {
    "name": "Circle.005",
    "tris_before": 3968,
-   "tris_after": 1576
+   "tris_after": 2270
   },
   {
    "name": "Circle.006",
    "tris_before": 832,
-   "tris_after": 329
+   "tris_after": 498
   },
   {
    "name": "Circle.007",
    "tris_before": 384,
-   "tris_after": 152
+   "tris_after": 148
   },
   {
    "name": "Circle.008",
@@ -328,37 +328,37 @@
   {
    "name": "Circle.009",
    "tris_before": 512,
-   "tris_after": 202
+   "tris_after": 128
   },
   {
    "name": "NurbsPath",
    "tris_before": 2256,
-   "tris_after": 896
+   "tris_after": 1350
   },
   {
    "name": "NurbsPath.001",
    "tris_before": 1120,
-   "tris_after": 444
+   "tris_after": 672
   },
   {
    "name": "NurbsPath.002",
    "tris_before": 576,
-   "tris_after": 228
+   "tris_after": 344
   },
   {
    "name": "Plane",
    "tris_before": 1088,
-   "tris_after": 432
+   "tris_after": 441
   },
   {
    "name": "Plane.001",
    "tris_before": 384,
-   "tris_after": 142
+   "tris_after": 146
   },
   {
    "name": "Plane.002",
    "tris_before": 480,
-   "tris_after": 190
+   "tris_after": 282
   },
   {
    "name": "Plane.003",
@@ -373,15 +373,91 @@
   {
    "name": "Spiral",
    "tris_before": 6272,
-   "tris_after": 2490
+   "tris_after": 3763
   }
  ],
  "skipped": {},
+ "reduction": {
+  "pc_case_base_rail": "dissolve",
+  "pc_case_base": "dissolve",
+  "pc_case_top": "kept",
+  "pc_case_top_mesh": "kept",
+  "pc_case_io": "dissolve",
+  "pc_glass_panels": "kept",
+  "pc_case_led_strips": "kept",
+  "pc_case_frame": "dissolve",
+  "pc_case_rear": "dissolve",
+  "pc_rear_guard": "dissolve",
+  "pc_rear_slots": "dissolve",
+  "pc_mb_tray": "kept",
+  "pc_mb_grommets": "dissolve",
+  "pc_psu": "dissolve",
+  "pc_mobo_board": "kept (custom normals)",
+  "pc_power_plugs": "kept",
+  "pc_rear_io": "dissolve",
+  "pc_cooler_pump": "dissolve",
+  "pc_cooler_lcd": "kept",
+  "pc_radiator": "dissolve",
+  "pc_fans_frames": "dissolve",
+  "pc_fans_rotors": "dissolve",
+  "pc_aio_tubes": "dissolve",
+  "pc_gpukit_00_brushed_nickel": "kept (custom normals)",
+  "pc_gpukit_01_black_plastic_pl": "kept (custom normals)",
+  "pc_gpukit_02_brushed_gold": "kept (custom normals)",
+  "pc_gpukit_03_material": "kept (custom normals)",
+  "pc_gpukit_04_metal": "kept (custom normals)",
+  "pc_gpukit_05_material": "kept (custom normals)",
+  "pc_gpukit_06_material": "kept (custom normals)",
+  "pc_gpukit_07_material": "kept",
+  "pc_gpukit_08_material": "kept",
+  "pc_gpukit_09_material": "kept (custom normals)",
+  "pc_gpukit_10_material_0": "kept (custom normals)",
+  "pc_gpukit_11_procedural_silver": "kept (custom normals)",
+  "pc_gpukit_12_material": "kept (custom normals)",
+  "pc_gpukit_13_metal": "kept (custom normals)",
+  "pc_gpukit_14_material": "kept (custom normals)",
+  "pc_gpu_power_plug": "kept",
+  "pc_cables_sleeved": "dissolve",
+  "pc_rear_chamber": "dissolve",
+  "pc_power_cable": "dissolve",
+  "pc_lcd_0": "kept",
+  "pc_lcd_0_text0": "dissolve",
+  "pc_lcd_0_text1": "kept",
+  "pc_lcd_1": "kept",
+  "pc_lcd_1_text0": "dissolve",
+  "pc_lcd_1_text1": "kept",
+  "pc_lcd_2": "kept",
+  "pc_lcd_2_text0": "kept",
+  "pc_lcd_2_text1": "kept",
+  "pc_lcd_3": "kept",
+  "pc_lcd_3_text0": "dissolve",
+  "pc_lcd_3_text1": "kept",
+  "Circle": "collapse 0.60",
+  "Circle.001": "kept",
+  "Circle.002": "collapse 0.60",
+  "Circle.003": "collapse 0.60",
+  "Circle.004": "collapse 0.60",
+  "Circle.005": "collapse 0.60",
+  "Circle.006": "collapse 0.60",
+  "Circle.007": "collapse 0.60",
+  "Circle.008": "kept",
+  "Circle.009": "collapse 0.60",
+  "NurbsPath": "collapse 0.60",
+  "NurbsPath.001": "collapse 0.60",
+  "NurbsPath.002": "collapse 0.60",
+  "Plane": "collapse 0.60",
+  "Plane.001": "collapse 0.60",
+  "Plane.002": "collapse 0.60",
+  "Plane.003": "kept",
+  "Plane.004": "kept",
+  "Spiral": "collapse 0.60"
+ },
  "atlas": {
   "pbr_res": 1024,
-  "lit_res": 1024,
+  "lit_res": 2048,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
+   "lit_plush": "pack_islands",
    "pbr": "pack_islands"
   }
  },
@@ -390,9 +466,20 @@
   "orm": "pc_orm.png",
   "normal": "pc_normal.png",
   "emit": "pc_emissive.png",
-  "lit": "pc_lit.png"
+  "lit": "pc_lit.png",
+  "lit_plush": "pc_plush_lit.png"
  },
- "lit_scale": 5.6000000000000005,
+ "lit_scale": 2.0,
+ "lit_atlases": {
+  "main": {
+   "res": 2048,
+   "litScale": 2.0
+  },
+  "plush": {
+   "res": 1024,
+   "litScale": 0.27
+  }
+ },
  "material_modes": {
   "pc_emit": "pbr_emissive",
   "pc_glass_edge_web": "glass",
@@ -401,7 +488,7 @@
   "pc_led_green": "pbr_emissive",
   "pc_led_white": "pbr_emissive",
   "pc_lit": "lit",
-  "pc_lit_cutout": "lit",
+  "pc_lit_plush": "lit",
   "pc_pbr": "pbr",
   "pc_screen_text": "pbr_emissive"
  },
@@ -498,8 +585,8 @@
   "pc_led_white": "emit",
   "pc_mb_pcb.002": "opaque",
   "pc_metal": "metal",
-  "pc_perforated": "cutout",
-  "pc_perforated_uz": "cutout",
+  "pc_perforated": "opaque",
+  "pc_perforated_uz": "opaque",
   "pc_plug_black": "opaque",
   "pc_port_dark": "opaque",
   "pc_psu": "opaque",
@@ -533,6 +620,7 @@
  ],
  "emissive_strength_max": 9.0,
  "emissive_nodes": [],
+ "screen_nodes": [],
  "anchors": {
   "NEW_pc_root": {
    "blender_world": [
@@ -606,12 +694,11 @@
   },
   "NEW_pc_root__mesh": {
    "parent": "NEW_pc_root",
-   "tris": 24798,
+   "tris": 181988,
    "materials": [
-    "pc_lit",
     "pc_pbr",
+    "pc_lit",
     "pc_emit",
-    "pc_lit_cutout",
     "pc_led_white",
     "pc_led_green",
     "pc_led_amber",
@@ -619,31 +706,31 @@
    ],
    "blender_bbox": [
     [
-     0.2409,
-     0.8212,
-     -0.0026
+     0.2408,
+     0.8211,
+     -0.0028
     ],
     [
      0.9714,
-     1.254,
+     1.2542,
      1.23
     ]
    ]
   },
   "NEW_plush_teto_root__mesh": {
    "parent": "NEW_plush_teto_root",
-   "tris": 21689,
+   "tris": 30712,
    "materials": [
-    "pc_lit"
+    "pc_lit_plush"
    ],
    "blender_bbox": [
     [
-     0.5694,
-     0.8183,
+     0.5696,
+     0.8184,
      1.2287
     ],
     [
-     0.9089,
+     0.9088,
      1.1187,
      1.5307
     ]
@@ -662,37 +749,52 @@
  ],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0842,
+   "normal_bumpy_fraction": 0.0141,
    "s2a": [],
    "base_mean": [
-    0.82,
-    0.833,
-    0.838
+    0.783,
+    0.796,
+    0.8
    ],
-   "ao_mean": 0.378,
-   "coverage_px": 0.457
+   "ao_mean": 0.292,
+   "coverage_px": 0.036
   },
   "lit": {
-   "lit_scale": 5.6000000000000005,
-   "raw_mean": 0.1105,
-   "denoised_mean": 0.1105,
-   "p50": 0.0169,
-   "clipped_fraction": 0.00194,
-   "coverage_px": 0.303,
+   "lit_scale": 2.0,
+   "res": 2048,
+   "uv": "smart",
+   "texels_per_mm": 0.175,
+   "raw_mean": 0.1483,
+   "denoised_mean": 0.1482,
+   "p50": 0.0216,
+   "clipped_fraction": 0.01979,
+   "coverage_px": 0.029,
+   "samples": 256
+  },
+  "lit_plush": {
+   "lit_scale": 0.27,
+   "res": 1024,
+   "uv": "smart",
+   "texels_per_mm": 0.942,
+   "raw_mean": 0.0141,
+   "denoised_mean": 0.0137,
+   "p50": 0.0039,
+   "clipped_fraction": 0.00077,
+   "coverage_px": 0.452,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 40.2,
-  "rough": 40.5,
-  "metal": 38.7,
-  "emit": 39.2,
-  "ao": 44.9,
-  "normal": 42.4,
-  "lit": 86.6,
-  "lit_denoise": 0.8
+  "base": 44.9,
+  "rough": 44.4,
+  "metal": 42.1,
+  "emit": 41.8,
+  "ao": 44.7,
+  "normal": 44.4,
+  "lit": 72.4,
+  "lit_plush": 44.9
  },
  "glb": "pc.glb",
- "glb_bytes": 2413952,
- "seconds": 512.9
+ "glb_bytes": 11018512,
+ "seconds": 515.8
 }

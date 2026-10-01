@@ -126,11 +126,34 @@
    "tote_feet.002"
   ]
  },
+ "reduction": {
+  "driver_handle": "kept (custom normals)",
+  "driver_grip": "kept",
+  "driver_grip2": "kept",
+  "driver_bolster": "kept",
+  "driver_shaft": "kept",
+  "driver_tip": "kept",
+  "tote": "kept (custom normals)",
+  "tote_ribs": "kept (custom normals)",
+  "tote_ledge": "kept (custom normals)",
+  "tote_divider": "kept",
+  "tote_feet": "kept (custom normals)",
+  "tote.001": "kept (custom normals)",
+  "tote_ribs.001": "kept (custom normals)",
+  "tote_ledge.001": "kept (custom normals)",
+  "tote_divider.001": "kept",
+  "tote_feet.001": "kept (custom normals)",
+  "Mesh_142": "kept (custom normals)",
+  "Mesh_143": "kept (custom normals)",
+  "Mesh_144": "kept (custom normals)",
+  "Mesh_145": "kept (custom normals)",
+  "Mesh_146": "kept (custom normals)"
+ },
  "atlas": {
   "pbr_res": 512,
-  "lit_res": 512,
+  "lit_res": 1024,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
    "pbr": "pack_islands"
   }
  },
@@ -141,6 +164,12 @@
   "lit": "desk_misc_lit.png"
  },
  "lit_scale": 0.12,
+ "lit_atlases": {
+  "main": {
+   "res": 1024,
+   "litScale": 0.12
+  }
+ },
  "material_modes": {
   "desk_misc_lit": "lit",
   "desk_misc_pbr": "pbr"
@@ -327,36 +356,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.1319,
+   "normal_bumpy_fraction": 0.1341,
    "s2a": [],
    "base_mean": [
     0.899,
     0.9,
-    0.895
+    0.894
    ],
-   "ao_mean": 0.4,
-   "coverage_px": 0.314
+   "ao_mean": 0.413,
+   "coverage_px": 0.184
   },
   "lit": {
    "lit_scale": 0.12,
-   "raw_mean": 0.0065,
-   "denoised_mean": 0.0064,
-   "p50": 0.003,
-   "clipped_fraction": 1e-05,
-   "coverage_px": 0.278,
+   "res": 1024,
+   "uv": "smart",
+   "texels_per_mm": 0.482,
+   "raw_mean": 0.0067,
+   "denoised_mean": 0.0067,
+   "p50": 0.0025,
+   "clipped_fraction": 4e-05,
+   "coverage_px": 0.279,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 7.7,
-  "rough": 7.7,
-  "metal": 7.8,
-  "ao": 8.2,
-  "normal": 7.9,
-  "lit": 22.1,
-  "lit_denoise": 0.1
+  "base": 7.8,
+  "rough": 7.9,
+  "metal": 8.0,
+  "ao": 8.1,
+  "normal": 8.0,
+  "lit": 30.3
  },
  "glb": "desk_misc.glb",
- "glb_bytes": 629084,
- "seconds": 89.9
+ "glb_bytes": 787292,
+ "seconds": 100.9
 }

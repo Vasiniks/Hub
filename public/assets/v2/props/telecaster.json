@@ -5,35 +5,35 @@
   "NEW_tele_gb"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 22000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 108089,
- "tris_after": 21437,
+ "tris_after": 91718,
  "objects": [
   {
    "name": "TeleStand",
    "tris_before": 21532,
-   "tris_after": 3096
+   "tris_after": 18022
   },
   {
    "name": "TeleGB_nut",
    "tris_before": 2392,
-   "tris_after": 684
+   "tris_after": 2392
   },
   {
    "name": "TeleGB_tuning pegs",
    "tris_before": 30594,
-   "tris_after": 214
+   "tris_after": 17733
   },
   {
    "name": "TeleGB_fingerboard",
    "tris_before": 6286,
-   "tris_after": 3616
+   "tris_after": 6286
   },
   {
    "name": "TeleGB_fingerboard.001",
    "tris_before": 15429,
-   "tris_after": 1271
+   "tris_after": 15429
   },
   {
    "name": "TeleGB_Anker",
@@ -43,7 +43,7 @@
   {
    "name": "TeleGB_Back_cil",
    "tris_before": 768,
-   "tris_after": 219
+   "tris_after": 768
   },
   {
    "name": "TeleGB_Bridg",
@@ -53,12 +53,12 @@
   {
    "name": "TeleGB_Deka",
    "tris_before": 1174,
-   "tris_after": 1012
+   "tris_after": 1174
   },
   {
    "name": "TeleGB_Griph",
    "tris_before": 560,
-   "tris_after": 159
+   "tris_after": 560
   },
   {
    "name": "TeleGB_Holder_down_1",
@@ -93,12 +93,12 @@
   {
    "name": "TeleGB_Lads",
    "tris_before": 966,
-   "tris_after": 276
+   "tris_after": 966
   },
   {
    "name": "TeleGB_Magnet_1",
    "tris_before": 480,
-   "tris_after": 137
+   "tris_after": 480
   },
   {
    "name": "TeleGB_Nakladka_1",
@@ -118,7 +118,7 @@
   {
    "name": "TeleGB_Nakladka",
    "tris_before": 493,
-   "tris_after": 141
+   "tris_after": 493
   },
   {
    "name": "TeleGB_Pod_string_1_1",
@@ -243,12 +243,12 @@
   {
    "name": "TeleGB_Ruchka_1",
    "tris_before": 360,
-   "tris_after": 102
+   "tris_after": 360
   },
   {
    "name": "TeleGB_Ruchka_2",
    "tris_before": 360,
-   "tris_after": 102
+   "tris_after": 360
   },
   {
    "name": "TeleGB_Ruchka_3_0",
@@ -268,37 +268,37 @@
   {
    "name": "TeleGB_Spring_1",
    "tris_before": 1936,
-   "tris_after": 551
+   "tris_after": 1936
   },
   {
    "name": "TeleGB_Spring_2",
    "tris_before": 1936,
-   "tris_after": 552
+   "tris_after": 1936
   },
   {
    "name": "TeleGB_Spring_3",
    "tris_before": 2416,
-   "tris_after": 689
+   "tris_after": 2416
   },
   {
    "name": "TeleGB_Spring_4",
    "tris_before": 1938,
-   "tris_after": 552
+   "tris_after": 1938
   },
   {
    "name": "TeleGB_Spring_5",
    "tris_before": 1936,
-   "tris_after": 552
+   "tris_after": 1936
   },
   {
    "name": "TeleGB_Spring_6",
    "tris_before": 1936,
-   "tris_after": 552
+   "tris_after": 1936
   },
   {
    "name": "TeleGB_Strings",
    "tris_before": 10720,
-   "tris_after": 3083
+   "tris_after": 10720
   },
   {
    "name": "TeleGB_\u041f\u043b\u043e\u0441\u043a\u043e\u0441\u0442\u044c",
@@ -317,11 +317,72 @@
    "Tele_Strings"
   ]
  },
+ "reduction": {
+  "TeleStand": "dissolve",
+  "TeleGB_nut": "kept (custom normals)",
+  "TeleGB_tuning pegs": "collapse 0.60",
+  "TeleGB_fingerboard": "kept (custom normals)",
+  "TeleGB_fingerboard.001": "kept (custom normals)",
+  "TeleGB_Anker": "kept",
+  "TeleGB_Back_cil": "kept (custom normals)",
+  "TeleGB_Bridg": "kept",
+  "TeleGB_Deka": "kept (custom normals)",
+  "TeleGB_Griph": "kept (custom normals)",
+  "TeleGB_Holder_down_1": "kept",
+  "TeleGB_Holder_down_2": "kept",
+  "TeleGB_Holder_top_1": "kept",
+  "TeleGB_Holder_top_2": "kept",
+  "TeleGB_Humbucker": "kept",
+  "TeleGB_Jack": "kept",
+  "TeleGB_Lads": "kept (custom normals)",
+  "TeleGB_Magnet_1": "kept (custom normals)",
+  "TeleGB_Nakladka_1": "kept",
+  "TeleGB_Nakladka_back_1": "kept",
+  "TeleGB_Nakladka_back_2": "kept",
+  "TeleGB_Nakladka": "kept (custom normals)",
+  "TeleGB_Pod_string_1_1": "kept",
+  "TeleGB_Pod_string_1_2": "kept",
+  "TeleGB_Pod_string_1_3": "kept",
+  "TeleGB_Pod_string_1_4": "kept",
+  "TeleGB_Pod_string_2_1": "kept",
+  "TeleGB_Pod_string_2_2": "kept",
+  "TeleGB_Pod_string_2_3": "kept",
+  "TeleGB_Pod_string_2_4": "kept",
+  "TeleGB_Pod_string_3_1": "kept",
+  "TeleGB_Pod_string_3_2": "kept",
+  "TeleGB_Pod_string_3_3": "kept",
+  "TeleGB_Pod_string_3_4": "kept",
+  "TeleGB_Pod_string_4_1": "kept",
+  "TeleGB_Pod_string_4_2": "kept",
+  "TeleGB_Pod_string_4_3": "kept",
+  "TeleGB_Pod_string_4_4": "kept",
+  "TeleGB_Pod_string_5_1": "kept",
+  "TeleGB_Pod_string_5_2": "kept",
+  "TeleGB_Pod_string_5_3": "kept",
+  "TeleGB_Pod_string_5_4": "kept",
+  "TeleGB_Pod_string_6_1": "kept",
+  "TeleGB_Pod_string_6_2": "kept",
+  "TeleGB_Pod_string_6_3": "kept",
+  "TeleGB_Pod_string_6_4": "kept",
+  "TeleGB_Ruchka_1": "kept (custom normals)",
+  "TeleGB_Ruchka_2": "kept (custom normals)",
+  "TeleGB_Ruchka_3_0": "kept",
+  "TeleGB_Ruchka_3": "kept",
+  "TeleGB_Singl": "kept",
+  "TeleGB_Spring_1": "kept (custom normals)",
+  "TeleGB_Spring_2": "kept (custom normals)",
+  "TeleGB_Spring_3": "kept (custom normals)",
+  "TeleGB_Spring_4": "kept (custom normals)",
+  "TeleGB_Spring_5": "kept (custom normals)",
+  "TeleGB_Spring_6": "kept (custom normals)",
+  "TeleGB_Strings": "kept (custom normals)",
+  "TeleGB_\u041f\u043b\u043e\u0441\u043a\u043e\u0441\u0442\u044c": "kept"
+ },
  "atlas": {
   "pbr_res": 512,
-  "lit_res": 1024,
+  "lit_res": 2048,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
    "pbr": "pack_islands"
   }
  },
@@ -330,7 +391,13 @@
   "orm": "telecaster_orm.png",
   "lit": "telecaster_lit.png"
  },
- "lit_scale": 0.066,
+ "lit_scale": 0.069,
+ "lit_atlases": {
+  "main": {
+   "res": 2048,
+   "litScale": 0.069
+  }
+ },
  "material_modes": {
   "telecaster_lit": "lit",
   "telecaster_pbr": "pbr"
@@ -386,41 +453,41 @@
  "meshes": {
   "NEW_telecaster_root__mesh": {
    "parent": "NEW_telecaster_root",
-   "tris": 3096,
+   "tris": 18022,
    "materials": [
-    "telecaster_lit",
-    "telecaster_pbr"
+    "telecaster_pbr",
+    "telecaster_lit"
    ],
    "blender_bbox": [
     [
      1.3063,
      -0.239,
-     -0.0
+     0.0
     ],
     [
      1.8896,
      0.3609,
-     0.8299
+     0.8298
     ]
    ]
   },
   "NEW_telecaster_guitar__mesh": {
    "parent": "NEW_telecaster_guitar",
-   "tris": 18341,
+   "tris": 73696,
    "materials": [
     "telecaster_lit",
     "telecaster_pbr"
    ],
    "blender_bbox": [
     [
-     1.4062,
+     1.406,
      -0.1256,
      0.1495
     ],
     [
      1.8307,
      0.2522,
-     1.1105
+     1.1106
     ]
    ]
   }
@@ -428,36 +495,34 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0004,
+   "normal_bumpy_fraction": 0.0,
    "s2a": [],
-   "base_mean": [
-    0.881,
-    0.832,
-    0.78
-   ],
-   "ao_mean": 0.568,
-   "coverage_px": 0.342
+   "base_mean": null,
+   "ao_mean": null,
+   "coverage_px": 0.0
   },
   "lit": {
-   "lit_scale": 0.066,
+   "lit_scale": 0.069,
+   "res": 2048,
+   "uv": "orig",
+   "texels_per_mm": 1.925,
    "raw_mean": 0.0055,
-   "denoised_mean": 0.0054,
-   "p50": 0.0034,
-   "clipped_fraction": 0.00091,
-   "coverage_px": 0.554,
+   "denoised_mean": 0.0055,
+   "p50": 0.0033,
+   "clipped_fraction": 0.00089,
+   "coverage_px": 0.577,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 3.8,
-  "rough": 3.8,
-  "metal": 3.7,
+  "base": 4.0,
+  "rough": 4.0,
+  "metal": 4.0,
   "ao": 3.9,
-  "normal": 3.7,
-  "lit": 95.2,
-  "lit_denoise": 0.8
+  "normal": 3.9,
+  "lit": 161.0
  },
  "glb": "telecaster.glb",
- "glb_bytes": 1020416,
- "seconds": 199.1
+ "glb_bytes": 4810236,
+ "seconds": 284.2
 }

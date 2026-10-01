@@ -4,35 +4,35 @@
   "NEW_lorenz"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 15000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 39832,
- "tris_after": 10216,
+ "tris_after": 39682,
  "objects": [
   {
    "name": "NEW_lorenz_paper_page4",
    "tris_before": 1424,
-   "tris_after": 64
+   "tris_after": 1424
   },
   {
    "name": "NEW_lorenz_paper_page3",
    "tris_before": 1424,
-   "tris_after": 16
+   "tris_after": 1424
   },
   {
    "name": "NEW_lorenz_paper_page2",
    "tris_before": 1424,
-   "tris_after": 28
+   "tris_after": 1424
   },
   {
    "name": "NEW_lorenz_paper_page1",
    "tris_before": 1424,
-   "tris_after": 36
+   "tris_after": 1424
   },
   {
    "name": "NEW_lorenz_staple",
    "tris_before": 704,
-   "tris_after": 184
+   "tris_after": 704
   },
   {
    "name": "NEW_lorenz_felt_pad",
@@ -42,17 +42,17 @@
   {
    "name": "NEW_lorenz_base",
    "tris_before": 2592,
-   "tris_after": 1362
+   "tris_after": 2444
   },
   {
    "name": "NEW_lorenz_wire",
    "tris_before": 29664,
-   "tris_after": 7794
+   "tris_after": 29664
   },
   {
    "name": "NEW_lorenz_stand",
    "tris_before": 600,
-   "tris_after": 156
+   "tris_after": 598
   },
   {
    "name": "NEW_lorenz_solder",
@@ -61,11 +61,23 @@
   }
  ],
  "skipped": {},
+ "reduction": {
+  "NEW_lorenz_paper_page4": "kept",
+  "NEW_lorenz_paper_page3": "kept",
+  "NEW_lorenz_paper_page2": "kept",
+  "NEW_lorenz_paper_page1": "kept",
+  "NEW_lorenz_staple": "kept",
+  "NEW_lorenz_felt_pad": "kept",
+  "NEW_lorenz_base": "dissolve",
+  "NEW_lorenz_wire": "dissolve",
+  "NEW_lorenz_stand": "dissolve",
+  "NEW_lorenz_solder": "kept"
+ },
  "atlas": {
   "pbr_res": 512,
   "lit_res": 1024,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
    "pbr": "pack_islands"
   }
  },
@@ -75,7 +87,13 @@
   "normal": "lorenz_normal.png",
   "lit": "lorenz_lit.png"
  },
- "lit_scale": 4.8,
+ "lit_scale": 2.0,
+ "lit_atlases": {
+  "main": {
+   "res": 1024,
+   "litScale": 2.0
+  }
+ },
  "material_modes": {
   "lorenz_lit": "lit",
   "lorenz_pbr": "pbr"
@@ -142,7 +160,7 @@
  "meshes": {
   "paper__mesh": {
    "parent": "paper",
-   "tris": 328,
+   "tris": 6400,
    "materials": [
     "lorenz_lit",
     "lorenz_pbr"
@@ -162,7 +180,7 @@
   },
   "lorenz_sculpture__mesh": {
    "parent": "lorenz_sculpture",
-   "tris": 9888,
+   "tris": 33282,
    "materials": [
     "lorenz_lit",
     "lorenz_pbr"
@@ -170,13 +188,13 @@
    "blender_bbox": [
     [
      -0.5153,
-     0.8741,
+     0.8739,
      0.7351
     ],
     [
      -0.384,
-     0.9907,
-     0.9238
+     0.9908,
+     0.9239
     ]
    ]
   }
@@ -184,36 +202,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.7329,
+   "normal_bumpy_fraction": 0.5525,
    "s2a": [],
    "base_mean": [
     0.937,
     0.843,
-    0.635
+    0.636
    ],
-   "ao_mean": 0.59,
-   "coverage_px": 0.057
+   "ao_mean": 0.613,
+   "coverage_px": 0.072
   },
   "lit": {
-   "lit_scale": 4.8,
-   "raw_mean": 0.1651,
-   "denoised_mean": 0.1651,
-   "p50": 0.0019,
-   "clipped_fraction": 0.00065,
-   "coverage_px": 0.657,
+   "lit_scale": 2.0,
+   "res": 1024,
+   "uv": "smart",
+   "texels_per_mm": 1.16,
+   "raw_mean": 0.2018,
+   "denoised_mean": 0.2028,
+   "p50": 0.0,
+   "clipped_fraction": 0.03766,
+   "coverage_px": 0.642,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 5.1,
-  "rough": 5.1,
-  "metal": 5.1,
-  "ao": 5.2,
-  "normal": 5.2,
-  "lit": 29.7,
-  "lit_denoise": 0.2
+  "base": 5.2,
+  "rough": 5.3,
+  "metal": 5.2,
+  "ao": 5.4,
+  "normal": 5.3,
+  "lit": 33.4
  },
  "glb": "lorenz.glb",
- "glb_bytes": 604076,
- "seconds": 70.5
+ "glb_bytes": 1374904,
+ "seconds": 75.3
 }

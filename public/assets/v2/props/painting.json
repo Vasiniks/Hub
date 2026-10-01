@@ -46,17 +46,32 @@
   }
  ],
  "skipped": {},
+ "reduction": {
+  "painting_stretcher": "kept",
+  "painting_canvas": "kept",
+  "painting_frame_top": "kept",
+  "painting_frame_bottom": "kept",
+  "painting_frame_left": "kept",
+  "painting_frame_right": "kept",
+  "painting_frame_tray": "kept"
+ },
  "atlas": {
   "pbr_res": null,
   "lit_res": 1024,
   "packer": {
-   "lit": "pack_islands"
+   "lit_main": "pack_islands"
   }
  },
  "textures": {
   "lit": "painting_lit.png"
  },
  "lit_scale": 0.053,
+ "lit_atlases": {
+  "main": {
+   "res": 1024,
+   "litScale": 0.053
+  }
+ },
  "material_modes": {
   "painting_lit": "lit"
  },
@@ -110,19 +125,21 @@
  "bake_stats": {
   "lit": {
    "lit_scale": 0.053,
-   "raw_mean": 0.0046,
-   "denoised_mean": 0.0046,
-   "p50": 0.0033,
-   "clipped_fraction": 0.00097,
-   "coverage_px": 0.875,
+   "res": 1024,
+   "uv": "orig",
+   "texels_per_mm": 0.998,
+   "raw_mean": 0.0048,
+   "denoised_mean": 0.0047,
+   "p50": 0.0041,
+   "clipped_fraction": 0.00095,
+   "coverage_px": 0.806,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "lit": 28.3,
-  "lit_denoise": 0.8
+  "lit": 26.9
  },
  "glb": "painting.glb",
- "glb_bytes": 87176,
- "seconds": 39.3
+ "glb_bytes": 131504,
+ "seconds": 38.3
 }

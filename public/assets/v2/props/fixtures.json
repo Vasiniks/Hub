@@ -5,35 +5,35 @@
   "NEW_curtains"
  ],
  "source_blend": "blender/scene/room.blend",
- "budget": 10000,
+ "budget": null,
  "within_budget": true,
  "tris_before": 35471,
- "tris_after": 9804,
+ "tris_after": 34763,
  "objects": [
   {
    "name": "rs_window_operator",
    "tris_before": 300,
-   "tris_after": 42
+   "tris_after": 300
   },
   {
    "name": "rs_window_crank",
    "tris_before": 820,
-   "tris_after": 114
+   "tris_after": 820
   },
   {
    "name": "rs_window_locks",
    "tris_before": 752,
-   "tris_after": 104
+   "tris_after": 752
   },
   {
    "name": "rs_door_hinges",
    "tris_before": 2124,
-   "tris_after": 298
+   "tris_after": 2124
   },
   {
    "name": "rs_door_lever",
    "tris_before": 1210,
-   "tris_after": 168
+   "tris_after": 1146
   },
   {
    "name": "rs_door_stop",
@@ -43,17 +43,17 @@
   {
    "name": "rs_door_stop_tip",
    "tris_before": 316,
-   "tris_after": 44
+   "tris_after": 316
   },
   {
    "name": "rs_outlet_window_plate",
    "tris_before": 692,
-   "tris_after": 96
+   "tris_after": 628
   },
   {
    "name": "rs_outlet_window_device",
    "tris_before": 1564,
-   "tris_after": 218
+   "tris_after": 1434
   },
   {
    "name": "rs_outlet_window_plug",
@@ -63,42 +63,42 @@
   {
    "name": "rs_plug_cord",
    "tris_before": 536,
-   "tris_after": 74
+   "tris_after": 536
   },
   {
    "name": "rs_outlet_left_plate",
    "tris_before": 692,
-   "tris_after": 96
+   "tris_after": 628
   },
   {
    "name": "rs_outlet_left_device",
    "tris_before": 1564,
-   "tris_after": 218
+   "tris_after": 1540
   },
   {
    "name": "rs_outlet_right_plate",
    "tris_before": 692,
-   "tris_after": 96
+   "tris_after": 628
   },
   {
    "name": "rs_outlet_right_device",
    "tris_before": 1564,
-   "tris_after": 218
+   "tris_after": 1418
   },
   {
    "name": "rs_switch_door_plate",
    "tris_before": 692,
-   "tris_after": 96
+   "tris_after": 628
   },
   {
    "name": "rs_switch_door_device",
    "tris_before": 540,
-   "tris_after": 74
+   "tris_after": 452
   },
   {
    "name": "rs_thermostat_body",
    "tris_before": 428,
-   "tris_after": 60
+   "tris_after": 428
   },
   {
    "name": "rs_thermostat_screen",
@@ -118,22 +118,22 @@
   {
    "name": "rs_ceiling_light_base",
    "tris_before": 494,
-   "tris_after": 68
+   "tris_after": 494
   },
   {
    "name": "rs_ceiling_light_diffuser",
    "tris_before": 900,
-   "tris_after": 126
+   "tris_after": 900
   },
   {
    "name": "rs_smoke_alarm",
    "tris_before": 868,
-   "tris_after": 121
+   "tris_after": 868
   },
   {
    "name": "rs_smoke_alarm_ribs",
    "tris_before": 412,
-   "tris_after": 56
+   "tris_after": 412
   },
   {
    "name": "rs_smoke_alarm_led",
@@ -148,7 +148,7 @@
   {
    "name": "rs_register_louvers",
    "tris_before": 504,
-   "tris_after": 70
+   "tris_after": 504
   },
   {
    "name": "rs_register_boot",
@@ -163,7 +163,7 @@
   {
    "name": "curtain_ring_00",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_00",
@@ -173,7 +173,7 @@
   {
    "name": "curtain_ring_01",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_01",
@@ -183,7 +183,7 @@
   {
    "name": "curtain_ring_02",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_02",
@@ -193,7 +193,7 @@
   {
    "name": "curtain_ring_03",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_03",
@@ -203,7 +203,7 @@
   {
    "name": "curtain_ring_04",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_04",
@@ -213,7 +213,7 @@
   {
    "name": "curtain_ring_05",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_05",
@@ -223,7 +223,7 @@
   {
    "name": "curtain_ring_06",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_06",
@@ -233,7 +233,7 @@
   {
    "name": "curtain_ring_07",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_07",
@@ -243,7 +243,7 @@
   {
    "name": "curtain_ring_08",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_08",
@@ -253,7 +253,7 @@
   {
    "name": "curtain_ring_09",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_09",
@@ -263,7 +263,7 @@
   {
    "name": "curtain_ring_10",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_10",
@@ -273,7 +273,7 @@
   {
    "name": "curtain_ring_11",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_11",
@@ -283,7 +283,7 @@
   {
    "name": "curtain_ring_12",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_12",
@@ -293,7 +293,7 @@
   {
    "name": "curtain_ring_13",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_13",
@@ -303,7 +303,7 @@
   {
    "name": "curtain_ring_14",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_14",
@@ -313,7 +313,7 @@
   {
    "name": "curtain_ring_15",
    "tris_before": 560,
-   "tris_after": 78
+   "tris_after": 560
   },
   {
    "name": "curtain_clip_15",
@@ -323,17 +323,17 @@
   {
    "name": "curtain_rod",
    "tris_before": 380,
-   "tris_after": 52
+   "tris_after": 380
   },
   {
    "name": "curtain_finial_L",
    "tris_before": 624,
-   "tris_after": 86
+   "tris_after": 624
   },
   {
    "name": "curtain_finial_R",
    "tris_before": 624,
-   "tris_after": 86
+   "tris_after": 624
   },
   {
    "name": "curtain_bracket_arm_L",
@@ -343,12 +343,12 @@
   {
    "name": "curtain_bracket_plate_L",
    "tris_before": 380,
-   "tris_after": 52
+   "tris_after": 380
   },
   {
    "name": "curtain_bracket_cup_L",
    "tris_before": 384,
-   "tris_after": 52
+   "tris_after": 384
   },
   {
    "name": "curtain_bracket_arm_R",
@@ -358,12 +358,12 @@
   {
    "name": "curtain_bracket_plate_R",
    "tris_before": 380,
-   "tris_after": 52
+   "tris_after": 380
   },
   {
    "name": "curtain_bracket_cup_R",
    "tris_before": 384,
-   "tris_after": 52
+   "tris_after": 384
   }
  ],
  "skipped": {
@@ -396,11 +396,84 @@
    "rs_wall_back"
   ]
  },
+ "reduction": {
+  "rs_window_operator": "dissolve",
+  "rs_window_crank": "dissolve",
+  "rs_window_locks": "dissolve",
+  "rs_door_hinges": "dissolve",
+  "rs_door_lever": "dissolve",
+  "rs_door_stop": "kept",
+  "rs_door_stop_tip": "dissolve",
+  "rs_outlet_window_plate": "dissolve",
+  "rs_outlet_window_device": "dissolve",
+  "rs_outlet_window_plug": "kept",
+  "rs_plug_cord": "dissolve",
+  "rs_outlet_left_plate": "dissolve",
+  "rs_outlet_left_device": "dissolve",
+  "rs_outlet_right_plate": "dissolve",
+  "rs_outlet_right_device": "dissolve",
+  "rs_switch_door_plate": "dissolve",
+  "rs_switch_door_device": "dissolve",
+  "rs_thermostat_body": "dissolve",
+  "rs_thermostat_screen": "kept",
+  "rs_thermostat_digits": "kept",
+  "rs_thermostat_buttons": "kept",
+  "rs_ceiling_light_base": "dissolve",
+  "rs_ceiling_light_diffuser": "dissolve",
+  "rs_smoke_alarm": "dissolve",
+  "rs_smoke_alarm_ribs": "dissolve",
+  "rs_smoke_alarm_led": "kept",
+  "rs_register_frame": "kept",
+  "rs_register_louvers": "dissolve",
+  "rs_register_boot": "kept",
+  "rs_nail_holes": "kept",
+  "curtain_ring_00": "dissolve",
+  "curtain_clip_00": "kept",
+  "curtain_ring_01": "dissolve",
+  "curtain_clip_01": "kept",
+  "curtain_ring_02": "dissolve",
+  "curtain_clip_02": "kept",
+  "curtain_ring_03": "dissolve",
+  "curtain_clip_03": "kept",
+  "curtain_ring_04": "dissolve",
+  "curtain_clip_04": "kept",
+  "curtain_ring_05": "dissolve",
+  "curtain_clip_05": "kept",
+  "curtain_ring_06": "dissolve",
+  "curtain_clip_06": "kept",
+  "curtain_ring_07": "dissolve",
+  "curtain_clip_07": "kept",
+  "curtain_ring_08": "dissolve",
+  "curtain_clip_08": "kept",
+  "curtain_ring_09": "dissolve",
+  "curtain_clip_09": "kept",
+  "curtain_ring_10": "dissolve",
+  "curtain_clip_10": "kept",
+  "curtain_ring_11": "dissolve",
+  "curtain_clip_11": "kept",
+  "curtain_ring_12": "dissolve",
+  "curtain_clip_12": "kept",
+  "curtain_ring_13": "dissolve",
+  "curtain_clip_13": "kept",
+  "curtain_ring_14": "dissolve",
+  "curtain_clip_14": "kept",
+  "curtain_ring_15": "dissolve",
+  "curtain_clip_15": "kept",
+  "curtain_rod": "dissolve",
+  "curtain_finial_L": "dissolve",
+  "curtain_finial_R": "dissolve",
+  "curtain_bracket_arm_L": "kept",
+  "curtain_bracket_plate_L": "dissolve",
+  "curtain_bracket_cup_L": "dissolve",
+  "curtain_bracket_arm_R": "kept",
+  "curtain_bracket_plate_R": "dissolve",
+  "curtain_bracket_cup_R": "dissolve"
+ },
  "atlas": {
   "pbr_res": 512,
   "lit_res": 1024,
   "packer": {
-   "lit": "pack_islands",
+   "lit_main": "pack_islands",
    "pbr": "pack_islands"
   }
  },
@@ -410,7 +483,13 @@
   "normal": "fixtures_normal.png",
   "lit": "fixtures_lit.png"
  },
- "lit_scale": 1.7,
+ "lit_scale": 1.6,
+ "lit_atlases": {
+  "main": {
+   "res": 1024,
+   "litScale": 1.6
+  }
+ },
  "material_modes": {
   "fixtures_lit": "lit",
   "fixtures_pbr": "pbr",
@@ -476,7 +555,7 @@
  "meshes": {
   "NEW_roomshell_root__mesh": {
    "parent": "NEW_roomshell_root",
-   "tris": 3332,
+   "tris": 17855,
    "materials": [
     "fixtures_lit",
     "fixtures_pbr",
@@ -485,33 +564,33 @@
    ],
    "blender_bbox": [
     [
-     -2.0866,
+     -2.0868,
      -1.4,
      -0.12
     ],
     [
-     1.9098,
-     1.3842,
+     1.91,
+     1.3845,
      2.72
     ]
    ]
   },
   "fixtures__mesh": {
    "parent": "fixtures_root",
-   "tris": 6472,
+   "tris": 16908,
    "materials": [
     "fixtures_pbr"
    ],
    "blender_bbox": [
     [
-     -1.7249,
-     1.1936,
+     -1.725,
+     1.1932,
      2.593
     ],
     [
-     1.4255,
+     1.425,
      1.3,
-     2.6619
+     2.662
     ]
    ]
   }
@@ -519,36 +598,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.3071,
+   "normal_bumpy_fraction": 0.0771,
    "s2a": [],
    "base_mean": [
-    0.243,
-    0.243,
-    0.25
+    0.273,
+    0.272,
+    0.278
    ],
-   "ao_mean": 0.651,
-   "coverage_px": 0.041
+   "ao_mean": 0.656,
+   "coverage_px": 0.039
   },
   "lit": {
-   "lit_scale": 1.7,
-   "raw_mean": 0.0249,
-   "denoised_mean": 0.0249,
-   "p50": 0.0071,
-   "clipped_fraction": 0.00034,
-   "coverage_px": 0.571,
+   "lit_scale": 1.6,
+   "res": 1024,
+   "uv": "smart",
+   "texels_per_mm": 0.843,
+   "raw_mean": 0.0279,
+   "denoised_mean": 0.0278,
+   "p50": 0.0054,
+   "clipped_fraction": 0.00099,
+   "coverage_px": 0.488,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 59.5,
-  "rough": 59.7,
-  "metal": 59.6,
-  "ao": 60.1,
-  "normal": 60.0,
-  "lit": 53.1,
-  "lit_denoise": 0.8
+  "base": 61.6,
+  "rough": 62.6,
+  "metal": 61.7,
+  "ao": 62.0,
+  "normal": 61.5,
+  "lit": 52.3
  },
  "glb": "fixtures.glb",
- "glb_bytes": 469716,
- "seconds": 450.9
+ "glb_bytes": 1607212,
+ "seconds": 462.7
 }
