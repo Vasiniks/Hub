@@ -101,7 +101,9 @@ export function createInteraction(opts: {
   const ringTex = ringTexture();
 
   const items = new Map<string, Item>();
-  for (const target of targets) {
+  /** One target's dot, ring and state. Targets can arrive after start-up (v2 props load late). */
+  function addTarget(target: InteractTarget) {
+    if (items.has(target.id)) throw new Error(`interaction: duplicate target id "${target.id}"`);
     target.group.userData.projectId = target.id;
     const mat = (map: THREE.Texture, opacity: number) =>
       new THREE.SpriteMaterial({ map, transparent: true, opacity, depthWrite: false, sizeAttenuation: false, toneMapped: false });
@@ -111,6 +113,10 @@ export function createInteraction(opts: {
     ring.scale.setScalar(0.022);
     for (const s of [dot, ring]) {
       s.userData.ignoreRaycast = true;
+      // Never raycast at all (a Sprite raycast without a camera throws, and they are filtered
+      // out anyway). The default room also strips these after start-up; doing it here covers
+      // targets added later.
+      s.raycast = () => {};
       s.userData.projectId = target.id;
       s.position.copy(target.dotPos);
       s.layers.set(OVERLAY_LAYER);
@@ -119,6 +125,7 @@ export function createInteraction(opts: {
     }
     items.set(target.id, { target, dot, ring, activity: 0, proximity: 0, visited: false, baseY: target.group.position.y });
   }
+  targets.forEach(addTarget);
 
   const raycaster = new THREE.Raycaster();
   raycaster.layers.enableAll();
@@ -146,6 +153,9 @@ export function createInteraction(opts: {
   const projected = new THREE.Vector3();
   let labelX = NaN;
   let labelY = NaN;
+  let labelWidth = 0;
+  /** Screen pixels between the dot's centre and the label's near edge. */
+  const LABEL_GAP = 13;
   let labelShown = false;
 
   /** Nearest visible surface under a screen point; the attention dot counts as part of its object. */
@@ -243,6 +253,11 @@ export function createInteraction(opts: {
   }
 
   return {
+    /** Register a target after start-up. Same behaviour as one passed in `targets`. */
+    add(target: InteractTarget) {
+      addTarget(target);
+      pointerDirty = true;
+    },
     get hoveredId() {
       return hovered;
     },
@@ -375,7 +390,13 @@ export function createInteraction(opts: {
           outline.selectedObjects = outlineFor(hovered);
           outline.enabled = hovered !== null;
         }
-        if (hovered) label.textContent = items.get(hovered)!.target.title;
+        if (hovered) {
+          label.textContent = items.get(hovered)!.target.title;
+          // Measured once per hover change, never per frame: it decides which side of the dot
+          // the label hangs on.
+          labelWidth = label.offsetWidth;
+          labelX = NaN;
+        }
       }
 
       // §23/§24: the outline fades in rather than snapping on, so attention arrives at the
@@ -432,14 +453,19 @@ export function createInteraction(opts: {
 
       if (hovered && !focused) {
         const s = screenOf(items.get(hovered)!.target.dotPos);
+        // The label hangs off the object's own dot, level with it, so dot and words read as one
+        // tag pinned to the object. (It used to float centred 16 px above the dot, which put it
+        // well clear of a small object and read as detached.) It flips to the dot's left near
+        // the right edge of the screen.
+        const flip = s.x + LABEL_GAP + labelWidth > window.innerWidth - 8;
+        const lx = Math.round(flip ? s.x - LABEL_GAP - labelWidth : s.x + LABEL_GAP);
+        const ly = Math.round(s.y);
         // Only touch the DOM when the label actually moves a pixel: a style write every frame
         // re-runs style resolution for nothing while the view is at rest.
-        const lx = Math.round(s.x);
-        const ly = Math.round(s.y - 16);
         if (lx !== labelX || ly !== labelY) {
           labelX = lx;
           labelY = ly;
-          label.style.transform = `translate(${lx}px, ${ly}px) translate(-50%, -100%)`;
+          label.style.transform = `translate(${lx}px, ${ly}px) translate(0, -50%)`;
         }
         if (s.visible !== labelShown) {
           labelShown = s.visible;

@@ -1,9 +1,9 @@
 // Startup trace: every frame's duration from page load, plus pixel-ratio changes.
 // Usage: node scripts/startup-trace.mjs [hour] [label]
 import { chromium } from 'playwright-core';
+import { base, chrome } from './verify-env.mjs';
 const hour = process.argv[2] ?? '21';
 const label = process.argv[3] ?? 'baseline';
-const chrome = process.env.CHROME_PATH ?? '/Applications/Google Chrome 3.app/Contents/MacOS/Google Chrome';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist', ] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
@@ -15,7 +15,8 @@ await page.addInitScript(() => {
   const tick = (t) => { window.__trace.frames.push([+(t - window.__trace.t0).toFixed(1), +(t - prev).toFixed(2)]); prev = t; raf(tick); };
   raf(tick);
 });
-await page.goto(`http://127.0.0.1:5173/?debug&hour=${hour}`, { waitUntil: 'commit' });
+// QUERY adds parameters, e.g. QUERY=v2 traces the baked room.
+await page.goto(`${base}/?debug&hour=${hour}${process.env.QUERY ? `&${process.env.QUERY}` : ''}`, { waitUntil: 'commit' });
 // When did the loading screen actually go away?
 const loaderGone = await page.evaluate(async () => {
   const t0 = performance.now();

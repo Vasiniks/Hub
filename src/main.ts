@@ -18,6 +18,11 @@ import { createPanel, createHint, createObjectNav, createShelfCaption } from './
 import { createLoader } from './ui/loading';
 import { createMusicWidget } from './ui/music';
 import { loadBakedRoom, V2_EXPOSURE } from './scene/bakedRoom';
+import { V2_TUNING } from './scene/v2Layout';
+import { BloomPass } from './scene/bloom';
+import { findNodes, loadV2Props } from './scene/v2Props';
+import { createPropRegistry } from './interaction/props';
+import { v2Props } from './data/v2Props';
 import { CAMERA, INTERACTION, SHELF } from './scene/layout';
 import { FramePerf } from './debug/perf';
 import { buildPickingTrees } from './interaction/bvh';
@@ -983,12 +988,15 @@ async function start() {
 }
 
 /**
- * `?v2`: the baked sunset room only — shell, desk, furniture, curtains — lit entirely by
- * their lightmaps. A flag, not a replacement: the default path above is untouched, and this
- * path loads none of it (no procedural room, no live lights, no props/exterior/interaction —
- * those are other workstreams). No live light exists in this scene, so the bake cannot be
- * double-lit; AO, shafts and bloom stay off for the same reason (all three would add light
- * or darkness the bake already holds).
+ * `?v2`: the baked sunset room — shell, desk, furniture, curtains — lit entirely by their
+ * lightmaps, walked with the default room's rig and examined through its interaction modules.
+ * A flag, not a replacement: the default path above is untouched, and this path loads none of
+ * it (no procedural room, no live lights). No live light exists in this scene, so the bake
+ * cannot be double-lit; AO, shafts and bloom stay off for the same reason (all three would add
+ * light or darkness the bake already holds).
+ *
+ * Interactive objects come from `src/data/v2Props.ts` through the prop registry
+ * (`src/interaction/props.ts`): baked fixtures now, the props GLBs as they are exported.
  */
 async function startV2() {
   const scene = new THREE.Scene();
@@ -996,17 +1004,19 @@ async function startV2() {
   scene.background = new THREE.Color('#c4b6a8');
   scene.fog = null;
 
-  const camera = new THREE.PerspectiveCamera(CAMERA.fov, window.innerWidth / window.innerHeight, 0.02, 40);
-  const standP = CAMERA.stand.position;
-  const standT = CAMERA.stand.lookAt;
-  camera.position.set(standP[0], standP[1], standP[2]);
-  camera.lookAt(standT[0], standT[1], standT[2]);
-  camera.updateMatrixWorld();
+  const camera = new THREE.PerspectiveCamera(V2_TUNING.fov, window.innerWidth / window.innerHeight, 0.02, 40);
+  // Attention dots live on the overlay layer, as in the default room.
+  camera.layers.enable(OVERLAY_LAYER);
 
   const base = `${import.meta.env.BASE_URL}assets/v2/room/`;
   loader.advance('baked room');
-  const baked = await loadBakedRoom(base);
+  // Props load alongside the bake; with no manifest yet this resolves empty.
+  const [baked, propFiles] = await Promise.all([
+    loadBakedRoom(base),
+    loadV2Props(`${import.meta.env.BASE_URL}assets/v2/props/`),
+  ]);
   scene.add(baked.group);
+  if (propFiles.props.length) scene.add(propFiles.group);
   loader.advance('lightmaps');
 
   // Dummy lights: only to satisfy createRenderer's signature (volumetric + lamp-shadow
@@ -1020,35 +1030,113 @@ async function startV2() {
   // The bake already holds every bounce, shaft and glow: no live post-light effects.
   view.ao.enabled = false;
   view.volumetric.enabled = false;
+  // `instanceof`, not `constructor.name`: the production build renames classes.
   for (const p of view.composer.passes) {
-    if (p.constructor.name === 'BloomPass') (p as { enabled: boolean }).enabled = false;
+    if (p instanceof BloomPass) p.enabled = false;
   }
+
+  // The same first-person rig as the default room — same file, same spring, same sit
+  // transition — driven by the v2 room's own poses and limits (V2_TUNING). No chair: the
+  // v2 room has none (see v2Layout.ts), so the rig moves the camera only.
+  const rig = new CameraRig(camera, null, reducedMotion, V2_TUNING);
+
+  // Everything that happens because of an object (hover, outline, label, click to examine,
+  // panel, Esc / click-outside, keyboard nav) is the default room's interaction modules behind
+  // one `register()` call per object (src/interaction/props.ts).
+  const props = createPropRegistry({
+    scene,
+    camera,
+    rig,
+    outline: view.outline,
+    canvas,
+    seat: V2_TUNING.seat.position,
+    reducedMotion,
+    hint,
+  });
+  const skippedProps: string[] = [];
+  for (const def of v2Props) {
+    const src = def.source;
+    const nodes =
+      'baked' in src
+        ? findNodes(baked.group, (n) => src.baked.some((p) => n.startsWith(p)))
+        : 'props' in src
+          ? findNodes(propFiles.group, (n) => src.props.some((p) => n.startsWith(p)))
+          : [propFiles.file(src.file)].filter((n): n is THREE.Object3D => !!n);
+    // Not loaded (yet): props are listed before their GLBs are exported.
+    if (!nodes.length) {
+      skippedProps.push(def.id);
+      continue;
+    }
+    props.register({ ...def, node: nodes });
+  }
+
+  function sitV2() {
+    if (rig.sitDown()) hint.hide();
+  }
+
+  let lookHintShown = false;
+  rig.onSeated = () => {
+    // A click on an object while standing sat the visitor down; now open it.
+    if (props.resumePending()) return;
+    if (!lookHintShown) {
+      lookHintShown = true;
+      hint.show('Look around', 4200);
+    }
+  };
+
+  window.addEventListener(
+    'wheel',
+    (e) => {
+      e.preventDefault();
+      if (rig.mode === 'standing' && e.deltaY > 2) sitV2();
+    },
+    { passive: false },
+  );
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') return; // Esc belongs to the prop registry (back out of an object).
+    const active = document.activeElement;
+    const onBody = active === document.body || active === null;
+    if (onBody && rig.mode === 'standing' && ['ArrowDown', ' ', 'Enter', 'PageDown'].includes(e.key)) {
+      e.preventDefault();
+      sitV2();
+    }
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    const nx = (e.clientX / window.innerWidth) * 2 - 1;
+    const ny = -(e.clientY / window.innerHeight) * 2 + 1;
+    rig.setPointer(nx, ny);
+  });
+
   loader.advance('shaders');
-  await view.warmUp([], (stage) => loader.advance(stage));
+  // Interactive objects are passed so the hover outline's shader variants compile now, not on
+  // the first hover.
+  await view.warmUp(props.groups(), (stage) => loader.advance(stage));
   loader.advance('ready');
   await loader.hide();
-  requestAnimationFrame(() => document.getElementById('veil')!.classList.add('is-lifted'));
+  // Picking acceleration builds in idle time once the room is on screen (see interaction/bvh.ts).
+  const pickingTrees = buildPickingTrees(scene);
 
   window.addEventListener('resize', view.resize);
 
   let last = performance.now();
   let elapsed = 0;
   let frameCount = 0;
+  let firstFrame = true;
   let benchPaused = false;
   let reportedError = false;
+  /** Debug only: park the camera anywhere to inspect a model close up. */
+  let parked: { p: number[]; t: number[]; fov: number } | null = null;
   function frame(now: number) {
+    // Schedule first: a runtime error in one frame must never freeze the room.
     requestAnimationFrame(frame);
     if (benchPaused) {
       last = now;
       return;
     }
     try {
-      view.renderer.info.reset();
-      const dt = Math.min(0.05, (now - last) / 1000);
-      frameCount++;
-      last = now;
-      elapsed += dt;
-      view.render(dt, elapsed, !reducedMotion);
+      step(now);
     } catch (err) {
       if (!reportedError) {
         reportedError = true;
@@ -1057,20 +1145,70 @@ async function startV2() {
     }
   }
 
+  function step(now: number) {
+    view.renderer.info.reset();
+    const dt = Math.min(0.05, (now - last) / 1000);
+    frameCount++;
+    last = now;
+    elapsed += dt;
+    props.holdLook();
+    if (parked) {
+      camera.position.set(parked.p[0], parked.p[1], parked.p[2]);
+      camera.lookAt(parked.t[0], parked.t[1], parked.t[2]);
+      camera.fov = parked.fov;
+      camera.updateProjectionMatrix();
+    } else {
+      rig.update(dt);
+    }
+    props.update(dt, elapsed);
+    view.render(dt, elapsed, !reducedMotion);
+
+    if (firstFrame) {
+      firstFrame = false;
+      requestAnimationFrame(() => document.getElementById('veil')!.classList.add('is-lifted'));
+      window.setTimeout(() => {
+        if (rig.mode === 'standing') hint.show('Scroll to sit down');
+      }, 2200);
+    }
+  }
+
   if (params.has('debug')) {
     Object.assign(window, {
       __room: {
-        mode: () => 'v2' as const,
+        mode: () => rig.mode,
         frames: () => frameCount,
         camera: () => ({ position: camera.position.toArray(), quaternion: camera.quaternion.toArray() }),
         programs: () => (view.renderer.info.programs ?? []).map((p) => p.name),
-        parkCamera: (p: number[], t?: number[], fov = 54) => {
-          camera.position.set(p[0], p[1], p[2]);
-          const tt = t ?? [0, 0.8, -0.6];
-          camera.lookAt(tt[0], tt[1], tt[2]);
-          camera.fov = fov;
-          camera.updateProjectionMatrix();
-          camera.updateMatrixWorld();
+        hovered: () => props.hoveredId,
+        focused: () => props.focusedId,
+        panelOpen: () => props.panelOpen,
+        props: () => ({ registered: props.ids(), skipped: skippedProps, files: propFiles.props.map((p) => p.entry.file) }),
+        openProp: (id: string) => props.open(id),
+        /** Try a registration from the console: any baked or prop node prefix, default framing. */
+        registerNodes: (id: string, label: string, prefixes: string[]) =>
+          !!props.register({
+            id,
+            label,
+            node: [baked.group, propFiles.group].flatMap((root) => findNodes(root, (n) => prefixes.some((p) => n.startsWith(p)))),
+            panel: { kind: 'Debug', title: label, summary: 'Registered from the console.', sections: [] },
+          }),
+        closeProp: () => props.close(),
+        forceHover: (id: string | null) => props.interaction.setForcedHover(id),
+        screenPositionOf: (id: string) => props.interaction.screenPositionOf(id),
+        hitPositionOf: (id: string) => props.interaction.hitPositionOf(id),
+        debugPick: (x: number, y: number) => props.interaction.debugPick(x, y),
+        debugState: () => ({ ...props.interaction.debugState(), lookExtent: rig.lookExtent() }),
+        pickingTrees: () => pickingTrees,
+        lookExtent: () => rig.lookExtent(),
+        sitDown: () => rig.sitDown(),
+        setPointer: (nx: number, ny: number) => rig.setPointer(nx, ny),
+        parkCamera: (p: number[] | null, t?: number[], fov = 54) => {
+          if (!p) {
+            parked = null;
+            camera.fov = V2_TUNING.fov;
+            return;
+          }
+          parked = { p, t: t ?? [0, 0.8, -0.6], fov };
         },
         v2: {
           atlases: () => Object.keys(baked.atlases),
