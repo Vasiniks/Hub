@@ -22,20 +22,30 @@ context in `perf/LOG.md`, `assets/MANIFEST.md`, `.claude/progress/` and `src/sce
    reason in `perf/LOG.md` (perf work) or your workstream report.
 6. **Git**: you are in a git worktree on your own branch. Commit in coherent steps. NEVER rebase,
    force-push, reset --hard onto main, or touch other branches. Do not merge to main yourself.
-7. **Always leave the build green**: `npx tsc --noEmit -p .` clean, and these all pass with no
-   console errors: `node scripts/verify-room.mjs`, `verify-a11y.mjs`, `verify-shelf.mjs`,
-   `verify-gesture.mjs`, `verify-books.mjs`, `verify-motion.mjs`, `verify-ao-motion.mjs`,
-   `node scripts/compile-watch.mjs 13` (expect "programs after load" and no "+N programs" lines).
+7. **Always leave the build green**: `npm run build` clean (it runs `tsc --noEmit`), and
+   `node scripts/verify-v2.mjs` passes with `FAILURES []` and `ERRORS []` — stand, look limits, sit,
+   hover, focus, panel, Esc, click-outside, keyboard nav. (The old room and its verify-room/-shelf/
+   -books/-gesture/-motion/-ao-motion and compile-watch scripts were removed on 2026-10-01.)
 8. A dev server may be needed: `npx vite --port <your port> --strictPort` from your worktree.
    Every `scripts/verify-*.mjs` takes `ROOM_URL=http://127.0.0.1:<port>` (default: the dev server)
    and `CHROME_PATH` for the browser, both from `scripts/verify-env.mjs`; with neither set they use
    the dev server and Playwright's own Chromium.
 9. Startup must stay fast: loader hidden ≈1.35 s (`node scripts/startup-trace.mjs`). Don't regress
    it by more than ~15%.
-10. Write a short report at `.claude/briefs/report-<workstream>.md`: what you did, measured numbers,
-    what you rejected and why, what is left. Keep it factual.
+10. **Your report is your final message, not a file.** Claude Code does not let a subagent write
+    report files (the Write tool refuses with "subagents should return findings as text"), and
+    working around that is not allowed. So end with the report as text — what you did, measured
+    numbers, what you rejected and why, what is left, branch + last commit — and the coordinator
+    commits it as `.claude/briefs/report-<workstream>.md`. Screenshots and data files you can commit
+    yourself, under `.claude/briefs/report-<workstream>/`. Keep it factual.
 
 ## Blender
+**Two machines.** The notes below are the owner's Mac. On the Windows machine (RTX 5070) Blender is
+`C:/Program Files/Blender Foundation/Blender 5.2/blender.exe`, the full `room.blend` exists there,
+`--factory-startup` is optional (the Metal crash is Mac-only, but factory startup resets the Cycles
+device, so set CUDA in the script), and `scripts/verify-env.mjs` swaps ANGLE Metal for D3D11. On
+either machine, run headless Blender one at a time — the owner's live window shares RAM and VRAM.
+
 Blender **5.2.2 LTS** CLI is at `~/.local/bin/blender` (`blender --background --python script.py`).
 
 **Always pass `--factory-startup`.** Without it Blender crashes at startup on this machine in Metal

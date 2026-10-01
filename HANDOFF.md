@@ -6,8 +6,12 @@
 
 ## State as of 2026-10-01 (web integration finished)
 
-**What ships.** The default URL opens the baked sunset room (`startV2` in `src/main.ts`). The old procedural room is
-kept, unchanged, behind **`?v1`**; removing it is the owner's call (see *Open*). In the room:
+**What ships.** The site is the baked sunset room (`startV2` in `src/main.ts`). The old procedural room was
+**removed** on 2026-10-01 at the owner's request: its entry path, scene modules (room, desk, bookshelf, objects, dust,
+assets, build, merge, exterior, ltc), book data and shelf UI, its public assets (`processed/`, `textures/`,
+`ltc.bin`) and the verify/perf scripts that drove it. The renderer still contains its light passes (AO, volumetric
+shafts, rect-area lights, the lamp disk shadow, bloom), all disabled on this path — stripping them out of
+`renderer.ts` is a follow-up refactor, not a behaviour change. In the room:
 
 - **Baked shell, desk, furniture, curtains** from `blender/bake/sunset/` with their RGBM lightmaps
   (`public/assets/v2/room/`, now lossless WebP, bit-identical to the PNGs) and real albedo atlases.
@@ -40,6 +44,10 @@ kept, unchanged, behind **`?v1`**; removing it is the owner's call (see *Open*).
   steps down again. Under software rendering (SwiftShader) it went 339 ms → 76 ms per frame; on the RTX 5070 it stays
   at full quality (~1.2 ms). Not yet tried on a real low-end machine or the M2 Pro.
 
+**Agents and reports.** Claude Code does not let subagents write report files, so a workstream's report is its final
+message and the coordinator commits it (`.claude/briefs/_common.md` rule 10). The 2026-10-01 reports are
+`.claude/briefs/report-{v2-rig,loading,web-exterior,v2-look,web-props}.md`.
+
 **Verified** in Chromium on this Windows machine (RTX 5070, D3D11): `scripts/verify-v2.mjs` against the production
 build (`vite build --base=/Hub/` + `vite preview`) — stand, look limits, sit, seated look, hover, focus, panel, Esc,
 click-outside, keyboard nav, click-while-standing — 0 failures, 0 console errors, ~180 fps. `npm run build` is clean.
@@ -50,16 +58,13 @@ by Claude subagents directly, not through OpenCode, for this pass. `blender-remo
 `main` from the earlier `?v2` merge.
 
 **Open**
-- **Remove v1?** Deleting the old room's code and assets was refused by the auto-mode safety check as irreversible,
-  so it sits behind `?v1` instead. Deleting it (`start()`, its scene modules, `public/assets/processed`,
-  `public/assets/textures`, `ltc.bin`) is a one-commit job once the owner says so. The `verify-room/-shelf/-books/…`
-  scripts test v1 and now need `?v1`.
+- **Renderer clean-up:** the old room's passes still live in `src/scene/renderer.ts` (disabled here); removing them
+  would save their render-target memory on weak GPUs.
 - **Panel copy** is placeholder everywhere (as it was in v1).
 - **Known visual compromises:** robot 63 k tris (thin plates shred below that) and its polycarbonate hopper shows
   some faceting up close; ~6% of the lamp head's lit texels clip (white under AgX anyway); the PC's saturated pinks
   lose ~7% to WebP chroma; environment specular on baked trim is built but off (it made the match worse);
   no chair motion when sitting (the camera moves; the chair is a static prop).
-- The old PNG lightmaps are still in `public/assets/v2/room/` beside the WebP (unused at runtime).
 
 **Rebuild the web assets** (each Blender run through a lock, one at a time — the owner's live window shares the
 GPU): props `blender -b blender/scene/room.blend --python blender/scripts/v2_export_web.py -- <set|all>` →
