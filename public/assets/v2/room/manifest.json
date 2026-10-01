@@ -380,12 +380,12 @@
       "image": "lightmap_shell.exr",
       "preview": "lightmap_shell_preview.png",
       "web": {
-        "file": "lightmap_shell.rgbm.png",
-        "encoding": "RGBM of sqrt(L), 8-bit RGBA PNG, linear data",
+        "file": "lightmap_shell.rgbm.webp",
+        "encoding": "RGBM of sqrt(L), 8-bit RGBA lossless WebP (bit-identical to the PNG), linear data",
         "decode": "L = (rgb * a * range_sqrt)^2",
         "range_sqrt": 1.53,
         "linear_max": 2.3409,
-        "bytes": 1895001,
+        "bytes": 1398694,
         "mean_rel_err": 0.0024,
         "clipped_fraction": 0.00043
       },
@@ -507,12 +507,12 @@
       "image": "lightmap_desk.exr",
       "preview": "lightmap_desk_preview.png",
       "web": {
-        "file": "lightmap_desk.rgbm.png",
-        "encoding": "RGBM of sqrt(L), 8-bit RGBA PNG, linear data",
+        "file": "lightmap_desk.rgbm.webp",
+        "encoding": "RGBM of sqrt(L), 8-bit RGBA lossless WebP (bit-identical to the PNG), linear data",
         "decode": "L = (rgb * a * range_sqrt)^2",
         "range_sqrt": 3.87,
         "linear_max": 14.9769,
-        "bytes": 2173569,
+        "bytes": 1554626,
         "mean_rel_err": 0.0022,
         "clipped_fraction": 0.00031
       },
@@ -808,12 +808,12 @@
       "image": "lightmap_furniture.exr",
       "preview": "lightmap_furniture_preview.png",
       "web": {
-        "file": "lightmap_furniture.rgbm.png",
-        "encoding": "RGBM of sqrt(L), 8-bit RGBA PNG, linear data",
+        "file": "lightmap_furniture.rgbm.webp",
+        "encoding": "RGBM of sqrt(L), 8-bit RGBA lossless WebP (bit-identical to the PNG), linear data",
         "decode": "L = (rgb * a * range_sqrt)^2",
         "range_sqrt": 1.0,
         "linear_max": 1.0,
-        "bytes": 561677,
+        "bytes": 421064,
         "mean_rel_err": 0.0025,
         "clipped_fraction": 0.00041
       },
@@ -901,12 +901,12 @@
       "image": "lightmap_soft.exr",
       "preview": "lightmap_soft_preview.png",
       "web": {
-        "file": "lightmap_soft.rgbm.png",
-        "encoding": "RGBM of sqrt(L), 8-bit RGBA PNG, linear data",
+        "file": "lightmap_soft.rgbm.webp",
+        "encoding": "RGBM of sqrt(L), 8-bit RGBA lossless WebP (bit-identical to the PNG), linear data",
         "decode": "L = (rgb * a * range_sqrt)^2",
         "range_sqrt": 1.31,
         "linear_max": 1.7161,
-        "bytes": 589557,
+        "bytes": 430684,
         "mean_rel_err": 0.0025,
         "clipped_fraction": 0.00041
       },

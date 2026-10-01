@@ -5,9 +5,9 @@
  "margin_px": 8,
  "atlases": {
   "shell": {
-   "file": "albedo_shell.png",
+   "file": "albedo_shell.webp",
    "resolution": 1024,
-   "bytes": 342815,
+   "bytes": 186182,
    "alpha": true,
    "encoding": "8-bit sRGB albedo (un-premultiplied), alpha = decal coverage",
    "materials": [
@@ -28,9 +28,9 @@
    ]
   },
   "desk": {
-   "file": "albedo_desk.png",
+   "file": "albedo_desk.webp",
    "resolution": 1024,
-   "bytes": 87133,
+   "bytes": 54422,
    "alpha": false,
    "encoding": "8-bit sRGB albedo",
    "materials": [
@@ -47,9 +47,9 @@
    ]
   },
   "furniture": {
-   "file": "albedo_furniture.png",
+   "file": "albedo_furniture.webp",
    "resolution": 512,
-   "bytes": 126177,
+   "bytes": 89480,
    "alpha": false,
    "encoding": "8-bit sRGB albedo",
    "materials": [
@@ -65,9 +65,9 @@
    ]
   },
   "soft": {
-   "file": "albedo_soft.png",
+   "file": "albedo_soft.webp",
    "resolution": 512,
-   "bytes": 67360,
+   "bytes": 43106,
    "alpha": false,
    "encoding": "8-bit sRGB albedo",
    "materials": [
