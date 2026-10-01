@@ -121,8 +121,11 @@ function applyRGBM(mat: THREE.MeshBasicMaterial, rangeSqrt: number) {
  * bake already holds it), and three's diffuse energy split skipped, because the albedo atlas is
  * Cycles' diffuse colour pass, which has already lost what the Principled specular layer reflects.
  */
-function applyRGBMSpecular(mat: THREE.MeshStandardMaterial, rangeSqrt: number) {
-  mat.onBeforeCompile = (shader) => {
+export function applyRGBMSpecular(mat: THREE.MeshStandardMaterial, rangeSqrt: number) {
+  mat.onBeforeCompile = (shader, renderer) => {
+    // Chain to the class-wide hook first: it binds the shared uniforms other patches declare
+    // (sharedUniforms.ts — the disk lamp's, on the `?rt` path).
+    THREE.MeshStandardMaterial.prototype.onBeforeCompile.call(mat, shader, renderer);
     shader.uniforms.lmRange = { value: rangeSqrt };
     const chunks = THREE.ShaderChunk as unknown as Record<string, string>;
     const maps = chunks.lights_fragment_maps;
@@ -147,6 +150,14 @@ function applyRGBMSpecular(mat: THREE.MeshStandardMaterial, rangeSqrt: number) {
 
 export interface BakedRoomOptions {
   /**
+   * `'rt'`: the hybrid real-time room (`?rt`). Every surface becomes a lit standard material:
+   * the albedo atlas as colour, Blender's roughness/metallic (manifest `materials`), the
+   * **indirect-only** lightmap (`atlases.<a>.indirect`: full bake minus the sun's and the lamp's
+   * direct light), environment specular, and the live sun and lamp with shadow maps on top
+   * (rtLights.ts). Default `'baked'`: the fully baked room, unlit by live light.
+   */
+  lighting?: 'baked' | 'rt';
+  /**
    * Environment specular on the trim, desk laminate and window frame. Off by default: measured
    * against the Cycles frames it currently adds error (it reflects the beige window placeholder
    * and is never occluded by the props that are not on the web yet). A quality tier can turn it
@@ -164,20 +175,25 @@ export async function loadBakedRoom(base: string, options: BakedRoomOptions = {}
     if (!r.ok) throw new Error(`baked room manifest missing at ${base}manifest.json`);
     return r.json();
   })) as {
-    atlases: Record<string, { glb: string; web: { file: string; range_sqrt: number } }>;
+    atlases: Record<
+      string,
+      { glb: string; web: { file: string; range_sqrt: number }; indirect?: { file: string; range_sqrt: number } }
+    >;
+    materials?: Record<string, Record<string, { roughness?: number; metallic?: number }>>;
   };
+  const rt = options.lighting === 'rt';
   const albedoManifest = useAlbedo
     ? ((await fetch(`${base}albedo.json`).then((r) => {
         if (!r.ok) throw new Error(`baked room albedo missing at ${base}albedo.json`);
         return r.json();
       })) as { atlases: Record<string, { file: string }> })
     : null;
-  const specs: AtlasSpec[] = Object.entries(manifest.atlases).map(([name, a]) => ({
-    name,
-    file: a.glb,
-    lightmap: a.web.file,
-    rangeSqrt: a.web.range_sqrt,
-  }));
+  const specs: AtlasSpec[] = Object.entries(manifest.atlases).map(([name, a]) => {
+    // `?rt`: the bounce light only. Until that bake exists, `?lm=full` borrows the full one
+    // (lit twice, for checking the pipeline) and the default is no lightmap at all.
+    const lm = rt ? (a.indirect ?? (params.get('lm') === 'full' ? a.web : null)) : a.web;
+    return { name, file: a.glb, lightmap: lm?.file ?? '', rangeSqrt: lm?.range_sqrt ?? 0 };
+  });
 
   // Geometry is EXT_meshopt_compression (scripts/meshopt-glb.mjs).
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
@@ -193,10 +209,11 @@ export async function loadBakedRoom(base: string, options: BakedRoomOptions = {}
       if (albedoManifest && !albedoFile) throw new Error(`baked room: no albedo for atlas ${spec.name}`);
       const [gltf, lightmap, albedo] = await Promise.all([
         loader.loadAsync(base + spec.file),
-        loadTexture(base + spec.lightmap),
+        spec.lightmap ? loadTexture(base + spec.lightmap) : Promise.resolve(null),
         albedoFile ? loadAlbedo(base + albedoFile) : Promise.resolve(null),
       ]);
       const made = new Map<string, { matte: THREE.MeshBasicMaterial; glossy: THREE.MeshStandardMaterial | null }>();
+      const madeRt = new Map<string, THREE.MeshStandardMaterial>();
       const atlas = new THREE.Group();
       atlas.name = `baked:${spec.name}`;
       gltf.scene.updateMatrixWorld(true);
@@ -204,6 +221,35 @@ export async function loadBakedRoom(base: string, options: BakedRoomOptions = {}
         const mesh = o as THREE.Mesh;
         if (!mesh.isMesh) return;
         const src = Array.isArray(mesh.material) ? mesh.material[0] : (mesh.material as THREE.Material);
+        if (rt) {
+          let lit = madeRt.get(src.name);
+          if (!lit) {
+            const m = manifest.materials?.[spec.name]?.[src.name] ?? {};
+            lit = new THREE.MeshStandardMaterial({
+              name: `rt:${spec.name}:${src.name || 'mat'}`,
+              map: albedo,
+              roughness: m.roughness ?? SPECULAR[src.name] ?? 0.8,
+              metalness: m.metallic ?? 0,
+            });
+            if (albedo && isDecal(src.name)) {
+              lit.transparent = true;
+              lit.depthWrite = false;
+            }
+            if (lightmap) {
+              lit.lightMap = lightmap;
+              lit.lightMapIntensity = Math.PI;
+            }
+            applyRGBMSpecular(lit, spec.rangeSqrt);
+            madeRt.set(src.name, lit);
+          }
+          mesh.material = lit;
+          // Live light: the walls hold the sun to the window, every surface takes the shadows.
+          mesh.castShadow = !isDecal(src.name);
+          mesh.receiveShadow = true;
+          const index = mesh.geometry.getIndex();
+          tris += ((index ? index.count : mesh.geometry.getAttribute('position').count) / 3) | 0;
+          return;
+        }
         let mats = made.get(src.name);
         if (!mats) {
           const matte = new THREE.MeshBasicMaterial({ name: `baked:${spec.name}:${src.name || 'mat'}` });

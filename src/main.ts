@@ -12,6 +12,7 @@ import { applyV2Look } from './scene/v2Look';
 import { V2_TUNING } from './scene/v2Layout';
 import { findNodes, loadV2Props } from './scene/v2Props';
 import { createV2PropLight } from './scene/v2PropLight';
+import { createRtLights, installRtShading, type RtLights } from './scene/rtLights';
 import { createV2Animations } from './scene/v2Animate';
 import { createPropRegistry } from './interaction/props';
 import { v2Props } from './data/v2Props';
@@ -63,6 +64,12 @@ function gpuFence(gl: WebGL2RenderingContext) {
  * (`src/interaction/props.ts`): baked fixtures now, the props GLBs as they are exported.
  */
 async function startV2() {
+  /**
+   * `?rt`: the hybrid real-time room — live sun and lamp with shadow maps on lit materials, only the
+   * bounce light baked (rtLights.ts). An experiment beside the fully baked room, not a replacement yet.
+   */
+  const rt = params.has('rt');
+  if (rt) installRtShading();
   const scene = new THREE.Scene();
   // Behind the exterior cards; only seen if they fail to load.
   scene.background = new THREE.Color('#c4b6a8');
@@ -75,16 +82,27 @@ async function startV2() {
   const base = `${import.meta.env.BASE_URL}assets/v2/room/`;
   // Props and the street outside load alongside the bake; with no props manifest yet the props resolve empty.
   const [baked, propFiles, exterior] = await Promise.all([
-    loadBakedRoom(base),
-    loadV2Props(`${import.meta.env.BASE_URL}assets/v2/props/`),
+    loadBakedRoom(base, { lighting: rt ? 'rt' : 'baked' }),
+    // `?rt` takes the PBR props with bounce-only lightmaps once they are exported, the lit ones until then.
+    rt
+      ? loadV2Props(`${import.meta.env.BASE_URL}assets/v2rt/props/`, { lightmaps: true }).then((p) =>
+          p.props.length ? p : loadV2Props(`${import.meta.env.BASE_URL}assets/v2/props/`),
+        )
+      : loadV2Props(`${import.meta.env.BASE_URL}assets/v2/props/`),
     // The street outside the window: two baked panorama cards (exteriorBackdrop.ts).
     loadExteriorBackdrop(`${import.meta.env.BASE_URL}assets/v2/exterior/`),
   ]);
   scene.add(baked.group);
   scene.add(exterior.group);
   if (propFiles.props.length) scene.add(propFiles.group);
-  // Live sun + lamp for the PBR props only; the baked room ignores live light (v2PropLight.ts).
-  const propLight = createV2PropLight(scene, baked.atlases.shell, propFiles.group);
+  // Baked: live sun + lamp for the PBR props only; the baked room ignores live light (v2PropLight.ts).
+  // `?rt`: the live lights (rtLights.ts) light everything, so these are not made.
+  const propLight = rt ? null : createV2PropLight(scene, baked.atlases.shell, propFiles.group);
+  if (rt) {
+    propFiles.group.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;
+    });
+  }
   // The robot's pulsing status light and the attractor on the monitor (v2Animate.ts).
   const animations = createV2Animations(propFiles.group, reducedMotion, new THREE.Vector3(...V2_TUNING.seat.position));
   loader.advance('starting the renderer');
@@ -93,6 +111,11 @@ async function startV2() {
   const view = createRenderer(canvas, scene, camera);
   // Sunset grade: Blender's own view (AgX, look Medium High Contrast) at the bake's +0.45 EV.
   await applyV2Look(view, scene, camera, baked);
+  let rtLights: RtLights | null = null;
+  if (rt) {
+    const lights = (await fetch(`${base}manifest.json`).then((r) => r.json())).lights;
+    rtLights = createRtLights(scene, view.renderer, lights);
+  }
 
   // The same first-person rig as the default room — same file, same spring, same sit
   // transition — driven by the v2 room's own poses and limits (V2_TUNING). No chair: the
@@ -184,7 +207,13 @@ async function startV2() {
   await view.warmUp(props.groups(), (stage) => loader.advance(stage));
   // warmUp captured the room with the props in it, unlit by their own reflections; record it
   // again without them so the props' image-based light is the baked room alone.
-  propLight.captureWithoutProps(view.captureEnvironmentNow);
+  if (propLight) propLight.captureWithoutProps(view.captureEnvironmentNow);
+  else {
+    // `?rt`: the room as live-lit, without the props, which must not reflect themselves.
+    propFiles.group.visible = false;
+    view.captureEnvironmentNow();
+    propFiles.group.visible = true;
+  }
 
   window.addEventListener('resize', view.resize);
 
@@ -232,6 +261,7 @@ async function startV2() {
     }
     props.update(dt, elapsed);
     animations.update(dt, elapsed, camera, props.focusedId ? 1 : 0);
+    rtLights?.update();
     view.render(dt);
 
     if (firstFrame && !calibrating) {

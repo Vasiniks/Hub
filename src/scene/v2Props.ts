@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { applyRGBMSpecular } from './bakedRoom';
 
 /**
  * The v2 props, as the props workstream exports them: world-space GLBs in
@@ -115,7 +116,44 @@ function restoreLitScale(root: THREE.Object3D) {
   });
 }
 
-export async function loadV2Props(base: string): Promise<V2Props> {
+/**
+ * The indirect lightmap a `?rt` prop set carries (manifest entry, read loosely): RGBM of sqrt(L),
+ * lossless WebP, decoded like the room's, on the UV the entry names (default 0: the PBR atlas).
+ */
+function lightmapOf(entry: PropEntry): { file: string; rangeSqrt: number; channel: number } | null {
+  const r = entry as unknown as Record<string, unknown>;
+  const lm = (r.lightmap ?? r.indirect) as string | { file?: string; range_sqrt?: number; uv?: number } | undefined;
+  const file = typeof lm === 'string' ? lm : lm?.file;
+  const rangeSqrt = Number((typeof lm === 'object' ? lm?.range_sqrt : undefined) ?? r.range_sqrt ?? r.rangeSqrt ?? r.lightmap_range_sqrt);
+  const channel = Number((typeof lm === 'object' ? lm?.uv : undefined) ?? r.lightmap_uv ?? r.uv_channel ?? r.uv ?? 0);
+  return file && rangeSqrt > 0 ? { file, rangeSqrt, channel: Number.isFinite(channel) ? channel : 0 } : null;
+}
+
+async function applyPropLightmap(root: THREE.Object3D, url: string, rangeSqrt: number, channel: number) {
+  const tex = await new THREE.TextureLoader().loadAsync(url);
+  tex.flipY = false;
+  tex.colorSpace = THREE.NoColorSpace;
+  if ('premultiplyAlpha' in tex) (tex as unknown as { premultiplyAlpha: boolean }).premultiplyAlpha = false;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false;
+  tex.channel = channel;
+  const done = new Set<THREE.Material>();
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+      const std = m as THREE.MeshStandardMaterial;
+      if (done.has(m) || !std.isMeshStandardMaterial || std.transparent) continue;
+      done.add(m);
+      std.lightMap = tex;
+      std.lightMapIntensity = Math.PI;
+      applyRGBMSpecular(std, rangeSqrt);
+    }
+  });
+}
+
+export async function loadV2Props(base: string, options: { lightmaps?: boolean } = {}): Promise<V2Props> {
   const group = new THREE.Group();
   group.name = 'v2Props';
   const props: LoadedProp[] = [];
@@ -137,6 +175,8 @@ export async function loadV2Props(base: string): Promise<V2Props> {
       const gltf = await loader.loadAsync(base + entry.file);
       gltf.scene.name = `prop-file:${entry.name}`;
       restoreLitScale(gltf.scene);
+      const lm = options.lightmaps ? lightmapOf(entry) : null;
+      if (lm) await applyPropLightmap(gltf.scene, base + lm.file, lm.rangeSqrt, lm.channel);
       return { entry, root: gltf.scene } satisfies LoadedProp;
     }),
   );
