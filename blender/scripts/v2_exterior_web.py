@@ -1,493 +1,567 @@
 """
-v2_exterior_web.py -- the street outside at ~5% of the triangles.
+v2_exterior_web.py -- the street outside the window as four baked panorama layers.
 
-Bakes NEW_exterior from room_public.blend (approved dusk setup) into depth-
-separated backdrop cards + textures for public/assets/v2/exterior/.
+The exterior (`NEW_exterior`, ~390k tris) is seen through one window from two eye
+positions ~1.4 m apart. Instead of shipping geometry, each depth layer is rendered
+by Cycles, in the approved dusk setup, as an equirectangular panorama from ONE bake
+eye (midpoint of the seated and standing eyes). At runtime every layer is a handful
+of triangles placed at that layer's real depth; the fragment shader projects the
+fragment's world position back to the bake eye and looks the panorama up. A surface
+point that really lies on the proxy is therefore exact from any viewpoint; content
+off the proxy shows parallax error proportional to its depth spread.
 
-Nothing in this script saves the .blend it opens; all outputs go to tmp/
-(intermediates) and public/assets/v2/exterior/ (shippables) via modes.
+    far   opaque   ground plane z=GROUND_Z out to R_FAR + a cylinder wall r=R_FAR + sky.
+                   Holds ground, terrain, back-row trees, far houses, sky.
+    mid   alpha    vertical plane y=Y_MID: the houses across the street, their hedges,
+                   fences, the parked SUV.
+    street alpha   vertical plane y=Y_STREET: hydro poles, wires, street maples, the
+                   sedan, hydrant, mailbox, bins, stop sign.
+    near  alpha    vertical plane y=Y_NEAR: the young maples in front of the house.
 
-    blender -b --factory-startup blender/scene/room_public.blend \\
-        --python blender/scripts/v2_exterior_web.py -- <mode> [args]
+Lighting stays exactly as approved: nothing is deleted. Objects outside a layer are
+made camera-invisible (they still cast shadows and bounce light), the ground is a
+holdout in the alpha layers (cuts below-grade parts), and the room is camera-invisible.
+
+The glass (Mesh_11) is camera-invisible while baking: the layers hold the street itself.
+The approved stills see it through that single-sided IOR 1.5 plane, which magnifies it
+~1.5x; the runtime reproduces that refraction in its shader (sidecar `glass`).
+
+Only reads room.blend (never saves it). Intermediates go to tmp/exterior/, shippables
+to public/assets/v2/exterior/ (via scripts/encode-exterior.mjs for the WebP step).
+
+    blender -b <room.blend> --python blender/scripts/v2_exterior_web.py -- <mode> [args]
+    (on the Windows machine: through C:/Users/Vas/Documents/Github/blender-locked.sh)
+
+Full rebuild: layer far|mid|street|near 256, encode (no .blend needed: -b --factory-startup),
+then `node scripts/encode-exterior.mjs`.
 
 Modes:
-    bake_full <exr> <w> <h> <spp>      everything exterior, wide persp cam
-    bake_near|bake_mid|bake_far ...    one layer, wide persp cam (near/mid: transparent film)
-    bake_ground <exr> <spp>            top-down ortho ground card bake (opaque)
-    stats <exr>                        peak/percentile stats of an EXR bake
-    rgbm <exr> <out.png> <peak>        linear EXR -> RGBM (sqrt) PNG, reports clipped fraction
-    alpha <exr> <out.png>              EXR alpha -> LDR grayscale PNG
-    cards                              build card meshes, export assets/processed/exterior_cards.glb
-    verify <single|layered> <out.png> <CAM_seat|CAM_stand> <w> <h> <spp>
-                                       hide exterior, show cards w/ EXR emission, render
+    ref <CAM> <out.png> <w> <h> <spp> [seed]  full-geometry Cycles still (the reference)
+    layer <far|mid|street|near> <spp> [ppd]   bake one panorama layer -> tmp/exterior/<layer>.exr
+    encode                                    EXRs -> tmp/exterior/<layer>.png (log-encoded,
+                                              see LOG_*), + layers.json (ranges, stats)
+    verify <CAM> <out.png> <w> <h> <spp>      exterior camera-invisible, proxies shaded with
+                                              the ENCODED PNGs (decoded in nodes), render
+    list                                      print the layer classification + coverage
+  CAM may be `EYE@<CAM>` (that camera moved to the bake eye: zero parallax, isolates
+  resampling error). EXT_NO_GLASS=1 hides the glass in ref/verify (diagnostic).
 
-Device note: v2_render.py targets CUDA (RTX 5070 on the owner's machine). This
-Mac has no CUDA/NVIDIA, so this script uses METAL GPU and falls back to CPU.
-Same engine, same scene, same denoiser family; only the compute device differs.
-
-Coordinate note: Blender Z-up metres. three.js Y-up: three (x, y, z) =
-Blender (x, -z, y). The sidecar (written by rgbm/cards modes' printed JSON and
-finalised in the report) records both.
+Coordinates: Blender Z-up metres. glTF/three.js Y-up: three (x, y, z) = Blender (x, z, -y).
 """
 
 import bpy
+import json
 import math
 import os
 import sys
+import time
 
 # ---------------------------------------------------------------- parameters
-# Bake camera: just inside the room behind the seated eye, looking +Y (out).
-BAKE_POS = (-0.15, -0.8, 1.55)
-BAKE_ROT = (math.pi / 2, 0.0, 0.0)          # looks +Y, horizontal
-BAKE_FOV_H = math.radians(110.0)            # wide: covers single-card cyl +-52deg
-BAKE_SENSOR = 36.0
-BAKE_LENS = (BAKE_SENSOR / 2.0) / math.tan(BAKE_FOV_H / 2.0)   # ~12.6 mm
-BAKE_CLIP = (0.5, 3000.0)
+SEAT = (0.0, -0.16, 1.175)
+STAND = (1.06, -0.96, 1.63)
+EYE = tuple((a + b) / 2 for a, b in zip(SEAT, STAND))   # bake eye: midpoint
 
-# Ortho ground camera: top-down over the visible ground rect.
-GND_RECT = (-40.0, 40.0, -2.0, 62.0)        # x0, x1, y0, y1
-GND_Z = -2.95
-GND_W, GND_H = 2048, 1638                   # ~3.9 cm/px
+# Window aperture (glass, Mesh_11): x, z extents at y = GLASS_Y.
+GLASS_Y = 1.398
+GLASS_X = (-1.275, 0.975)
+GLASS_Z = (0.745, 2.455)
 
-# Cards: (name, kind, params). Planes face the room (-Y normal).
-CARDS = {
-    # horizontal ground card: manual UVs from world coords (exact, no projector)
-    "GND":    {"kind": "flat", "center": (-0.0, 30.0, GND_Z), "size": (80.0, 64.0)},
-    # near: young maples across the street's near side (y~10.8) + neighbours
-    "NEAR":   {"kind": "plane_y", "y": 11.0, "x0": -12.0, "x1": 9.0,
-               "z0": -3.0, "z1": 7.0},
-    # mid: road furniture, poles+wires, house fronts (y=32), maples at y~22
-    "MID":    {"kind": "plane_y", "y": 30.0, "x0": -30.0, "x1": 20.0,
-               "z0": -3.2, "z1": 12.0},
-    # far: backyard trees, LOD rows, terrain tail + baked sky (opaque)
-    "FAR":    {"kind": "cyl", "r": 60.0, "a0": -52.0, "a1": 52.0,
-               "z0": -3.0, "z1": 48.0, "seg": 64},
-    # cheap option: one curved card for the whole exterior incl. sky
-    "SINGLE": {"kind": "cyl", "r": 30.0, "a0": -52.0, "a1": 52.0,
-               "z0": -3.2, "z1": 28.0, "seg": 64},
-}
-ROOM_PUBLIC = os.path.abspath("blender/scene/room_public.blend")
-TMP = os.path.abspath("tmp")
+GROUND_Z = -3.05
+R_FAR = 55.0          # far ground disc radius / wall radius around the bake eye (xy)
+FAR_TOP = 80.0        # wall top z
+Y_MID = 26.5          # houses plane (front walls at 25.5-26)
+Y_STREET = 21.5       # street-furniture plane (poles at ~21.4)
+Y_NEAR = 10.7         # near plane
+PLANE_Z = (-12.0, 40.0)   # vertical planes extend below grade: layers draw painter-style
+PLANE_Y = {"mid": Y_MID, "street": Y_STREET, "near": Y_NEAR}
+
+PPD = {"far": 16.0, "mid": 20.0, "street": 20.0, "near": 16.0}   # pixels per degree
+MARGIN_DEG = 3.0
+
+# Log encoding of linear radiance into 8 bits per channel:
+#   v = (log2(L) - LOG_MIN) / (LOG_MAX - LOG_MIN),  L = 2^(LOG_MIN + v*(LOG_MAX-LOG_MIN))
+# with v == 0 meaning L = 0 (black). Alpha is straight coverage.
+LOG_MIN, LOG_MAX = -12.0, 6.0
+
+ROOT = os.path.abspath(".")
+TMP = os.path.join(ROOT, "tmp", "exterior")
+OUT = os.path.join(ROOT, "public", "assets", "v2", "exterior")
+
+GROUND = {"EXT_ground_near", "EXT_street_asphalt", "EXT_curbs_gutters",
+          "EXT_road_detail", "EXT_terrain"}
+# Our own house: the runtime keeps the real wall/casing/frame. Neither is seen in
+# the window's view cone except as the reveal, which the room shell already models.
+SKIP = {"EXT_house_facade", "EXT_window_trim"}
+FORCE_MID = {"EXT_fences"}
+FORCE_STREET = {"EXT_power_lines", "EXT_hydro_poles"}
+LAYERS = ("far", "mid", "street", "near")   # back to front
 
 
-# ---------------------------------------------------------------- layer sets
-def _loc_y(o):
-    return o.matrix_world.translation.y
+# ---------------------------------------------------------------- helpers
+def ext_objects():
+    """Exterior meshes, resolved by a name snapshot. Iterating `all_objects` while setting
+    visibility invalidates its cache mid-loop (items skipped, then None)."""
+    names = [o.name for o in bpy.data.collections["NEW_exterior"].all_objects]
+    return [o for o in (bpy.data.objects.get(n) for n in names) if o is not None and o.type == 'MESH']
+
+
+def world_center(o):
+    from mathutils import Vector
+    bb = [o.matrix_world @ Vector(c) for c in o.bound_box]
+    return [sum(v[i] for v in bb) / 8 for i in range(3)]
 
 
 def classify():
-    """Split NEW_exterior meshes into passes. Returns dict pass -> [names]."""
-    col = bpy.data.collections.get("NEW_exterior")
-    ground, near, mid, far = [], [], [], []
-    # Our own facade + the trim at the glass: the runtime keeps the real
-    # wall/trim/casing, which occlude these rays exactly. Baking them would
-    # paste backface siding onto the cards' window surround.
-    SKIP = {"EXT_window_trim", "EXT_house_facade"}
-    for o in col.all_objects:
-        if o.type != 'MESH':
-            continue
+    out = {"ground": [], "near": [], "street": [], "mid": [], "far": [], "skip": []}
+    for o in ext_objects():
         n = o.name
         if n in SKIP:
-            continue
-        y = _loc_y(o)
-        if n in ("EXT_ground_near", "EXT_road_detail", "EXT_street_asphalt",
-                 "EXT_curbs_gutters"):
-            ground.append(n)
-        elif n == "EXT_terrain":
-            ground.append(n)
-            far.append(n)  # tail beyond the ortho rect, behind the houses
-        elif n.startswith("EXT_house_lod_"):
-            (near if y < 10 else mid if y < 45 else far).append(n)
-        elif n.startswith("EXT_tree_far_") or n.startswith("EXT_tree_0") \
-                or n.startswith("EXT_tree_1"):
-            far.append(n)
-        elif n.startswith("EXT_spruce_") or n.startswith("EXT_cedar_"):
-            (mid if y < 42 else far).append(n)
-        elif n.startswith("EXT_shrub_"):
-            (near if y < 10 else mid).append(n)
-        elif n.startswith("EXT_maple_"):
-            (near if y < 14 else mid).append(n)
-        elif n.startswith("EXT_house_") or n in (
-                "EXT_hydro_poles", "EXT_power_lines", "EXT_car_suv",
-                "EXT_car_sedan", "EXT_community_mailbox", "EXT_fire_hydrant",
-                "EXT_bins", "EXT_stop_sign", "EXT_fences"):
-            mid.append(n)
-        elif n in ("EXT_house_facade", "EXT_house_lod_nbrL", "EXT_house_lod_nbrR"):
-            near.append(n)
+            out["skip"].append(n)
+        elif n in GROUND:
+            out["ground"].append(n)
+        elif n in FORCE_MID:
+            out["mid"].append(n)
+        elif n in FORCE_STREET:
+            out["street"].append(n)
         else:
-            mid.append(n)  # default: true depth near the mid card
-            print("CLASSIFY-FALLBACK-MID", n)
-    return {"ground": ground, "near": near, "mid": mid, "far": far}
+            y = world_center(o)[1]
+            out["near" if y < 16 else "street" if y < 24.5 else "mid" if y < 46 else "far"].append(n)
+    return out
 
 
-PASSES = None  # filled lazily (needs the .blend open)
-
-
-# ---------------------------------------------------------------- scene setup
-def use_metal_or_cpu():
+def use_cuda():
     prefs = bpy.context.preferences.addons['cycles'].preferences
-    for cdt in ('METAL', 'NONE'):
-        try:
-            prefs.compute_device_type = cdt
-            prefs.refresh_devices()
-            break
-        except Exception:
-            continue
-    gpu = [d for d in prefs.devices if d.type != 'CPU']
+    prefs.compute_device_type = 'CUDA'
+    prefs.refresh_devices()
     for d in prefs.devices:
-        d.use = bool(gpu) and d.type != 'CPU'
-    bpy.context.scene.cycles.device = 'GPU' if gpu else 'CPU'
-    print("DEVICE", [(d.name, d.type, d.use) for d in prefs.devices])
-
-
-def make_bake_cam():
-    sc = bpy.context.scene
-    cam = bpy.data.cameras.new("BAKE_win")
-    cam.sensor_width = BAKE_SENSOR
-    cam.lens = BAKE_LENS
-    cam.clip_start, cam.clip_end = BAKE_CLIP
-    o = bpy.data.objects.new("BAKE_win", cam)
-    sc.collection.objects.link(o)
-    o.location = BAKE_POS
-    o.rotation_euler = BAKE_ROT
-    sc.camera = o
-    return o
-
-
-def make_ground_cam():
-    sc = bpy.context.scene
-    x0, x1, y0, y1 = GND_RECT
-    cam = bpy.data.cameras.new("BAKE_gnd")
-    cam.type = 'ORTHO'
-    cam.ortho_scale = (x1 - x0)
-    cam.clip_start, cam.clip_end = 1.0, 200.0
-    o = bpy.data.objects.new("BAKE_gnd", cam)
-    sc.collection.objects.link(o)
-    o.location = ((x0 + x1) / 2, (y0 + y1) / 2, 50.0)
-    o.rotation_euler = (0.0, 0.0, 0.0)  # looks -Z: straight down
-    sc.camera = o
-    return o
-
-
-def isolate(pass_names, keep_all_lights=True):
-    """Hide every mesh except the named exterior passes. Lights always stay
-    (approved dusk setup); window trim at the glass is always hidden."""
-    global PASSES
-    keep = set()
-    for p in pass_names:
-        keep.update(PASSES[p])
-    n_hide, n_keep = 0, 0
-    for o in bpy.data.objects:
-        if o.type == 'LIGHT':
-            o.hide_render = False
-        elif o.type == 'MESH':
-            if o.name in keep:
-                o.hide_render = False
-                n_keep += 1
-            else:
-                o.hide_render = True
-                n_hide += 1
-    print(f"ISOLATE {pass_names}: keep {n_keep} meshes, hide {n_hide}")
-
-
-def render(exr_path, w, h, spp, transparent, fmt='EXR'):
+        d.use = (d.type == 'CUDA')
     sc = bpy.context.scene
     sc.render.engine = 'CYCLES'
+    sc.cycles.device = 'GPU'
+    print("DEVICES", [(d.name, d.type, d.use) for d in prefs.devices])
+
+
+def render(path, w, h, spp, fmt, transparent=False):
+    sc = bpy.context.scene
     sc.cycles.samples = spp
     sc.cycles.use_denoising = True
-    try:
-        sc.cycles.denoiser = 'OPTIX'
-    except TypeError:
-        sc.cycles.denoiser = 'OPENIMAGEDENOISE'
+    sc.cycles.denoiser = 'OPTIX'
     sc.render.resolution_x, sc.render.resolution_y = w, h
     sc.render.resolution_percentage = 100
     sc.render.film_transparent = transparent
+    s = sc.render.image_settings
     if fmt == 'EXR':
-        sc.render.image_settings.file_format = 'OPEN_EXR'
-        sc.render.image_settings.color_depth = '16'
-        sc.render.image_settings.exr_codec = 'ZIP'
-        sc.render.image_settings.color_mode = 'RGBA'
+        s.file_format = 'OPEN_EXR'
+        s.color_depth = '32'
+        s.exr_codec = 'ZIP'
+        s.color_mode = 'RGBA'
     else:
-        sc.render.image_settings.file_format = 'PNG'
-        sc.render.image_settings.color_depth = '8'
-        sc.render.image_settings.color_mode = 'RGB'
-    sc.render.filepath = exr_path
-    import time
+        s.file_format = 'PNG'
+        s.color_depth = '8'
+        s.color_mode = 'RGB'
+    sc.render.filepath = path
     t = time.time()
     bpy.ops.render.render(write_still=True)
-    print("RENDER_SECONDS", round(time.time() - t, 1), "->", exr_path)
+    print("RENDER_SECONDS", round(time.time() - t, 1), w, "x", h, spp, "spp ->", path)
+
+
+# ---------------------------------------------------------------- proxy geometry
+def proxy_hit(layer, o, d):
+    """Intersect ray o + t d (t > 0) with the layer's proxy; returns point or None."""
+    if layer == "far":
+        best = None
+        if d[2] < -1e-6:
+            t = (GROUND_Z - o[2]) / d[2]
+            p = [o[i] + t * d[i] for i in range(3)]
+            if math.hypot(p[0] - EYE[0], p[1] - EYE[1]) <= R_FAR:
+                best = p
+        if best is None:
+            # cylinder around EYE (xy), radius R_FAR
+            ox, oy = o[0] - EYE[0], o[1] - EYE[1]
+            a = d[0] ** 2 + d[1] ** 2
+            b = 2 * (ox * d[0] + oy * d[1])
+            c = ox * ox + oy * oy - R_FAR ** 2
+            t = (-b + math.sqrt(b * b - 4 * a * c)) / (2 * a)
+            best = [o[i] + t * d[i] for i in range(3)]
+        return best
+    y = PLANE_Y[layer]
+    if d[1] <= 1e-6:
+        return None
+    t = (y - o[1]) / d[1]
+    return [o[i] + t * d[i] for i in range(3)]
+
+
+def az_el(p):
+    d = [p[i] - EYE[i] for i in range(3)]
+    n = math.sqrt(sum(v * v for v in d))
+    return math.degrees(math.atan2(d[0], d[1])), math.degrees(math.asin(d[2] / n))
+
+
+def coverage(layer):
+    """Azimuth/elevation range (deg, from EYE) of every proxy point visible through the
+    glass from any eye on the seat->stand segment, plus margin."""
+    azs, els = [], []
+    for k in range(6):
+        f = k / 5
+        e = [SEAT[i] + f * (STAND[i] - SEAT[i]) for i in range(3)]
+        for i in range(13):
+            for j in range(13):
+                g = (GLASS_X[0] + (GLASS_X[1] - GLASS_X[0]) * i / 12, GLASS_Y,
+                     GLASS_Z[0] + (GLASS_Z[1] - GLASS_Z[0]) * j / 12)
+                d = [g[q] - e[q] for q in range(3)]
+                p = proxy_hit(layer, e, d)
+                if p is None:
+                    continue
+                a, el = az_el(p)
+                azs.append(a)
+                els.append(el)
+    m = MARGIN_DEG
+    return (min(azs) - m, max(azs) + m, min(els) - m, max(els) + m)
+
+
+# ---------------------------------------------------------------- scene prep
+def all_room_meshes(ext_names):
+    return [o for o in bpy.data.objects
+            if o.type in ('MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'CURVES', 'VOLUME', 'POINTCLOUD')
+            and o.name not in ext_names]
+
+
+def prep_layer(layer, cls):
+    ext_names = set(sum(cls.values(), []))
+    for o in all_room_meshes(ext_names):
+        o.visible_camera = False
+    keep = set(cls["ground"] + cls["far"]) if layer == "far" else set(cls[layer])
+    for o in ext_objects():
+        if o.name in keep:
+            o.visible_camera = True
+            o.is_holdout = False
+        elif layer != "far" and o.name in cls["ground"]:
+            o.visible_camera = True
+            o.is_holdout = True
+        else:
+            o.visible_camera = False
+    vis = [o.name for o in ext_objects() if o.visible_camera and not o.is_holdout]
+    print("PREP", layer, "camera-visible exterior meshes:", len(vis), "holdout:",
+          sum(1 for o in ext_objects() if o.is_holdout))
+    # the volume (fx_room_volume) would fog the camera rays inside the room
+    for o in bpy.data.objects:
+        if o.name.startswith("fx_room_volume"):
+            o.hide_render = True
+
+
+def make_pano_cam(rng):
+    a0, a1, e0, e1 = rng
+    cam = bpy.data.cameras.new("BAKE_pano")
+    cam.type = 'PANO'
+    cam.panorama_type = 'EQUIRECTANGULAR'
+    cam.longitude_min, cam.longitude_max = math.radians(a0), math.radians(a1)
+    cam.latitude_min, cam.latitude_max = math.radians(e0), math.radians(e1)
+    cam.clip_start, cam.clip_end = 0.05, 5000.0
+    o = bpy.data.objects.new("BAKE_pano", cam)
+    bpy.context.scene.collection.objects.link(o)
+    o.location = EYE
+    o.rotation_euler = (math.pi / 2, 0.0, 0.0)   # looks +Y, right = +X, up = +Z
+    bpy.context.scene.camera = o
+    return o
 
 
 # ---------------------------------------------------------------- modes
-def cmd_bake(which, exr, w, h, spp):
-    global PASSES
-    bpy.ops.wm.open_mainfile(filepath=ROOM_PUBLIC)
-    use_metal_or_cpu()
-    PASSES = classify()
-    for k, v in PASSES.items():
-        print(f"PASSSET {k}: {len(v)} meshes")
-    if which == "full":
-        make_bake_cam()
-        isolate(["ground", "near", "mid", "far"])
-        render(exr, w, h, spp, transparent=False)
-    elif which in ("near", "mid"):
-        make_bake_cam()
-        isolate([which])
-        render(exr, w, h, spp, transparent=True)
-    elif which == "far":
-        make_bake_cam()
-        isolate(["far"])
-        render(exr, w, h, spp, transparent=False)
-    elif which == "ground":
-        make_ground_cam()
-        isolate(["ground"])
-        render(exr, GND_W, GND_H, spp, transparent=False)
-    else:
-        raise SystemExit("unknown bake pass " + which)
+def get_cam(name):
+    """A scene camera, or `EYE@<CAM>`: that camera's lens/orientation moved to the bake eye
+    (zero parallax by construction: isolates resampling/edge error from parallax error)."""
+    if not name.startswith("EYE@"):
+        return bpy.data.objects[name]
+    src = bpy.data.objects[name[4:]]
+    o = bpy.data.objects.new(name, src.data)
+    bpy.context.scene.collection.objects.link(o)
+    o.location = EYE
+    o.rotation_euler = src.rotation_euler
+    return o
 
 
-def cmd_stats(exr):
-    import numpy as np
-    img = bpy.data.images.load(exr)
-    w, h = img.size
-    px = np.array(img.pixels[:], dtype=np.float64).reshape(h, w, 4)
-    rgb = px[..., :3]
-    lum = 0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
-    a = px[..., 3]
-    print(f"STATS {exr} {w}x{h}")
-    print(f"  peak_rgb {rgb.max():.3f} peak_lum {lum.max():.3f}")
-    for q in (50, 90, 99, 99.9):
-        print(f"  lum_p{q} {np.percentile(lum, q):.4f}")
-    print(f"  alpha_cov {(a > 0.01).mean():.4f} alpha_mean {a.mean():.4f}")
-    bpy.data.images.remove(img)
+def cmd_ref(cam, out, w, h, spp, seed=None):
+    use_cuda()
+    if seed is not None:   # noise floor: the same frame with another sampling seed
+        bpy.context.scene.cycles.seed = seed
+    if os.environ.get("EXT_NO_GLASS"):   # diagnostic: the window without its glass plane
+        bpy.data.objects["Mesh_11"].hide_render = True
+        print("NO_GLASS")
+    bpy.context.scene.camera = get_cam(cam)
+    render(out, w, h, spp, 'PNG')
 
 
-def cmd_rgbm(exr, out, peak):
-    """Linear EXR -> RGBM PNG of sqrt(L): L = (rgb*a*range)^2, range=sqrt(peak).
-    Pixels above peak clip (reported)."""
-    import numpy as np
-    peak = float(peak)
-    rng = math.sqrt(peak)
-    img = bpy.data.images.load(exr)
-    w, h = img.size
-    px = np.array(img.pixels[:], dtype=np.float64).reshape(h, w, 4)
-    rgb = np.clip(px[..., :3], 0, None)
-    over = (rgb.max(axis=-1) > peak).mean()
-    rgb = np.clip(rgb / peak, 0, 1)
-    sq = np.sqrt(rgb)
-    m = sq.max(axis=-1, keepdims=True)
-    m = np.clip(m, 1e-6, 1.0)
-    enc = np.concatenate([sq / m, np.broadcast_to(m, m.shape)], axis=-1)
-    enc8 = (np.clip(enc, 0, 1) * 255 + 0.5).astype(np.uint8)
-    flat = (enc8.astype(np.float32) / 255.0).ravel()
-    im2 = bpy.data.images.new("rgbm", w, h, alpha=True, float_buffer=False)
-    im2.colorspace_settings.name = 'Non-Color'  # file bytes = our values, no sRGB
-    im2.pixels[:] = flat.tolist()
-    im2.file_format = 'PNG'
-    im2.filepath_raw = out
-    im2.save()
-    print(f"RGBM {out} {w}x{h} range_sqrt={rng:.4f} clipped_frac={over:.5f}")
-    bpy.data.images.remove(img)
-    bpy.data.images.remove(im2)
-
-
-def cmd_alpha(exr, out):
-    import numpy as np
-    img = bpy.data.images.load(exr)
-    w, h = img.size
-    px = np.array(img.pixels[:], dtype=np.float64).reshape(h, w, 4)
-    a = np.clip(px[..., 3], 0, 1)
-    rgba = np.stack([a, a, a, np.ones_like(a)], axis=-1)
-    im2 = bpy.data.images.new("alpha", w, h, alpha=True, float_buffer=False)
-    im2.colorspace_settings.name = 'Non-Color'
-    im2.pixels[:] = (rgba.ravel()).tolist()
-    im2.file_format = 'PNG'
-    im2.filepath_raw = out
-    im2.save()
-    print(f"ALPHA {out} {w}x{h} coverage={(a > 0.5).mean():.4f}")
-    bpy.data.images.remove(img)
-    bpy.data.images.remove(im2)
-
-
-def build_cards():
-    """Create card meshes with camera-project UVs. Returns {name: object}."""
+def cmd_layer(layer, spp, ppd):
+    use_cuda()
+    cls = classify()
+    prep_layer(layer, cls)
+    rng = coverage(layer)
+    w = int(round((rng[1] - rng[0]) * ppd))
+    h = int(round((rng[3] - rng[2]) * ppd))
+    make_pano_cam(rng)
+    os.makedirs(TMP, exist_ok=True)
+    out = os.path.join(TMP, f"{layer}.exr")
+    print("LAYER", layer, "range", [round(v, 2) for v in rng], "size", w, h)
+    render(out, w, h, spp, 'EXR', transparent=(layer != "far"))
+    import hashlib
+    src = bpy.data.filepath
+    with open(src, "rb") as fh:
+        sha = hashlib.sha1(fh.read()).hexdigest()[:12]
     sc = bpy.context.scene
-    if "BAKE_win" not in bpy.data.objects:
-        make_bake_cam()
-    cam = bpy.data.objects["BAKE_win"]
-    cards = {}
-    for name, c in CARDS.items():
-        if c["kind"] == "flat":
-            cx, cy, cz = c["center"]
-            sx, sy = c["size"]
-            bpy.ops.mesh.primitive_plane_add(size=2.0, location=(cx, cy, cz))
-            o = bpy.context.active_object
-            o.name = "CARD_" + name
-            o.scale = (sx / 2.0, sy / 2.0, 1.0)
-            bpy.ops.object.transform_apply(scale=True)
-            # manual UVs from world coords (exact for the ortho bake).
-            # NOTE: co is local; world = local + object location.
-            import numpy as np
-            x0, x1, y0, y1 = GND_RECT
-            me = o.data
-            uv = me.uv_layers.new(name="UVMap")
-            for poly in me.polygons:
-                for li in poly.loop_indices:
-                    co = me.vertices[me.loops[li].vertex_index].co
-                    wx, wy = co.x + cx, co.y + cy
-                    uv.data[li].uv = ((wx - x0) / (x1 - x0),
-                                      (wy - y0) / (y1 - y0))
-        elif c["kind"] == "plane_y":
-            cx = (c["x0"] + c["x1"]) / 2
-            cz = (c["z0"] + c["z1"]) / 2
-            bpy.ops.mesh.primitive_plane_add(
-                size=1.0, location=(cx, c["y"], cz),
-                rotation=(math.pi / 2, 0.0, 0.0))
-            o = bpy.context.active_object
-            o.name = "CARD_" + name
-            o.scale = (c["x1"] - c["x0"], c["z1"] - c["z0"], 1.0)
-            bpy.ops.object.transform_apply(scale=True)
-            mod = o.modifiers.new("UVProj", 'UV_PROJECT')
-            mod.projectors[0].object = cam
-            bpy.ops.object.modifier_apply(modifier=mod.name)
-        elif c["kind"] == "cyl":
-            cx, cy = BAKE_POS[0], BAKE_POS[1]
-            a0, a1 = math.radians(c["a0"]), math.radians(c["a1"])
-            n = c["seg"]
-            import bmesh
-            me = bpy.data.meshes.new("CARD_" + name)
-            bm = bmesh.new()
-            verts_top, verts_bot = [], []
-            for i in range(n + 1):
-                a = a0 + (a1 - a0) * i / n
-                dx, dy = math.sin(a) * c["r"], math.cos(a) * c["r"]
-                verts_bot.append(bm.verts.new((cx + dx, cy + dy, c["z0"])))
-                verts_top.append(bm.verts.new((cx + dx, cy + dy, c["z1"])))
-            for i in range(n):
-                b0, b1 = verts_bot[i], verts_bot[i + 1]
-                t0, t1 = verts_top[i], verts_top[i + 1]
-                try:
-                    bm.faces.new((b0, b1, t1, t0))
-                except ValueError:
-                    pass
-            bm.to_mesh(me)
-            bm.free()
-            o = bpy.data.objects.new("CARD_" + name, me)
-            sc.collection.objects.link(o)
-            o.select_set(True)
-            bpy.context.view_layer.objects.active = o
-            mod = o.modifiers.new("UVProj", 'UV_PROJECT')
-            mod.projectors[0].object = cam
-            bpy.ops.object.modifier_apply(modifier=mod.name)
-        # placeholder material (assembly replaces with RGBM-decoding unlit)
-        m = bpy.data.materials.new("CARDMAT_" + name)
-        m.use_nodes = True
-        o.data.materials.append(m)
-        cards[name] = o
-        tris = len(o.data.polygons)
-        print(f"CARD {name}: {tris} tris at {tuple(round(v, 2) for v in o.location)}")
-    return cards
+    vs = sc.view_settings
+    if layer == "far":
+        proxy = {"type": "disc+cylinder", "center": [EYE[0], EYE[1]], "ground_z": GROUND_Z,
+                 "radius": R_FAR, "top_z": FAR_TOP}
+    else:
+        proxy = {"type": "plane_y", "y": PLANE_Y[layer],
+                 "x": [-200.0, 200.0], "z": list(PLANE_Z)}
+    with open(os.path.join(TMP, f"{layer}.range.json"), "w") as f:
+        json.dump({"layer": layer, "lon": [rng[0], rng[1]], "lat": [rng[2], rng[3]],
+                   "size": [w, h], "spp": spp, "ppd": ppd, "proxy": proxy,
+                   "objects": sorted(cls["ground"] + cls["far"]) if layer == "far" else sorted(cls[layer]),
+                   "eye_blender": list(EYE),
+                   "poses_blender": {"seat": list(SEAT), "stand": list(STAND)},
+                   "source": {"file": "blender/scene/room.blend", "sha1_12": sha},
+                   "render": {"engine": "CYCLES", "device": "CUDA", "denoiser": "OPTIX",
+                              "samples": spp, "film_transparent": layer != "far",
+                              "view_transform": vs.view_transform, "look": vs.look,
+                              "exposure_ev": round(vs.exposure, 4),
+                              "note": "data is pre-view-transform linear; exposure/look not baked in"}},
+                  f, indent=1)
 
 
-def cmd_cards():
-    bpy.ops.wm.open_mainfile(filepath=ROOM_PUBLIC)
-    cards = build_cards()
-    out = os.path.abspath("assets/processed/exterior_cards.glb")
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    bpy.ops.object.select_all(action='DESELECT')
-    for o in cards.values():
-        o.select_set(True)
-    bpy.ops.export_scene.gltf(
-        filepath=out, export_format='GLB', use_selection=True,
-        export_materials='EXPORT', export_cameras=False, export_lights=False)
-    print("EXPORTED", out, os.path.getsize(out), "bytes")
-    total = sum(len(o.data.polygons) for o in cards.values())
-    print("CARDS_TRIS", total)
+def load_px(path):
+    import numpy as np
+    img = bpy.data.images.load(path)
+    w, h = img.size
+    px = np.empty(w * h * 4, dtype=np.float32)
+    img.pixels.foreach_get(px)
+    bpy.data.images.remove(img)
+    return px.reshape(h, w, 4), w, h   # rows bottom-first
 
 
-def shade_cards_with(exr_by_card):
-    """Emission materials sampling EXRs as linear (verification only)."""
-    for name, exr in exr_by_card.items():
-        o = bpy.data.objects.get("CARD_" + name)
-        img = bpy.data.images.load(os.path.abspath(exr))
-        img.colorspace_settings.name = 'Non-Color'
-        m = o.data.materials[0]
-        m.use_nodes = True
-        nt = m.node_tree
-        nt.nodes.clear()
-        out = nt.nodes.new('ShaderNodeOutputMaterial')
-        em = nt.nodes.new('ShaderNodeEmission')
-        tx = nt.nodes.new('ShaderNodeTexImage')
-        tx.image = img
-        if name in ("NEAR", "MID"):
-            # real transparency: Emission + Transparent mixed by EXR alpha
-            transp = nt.nodes.new('ShaderNodeBsdfTransparent')
-            mx = nt.nodes.new('ShaderNodeMixShader')
-            nt.links.new(tx.outputs['Color'], em.inputs['Color'])
-            nt.links.new(transp.outputs['BSDF'], mx.inputs[1])
-            nt.links.new(em.outputs['Emission'], mx.inputs[2])
-            nt.links.new(tx.outputs['Alpha'], mx.inputs['Fac'])
-            nt.links.new(mx.outputs['Shader'], out.inputs['Surface'])
+def cmd_encode():
+    """EXR (premultiplied linear) -> straight-alpha log-encoded 8-bit PNG (rows bottom-
+    first as Blender stores them; the saved PNG is top-first like any image)."""
+    import numpy as np
+    meta = {}
+    for layer in LAYERS:
+        exr = os.path.join(TMP, f"{layer}.exr")
+        if not os.path.exists(exr):
+            continue
+        px, w, h = load_px(exr)
+        with open(os.path.join(TMP, f"{layer}.range.json")) as f:
+            r = json.load(f)
+        if layer != "far":
+            # crop the alpha layers to their content (+4 px), keeping the angular mapping
+            on = px[..., 3] > 2e-3
+            rows, cols = np.nonzero(on.any(axis=1))[0], np.nonzero(on.any(axis=0))[0]
+            r0, r1 = max(0, rows[0] - 4), min(h, rows[-1] + 5)
+            c0, c1 = max(0, cols[0] - 4), min(w, cols[-1] + 5)
+            lo0, lo1 = r["lon"]
+            la0, la1 = r["lat"]
+            r["lon"] = [lo0 + (lo1 - lo0) * c0 / w, lo0 + (lo1 - lo0) * c1 / w]
+            r["lat"] = [la0 + (la1 - la0) * r0 / h, la0 + (la1 - la0) * r1 / h]
+            px = np.ascontiguousarray(px[r0:r1, c0:c1])
+            r["crop_from"] = [w, h]
+            h, w = px.shape[:2]
+            r["size"] = [w, h]
+        a = np.clip(px[..., 3], 0.0, 1.0)
+        rgb = np.clip(px[..., :3], 0.0, None)
+        if layer == "far":
+            a = np.ones_like(a)
         else:
-            nt.links.new(tx.outputs['Color'], em.inputs['Color'])
-            nt.links.new(em.outputs['Emission'], out.inputs['Surface'])
-        em.inputs['Strength'].default_value = 1.0
+            # un-premultiply; hide fringe where coverage is negligible
+            rgb = np.where(a[..., None] > 1e-3, rgb / np.maximum(a[..., None], 1e-3), 0.0)
+        lum = 0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
+        cov = a > 0.5
+        st = {"peak": float(rgb.max()),
+              "p50": float(np.percentile(lum[cov], 50)) if cov.any() else 0.0,
+              "p01": float(np.percentile(lum[cov], 1)) if cov.any() else 0.0,
+              "p999": float(np.percentile(lum[cov], 99.9)) if cov.any() else 0.0,
+              "coverage": float(cov.mean())}
+        lo = 2.0 ** LOG_MIN
+        st["below_min_frac"] = float(((rgb < lo) & (rgb > 0)).mean())
+        st["above_max_frac"] = float((rgb > 2.0 ** LOG_MAX).mean())
+        v = (np.log2(np.maximum(rgb, lo)) - LOG_MIN) / (LOG_MAX - LOG_MIN)
+        v = np.where(rgb <= 0, 0.0, np.clip(v, 1.0 / 255.0, 1.0))
+        if layer != "far":
+            # Bleed colour into the transparent texels (log domain), so bilinear filtering at
+            # a coverage edge mixes in the neighbour's colour rather than black.
+            filled = a > 0.02
+            for _ in range(8):
+                vv = np.pad(v * filled[..., None], ((1, 1), (1, 1), (0, 0)))
+                ww = np.pad(filled.astype(np.float32), 1)
+                s = sum(vv[1 + dy:vv.shape[0] - 1 + dy, 1 + dx:vv.shape[1] - 1 + dx]
+                        for dy in (-1, 0, 1) for dx in (-1, 0, 1))
+                c = sum(ww[1 + dy:ww.shape[0] - 1 + dy, 1 + dx:ww.shape[1] - 1 + dx]
+                        for dy in (-1, 0, 1) for dx in (-1, 0, 1))
+                new = (~filled) & (c > 0)
+                v[new] = s[new] / c[new][:, None]
+                filled |= new
+            v[~filled] = 0.0
+        # 1-LSB random dither before quantising (breaks sky banding)
+        rs = np.random.RandomState(7)
+        v = v + (rs.random_sample(v.shape[:2])[..., None] - 0.5) / 255.0
+        enc = np.concatenate([np.clip(v, 0, 1), a[..., None]], axis=-1).astype(np.float32)
+        im = bpy.data.images.new(f"enc_{layer}", w, h, alpha=True, float_buffer=False)
+        im.colorspace_settings.name = 'Non-Color'
+        im.alpha_mode = 'STRAIGHT'
+        im.pixels.foreach_set(enc.ravel())
+        out = os.path.join(TMP, f"{layer}.png")
+        im.filepath_raw = out
+        im.file_format = 'PNG'
+        im.save()
+        bpy.data.images.remove(im)
+        r["stats"] = st
+        meta[layer] = r
+        print("ENCODED", layer, w, h, st)
+    with open(os.path.join(TMP, "layers.json"), "w") as f:
+        json.dump(meta, f, indent=1)
 
 
-def cmd_verify(which, out, cam, w, h, spp):
-    global PASSES
-    bpy.ops.wm.open_mainfile(filepath=ROOM_PUBLIC)
-    use_metal_or_cpu()
-    PASSES = classify()
-    cards = build_cards()
-    sc = bpy.context.scene
-    # hide ONLY the baked exterior (keep room, trim, curtains, glass as in refs)
-    ext = bpy.data.collections.get("NEW_exterior")
-    ext_names = {o.name for o in ext.all_objects}
-    if which == "single":
-        for o in bpy.data.objects:
-            if o.name in ext_names and o.name != "EXT_window_trim":
-                o.hide_render = True
-        for name in ("GND", "NEAR", "MID", "FAR"):
-            bpy.data.objects["CARD_" + name].hide_render = True
-        shade_cards_with({"SINGLE": os.path.join(TMP, "bake_full.exr")})
-    elif which == "layered":
-        for o in bpy.data.objects:
-            if o.name in ext_names and o.name != "EXT_window_trim":
-                o.hide_render = True
-        bpy.data.objects["CARD_SINGLE"].hide_render = True
-        shade_cards_with({
-            "GND": os.path.join(TMP, "bake_ground.exr"),
-            "NEAR": os.path.join(TMP, "bake_near.exr"),
-            "MID": os.path.join(TMP, "bake_mid.exr"),
-            "FAR": os.path.join(TMP, "bake_far.exr"),
-        })
+# ---------------------------------------------------------------- verification
+def proxy_mesh(layer):
+    import bmesh
+    me = bpy.data.meshes.new("PROXY_" + layer)
+    bm = bmesh.new()
+    if layer == "far":
+        n = 96
+        c = bm.verts.new((EYE[0], EYE[1], GROUND_Z))
+        rim, top = [], []
+        for i in range(n + 1):
+            a = 2 * math.pi * i / n
+            x, y = EYE[0] + R_FAR * math.sin(a), EYE[1] + R_FAR * math.cos(a)
+            rim.append(bm.verts.new((x, y, GROUND_Z)))
+            top.append(bm.verts.new((x, y, FAR_TOP)))
+        for i in range(n):
+            bm.faces.new((c, rim[i], rim[i + 1]))
+            bm.faces.new((rim[i], top[i], top[i + 1], rim[i + 1]))
     else:
-        raise SystemExit("verify needs single|layered")
-    sc.camera = bpy.data.objects[cam]
-    sc.render.film_transparent = False
-    render(out, w, h, spp, transparent=False, fmt='PNG')
+        y = PLANE_Y[layer]
+        x0, x1 = -200.0, 200.0
+        v = [bm.verts.new(p) for p in ((x0, y, PLANE_Z[0]), (x1, y, PLANE_Z[0]),
+                                       (x1, y, PLANE_Z[1]), (x0, y, PLANE_Z[1]))]
+        bm.faces.new(v)
+    bm.to_mesh(me)
+    bm.free()
+    o = bpy.data.objects.new("PROXY_" + layer, me)
+    bpy.context.scene.collection.objects.link(o)
+    return o
+
+
+def proxy_material(layer, rng):
+    """Emission = decode(png sampled at the equirect coords of (P - EYE)); mirrors the
+    runtime shader exactly, including the 8-bit log decode."""
+    m = bpy.data.materials.new("PROXYMAT_" + layer)
+    m.use_nodes = True
+    nt = m.node_tree
+    nt.nodes.clear()
+    N = nt.nodes.new
+    L = nt.links.new
+    geo = N('ShaderNodeNewGeometry')
+    sub = N('ShaderNodeVectorMath'); sub.operation = 'SUBTRACT'
+    sub.inputs[1].default_value = EYE
+    L(geo.outputs['Position'], sub.inputs[0])
+    nrm = N('ShaderNodeVectorMath'); nrm.operation = 'NORMALIZE'
+    L(sub.outputs[0], nrm.inputs[0])
+    sep = N('ShaderNodeSeparateXYZ')
+    L(nrm.outputs[0], sep.inputs[0])
+    az = N('ShaderNodeMath'); az.operation = 'ARCTAN2'
+    L(sep.outputs['X'], az.inputs[0]); L(sep.outputs['Y'], az.inputs[1])
+    el = N('ShaderNodeMath'); el.operation = 'ARCSINE'
+    L(sep.outputs['Z'], el.inputs[0])
+    a0, a1, e0, e1 = [math.radians(v) for v in rng]
+
+    def affine(src, lo, hi):
+        s = N('ShaderNodeMath'); s.operation = 'MULTIPLY_ADD'
+        L(src.outputs[0], s.inputs[0])
+        s.inputs[1].default_value = 1.0 / (hi - lo)
+        s.inputs[2].default_value = -lo / (hi - lo)
+        return s
+    u, v = affine(az, a0, a1), affine(el, e0, e1)
+    comb = N('ShaderNodeCombineXYZ')
+    L(u.outputs[0], comb.inputs['X']); L(v.outputs[0], comb.inputs['Y'])
+    tex = N('ShaderNodeTexImage')
+    tex.image = bpy.data.images.load(os.path.join(TMP, f"{layer}.png"))
+    tex.image.colorspace_settings.name = 'Non-Color'
+    tex.image.alpha_mode = 'CHANNEL_PACKED'
+    tex.interpolation = 'Linear'
+    tex.extension = 'CLIP'
+    L(comb.outputs[0], tex.inputs['Vector'])
+    # decode: L = v > 0 ? 2^(LOG_MIN + v*(LOG_MAX-LOG_MIN)) : 0   (per channel)
+    sepc = N('ShaderNodeSeparateColor')
+    L(tex.outputs['Color'], sepc.inputs[0])
+    comb2 = N('ShaderNodeCombineColor')
+    for ch in ('Red', 'Green', 'Blue'):
+        ma = N('ShaderNodeMath'); ma.operation = 'MULTIPLY_ADD'
+        L(sepc.outputs[ch], ma.inputs[0])
+        ma.inputs[1].default_value = LOG_MAX - LOG_MIN
+        ma.inputs[2].default_value = LOG_MIN
+        pw = N('ShaderNodeMath'); pw.operation = 'POWER'
+        pw.inputs[0].default_value = 2.0
+        L(ma.outputs[0], pw.inputs[1])
+        gt = N('ShaderNodeMath'); gt.operation = 'GREATER_THAN'
+        L(sepc.outputs[ch], gt.inputs[0]); gt.inputs[1].default_value = 0.5 / 255.0
+        mu = N('ShaderNodeMath'); mu.operation = 'MULTIPLY'
+        L(pw.outputs[0], mu.inputs[0]); L(gt.outputs[0], mu.inputs[1])
+        L(mu.outputs[0], comb2.inputs[ch])
+    em = N('ShaderNodeEmission')
+    L(comb2.outputs[0], em.inputs['Color'])
+    em.inputs['Strength'].default_value = 1.0
+    out = N('ShaderNodeOutputMaterial')
+    if layer == "far":
+        L(em.outputs[0], out.inputs['Surface'])
+    else:
+        tr = N('ShaderNodeBsdfTransparent')
+        mix = N('ShaderNodeMixShader')
+        L(tex.outputs['Alpha'], mix.inputs['Fac'])
+        L(tr.outputs[0], mix.inputs[1]); L(em.outputs[0], mix.inputs[2])
+        L(mix.outputs[0], out.inputs['Surface'])
+    return m
+
+
+def cmd_verify(cam, out, w, h, spp):
+    use_cuda()
+    if os.environ.get("EXT_NO_GLASS"):
+        bpy.data.objects["Mesh_11"].hide_render = True
+        print("NO_GLASS")
+    meta = json.load(open(os.path.join(TMP, "layers.json")))
+    for o in ext_objects():
+        o.visible_camera = False
+        o.visible_transmission = False
+    for layer in LAYERS:
+        if layer not in meta:
+            continue
+        r = meta[layer]
+        o = proxy_mesh(layer)
+        o.data.materials.append(proxy_material(layer, (r["lon"][0], r["lon"][1], r["lat"][0], r["lat"][1])))
+        # seen by camera rays and through the glass only; lights nothing, shadows nothing
+        o.visible_diffuse = False
+        o.visible_glossy = False
+        o.visible_shadow = False
+        o.visible_volume_scatter = False
+    bpy.context.scene.camera = get_cam(cam)
+    render(out, w, h, spp, 'PNG')
 
 
 def main():
     a = sys.argv[sys.argv.index('--') + 1:]
     mode = a[0]
-    if mode.startswith("bake_"):
-        cmd_bake(mode[5:], a[1], int(a[2]), int(a[3]), int(a[4]))
-    elif mode == "stats":
-        bpy.ops.wm.open_mainfile(filepath=ROOM_PUBLIC)
-        cmd_stats(os.path.abspath(a[1]))
-    elif mode == "rgbm":
-        bpy.ops.wm.open_mainfile(filepath=ROOM_PUBLIC)
-        cmd_rgbm(os.path.abspath(a[1]), os.path.abspath(a[2]), a[3])
-    elif mode == "alpha":
-        bpy.ops.wm.open_mainfile(filepath=ROOM_PUBLIC)
-        cmd_alpha(os.path.abspath(a[1]), os.path.abspath(a[2]))
-    elif mode == "cards":
-        cmd_cards()
+    if mode == "ref":
+        cmd_ref(a[1], os.path.abspath(a[2]), int(a[3]), int(a[4]), int(a[5]),
+                int(a[6]) if len(a) > 6 else None)
+    elif mode == "layer":
+        cmd_layer(a[1], int(a[2]), float(a[3]) if len(a) > 3 else PPD[a[1]])
+    elif mode == "encode":
+        cmd_encode()
     elif mode == "verify":
-        cmd_verify(a[1], os.path.abspath(a[2]), a[3],
-                   int(a[4]), int(a[5]), int(a[6]))
+        cmd_verify(a[1], os.path.abspath(a[2]), int(a[3]), int(a[4]), int(a[5]))
+    elif mode == "list":
+        cls = classify()
+        for k, v in cls.items():
+            print("CLASS", k, len(v), sorted(v))
+        for layer in LAYERS:
+            print("COVER", layer, [round(x, 1) for x in coverage(layer)])
     else:
         raise SystemExit("unknown mode " + mode)
 

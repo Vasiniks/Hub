@@ -18,6 +18,7 @@ import { createPanel, createHint, createObjectNav, createShelfCaption } from './
 import { createLoader } from './ui/loading';
 import { createMusicWidget } from './ui/music';
 import { loadBakedRoom, V2_EXPOSURE } from './scene/bakedRoom';
+import { loadExteriorBackdrop } from './scene/exteriorBackdrop';
 import { CAMERA, INTERACTION, SHELF } from './scene/layout';
 import { FramePerf } from './debug/perf';
 import { buildPickingTrees } from './interaction/bvh';
@@ -1005,8 +1006,11 @@ async function startV2() {
 
   const base = `${import.meta.env.BASE_URL}assets/v2/room/`;
   loader.advance('baked room');
+  // The street outside the window (baked panorama layers; fetched alongside the room).
+  const exterior = loadExteriorBackdrop(`${import.meta.env.BASE_URL}assets/v2/exterior/`);
   const baked = await loadBakedRoom(base);
   scene.add(baked.group);
+  scene.add((await exterior).group);
   loader.advance('lightmaps');
 
   // Dummy lights: only to satisfy createRenderer's signature (volumetric + lamp-shadow

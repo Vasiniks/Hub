@@ -1,0 +1,320 @@
+{
+ "about": "Street backdrop for ?v2: Cycles panoramas of NEW_exterior (room.blend, approved dusk setup) from one bake eye; see src/scene/exteriorBackdrop.ts and blender/scripts/v2_exterior_web.py.",
+ "source": {
+  "file": "blender/scene/room.blend",
+  "sha1_12": "4129c247b1a1"
+ },
+ "coordinates": "three.js Y-up metres; three (x, y, z) = Blender (x, z, -y). *_blender fields are Blender Z-up.",
+ "eye": [
+  0.53,
+  1.4024999999999999,
+  0.5599999999999999
+ ],
+ "eye_blender": [
+  0.53,
+  -0.5599999999999999,
+  1.4024999999999999
+ ],
+ "poses_blender": {
+  "seat": [
+   0,
+   -0.16,
+   1.175
+  ],
+  "stand": [
+   1.06,
+   -0.96,
+   1.63
+  ]
+ },
+ "camera_basis": "Equirectangular from `eye`: azimuth = atan2(x, -z) in three (Blender atan2(x, y)), + to the right of the -Z (Blender +Y) view; elevation = asin(y). u = (az - lon0)/(lon1 - lon0), v = (el - lat0)/(lat1 - lat0), v = 0 is the bottom image row. lon/lat in degrees.",
+ "encoding": {
+  "type": "log2",
+  "min": -12,
+  "max": 6,
+  "decode": "L = t > 0.5/255 ? 2^(min + t*(max-min)) : 0 per channel; alpha straight (far: opaque)"
+ },
+ "radiance": "Scene-linear Rec.709 radiance, as Cycles wrote it before the view transform. The approved grade is applied at runtime: AgX (Blender look Medium High Contrast), exposure +0.45 EV (toneMappingExposure 2^0.45). Unlit/emissive: never lit again.",
+ "render": {
+  "engine": "CYCLES",
+  "device": "CUDA",
+  "denoiser": "OPTIX",
+  "samples": 256,
+  "film_transparent": false,
+  "view_transform": "AgX",
+  "look": "AgX - Medium High Contrast",
+  "exposure_ev": 0.45,
+  "note": "data is pre-view-transform linear; exposure/look not baked in"
+ },
+ "glass": {
+  "plane_z": -1.398,
+  "ior": 1.5,
+  "about": "The approved stills see the street through Mesh_11, a single-sided IOR 1.5 Principled glass plane (not thin-walled) at Blender y = 1.398: every view ray refracts once and never exits, magnifying the street ~1.5x. The runtime reproduces it by refracting the view ray at this plane (three z = -1.398) and applying Fresnel transmittance; ior 1 = a plain opening. The layers themselves are baked without the glass."
+ },
+ "tris": 198,
+ "bytes": 364854,
+ "layers": [
+  {
+   "name": "far",
+   "file": "far.webp",
+   "bytes": 88336,
+   "size": [
+    1312,
+    1045
+   ],
+   "lon": [
+    -47.62008323829977,
+    34.34932804970853
+   ],
+   "lat": [
+    -23.248978167583473,
+    42.05488119733713
+   ],
+   "opaque": true,
+   "proxy": {
+    "type": "disc+cylinder",
+    "center": [
+     0.53,
+     0.5599999999999999
+    ],
+    "groundY": -3.05,
+    "radius": 55,
+    "top": 80
+   },
+   "proxy_blender": {
+    "type": "disc+cylinder",
+    "center": [
+     0.53,
+     -0.5599999999999999
+    ],
+    "ground_z": -3.05,
+    "radius": 55,
+    "top_z": 80
+   },
+   "spp": 256,
+   "ppd": 16,
+   "stats_linear": {
+    "peak": 8.629032135009766,
+    "p50": 0.3206373453140259,
+    "p01": 0.01055391039699316,
+    "p999": 3.162594795227051,
+    "coverage": 1,
+    "below_min_frac": 0.0000014587466448827169,
+    "above_max_frac": 0
+   },
+   "encode": {
+    "format": "webp",
+    "opts": {
+     "quality": 95,
+     "alphaQuality": 100,
+     "smartSubsample": true,
+     "effort": 6
+    },
+    "display_error_vs_png": {
+     "meanCodes": 0.817,
+     "maxCodes": 57.9,
+     "over4": 0.01121
+    }
+   }
+  },
+  {
+   "name": "mid",
+   "file": "mid.webp",
+   "bytes": 70096,
+   "size": [
+    1628,
+    376
+   ],
+   "lon": [
+    -47.5756972300776,
+    33.83574911193295
+   ],
+   "lat": [
+    -9.771267142363032,
+    9.03467538689943
+   ],
+   "opaque": false,
+   "proxy": {
+    "type": "planeZ",
+    "z": -26.5,
+    "x": [
+     -200,
+     200
+    ],
+    "y": [
+     -12,
+     40
+    ]
+   },
+   "proxy_blender": {
+    "type": "plane_y",
+    "y": 26.5,
+    "x": [
+     -200,
+     200
+    ],
+    "z": [
+     -12,
+     40
+    ]
+   },
+   "spp": 256,
+   "ppd": 20,
+   "stats_linear": {
+    "peak": 48.50449752807617,
+    "p50": 0.06897374987602234,
+    "p01": 0.008902967907488346,
+    "p999": 1.5639824867248535,
+    "coverage": 0.5290968555596215,
+    "below_min_frac": 0.000003811838918221897,
+    "above_max_frac": 0
+   },
+   "encode": {
+    "format": "webp",
+    "opts": {
+     "quality": 95,
+     "alphaQuality": 100,
+     "smartSubsample": true,
+     "effort": 6
+    },
+    "display_error_vs_png": {
+     "meanCodes": 1.174,
+     "maxCodes": 13.1,
+     "over4": 0.03415
+    }
+   }
+  },
+  {
+   "name": "street",
+   "file": "street.webp",
+   "bytes": 146880,
+   "size": [
+    1622,
+    603
+   ],
+   "lon": [
+    -47.543072749909456,
+    33.558861970295524
+   ],
+   "lat": [
+    -12.198229133444517,
+    17.940840565013126
+   ],
+   "opaque": false,
+   "proxy": {
+    "type": "planeZ",
+    "z": -21.5,
+    "x": [
+     -200,
+     200
+    ],
+    "y": [
+     -12,
+     40
+    ]
+   },
+   "proxy_blender": {
+    "type": "plane_y",
+    "y": 21.5,
+    "x": [
+     -200,
+     200
+    ],
+    "z": [
+     -12,
+     40
+    ]
+   },
+   "spp": 256,
+   "ppd": 20,
+   "stats_linear": {
+    "peak": 9.08883285522461,
+    "p50": 0.02146497368812561,
+    "p01": 0.003117789514362812,
+    "p999": 4.944930076599121,
+    "coverage": 0.07576175840894173,
+    "below_min_frac": 0.0000794084107480136,
+    "above_max_frac": 0
+   },
+   "encode": {
+    "format": "webp",
+    "opts": {
+     "nearLossless": true,
+     "quality": 60,
+     "effort": 6
+    },
+    "display_error_vs_png": {
+     "meanCodes": 0.761,
+     "maxCodes": 2.2,
+     "over4": 0
+    }
+   }
+  },
+  {
+   "name": "near",
+   "file": "near.webp",
+   "bytes": 59542,
+   "size": [
+    1112,
+    386
+   ],
+   "lon": [
+    -37.37701221978331,
+    32.096027499343485
+   ],
+   "lat": [
+    -19.349243266195014,
+    4.782124865738439
+   ],
+   "opaque": false,
+   "proxy": {
+    "type": "planeZ",
+    "z": -10.7,
+    "x": [
+     -200,
+     200
+    ],
+    "y": [
+     -12,
+     40
+    ]
+   },
+   "proxy_blender": {
+    "type": "plane_y",
+    "y": 10.7,
+    "x": [
+     -200,
+     200
+    ],
+    "z": [
+     -12,
+     40
+    ]
+   },
+   "spp": 256,
+   "ppd": 16,
+   "stats_linear": {
+    "peak": 0.7599575519561768,
+    "p50": 0.02610120177268982,
+    "p01": 0.012360112741589546,
+    "p999": 0.11273545771837234,
+    "coverage": 0.05059501621500727,
+    "below_min_frac": 0.000022520843428883837,
+    "above_max_frac": 0
+   },
+   "encode": {
+    "format": "webp",
+    "opts": {
+     "nearLossless": true,
+     "quality": 60,
+     "effort": 6
+    },
+    "display_error_vs_png": {
+     "meanCodes": 1.027,
+     "maxCodes": 2.2,
+     "over4": 0
+    }
+   }
+  }
+ ]
+}
