@@ -199,7 +199,7 @@
  "material_kinds": {
   "alu_can.003": "metal",
   "alu_diamond.003": "metal",
-  "anod_black.002": "metal",
+  "anod_black.002": "opaque",
   "bb_side.002": "opaque",
   "board_chip.003": "opaque",
   "braid_nylon.003": "opaque",
@@ -208,7 +208,7 @@
   "cer_tan.003": "opaque",
   "chrome.003": "metal",
   "coax_brown.002": "opaque",
-  "copper_sheet.002": "metal",
+  "copper_sheet.002": "opaque",
   "cover.003": "opaque",
   "dmm_black.002": "opaque",
   "dmm_btn": "opaque",
@@ -230,11 +230,11 @@
   "elec_teensy_mask_top.002": "opaque",
   "elec_uno_mask_bot.003": "opaque",
   "elec_uno_mask_top.003": "opaque",
-  "electrode.002": "metal",
+  "electrode.002": "opaque",
   "fr4_edge.003": "opaque",
   "gold.003": "metal",
   "graphite.003": "opaque",
-  "hub_alu.003": "metal",
+  "hub_alu.003": "opaque",
   "ic_black.003": "opaque",
   "ic_dimple.003": "opaque",
   "jst_white.002": "opaque",
@@ -262,7 +262,7 @@
   "solder.003": "metal",
   "spiral_wire.003": "metal",
   "steel.002": "metal",
-  "steel_dark.002": "metal",
+  "steel_dark.002": "opaque",
   "sticky_mint.003": "opaque",
   "sticky_pink.003": "opaque",
   "sticky_yellow_written.003": "opaque",
@@ -562,7 +562,9 @@
    "parent": "elec_hub_cable",
    "tris": 3112,
    "materials": [
-    "electronics_pbr",
+    "electronics_lit",
+    "electronics_lit",
+    "electronics_lit",
     "electronics_lit"
    ],
    "blender_bbox": [
@@ -728,38 +730,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0252,
+   "normal_bumpy_fraction": 0.131,
    "s2a": [],
    "base_mean": [
-    0.751,
-    0.493,
-    0.388
+    0.831,
+    0.797,
+    0.735
    ],
-   "ao_mean": 0.463,
-   "coverage_px": 0.194
+   "ao_mean": 0.249,
+   "coverage_px": 0.124
   },
   "lit": {
    "lit_scale": 2.0,
    "res": 2048,
    "uv": "smart",
-   "texels_per_mm": 2.011,
-   "raw_mean": 0.1616,
-   "denoised_mean": 0.1628,
-   "p50": 0.0001,
-   "clipped_fraction": 0.04124,
-   "coverage_px": 0.465,
+   "texels_per_mm": 1.453,
+   "raw_mean": 0.105,
+   "denoised_mean": 0.1056,
+   "p50": 0.0048,
+   "clipped_fraction": 0.02526,
+   "coverage_px": 0.441,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 25.9,
-  "rough": 26.3,
-  "metal": 26.0,
-  "ao": 27.0,
-  "normal": 25.9,
-  "lit": 95.3
+  "base": 24.5,
+  "rough": 24.8,
+  "metal": 24.6,
+  "ao": 25.6,
+  "normal": 24.5,
+  "lit": 99.0
  },
  "glb": "electronics.glb",
- "glb_bytes": 4292088,
- "seconds": 295.1
+ "glb_bytes": 4335844,
+ "seconds": 290.5
 }

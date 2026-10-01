@@ -457,6 +457,7 @@
   "lit_res": 2048,
   "packer": {
    "lit_main": "pack_islands",
+   "lit_interior": "pack_islands",
    "lit_plush": "pack_islands",
    "pbr": "pack_islands"
   }
@@ -464,14 +465,18 @@
  "textures": {
   "base": "pc_basecolor.png",
   "orm": "pc_orm.png",
-  "normal": "pc_normal.png",
   "emit": "pc_emissive.png",
   "lit": "pc_lit.png",
+  "lit_interior": "pc_interior_lit.png",
   "lit_plush": "pc_plush_lit.png"
  },
  "lit_scale": 2.0,
  "lit_atlases": {
   "main": {
+   "res": 2048,
+   "litScale": 2.0
+  },
+  "interior": {
    "res": 2048,
    "litScale": 2.0
   },
@@ -488,12 +493,13 @@
   "pc_led_green": "pbr_emissive",
   "pc_led_white": "pbr_emissive",
   "pc_lit": "lit",
+  "pc_lit_interior": "lit",
   "pc_lit_plush": "lit",
   "pc_pbr": "pbr",
   "pc_screen_text": "pbr_emissive"
  },
  "material_kinds": {
-  "AntennaM": "metal",
+  "AntennaM": "opaque",
   "Audio1m": "opaque",
   "Audio2m": "opaque",
   "Audio3m": "opaque",
@@ -507,17 +513,17 @@
   "BoardM2CoverM": "opaque",
   "BoardPlate1m": "opaque",
   "BoardPlate2m": "opaque",
-  "Brushed_gold.001": "metal",
-  "Brushed_nickel.001": "metal",
-  "Capacitor1M": "metal",
-  "CapacitorsM": "metal",
-  "Chip1M": "metal",
-  "Chip2M": "metal",
+  "Brushed_gold.001": "opaque",
+  "Brushed_nickel.001": "opaque",
+  "Capacitor1M": "opaque",
+  "CapacitorsM": "opaque",
+  "Chip1M": "opaque",
+  "Chip2M": "opaque",
   "ChipM": "opaque",
-  "Cubes1M": "metal",
+  "Cubes1M": "opaque",
   "CylinderPinM": "metal",
   "I_O_Cover": "opaque",
-  "M2_BaseM": "metal",
+  "M2_BaseM": "opaque",
   "M2_Chip1m": "opaque",
   "M2_Chip2m": "opaque",
   "M2_StickerM": "opaque",
@@ -550,18 +556,18 @@
   "Material.064": "opaque",
   "Material.065": "opaque",
   "Material.066": "opaque",
-  "Mertal1M": "metal",
+  "Mertal1M": "opaque",
   "Metal": "opaque",
-  "Pins1M": "metal",
-  "Pins2M": "metal",
-  "Procedural_Silver": "metal",
+  "Pins1M": "opaque",
+  "Pins2M": "opaque",
+  "Procedural_Silver": "opaque",
   "Ram2M": "opaque",
   "Ram3M": "opaque",
   "Ram4M": "opaque",
   "USB1M": "opaque",
   "USB2M": "opaque",
   "USB3M": "opaque",
-  "USBMetalM": "metal",
+  "USBMetalM": "opaque",
   "VideoPortBlackM": "opaque",
   "WhiteBasePlasticM": "opaque",
   "lambert1": "opaque",
@@ -574,7 +580,7 @@
   "pc_glass_edge": "glass",
   "pc_gold": "metal",
   "pc_gpu_blue": "opaque",
-  "pc_heatsink": "metal",
+  "pc_heatsink": "opaque",
   "pc_jack_blue": "opaque",
   "pc_jack_green": "opaque",
   "pc_jack_orange": "opaque",
@@ -700,6 +706,7 @@
     "pc_lit",
     "pc_emit",
     "pc_led_white",
+    "pc_lit_interior",
     "pc_led_green",
     "pc_led_amber",
     "pc_screen_text"
@@ -749,26 +756,38 @@
  ],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0141,
+   "normal_bumpy_fraction": 0.0015,
    "s2a": [],
    "base_mean": [
+    0.774,
     0.783,
-    0.796,
-    0.8
+    0.782
    ],
-   "ao_mean": 0.292,
-   "coverage_px": 0.036
+   "ao_mean": 0.309,
+   "coverage_px": 0.153
   },
   "lit": {
    "lit_scale": 2.0,
    "res": 2048,
    "uv": "smart",
-   "texels_per_mm": 0.175,
-   "raw_mean": 0.1483,
-   "denoised_mean": 0.1482,
-   "p50": 0.0216,
-   "clipped_fraction": 0.01979,
-   "coverage_px": 0.029,
+   "texels_per_mm": 1.085,
+   "raw_mean": 0.0983,
+   "denoised_mean": 0.0985,
+   "p50": 0.0226,
+   "clipped_fraction": 0.00484,
+   "coverage_px": 0.484,
+   "samples": 256
+  },
+  "lit_interior": {
+   "lit_scale": 2.0,
+   "res": 2048,
+   "uv": "smart",
+   "texels_per_mm": 0.155,
+   "raw_mean": 0.1603,
+   "denoised_mean": 0.1606,
+   "p50": 0.01,
+   "clipped_fraction": 0.02728,
+   "coverage_px": 0.014,
    "samples": 256
   },
   "lit_plush": {
@@ -779,22 +798,23 @@
    "raw_mean": 0.0141,
    "denoised_mean": 0.0137,
    "p50": 0.0039,
-   "clipped_fraction": 0.00077,
+   "clipped_fraction": 0.0008,
    "coverage_px": 0.452,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 44.9,
-  "rough": 44.4,
-  "metal": 42.1,
-  "emit": 41.8,
-  "ao": 44.7,
-  "normal": 44.4,
-  "lit": 72.4,
-  "lit_plush": 44.9
+  "base": 40.9,
+  "rough": 40.4,
+  "metal": 38.2,
+  "emit": 37.9,
+  "ao": 41.2,
+  "normal": 40.2,
+  "lit": 74.0,
+  "lit_interior": 57.4,
+  "lit_plush": 44.3
  },
  "glb": "pc.glb",
- "glb_bytes": 11018512,
- "seconds": 515.8
+ "glb_bytes": 11359376,
+ "seconds": 551.9
 }

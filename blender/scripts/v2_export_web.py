@@ -85,7 +85,9 @@ KEEPERS = {'robot_rsl_amber': 'Robot_rsl_lens', 'bambu_mini_screen_lit': 'bambu_
 SCREENS = {'mon_screen_antiglare': dict(node='mon_screen', material='mon_screen',
                                         base=(0.004, 0.004, 0.005, 1.0), rough=0.15)}
 SEAT = Vector((0.0, -0.16, 1.175))
-KEEP_ALPHA = ('speedcube_emblem*',)   # true decals keep an alpha-masked cut-out in lit mode   # CAM_seat: where 'front' is seen from
+KEEP_ALPHA = ('speedcube_emblem*',)
+ROUGH_METAL = 0.35      # metal at least this rough bakes lit (base colour as albedo)
+GLASS_ALPHA_MAX = 0.12  # glass/polycarbonate must not veil what is behind it   # true decals keep an alpha-masked cut-out in lit mode   # CAM_seat: where 'front' is seen from
 CREDITS = {
     'teto_plush': '"Kasane Teto fatass plush" by revsworks, CC BY 4.0 '
                   '(https://sketchfab.com/3d-models/kasane-teto-fatass-plush-bd8157eb42a04161b2628e58dfd2a852)',
@@ -98,40 +100,53 @@ CREDITS = {
 }
 SETS = {
     # ---- desk set
-    'monitor': dict(src=['NEW_monitor'], budget=None, res=512, lit=1024,
+    'monitor': dict(src=['NEW_monitor'], budget=None, res=512, lit=2048, pbr_mats=['mon_alu_*'],
                     weights=[('NEW_monitor_screen', 0.3), ('NEW_monitor_rear*', 0.6)]),
     'keyboard': dict(src=['NEW_keyboard'], budget=None, res=256, lit=1024,
                      weights=[('NEW_keyboard_keycaps', 2.0), ('NEW_keyboard_bottom*', 0.4),
                               ('NEW_keyboard_cable', 0.03),
                               ('NEW_keyboard_switches', 0.3), ('NEW_keyboard_plate', 0.3)]),
-    'macbook': dict(src=['NEW_macbook'], budget=None, res=1024, lit=1024,
+    'macbook': dict(src=['NEW_macbook'], budget=None, res=1024, lit=1024, pbr_mats=['mbp_alu*'],
                     weights=[('NEW_mbp_vent*', 0.3), ('NEW_mbp_feet', 0.3), ('NEW_stand_base_pads', 0.3)]),
     'mouse_mx': dict(src=['NEW_mouse_mx'], budget=None, res=256, lit=1024, uv='orig', collapse=[('MouseMX_Shell', 0.6)], credits=['mx_master_3s'],
                      weights=[('MouseMX_Shell', 2.0), ('MouseMX_Base*', 0.4)]),
-    'lamp': dict(src=['NEW_lamp', 'NEW_medals'], budget=None, res=1024, lit=2048, keep=['medal_*'],
+    'lamp': dict(src=['NEW_lamp', 'NEW_medals'], budget=None, res=1024, lit=2048,
+                 keep=['medal_*_ribbon', 'medal_*_clasp'], relief=[('medal_*_disc', 3000)],
+                 pbr_mats=['medals_*'],
                  # the medal ribbons bake with black jagged patches the Cycles render doesn't have
                  # (they twist through each other right under the lamp's disk light): keep them PBR
                  force_pbr=['medal_*_ribbon'],
                  weights=[('medal_*_disc', 3.0), ('medal_*_ribbon', 1.5)],
                  s2a=['medal_*_disc']),
-    'pc': dict(src=['NEW_pc', 'NEW_plush_teto'], budget=None, res=1024, lit=2048, collapse=[('Circle*', 0.6), ('Plane*', 0.6), ('NurbsPath*', 0.6), ('Spiral', 0.6)], own_atlas=[dict(name='plush', globs=['Circle*', 'Plane*', 'NurbsPath*', 'Spiral'], res=1024, uv='smart')],
+    'pc': dict(src=['NEW_pc', 'NEW_plush_teto'], budget=None, res=1024, lit=2048, collapse=[('Circle*', 0.6), ('Plane*', 0.6), ('NurbsPath*', 0.6), ('Spiral', 0.6)], own_atlas=[dict(name='plush', globs=['Circle*', 'Plane*', 'NurbsPath*', 'Spiral'], res=1024, uv='smart'),
+                          # the interior's fins, fans and cables have ~50x the case's area: own atlas,
+                          # so the case shell gets the main 2048 to itself
+                          dict(name='interior', globs=['pc_mobo_board', 'pc_fans_*', 'pc_radiator', 'pc_aio_tubes',
+                                                       'pc_cooler_*', 'pc_cables_sleeved', 'pc_power_cable',
+                                                       'pc_rear_chamber', 'pc_psu', 'pc_gpukit_*', 'pc_gpu_power_plug',
+                                                       'pc_mb_*', 'pc_power_plugs', 'pc_rear_io'],
+                               res=2048, uv='smart')],
                credits=['motherboard', 'teto_plush'],
                weights=[('Circle*', 2.5), ('Plane*', 2.5), ('NurbsPath*', 2.5), ('Spiral', 2.5),
-                        ('pc_case_*', 1.0), ('pc_glass_panels', 0.2), ('pc_rear_*', 0.4),
-                        ('pc_fans_*', 0.6), ('pc_mobo_board', 1.2), ('pc_lcd_*', 2.0)]),
+                        ('pc_case_*', 1.0), ('pc_glass_panels', 0.2), ('pc_rear_slots', 0.3),
+                        ('pc_radiator', 0.15), ('pc_cables_sleeved', 0.3), ('pc_power_cable', 0.3),
+                        ('pc_fans_*', 0.5), ('pc_rear_chamber', 0.3), ('pc_mobo_board', 1.5), ('pc_lcd_*', 2.0)]),
     'electronics': dict(src=['NEW_electronics'], budget=None, res=1024, lit=2048,
                         keep=['elec_sticky_notes', 'elec_notepad'],
                         weights=[('elec_notepad', 1.5), ('elec_sticky_notes', 1.5)]),
     'speedcube': dict(src=['NEW_speedcube'], budget=None, res=256, lit=1024,
                       weights=[('NEW_speedcube_emblem18', 2.0), ('NEW_speedcube_core', 0.2)]),
-    'lorenz': dict(src=['NEW_lorenz'], budget=None, res=512, lit=1024, keep=['NEW_lorenz_paper_*', 'NEW_lorenz_staple'],
+    'lorenz': dict(src=['NEW_lorenz'], budget=None, res=512, lit=1024, pbr_mats=['lorenz_brass*'], keep=['NEW_lorenz_paper_*', 'NEW_lorenz_staple'],
                    weights=[('NEW_lorenz_paper_page1', 5.0), ('NEW_lorenz_paper_page*', 3.0),
                             ('NEW_lorenz_wire', 0.6)],
                    nodes=[('NEW_lorenz_paper_*', 'paper'), ('NEW_lorenz_staple', 'paper'),
                           ('*', 'lorenz_sculpture')]),
     'cables': dict(src=['NEW_cables'], budget=None, res=512, lit=1024,
                    weights=[('*_cable', 0.08), ('*_cord', 0.08)]),
-    'redbull': dict(src=['NEW_redbull'], budget=None, res=512, lit=1024, uv='orig', collapse=[('RedBull_can', 0.6)]),
+    'redbull': dict(src=['NEW_redbull'], budget=None, res=512, lit=1024, uv='orig', collapse=[('RedBull_can', 0.6)],
+                    # printed label and wall read as paint in Cycles: lit; only the lid images stay metal
+                    lit_mats=['Material.043', 'body', 'Material', 'Material.044'],
+                    pbr_mats=['redbull_tops', 'Material.045']),
     'teto_pear': dict(src=['NEW_teto_pear'], budget=None, res=256, lit=1024, uv='orig'),
     # ---- the rest
     'robot': dict(src=['NEW_robot'], budget=None, res=1024, lit=2048,
@@ -145,10 +160,10 @@ SETS = {
                                 ('TeleGB_Spring*', 0.2), ('TeleGB_Strings', 0.2)]),
     'painting': dict(src=['NEW_painting'], budget=None, res=256, lit=1024, uv='orig',
                      weights=[('painting_canvas', 6.0)]),
-    'bookrack': dict(src=['NEW_bookrack'], budget=None, res=256, lit=1024,
+    'bookrack': dict(src=['NEW_bookrack'], budget=None, res=256, lit=2048,
                      weights=[('bookrack_screw*', 0.2)],
                      nodes=[('Mesh_1??.001', '='), ('*', 'bookrack_hardware')]),
-    'chair': dict(src=['obj:chair_base*'], budget=None, res=512, lit=1024, nodes=[('*', 'chair')]),
+    'chair': dict(src=['obj:chair_base*'], budget=None, res=512, lit=2048, nodes=[('*', 'chair')]),
     'desk_misc': dict(src=['obj:driver_*', 'obj:tote*', 'obj:Mesh_14[2-6]'], budget=None, res=512, lit=1024,
                       nodes=[('driver_*', 'screwdriver'), ('tote*.001', 'tote_2'), ('tote*', 'tote_1')]),
     'fixtures': dict(src=['NEW_roomshell', 'NEW_curtains'], budget=None, res=512, lit=1024),
@@ -309,6 +324,24 @@ def scalar(s, default):
         return float(0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2])
 
 
+def effective_roughness(s):
+    """Scalar roughness, or the mid-range of a Map Range driving it (the v2 materials' usual
+    noise -> Map Range set-up); 0.5 when it can't be read."""
+    if s is None:
+        return 0.5
+    if not s.links:
+        return float(s.default_value)
+    n = s.links[0].from_node
+    if n.type == 'MAP_RANGE':
+        lo_, hi_ = n.inputs.get('To Min'), n.inputs.get('To Max')
+        if lo_ is not None and hi_ is not None and not lo_.links and not hi_.links:
+            try:
+                return 0.5 * (float(lo_.default_value) + float(hi_.default_value))
+            except TypeError:
+                pass
+    return 0.5
+
+
 def classify(mat, set_name):
     """-> dict(kind=opaque|cutout|emit|glass|keeper, ...)."""
     info = dict(kind='opaque', emit_strength=0.0)
@@ -331,6 +364,7 @@ def classify(mat, set_name):
                 info['kind'] = 'emit'
         mt = sock(b, 'Metallic')
         info['metal'] = mt is not None and not mt.links and float(mt.default_value) >= 0.5
+        info['rough'] = effective_roughness(sock(b, 'Roughness'))
         tw = sock(b, 'Transmission Weight', 'Transmission')
         al = sock(b, 'Alpha')
         trans = 0.0 if tw is None or tw.links else scalar(tw, 0.0)
@@ -338,7 +372,8 @@ def classify(mat, set_name):
             if transp or trans >= 0.5 or (al is not None and not al.links and scalar(al, 1.0) < 0.9):
                 info['kind'] = 'glass'
                 a = 1.0 if al is None or al.links else scalar(al, 1.0)
-                info['alpha'] = round(max(0.08, min(a, 1.0 - 0.8 * max(trans, 1.0 if transp else 0.0))), 3)
+                info['alpha'] = round(max(0.05, min(a, 1.0 - 0.8 * max(trans, 1.0 if transp else 0.0),
+                                                     GLASS_ALPHA_MAX)), 3)
             elif al is not None and al.links:
                 info['kind'] = 'cutout'
     elif b.type == 'EMISSION':
@@ -481,7 +516,7 @@ def decimate_to(me, ratio, weld=0.00005):
     return out
 
 
-def reduce_mesh(me, collapse=None, weld=0.00005):
+def reduce_mesh(me, collapse=None, weld=0.00005, target=None):
     """Weld + limited dissolve (0.5 deg, delimited by material/seam/sharp/UV/normal); then, only if
     collapse is given, quadric collapse to max(0.6, collapse) of the dissolved triangle count."""
     sc = bpy.context.scene
@@ -500,12 +535,14 @@ def reduce_mesh(me, collapse=None, weld=0.00005):
             pass
     g = bpy.context.evaluated_depsgraph_get()
     out = bpy.data.meshes.new_from_object(o.evaluated_get(g))
+    if target:
+        collapse = min(1.0, target / max(1, ntris(out)))
     if collapse:
         o.modifiers.clear()
         o.data = out
         m = o.modifiers.new('DEC', 'DECIMATE')
         m.decimate_type = 'COLLAPSE'
-        m.ratio = max(0.6, min(1.0, collapse))
+        m.ratio = min(1.0, collapse) if target else max(0.6, min(1.0, collapse))
         m.use_collapse_triangulate = True
         g = bpy.context.evaluated_depsgraph_get()
         out2 = bpy.data.meshes.new_from_object(o.evaluated_get(g))
@@ -1206,6 +1243,18 @@ def export_set(name):
     reduced = {}
     if '--no-decimate' not in ARGS:
         for k, c in lo.items():
+            rt = match(k, cfg.get('relief'))
+            if rt and not protected(c):
+                # embossed metal (coordinator): decimate to an absolute target; the relief comes
+                # back as a normal map baked selected-to-active from the full-resolution copy (s2a)
+                old = c.data
+                c.data = reduce_mesh(old, None, cfg.get('weld', 0.00005), target=rt)
+                smooth_by_angle(c.data, 30.0)
+                if old.users == 0:
+                    bpy.data.meshes.remove(old)
+                after[k] = ntris(c.data)
+                reduced[k] = f'relief -> {after[k]} tris + s2a normal'
+                continue
             cr = match(k, cfg.get('collapse'))
             if protected(c) or match(k, [(g, True) for g in cfg.get('keep', [])], False):
                 reduced[k] = 'kept'
@@ -1244,7 +1293,17 @@ def export_set(name):
     if LIT:
         for mn, v in kinds.items():
             if v['kind'] in ('opaque', 'cutout') and v.get('metal'):
-                v['kind'] = 'metal'
+                # Coordinator, 2026-10-01: rough metal (roughness >= 0.35) bakes lit, its base colour
+                # taken as the albedo (the runtime's single environment capture leaves rough metal far
+                # from the desk too dark); PBR only for polished metal where the reflection matters.
+                # cfg['pbr_mats'] / cfg['lit_mats'] override per material.
+                forced_pbr = match(mn, [(g, True) for g in cfg.get('pbr_mats', [])], False)
+                forced_lit = match(mn, [(g, True) for g in cfg.get('lit_mats', [])], False)
+                if forced_lit or (not forced_pbr and v.get('rough', 0.5) >= ROUGH_METAL):
+                    v['kind'] = 'opaque'
+                    v['lit_metal'] = True
+                else:
+                    v['kind'] = 'metal'
             elif v['kind'] == 'cutout' and not match(mn, [(g, True) for g in KEEP_ALPHA], False):
                 # perforations etc.: a MASK cut-out aliases into speckle at atlas resolution. The
                 # DIFFUSE bake of an alpha surface is already alpha-weighted (holes come out dark),
@@ -1430,7 +1489,24 @@ def export_set(name):
         sc.cycles.use_adaptive_sampling = False
         li = bpy.data.images.new(f'{name}{suffix}_lit_raw', r, r, alpha=False, float_buffer=True)
         li.colorspace_settings.name = 'Linear Rec.709'
-        bake(g_objs, 'DIFFUSE', li, mats, pass_filter={'DIRECT', 'INDIRECT', 'COLOR'})
+        undo = []
+        for m in mats:       # lit metals: their base colour is the albedo of the diffuse bake
+            if kinds[m.name].get('lit_metal'):
+                bsd, _ = find_bsdf(surface_node(m))
+                ms = sock(bsd, 'Metallic') if bsd is not None else None
+                if ms is not None:
+                    src_ = ms.links[0].from_socket if ms.links else None
+                    for l_ in list(ms.links):
+                        m.node_tree.links.remove(l_)
+                    undo.append((m, ms, src_, float(ms.default_value)))
+                    ms.default_value = 0.0
+        try:
+            bake(g_objs, 'DIFFUSE', li, mats, pass_filter={'DIRECT', 'INDIRECT', 'COLOR'})
+        finally:
+            for m, ms, src_, dv in undo:
+                ms.default_value = dv
+                if src_ is not None:
+                    m.node_tree.links.new(src_, ms)
         timings['lit' + suffix] = round(time.time() - tb, 1)
         raw = pixels(li)[:, :3]
         lin = np.maximum(denoise_pixels(li, r, os.path.join(texdir, f'{name}{suffix}_lit_dn.exr')), 0.0)

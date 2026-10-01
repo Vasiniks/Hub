@@ -269,14 +269,14 @@
   }
  },
  "bake_seconds": {
-  "base": 10.8,
+  "base": 10.4,
   "rough": 10.5,
-  "metal": 10.5,
-  "ao": 10.8,
-  "normal": 10.6,
-  "lit": 41.7
+  "metal": 10.7,
+  "ao": 10.9,
+  "normal": 10.5,
+  "lit": 41.6
  },
  "glb": "cables.glb",
- "glb_bytes": 1691688,
- "seconds": 139.4
+ "glb_bytes": 1691664,
+ "seconds": 138.7
 }

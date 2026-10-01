@@ -93,7 +93,7 @@
  },
  "atlas": {
   "pbr_res": 512,
-  "lit_res": 1024,
+  "lit_res": 2048,
   "packer": {
    "lit_main": "pack_islands",
    "pbr": "pack_islands"
@@ -104,11 +104,11 @@
   "orm": "monitor_orm.png",
   "lit": "monitor_lit.png"
  },
- "lit_scale": 0.034,
+ "lit_scale": 0.036,
  "lit_atlases": {
   "main": {
-   "res": 1024,
-   "litScale": 0.034
+   "res": 2048,
+   "litScale": 0.036
   }
  },
  "material_modes": {
@@ -250,27 +250,27 @@
    "coverage_px": 0.519
   },
   "lit": {
-   "lit_scale": 0.034,
-   "res": 1024,
+   "lit_scale": 0.036,
+   "res": 2048,
    "uv": "smart",
-   "texels_per_mm": 0.614,
+   "texels_per_mm": 1.264,
    "raw_mean": 0.0022,
    "denoised_mean": 0.0022,
    "p50": 0.0,
    "clipped_fraction": 0.00096,
-   "coverage_px": 0.331,
+   "coverage_px": 0.35,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 6.6,
-  "rough": 6.5,
+  "base": 6.7,
+  "rough": 6.6,
   "metal": 6.6,
-  "ao": 6.9,
-  "normal": 6.6,
-  "lit": 16.3
+  "ao": 6.8,
+  "normal": 6.5,
+  "lit": 34.7
  },
  "glb": "monitor.glb",
- "glb_bytes": 403964,
- "seconds": 69.5
+ "glb_bytes": 485844,
+ "seconds": 91.0
 }
