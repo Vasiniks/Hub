@@ -1,12 +1,12 @@
 {
- "generated": "2026-10-01T04:30:19.616Z",
+ "generated": "2026-10-01T04:47:20.740Z",
  "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
  "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
  "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
  "materials": "Two baked atlases per asset. mode \"lit\": non-metal surfaces, KHR_materials_unlit, baseColor = the Cycles DIFFUSE bake (direct + indirect + colour) of the sunset room, stored as linear/litScale in sRGB: multiply the colour by material.userData.litScale (glTF extras) to restore it; no lights touch them. mode \"pbr\": metals (metallic >= 0.5), emissive parts, glass and keepers: baseColor + ORM (R=AO, G=roughness, B=metallic) (+ normal), lit at runtime by an environment capture of the baked room. Keepers (Robot_rsl_lens, bambu_mini_screen) are their own nodes and materials.",
  "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
- "totalBytes": 2855104,
- "totalTris": 108072,
+ "totalBytes": 5128976,
+ "totalTris": 183223,
  "credits": {
   "teto_plush": {
    "title": "Kasane Teto fatass plush",
@@ -41,7 +41,7 @@
   {
    "name": "cables",
    "file": "cables.glb",
-   "bytes": 309532,
+   "bytes": 307092,
    "tris": 14535,
    "trisSource": 53320,
    "budget": 15000,
@@ -147,9 +147,385 @@
    ]
   },
   {
+   "name": "electronics",
+   "file": "electronics.glb",
+   "bytes": 948556,
+   "tris": 28576,
+   "trisSource": 94596,
+   "budget": 30000,
+   "textureBytes": 168564,
+   "textures": [
+    {
+     "name": "electronics_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 28582
+    },
+    {
+     "name": "electronics_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 35484
+    },
+    {
+     "name": "electronics_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 39260
+    },
+    {
+     "name": "electronics_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 65238
+    }
+   ],
+   "materials": [
+    {
+     "name": "electronics_lit",
+     "mode": "lit",
+     "litScale": 6.1,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "electronics_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "led_red_on.003",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "led_blue_on.003",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "led_green_on.003",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": 6.1,
+   "nodes": [
+    "elec_breadboard_grp__mesh",
+    "elec_breadboard_grp",
+    "elec_esp32__mesh",
+    "elec_esp32",
+    "elec_faraday_grp__mesh",
+    "elec_faraday_grp",
+    "elec_hub__mesh",
+    "elec_hub",
+    "elec_hub_cable__mesh",
+    "elec_hub_cable",
+    "elec_lab_wiring_grp__mesh",
+    "elec_lab_wiring_grp",
+    "elec_multimeter_grp__mesh",
+    "elec_multimeter_grp",
+    "elec_notes__mesh",
+    "elec_notes",
+    "elec_pico__mesh",
+    "elec_pico",
+    "elec_preamp_grp__mesh",
+    "elec_preamp_grp",
+    "elec_stm_stage_grp__mesh",
+    "elec_stm_stage_grp",
+    "elec_uno__mesh",
+    "elec_uno",
+    "NEW_electronics_root"
+   ],
+   "anchors": {
+    "elec_uno": {
+     "blender_world": [
+      0.445,
+      0.69,
+      0.7368
+     ],
+     "three_world": [
+      0.445,
+      0.7368,
+      -0.69
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_esp32": {
+     "blender_world": [
+      0.935,
+      0.405,
+      0.7435
+     ],
+     "three_world": [
+      0.935,
+      0.7435,
+      -0.405
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_pico": {
+     "blender_world": [
+      0.44,
+      0.785,
+      0.735
+     ],
+     "three_world": [
+      0.44,
+      0.735,
+      -0.785
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_hub": {
+     "blender_world": [
+      0.3061,
+      0.9352,
+      0.735
+     ],
+     "three_world": [
+      0.3061,
+      0.735,
+      -0.9352
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_hub_cable": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_notes": {
+     "blender_world": [
+      -0.52,
+      0.52,
+      0.735
+     ],
+     "three_world": [
+      -0.52,
+      0.735,
+      -0.52
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_stm_stage_grp": {
+     "blender_world": [
+      0.74,
+      0.53,
+      0.735
+     ],
+     "three_world": [
+      0.74,
+      0.735,
+      -0.53
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_faraday_grp": {
+     "blender_world": [
+      0.735,
+      0.665,
+      0.735
+     ],
+     "three_world": [
+      0.735,
+      0.735,
+      -0.665
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_breadboard_grp": {
+     "blender_world": [
+      0.555,
+      0.675,
+      0.735
+     ],
+     "three_world": [
+      0.555,
+      0.735,
+      -0.675
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_preamp_grp": {
+     "blender_world": [
+      0.845,
+      0.4,
+      0.735
+     ],
+     "three_world": [
+      0.845,
+      0.735,
+      -0.4
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_multimeter_grp": {
+     "blender_world": [
+      0.445,
+      0.465,
+      0.735
+     ],
+     "three_world": [
+      0.445,
+      0.735,
+      -0.465
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_lab_wiring_grp": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "NEW_electronics_root": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "elec_esp32__mesh",
+     "material": "led_red_on.003",
+     "emissiveFactor": [
+      1,
+      0.0072,
+      0.0023
+     ],
+     "emissiveStrength": 6,
+     "textured": false
+    },
+    {
+     "node": "elec_hub__mesh",
+     "material": "led_blue_on.003",
+     "emissiveFactor": [
+      0.0509,
+      0.214,
+      1
+     ],
+     "emissiveStrength": 8,
+     "textured": false
+    },
+    {
+     "node": "elec_pico__mesh",
+     "material": "led_green_on.003",
+     "emissiveFactor": [
+      0.0196,
+      1,
+      0.0331
+     ],
+     "emissiveStrength": 5,
+     "textured": false
+    },
+    {
+     "node": "elec_preamp_grp__mesh",
+     "material": "led_green_on.003",
+     "emissiveFactor": [
+      0.0196,
+      1,
+      0.0331
+     ],
+     "emissiveStrength": 5,
+     "textured": false
+    },
+    {
+     "node": "elec_uno__mesh",
+     "material": "led_green_on.003",
+     "emissiveFactor": [
+      0.0196,
+      1,
+      0.0331
+     ],
+     "emissiveStrength": 5,
+     "textured": false
+    }
+   ],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_electronics"
+   ]
+  },
+  {
    "name": "keyboard",
    "file": "keyboard.glb",
-   "bytes": 365900,
+   "bytes": 362388,
    "tris": 19433,
    "trisSource": 32462,
    "budget": 20000,
@@ -235,11 +611,11 @@
   {
    "name": "lamp",
    "file": "lamp.glb",
-   "bytes": 779320,
+   "bytes": 816308,
    "tris": 19350,
    "trisSource": 98334,
    "budget": 20000,
-   "textureBytes": 273362,
+   "textureBytes": 310870,
    "textures": [
     {
      "name": "lamp_lit",
@@ -248,7 +624,7 @@
       1024,
       1024
      ],
-     "bytes": 19222
+     "bytes": 56730
     },
     {
      "name": "lamp_normal",
@@ -282,7 +658,7 @@
     {
      "name": "lamp_lit",
      "mode": "lit",
-     "litScale": 160,
+     "litScale": 8,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -310,7 +686,7 @@
      ]
     }
    ],
-   "litScale": 160,
+   "litScale": 8,
    "nodes": [
     "NEW_lamp_pivot__mesh",
     "NEW_lamp_pivot",
@@ -371,11 +747,11 @@
   {
    "name": "lorenz",
    "file": "lorenz.glb",
-   "bytes": 376560,
+   "bytes": 376884,
    "tris": 10216,
    "trisSource": 39832,
    "budget": 15000,
-   "textureBytes": 98338,
+   "textureBytes": 98206,
    "textures": [
     {
      "name": "lorenz_lit",
@@ -384,7 +760,7 @@
       1024,
       1024
      ],
-     "bytes": 14990
+     "bytes": 14858
     },
     {
      "name": "lorenz_normal",
@@ -418,7 +794,7 @@
     {
      "name": "lorenz_lit",
      "mode": "lit",
-     "litScale": 4.6000000000000005,
+     "litScale": 4.8,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -435,12 +811,43 @@
      ]
     }
    ],
-   "litScale": 4.6000000000000005,
+   "litScale": 4.8,
    "nodes": [
-    "NEW_lorenz_root__mesh",
+    "lorenz_sculpture__mesh",
+    "lorenz_sculpture",
+    "paper__mesh",
+    "paper",
     "NEW_lorenz_root"
    ],
    "anchors": {
+    "paper": {
+     "blender_world": [
+      -0.4525,
+      0.9291,
+      0.735
+     ],
+     "three_world": [
+      -0.4525,
+      0.735,
+      -0.9291
+     ],
+     "parent": "NEW_lorenz_root",
+     "is_pivot": false
+    },
+    "lorenz_sculpture": {
+     "blender_world": [
+      -0.4525,
+      0.9291,
+      0.735
+     ],
+     "three_world": [
+      -0.4525,
+      0.735,
+      -0.9291
+     ],
+     "parent": "NEW_lorenz_root",
+     "is_pivot": false
+    },
     "NEW_lorenz_root": {
      "blender_world": [
       -0.4525,
@@ -467,7 +874,7 @@
   {
    "name": "macbook",
    "file": "macbook.glb",
-   "bytes": 238284,
+   "bytes": 233604,
    "tris": 9704,
    "trisSource": 14742,
    "budget": 10000,
@@ -579,11 +986,11 @@
   {
    "name": "monitor",
    "file": "monitor.glb",
-   "bytes": 209128,
+   "bytes": 207132,
    "tris": 8610,
    "trisSource": 8610,
    "budget": null,
-   "textureBytes": 38336,
+   "textureBytes": 38194,
    "textures": [
     {
      "name": "monitor_lit",
@@ -592,7 +999,7 @@
       1024,
       1024
      ],
-     "bytes": 26178
+     "bytes": 26036
     },
     {
      "name": "monitor_normal",
@@ -624,9 +1031,15 @@
    ],
    "materials": [
     {
+     "name": "mon_screen",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": []
+    },
+    {
      "name": "monitor_lit",
      "mode": "lit",
-     "litScale": 0.025,
+     "litScale": 0.03,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -654,8 +1067,9 @@
      ]
     }
    ],
-   "litScale": 0.025,
+   "litScale": 0.03,
    "nodes": [
+    "mon_screen",
     "NEW_monitor_lift__mesh",
     "NEW_monitor_lift",
     "NEW_monitor_root__mesh",
@@ -714,7 +1128,7 @@
   {
    "name": "mouse_mx",
    "file": "mouse_mx.glb",
-   "bytes": 247788,
+   "bytes": 244756,
    "tris": 11616,
    "trisSource": 23024,
    "budget": 12000,
@@ -810,9 +1224,272 @@
    ]
   },
   {
+   "name": "pc",
+   "file": "pc.glb",
+   "bytes": 1304200,
+   "tris": 46575,
+   "trisSource": 245380,
+   "budget": 48000,
+   "textureBytes": 273958,
+   "textures": [
+    {
+     "name": "pc_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 102662
+    },
+    {
+     "name": "pc_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 38124
+    },
+    {
+     "name": "pc_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 48630
+    },
+    {
+     "name": "pc_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 63936
+    },
+    {
+     "name": "pc_emissive",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 20606
+    }
+   ],
+   "materials": [
+    {
+     "name": "pc_glass_web",
+     "mode": "pbr",
+     "alphaMode": "BLEND",
+     "textures": []
+    },
+    {
+     "name": "pc_glass_edge_web",
+     "mode": "pbr",
+     "alphaMode": "BLEND",
+     "textures": []
+    },
+    {
+     "name": "pc_lit",
+     "mode": "lit",
+     "litScale": 5.6000000000000005,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "pc_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "pc_emit",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal",
+      "emissive"
+     ]
+    },
+    {
+     "name": "pc_lit_cutout",
+     "mode": "lit",
+     "litScale": 5.6000000000000005,
+     "alphaMode": "MASK",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "pc_led_white",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "pc_led_green",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "pc_led_amber",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "pc_screen_text",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": 5.6000000000000005,
+   "nodes": [
+    "NEW_pc_root__glass_pc_glass",
+    "NEW_pc_root__glass_pc_glass_edge",
+    "NEW_pc_root__mesh",
+    "NEW_pc_root",
+    "NEW_plush_teto_root__mesh",
+    "NEW_plush_teto_root"
+   ],
+   "anchors": {
+    "NEW_pc_root": {
+     "blender_world": [
+      0.738,
+      0.97,
+      0.735
+     ],
+     "three_world": [
+      0.738,
+      0.735,
+      -0.97
+     ],
+     "parent": null,
+     "is_pivot": false
+    },
+    "NEW_plush_teto_root": {
+     "blender_world": [
+      0.74,
+      0.97,
+      1.23
+     ],
+     "three_world": [
+      0.74,
+      1.23,
+      -0.97
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "NEW_pc_root__mesh",
+     "material": "pc_emit",
+     "emissiveFactor": [
+      1,
+      1,
+      1
+     ],
+     "emissiveStrength": 9,
+     "textured": true
+    },
+    {
+     "node": "NEW_pc_root__mesh",
+     "material": "pc_led_white",
+     "emissiveFactor": [
+      0.35,
+      0.55,
+      1
+     ],
+     "emissiveStrength": 14,
+     "textured": false
+    },
+    {
+     "node": "NEW_pc_root__mesh",
+     "material": "pc_led_green",
+     "emissiveFactor": [
+      0.1,
+      1,
+      0.2
+     ],
+     "emissiveStrength": 6,
+     "textured": false
+    },
+    {
+     "node": "NEW_pc_root__mesh",
+     "material": "pc_led_amber",
+     "emissiveFactor": [
+      1,
+      0.45,
+      0.05
+     ],
+     "emissiveStrength": 6,
+     "textured": false
+    },
+    {
+     "node": "NEW_pc_root__mesh",
+     "material": "pc_screen_text",
+     "emissiveFactor": [
+      1,
+      1,
+      1
+     ],
+     "emissiveStrength": 4,
+     "textured": false
+    }
+   ],
+   "keepers": [],
+   "glass": [
+    "NEW_pc_root__glass_pc_glass",
+    "NEW_pc_root__glass_pc_glass_edge"
+   ],
+   "credits": [
+    "motherboard",
+    "teto_plush"
+   ],
+   "sources": [
+    "NEW_pc",
+    "NEW_plush_teto"
+   ]
+  },
+  {
    "name": "redbull",
    "file": "redbull.glb",
-   "bytes": 83140,
+   "bytes": 82868,
    "tris": 1784,
    "trisSource": 15095,
    "budget": 4000,
@@ -890,7 +1567,7 @@
   {
    "name": "speedcube",
    "file": "speedcube.glb",
-   "bytes": 207100,
+   "bytes": 206932,
    "tris": 11632,
    "trisSource": 34184,
    "budget": 12000,
@@ -958,7 +1635,7 @@
   {
    "name": "teto_pear",
    "file": "teto_pear.glb",
-   "bytes": 38352,
+   "bytes": 38256,
    "tris": 1192,
    "trisSource": 1192,
    "budget": null,

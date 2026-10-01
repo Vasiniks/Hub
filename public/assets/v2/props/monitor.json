@@ -90,9 +90,10 @@
   "normal": "monitor_normal.png",
   "lit": "monitor_lit.png"
  },
- "lit_scale": 0.025,
+ "lit_scale": 0.03,
  "material_modes": {
   "mon_power_led": "pbr_emissive",
+  "mon_screen": "pbr_screen",
   "monitor_lit": "lit",
   "monitor_pbr": "pbr"
  },
@@ -116,6 +117,13 @@
  ],
  "emissive_strength_max": 1.0,
  "emissive_nodes": [],
+ "screen_nodes": [
+  {
+   "node": "mon_screen",
+   "material": "mon_screen",
+   "uv": "UV0 0..1 across the visible face; u to the right, v up, seen from CAM_seat"
+  }
+ ],
  "anchors": {
   "NEW_monitor_lift": {
    "blender_world": [
@@ -147,9 +155,28 @@
   }
  },
  "meshes": {
+  "mon_screen": {
+   "parent": "NEW_monitor_lift",
+   "tris": 2,
+   "materials": [
+    "mon_screen"
+   ],
+   "blender_bbox": [
+    [
+     -0.363,
+     0.9597,
+     0.943
+    ],
+    [
+     0.263,
+     0.972,
+     1.2948
+    ]
+   ]
+  },
   "NEW_monitor_lift__mesh": {
    "parent": "NEW_monitor_lift",
-   "tris": 6182,
+   "tris": 6180,
    "materials": [
     "monitor_lit",
     "monitor_pbr",
@@ -203,25 +230,25 @@
    "coverage_px": 0.528
   },
   "lit": {
-   "lit_scale": 0.025,
-   "raw_mean": 0.002,
-   "denoised_mean": 0.002,
+   "lit_scale": 0.03,
+   "raw_mean": 0.0022,
+   "denoised_mean": 0.0022,
    "p50": 0.0,
-   "clipped_fraction": 0.00187,
-   "coverage_px": 0.374,
+   "clipped_fraction": 0.00089,
+   "coverage_px": 0.364,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 27.8,
-  "rough": 28.1,
-  "metal": 36.5,
-  "ao": 10.5,
-  "normal": 12.4,
-  "lit": 79.4,
-  "lit_denoise": 5.8
+  "base": 6.4,
+  "rough": 6.3,
+  "metal": 6.4,
+  "ao": 6.7,
+  "normal": 6.4,
+  "lit": 16.6,
+  "lit_denoise": 0.2
  },
  "glb": "monitor.glb",
- "glb_bytes": 376488,
- "seconds": 282.7
+ "glb_bytes": 377340,
+ "seconds": 67.4
 }
