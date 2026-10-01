@@ -69,10 +69,10 @@ const errors = [];
   await wait(2500);
   let hovered = false;
   for (let i = 0; i < 40 && !hovered; i++) {
-    const s = await room((pid) => window.__room.hitPositionOf(pid), 'polyhedron');
+    const s = await room((pid) => window.__room.hitPositionOf(pid), 'lorenz');
     if (s) await page.mouse.move(s.x, s.y);
     await wait(120);
-    hovered = (await room(() => window.__room.hovered())) === 'polyhedron';
+    hovered = (await room(() => window.__room.hovered())) === 'lorenz';
   }
   results.standingHover = hovered;
   await page.mouse.down();

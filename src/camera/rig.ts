@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import type { RoomRefs } from '../scene/room';
 import { CAMERA } from '../scene/layout';
 
 export type RigMode = 'standing' | 'sitting' | 'seated' | 'focusing' | 'focused' | 'returning';
@@ -138,13 +137,12 @@ export class CameraRig {
 
   /**
    * @param room The sit-transition chair, or `null` when the room has no live chair to move
-   *   (the v2 baked room). `RoomRefs` satisfies `SitChair`, so the default path passes its
-   *   room unchanged. @param tuning Room-specific poses and limits; defaults to `CAMERA`
+   *   (the baked room). @param tuning Room-specific poses and limits; defaults to `CAMERA`
    *   (the default room), so existing callers stay byte-for-byte identical.
    */
   constructor(
     camera: THREE.PerspectiveCamera,
-    room: SitChair | RoomRefs | null,
+    room: SitChair | null,
     reducedMotion: boolean,
     tuning: RigTuning = CAMERA as unknown as RigTuning,
   ) {

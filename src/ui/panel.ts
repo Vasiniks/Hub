@@ -1,5 +1,3 @@
-import type { ProjectDef } from '../data/projects';
-import type { BookDef } from '../data/books';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -50,19 +48,9 @@ export function createPanel(onClose: () => void) {
     get isOpen() {
       return panel.classList.contains('is-open');
     },
-    fill(project: ProjectDef) {
-      write(project.kindLabel, project.title, project.summary, project.sections);
-    },
-    /** Any content, for surfaces that are not a `ProjectDef` (v2 props). */
+    /** Fill the panel with an object's content (kind, title, summary, sections). */
     fillContent(content: PanelContent) {
       write(content.kind, content.title, content.summary, content.sections);
-    },
-    /** Books reuse the project panel rather than inventing a second kind of surface (§34). */
-    fillBook(book: BookDef) {
-      write('From the shelf', book.title, book.note, [
-        { label: 'Author', body: book.author },
-        { label: 'Notes', body: 'Placeholder. What this book changed, and what it is still good for.' },
-      ]);
     },
     open() {
       window.clearTimeout(hideTimer);
@@ -122,25 +110,5 @@ export function createObjectNav(
   return {
     /** Objects that arrive after start-up (v2 props register as their GLBs load). */
     add,
-  };
-}
-
-/**
- * §16: the only text the shelf shows while browsing — what is selected, and nothing else.
- * The left/right affordance is carried by the chevrons in the scene, not by a control strip.
- */
-export function createShelfCaption() {
-  const el = $('shelf-caption');
-  const name = el.querySelector('b')!;
-  const meta = el.querySelector('span')!;
-  return {
-    show(titleText: string, metaText: string) {
-      name.textContent = titleText;
-      meta.textContent = metaText;
-      el.classList.add('is-visible');
-    },
-    hide() {
-      el.classList.remove('is-visible');
-    },
   };
 }

@@ -14,7 +14,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
  * Albedo: the GLBs carry no images, and the glTF exporter writes `baseColorFactor` 0.8 for every
  * material whose base colour is a node graph (walls 0.29 blue-grey, floor wood, rug, the desk
  * frame's black nylon, the bambu table, the bookrack board), then merges the look-alikes. So the
- * albedo comes from `albedo_<atlas>.png` instead: Cycles' own diffuse colour pass baked in the
+ * albedo comes from the `albedo_<atlas>` atlas (albedo.json) instead: Cycles' own diffuse colour pass baked in the
  * lightmap UV layout (`scripts/v2look/blender_albedo.py`), which is exactly the colour the
  * lightmap was divided by. Decals (`rs_scuff_*`) carry their coverage in its alpha.
  *
