@@ -1,0 +1,307 @@
+{
+ "set": "speedcube",
+ "sources": [
+  "NEW_speedcube"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 34184,
+ "tris_after": 27262,
+ "objects": [
+  {
+   "name": "NEW_speedcube_piece_---",
+   "tris_before": 1368,
+   "tris_after": 1074
+  },
+  {
+   "name": "NEW_speedcube_piece_--0",
+   "tris_before": 1368,
+   "tris_after": 1108
+  },
+  {
+   "name": "NEW_speedcube_piece_--+",
+   "tris_before": 1368,
+   "tris_after": 1074
+  },
+  {
+   "name": "NEW_speedcube_piece_-0-",
+   "tris_before": 1368,
+   "tris_after": 1108
+  },
+  {
+   "name": "NEW_speedcube_piece_-00",
+   "tris_before": 948,
+   "tris_after": 786
+  },
+  {
+   "name": "NEW_speedcube_piece_-0+",
+   "tris_before": 1368,
+   "tris_after": 1108
+  },
+  {
+   "name": "NEW_speedcube_piece_-+-",
+   "tris_before": 1368,
+   "tris_after": 1074
+  },
+  {
+   "name": "NEW_speedcube_piece_-+0",
+   "tris_before": 1368,
+   "tris_after": 1108
+  },
+  {
+   "name": "NEW_speedcube_piece_-++",
+   "tris_before": 1368,
+   "tris_after": 1074
+  },
+  {
+   "name": "NEW_speedcube_piece_0--",
+   "tris_before": 1368,
+   "tris_after": 1108
+  },
+  {
+   "name": "NEW_speedcube_piece_0-0",
+   "tris_before": 948,
+   "tris_after": 786
+  },
+  {
+   "name": "NEW_speedcube_piece_0-+",
+   "tris_before": 1368,
+   "tris_after": 1108
+  },
+  {
+   "name": "NEW_speedcube_piece_00-",
+   "tris_before": 948,
+   "tris_after": 786
+  },
+  {
+   "name": "NEW_speedcube_piece_00+",
+   "tris_before": 948,
+   "tris_after": 786
+  },
+  {
+   "name": "NEW_speedcube_piece_0+-",
+   "tris_before": 1368,
+   "tris_after": 1108
+  },
+  {
+   "name": "NEW_speedcube_piece_0+0",
+   "tris_before": 948,
+   "tris_after": 786
+  },
+  {
+   "name": "NEW_speedcube_piece_0++",
+   "tris_before": 1368,
+   "tris_after": 1108
+  },
+  {
+   "name": "NEW_speedcube_piece_+--",
+   "tris_before": 1368,
+   "tris_after": 1074
+  },
+  {
+   "name": "NEW_speedcube_piece_+-0",
+   "tris_before": 1368,
+   "tris_after": 1108
+  },
+  {
+   "name": "NEW_speedcube_piece_+-+",
+   "tris_before": 1368,
+   "tris_after": 1074
+  },
+  {
+   "name": "NEW_speedcube_piece_+0-",
+   "tris_before": 1368,
+   "tris_after": 1108
+  },
+  {
+   "name": "NEW_speedcube_piece_+00",
+   "tris_before": 948,
+   "tris_after": 786
+  },
+  {
+   "name": "NEW_speedcube_piece_+0+",
+   "tris_before": 1368,
+   "tris_after": 1108
+  },
+  {
+   "name": "NEW_speedcube_piece_++-",
+   "tris_before": 1368,
+   "tris_after": 1074
+  },
+  {
+   "name": "NEW_speedcube_piece_++0",
+   "tris_before": 1368,
+   "tris_after": 1108
+  },
+  {
+   "name": "NEW_speedcube_piece_+++",
+   "tris_before": 1368,
+   "tris_after": 1074
+  },
+  {
+   "name": "NEW_speedcube_core",
+   "tris_before": 624,
+   "tris_after": 624
+  },
+  {
+   "name": "NEW_speedcube_emblem18",
+   "tris_before": 512,
+   "tris_after": 34
+  }
+ ],
+ "skipped": {},
+ "reduction": {
+  "NEW_speedcube_piece_---": "dissolve",
+  "NEW_speedcube_piece_--0": "dissolve",
+  "NEW_speedcube_piece_--+": "dissolve",
+  "NEW_speedcube_piece_-0-": "dissolve",
+  "NEW_speedcube_piece_-00": "dissolve",
+  "NEW_speedcube_piece_-0+": "dissolve",
+  "NEW_speedcube_piece_-+-": "dissolve",
+  "NEW_speedcube_piece_-+0": "dissolve",
+  "NEW_speedcube_piece_-++": "dissolve",
+  "NEW_speedcube_piece_0--": "dissolve",
+  "NEW_speedcube_piece_0-0": "dissolve",
+  "NEW_speedcube_piece_0-+": "dissolve",
+  "NEW_speedcube_piece_00-": "dissolve",
+  "NEW_speedcube_piece_00+": "dissolve",
+  "NEW_speedcube_piece_0+-": "dissolve",
+  "NEW_speedcube_piece_0+0": "dissolve",
+  "NEW_speedcube_piece_0++": "dissolve",
+  "NEW_speedcube_piece_+--": "dissolve",
+  "NEW_speedcube_piece_+-0": "dissolve",
+  "NEW_speedcube_piece_+-+": "dissolve",
+  "NEW_speedcube_piece_+0-": "dissolve",
+  "NEW_speedcube_piece_+00": "dissolve",
+  "NEW_speedcube_piece_+0+": "dissolve",
+  "NEW_speedcube_piece_++-": "dissolve",
+  "NEW_speedcube_piece_++0": "dissolve",
+  "NEW_speedcube_piece_+++": "dissolve",
+  "NEW_speedcube_core": "dissolve",
+  "NEW_speedcube_emblem18": "dissolve"
+ },
+ "atlas": {
+  "pbr_res": 1024,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "speedcube_basecolor.png",
+  "orm": "speedcube_orm.png",
+  "normal": "speedcube_normal.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "speedcube.indirect.rgbm.webp",
+  "png": "speedcube.indirect.rgbm.png",
+  "res": 256,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 1.38,
+  "linear_max": 1.9044,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 0.00045,
+  "rgbm_mean_rel_err": 0.0022,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.2048,
+   "mean_full": 0.20463,
+   "mean_direct_plus_indirect": 0.21162,
+   "mean_ratio": 1.0342,
+   "p99_full": 2.6046,
+   "p99_direct_plus_indirect": 2.6263,
+   "indirect_share": 0.459,
+   "direct_share": 0.5752
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ]
+ },
+ "material_modes": {
+  "speedcube_pbr": "pbr",
+  "speedcube_pbr_cutout": "pbr"
+ },
+ "material_kinds": {
+  "speedcube_body_grey.002": "opaque",
+  "speedcube_cap_blue.002": "opaque",
+  "speedcube_cap_green.002": "opaque",
+  "speedcube_cap_orange.002": "opaque",
+  "speedcube_cap_red.002": "opaque",
+  "speedcube_cap_white.002": "opaque",
+  "speedcube_cap_yellow.002": "opaque",
+  "speedcube_emblem_18_print.001": "cutout"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "NEW_speedcube_root": {
+   "blender_world": [
+    -0.33,
+    0.62,
+    0.735
+   ],
+   "three_world": [
+    -0.33,
+    0.735,
+    -0.62
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_speedcube_root__mesh": {
+   "parent": "NEW_speedcube_root",
+   "tris": 27262,
+   "materials": [
+    "speedcube_pbr",
+    "speedcube_pbr_cutout"
+   ],
+   "blender_bbox": [
+    [
+     -0.3682,
+     0.5818,
+     0.735
+    ],
+    [
+     -0.2918,
+     0.6582,
+     0.7905
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.0134,
+   "s2a": [],
+   "base_mean": [
+    0.544,
+    0.529,
+    0.465
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 2.825,
+   "coverage_px": 0.512
+  }
+ },
+ "bake_seconds": {
+  "base": 37.6,
+  "rough": 38.1,
+  "metal": 37.7,
+  "alpha": 37.9,
+  "normal": 38.1,
+  "L_full": 38.4,
+  "L_direct": 33.1
+ },
+ "glb": "speedcube.glb",
+ "glb_bytes": 908844,
+ "seconds": 338.2
+}

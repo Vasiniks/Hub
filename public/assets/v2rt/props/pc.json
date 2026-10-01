@@ -1,0 +1,789 @@
+{
+ "set": "pc",
+ "sources": [
+  "NEW_pc",
+  "NEW_plush_teto"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 245380,
+ "tris_after": 212788,
+ "objects": [
+  {
+   "name": "pc_case_base_rail",
+   "tris_before": 796,
+   "tris_after": 790
+  },
+  {
+   "name": "pc_case_base",
+   "tris_before": 876,
+   "tris_after": 848
+  },
+  {
+   "name": "pc_case_top",
+   "tris_before": 240,
+   "tris_after": 240
+  },
+  {
+   "name": "pc_case_top_mesh",
+   "tris_before": 200,
+   "tris_after": 200
+  },
+  {
+   "name": "pc_case_io",
+   "tris_before": 2648,
+   "tris_after": 2614
+  },
+  {
+   "name": "pc_glass_panels",
+   "tris_before": 88,
+   "tris_after": 88
+  },
+  {
+   "name": "pc_case_led_strips",
+   "tris_before": 156,
+   "tris_after": 156
+  },
+  {
+   "name": "pc_case_frame",
+   "tris_before": 1604,
+   "tris_after": 1548
+  },
+  {
+   "name": "pc_case_rear",
+   "tris_before": 384,
+   "tris_after": 376
+  },
+  {
+   "name": "pc_rear_guard",
+   "tris_before": 1392,
+   "tris_after": 1392
+  },
+  {
+   "name": "pc_rear_slots",
+   "tris_before": 5132,
+   "tris_after": 4436
+  },
+  {
+   "name": "pc_mb_tray",
+   "tris_before": 260,
+   "tris_after": 260
+  },
+  {
+   "name": "pc_mb_grommets",
+   "tris_before": 516,
+   "tris_after": 516
+  },
+  {
+   "name": "pc_psu",
+   "tris_before": 1008,
+   "tris_after": 992
+  },
+  {
+   "name": "pc_mobo_board",
+   "tris_before": 41400,
+   "tris_after": 41400
+  },
+  {
+   "name": "pc_power_plugs",
+   "tris_before": 176,
+   "tris_after": 176
+  },
+  {
+   "name": "pc_rear_io",
+   "tris_before": 2344,
+   "tris_after": 2292
+  },
+  {
+   "name": "pc_cooler_pump",
+   "tris_before": 3232,
+   "tris_after": 3176
+  },
+  {
+   "name": "pc_cooler_lcd",
+   "tris_before": 18,
+   "tris_after": 18
+  },
+  {
+   "name": "pc_radiator",
+   "tris_before": 2140,
+   "tris_after": 2084
+  },
+  {
+   "name": "pc_fans_frames",
+   "tris_before": 32700,
+   "tris_after": 28460
+  },
+  {
+   "name": "pc_fans_rotors",
+   "tris_before": 20080,
+   "tris_after": 20040
+  },
+  {
+   "name": "pc_aio_tubes",
+   "tris_before": 3852,
+   "tris_after": 3240
+  },
+  {
+   "name": "pc_gpukit_00_brushed_nickel",
+   "tris_before": 5362,
+   "tris_after": 5362
+  },
+  {
+   "name": "pc_gpukit_01_black_plastic_pl",
+   "tris_before": 1819,
+   "tris_after": 1819
+  },
+  {
+   "name": "pc_gpukit_02_brushed_gold",
+   "tris_before": 1985,
+   "tris_after": 1985
+  },
+  {
+   "name": "pc_gpukit_03_material",
+   "tris_before": 774,
+   "tris_after": 774
+  },
+  {
+   "name": "pc_gpukit_04_metal",
+   "tris_before": 2587,
+   "tris_after": 2587
+  },
+  {
+   "name": "pc_gpukit_05_material",
+   "tris_before": 401,
+   "tris_after": 401
+  },
+  {
+   "name": "pc_gpukit_06_material",
+   "tris_before": 3438,
+   "tris_after": 3438
+  },
+  {
+   "name": "pc_gpukit_07_material",
+   "tris_before": 33,
+   "tris_after": 33
+  },
+  {
+   "name": "pc_gpukit_08_material",
+   "tris_before": 120,
+   "tris_after": 120
+  },
+  {
+   "name": "pc_gpukit_09_material",
+   "tris_before": 958,
+   "tris_after": 958
+  },
+  {
+   "name": "pc_gpukit_10_material_0",
+   "tris_before": 6911,
+   "tris_after": 6911
+  },
+  {
+   "name": "pc_gpukit_11_procedural_silver",
+   "tris_before": 3238,
+   "tris_after": 3238
+  },
+  {
+   "name": "pc_gpukit_12_material",
+   "tris_before": 1351,
+   "tris_after": 1351
+  },
+  {
+   "name": "pc_gpukit_13_metal",
+   "tris_before": 2402,
+   "tris_after": 2402
+  },
+  {
+   "name": "pc_gpukit_14_material",
+   "tris_before": 5802,
+   "tris_after": 5802
+  },
+  {
+   "name": "pc_gpu_power_plug",
+   "tris_before": 100,
+   "tris_after": 100
+  },
+  {
+   "name": "pc_cables_sleeved",
+   "tris_before": 18380,
+   "tris_after": 16812
+  },
+  {
+   "name": "pc_rear_chamber",
+   "tris_before": 7096,
+   "tris_after": 6532
+  },
+  {
+   "name": "pc_power_cable",
+   "tris_before": 5884,
+   "tris_after": 3728
+  },
+  {
+   "name": "pc_lcd_0",
+   "tris_before": 64,
+   "tris_after": 64
+  },
+  {
+   "name": "pc_lcd_0_text0",
+   "tris_before": 327,
+   "tris_after": 321
+  },
+  {
+   "name": "pc_lcd_0_text1",
+   "tris_before": 165,
+   "tris_after": 165
+  },
+  {
+   "name": "pc_lcd_1",
+   "tris_before": 64,
+   "tris_after": 64
+  },
+  {
+   "name": "pc_lcd_1_text0",
+   "tris_before": 473,
+   "tris_after": 470
+  },
+  {
+   "name": "pc_lcd_1_text1",
+   "tris_before": 232,
+   "tris_after": 232
+  },
+  {
+   "name": "pc_lcd_2",
+   "tris_before": 64,
+   "tris_after": 64
+  },
+  {
+   "name": "pc_lcd_2_text0",
+   "tris_before": 283,
+   "tris_after": 283
+  },
+  {
+   "name": "pc_lcd_2_text1",
+   "tris_before": 228,
+   "tris_after": 228
+  },
+  {
+   "name": "pc_lcd_3",
+   "tris_before": 64,
+   "tris_after": 64
+  },
+  {
+   "name": "pc_lcd_3_text0",
+   "tris_before": 402,
+   "tris_after": 399
+  },
+  {
+   "name": "pc_lcd_3_text1",
+   "tris_before": 27,
+   "tris_after": 27
+  },
+  {
+   "name": "Circle",
+   "tris_before": 25344,
+   "tris_after": 14466
+  },
+  {
+   "name": "Circle.001",
+   "tris_before": 256,
+   "tris_after": 256
+  },
+  {
+   "name": "Circle.002",
+   "tris_before": 3040,
+   "tris_after": 1814
+  },
+  {
+   "name": "Circle.003",
+   "tris_before": 3072,
+   "tris_after": 1742
+  },
+  {
+   "name": "Circle.004",
+   "tris_before": 2752,
+   "tris_after": 1624
+  },
+  {
+   "name": "Circle.005",
+   "tris_before": 3968,
+   "tris_after": 2270
+  },
+  {
+   "name": "Circle.006",
+   "tris_before": 832,
+   "tris_after": 498
+  },
+  {
+   "name": "Circle.007",
+   "tris_before": 384,
+   "tris_after": 148
+  },
+  {
+   "name": "Circle.008",
+   "tris_before": 256,
+   "tris_after": 256
+  },
+  {
+   "name": "Circle.009",
+   "tris_before": 512,
+   "tris_after": 128
+  },
+  {
+   "name": "NurbsPath",
+   "tris_before": 2256,
+   "tris_after": 1350
+  },
+  {
+   "name": "NurbsPath.001",
+   "tris_before": 1120,
+   "tris_after": 672
+  },
+  {
+   "name": "NurbsPath.002",
+   "tris_before": 576,
+   "tris_after": 344
+  },
+  {
+   "name": "Plane",
+   "tris_before": 1088,
+   "tris_after": 441
+  },
+  {
+   "name": "Plane.001",
+   "tris_before": 384,
+   "tris_after": 146
+  },
+  {
+   "name": "Plane.002",
+   "tris_before": 480,
+   "tris_after": 282
+  },
+  {
+   "name": "Plane.003",
+   "tris_before": 256,
+   "tris_after": 256
+  },
+  {
+   "name": "Plane.004",
+   "tris_before": 256,
+   "tris_after": 256
+  },
+  {
+   "name": "Spiral",
+   "tris_before": 6272,
+   "tris_after": 3763
+  }
+ ],
+ "skipped": {},
+ "reduction": {
+  "pc_case_base_rail": "dissolve",
+  "pc_case_base": "dissolve",
+  "pc_case_top": "kept",
+  "pc_case_top_mesh": "kept",
+  "pc_case_io": "dissolve",
+  "pc_glass_panels": "kept",
+  "pc_case_led_strips": "kept",
+  "pc_case_frame": "dissolve",
+  "pc_case_rear": "dissolve",
+  "pc_rear_guard": "dissolve",
+  "pc_rear_slots": "dissolve",
+  "pc_mb_tray": "kept",
+  "pc_mb_grommets": "dissolve",
+  "pc_psu": "dissolve",
+  "pc_mobo_board": "kept (custom normals)",
+  "pc_power_plugs": "kept",
+  "pc_rear_io": "dissolve",
+  "pc_cooler_pump": "dissolve",
+  "pc_cooler_lcd": "kept",
+  "pc_radiator": "dissolve",
+  "pc_fans_frames": "dissolve",
+  "pc_fans_rotors": "dissolve",
+  "pc_aio_tubes": "dissolve",
+  "pc_gpukit_00_brushed_nickel": "kept (custom normals)",
+  "pc_gpukit_01_black_plastic_pl": "kept (custom normals)",
+  "pc_gpukit_02_brushed_gold": "kept (custom normals)",
+  "pc_gpukit_03_material": "kept (custom normals)",
+  "pc_gpukit_04_metal": "kept (custom normals)",
+  "pc_gpukit_05_material": "kept (custom normals)",
+  "pc_gpukit_06_material": "kept (custom normals)",
+  "pc_gpukit_07_material": "kept",
+  "pc_gpukit_08_material": "kept",
+  "pc_gpukit_09_material": "kept (custom normals)",
+  "pc_gpukit_10_material_0": "kept (custom normals)",
+  "pc_gpukit_11_procedural_silver": "kept (custom normals)",
+  "pc_gpukit_12_material": "kept (custom normals)",
+  "pc_gpukit_13_metal": "kept (custom normals)",
+  "pc_gpukit_14_material": "kept (custom normals)",
+  "pc_gpu_power_plug": "kept",
+  "pc_cables_sleeved": "dissolve",
+  "pc_rear_chamber": "dissolve",
+  "pc_power_cable": "dissolve",
+  "pc_lcd_0": "kept",
+  "pc_lcd_0_text0": "dissolve",
+  "pc_lcd_0_text1": "kept",
+  "pc_lcd_1": "kept",
+  "pc_lcd_1_text0": "dissolve",
+  "pc_lcd_1_text1": "kept",
+  "pc_lcd_2": "kept",
+  "pc_lcd_2_text0": "kept",
+  "pc_lcd_2_text1": "kept",
+  "pc_lcd_3": "kept",
+  "pc_lcd_3_text0": "dissolve",
+  "pc_lcd_3_text1": "kept",
+  "Circle": "collapse 0.60",
+  "Circle.001": "kept",
+  "Circle.002": "collapse 0.60",
+  "Circle.003": "collapse 0.60",
+  "Circle.004": "collapse 0.60",
+  "Circle.005": "collapse 0.60",
+  "Circle.006": "collapse 0.60",
+  "Circle.007": "collapse 0.60",
+  "Circle.008": "kept",
+  "Circle.009": "collapse 0.60",
+  "NurbsPath": "collapse 0.60",
+  "NurbsPath.001": "collapse 0.60",
+  "NurbsPath.002": "collapse 0.60",
+  "Plane": "collapse 0.60",
+  "Plane.001": "collapse 0.60",
+  "Plane.002": "collapse 0.60",
+  "Plane.003": "kept",
+  "Plane.004": "kept",
+  "Spiral": "collapse 0.60"
+ },
+ "atlas": {
+  "pbr_res": 2048,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "pc_basecolor.png",
+  "orm": "pc_orm.png",
+  "normal": "pc_normal.png",
+  "emit": "pc_emissive.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "pc.indirect.rgbm.webp",
+  "png": "pc.indirect.rgbm.png",
+  "res": 512,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 5.0,
+  "linear_max": 25.0,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 0.00357,
+  "rgbm_mean_rel_err": 0.0018,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.14442,
+   "mean_full": 0.14319,
+   "mean_direct_plus_indirect": 0.1436,
+   "mean_ratio": 1.0029,
+   "p99_full": 0.7754,
+   "p99_direct_plus_indirect": 0.7741,
+   "indirect_share": 0.9844,
+   "direct_share": 0.0185
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ]
+ },
+ "material_modes": {
+  "pc_emit": "pbr_emissive",
+  "pc_glass_edge_web": "glass",
+  "pc_glass_web": "glass",
+  "pc_led_amber": "pbr_emissive",
+  "pc_led_green": "pbr_emissive",
+  "pc_led_white": "pbr_emissive",
+  "pc_pbr": "pbr",
+  "pc_pbr_cutout": "pbr",
+  "pc_screen_text": "pbr_emissive"
+ },
+ "material_kinds": {
+  "AntennaM": "opaque",
+  "Audio1m": "opaque",
+  "Audio2m": "opaque",
+  "Audio3m": "opaque",
+  "Audio4m": "opaque",
+  "Audio5m": "opaque",
+  "BasePLasticM": "opaque",
+  "BatteryM": "opaque",
+  "Black_plastic_PL": "opaque",
+  "BoardChipsetM": "opaque",
+  "BoardM2Cover1M": "opaque",
+  "BoardM2CoverM": "opaque",
+  "BoardPlate1m": "opaque",
+  "BoardPlate2m": "opaque",
+  "Brushed_gold.001": "opaque",
+  "Brushed_nickel.001": "opaque",
+  "Capacitor1M": "opaque",
+  "CapacitorsM": "opaque",
+  "Chip1M": "opaque",
+  "Chip2M": "opaque",
+  "ChipM": "opaque",
+  "Cubes1M": "opaque",
+  "CylinderPinM": "opaque",
+  "I_O_Cover": "opaque",
+  "M2_BaseM": "opaque",
+  "M2_Chip1m": "opaque",
+  "M2_Chip2m": "opaque",
+  "M2_StickerM": "opaque",
+  "Material.009": "opaque",
+  "Material.010": "opaque",
+  "Material.011": "opaque",
+  "Material.013": "opaque",
+  "Material.014": "opaque",
+  "Material.016": "opaque",
+  "Material.017": "opaque",
+  "Material.018": "opaque",
+  "Material.046": "opaque",
+  "Material.047": "opaque",
+  "Material.048": "opaque",
+  "Material.049": "opaque",
+  "Material.050": "opaque",
+  "Material.051": "opaque",
+  "Material.052": "opaque",
+  "Material.053": "opaque",
+  "Material.054": "opaque",
+  "Material.055": "opaque",
+  "Material.056": "opaque",
+  "Material.057": "opaque",
+  "Material.058": "opaque",
+  "Material.059": "opaque",
+  "Material.060": "opaque",
+  "Material.061": "opaque",
+  "Material.062": "opaque",
+  "Material.063": "opaque",
+  "Material.064": "opaque",
+  "Material.065": "opaque",
+  "Material.066": "opaque",
+  "Mertal1M": "opaque",
+  "Metal": "opaque",
+  "Pins1M": "opaque",
+  "Pins2M": "opaque",
+  "Procedural_Silver": "opaque",
+  "Ram2M": "opaque",
+  "Ram3M": "opaque",
+  "Ram4M": "opaque",
+  "USB1M": "opaque",
+  "USB2M": "opaque",
+  "USB3M": "opaque",
+  "USBMetalM": "opaque",
+  "VideoPortBlackM": "opaque",
+  "WhiteBasePlasticM": "opaque",
+  "lambert1": "opaque",
+  "material_0": "opaque",
+  "pc_cable_black": "opaque",
+  "pc_dark_plastic": "opaque",
+  "pc_fan_blade": "emit",
+  "pc_filter_mesh": "opaque",
+  "pc_glass": "glass",
+  "pc_glass_edge": "glass",
+  "pc_gold": "opaque",
+  "pc_gpu_blue": "opaque",
+  "pc_heatsink": "opaque",
+  "pc_jack_blue": "opaque",
+  "pc_jack_green": "opaque",
+  "pc_jack_orange": "opaque",
+  "pc_jack_pink": "opaque",
+  "pc_lcd_art": "emit",
+  "pc_led_amber": "emit",
+  "pc_led_green": "emit",
+  "pc_led_white": "emit",
+  "pc_mb_pcb.002": "opaque",
+  "pc_metal": "opaque",
+  "pc_perforated": "cutout",
+  "pc_perforated_uz": "cutout",
+  "pc_plug_black": "opaque",
+  "pc_port_dark": "opaque",
+  "pc_psu": "opaque",
+  "pc_pump_screen": "emit",
+  "pc_rad_fins": "opaque",
+  "pc_rgb_diffuser": "emit",
+  "pc_rgb_led": "emit",
+  "pc_rgb_strip": "emit",
+  "pc_rubber_dark": "opaque",
+  "pc_screen_text": "emit",
+  "pc_sleeve_white": "opaque",
+  "pc_ssd": "opaque",
+  "pc_tie": "opaque",
+  "pc_tube_white": "opaque",
+  "pc_white_alu": "opaque",
+  "pc_white_pcb": "opaque",
+  "pc_white_plastic": "opaque",
+  "pc_white_rubber": "opaque",
+  "pc_white_steel": "opaque",
+  "pc_led_amber__src": "emit",
+  "pc_led_green__src": "emit",
+  "pc_led_white__src": "emit",
+  "pc_screen_text__src": "emit"
+ },
+ "emissive_materials": [
+  "pc_emit",
+  "pc_led_amber",
+  "pc_led_green",
+  "pc_led_white",
+  "pc_screen_text"
+ ],
+ "emissive_strength_max": 9.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "NEW_pc_root": {
+   "blender_world": [
+    0.738,
+    0.97,
+    0.735
+   ],
+   "three_world": [
+    0.738,
+    0.735,
+    -0.97
+   ],
+   "parent": null,
+   "is_pivot": false
+  },
+  "NEW_plush_teto_root": {
+   "blender_world": [
+    0.74,
+    0.97,
+    1.23
+   ],
+   "three_world": [
+    0.74,
+    1.23,
+    -0.97
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_pc_root__glass_pc_glass": {
+   "parent": "NEW_pc_root",
+   "tris": 8,
+   "materials": [
+    "pc_glass_web",
+    "pc_glass_edge_web"
+   ],
+   "blender_bbox": [
+    [
+     0.5186,
+     0.822,
+     0.8115
+    ],
+    [
+     0.9705,
+     1.1173,
+     1.2141
+    ]
+   ]
+  },
+  "NEW_pc_root__glass_pc_glass_edge": {
+   "parent": "NEW_pc_root",
+   "tris": 80,
+   "materials": [
+    "pc_glass_web",
+    "pc_glass_edge_web"
+   ],
+   "blender_bbox": [
+    [
+     0.5179,
+     0.822,
+     0.8108
+    ],
+    [
+     0.9705,
+     1.118,
+     1.2148
+    ]
+   ]
+  },
+  "NEW_pc_root__mesh": {
+   "parent": "NEW_pc_root",
+   "tris": 181988,
+   "materials": [
+    "pc_pbr",
+    "pc_emit",
+    "pc_pbr_cutout",
+    "pc_led_white",
+    "pc_led_green",
+    "pc_led_amber",
+    "pc_screen_text"
+   ],
+   "blender_bbox": [
+    [
+     0.2408,
+     0.8211,
+     -0.0028
+    ],
+    [
+     0.9714,
+     1.2542,
+     1.23
+    ]
+   ]
+  },
+  "NEW_plush_teto_root__mesh": {
+   "parent": "NEW_plush_teto_root",
+   "tris": 30712,
+   "materials": [
+    "pc_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.5696,
+     0.8184,
+     1.2287
+    ],
+    [
+     0.9088,
+     1.1187,
+     1.5307
+    ]
+   ]
+  }
+ },
+ "credits": [
+  {
+   "key": "motherboard",
+   "text": "\"MotherBoard + Components\" by Daniel Cardona, CC BY 4.0 (https://sketchfab.com/3d-models/motherboard-components-3bc94057328243d4b341a55f59160f8a)"
+  },
+  {
+   "key": "teto_plush",
+   "text": "\"Kasane Teto fatass plush\" by revsworks, CC BY 4.0 (https://sketchfab.com/3d-models/kasane-teto-fatass-plush-bd8157eb42a04161b2628e58dfd2a852)"
+  }
+ ],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.0334,
+   "s2a": [],
+   "base_mean": [
+    0.81,
+    0.742,
+    0.747
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 0.024,
+   "coverage_px": 0.001
+  }
+ },
+ "bake_seconds": {
+  "base": 115.3,
+  "rough": 113.3,
+  "metal": 109.6,
+  "alpha": 115.9,
+  "emit": 107.9,
+  "normal": 114.6,
+  "L_full": 93.4,
+  "L_direct": 83.5
+ },
+ "glb": "pc.glb",
+ "glb_bytes": 10742764,
+ "seconds": 1071.9
+}

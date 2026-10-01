@@ -61,11 +61,14 @@ def arg(name, default=None, cast=str):
 
 
 TARGETS = ARGS[0].split(',') if ARGS and not ARGS[0].startswith('--') else []
-OUTDIR = os.path.join(REPO, arg('--outdir', os.path.join('tmp', 'props_raw')))
+RT = '--rt' in ARGS                     # hybrid real-time mode: all PBR + indirect-only lightmap
+OUTDIR = os.path.join(REPO, arg('--outdir', os.path.join('tmp', 'props_rt_raw' if RT else 'props_raw')))
 RS = arg('--res-scale', 1.0, float)
 USE_CPU = '--cpu' in ARGS
 AO_SAMPLES = arg("--ao-samples", 128, int)
-LIT = '--pbr-only' not in ARGS          # default: lit bake in the full room (owner, 2026-10-01)
+LIT = '--pbr-only' not in ARGS and not RT   # default: lit bake in the full room (owner, 2026-10-01)
+RT_DIRECT_LIGHTS = ('SUN_main', 'LAMP_disk')
+LM_DIV = arg('--lm-div', 4, int)        # lightmap size = atlas size / LM_DIV (min 256)  # rendered live in the hybrid mode: kept out of its lightmap
 LIT_SAMPLES = arg('--lit-samples', 256, int)
 LIT_K_MAX = 2.0
 IMG_QUALITY = arg('--quality', 92, int)
@@ -719,6 +722,7 @@ def atlas_unwrap(objs, weights, res, uv_mode='smart'):
         # every mesh whatever its unwrap (smart project packs each call into 0..1 at its own scale);
         # per object, not per island: degenerate zero-area islands in scans would otherwise blow up
         # and shrink everything else in the pack
+        scales = {}
         for o in objs:
             me = o.data
             me.calc_loop_triangles()
@@ -735,8 +739,19 @@ def atlas_unwrap(objs, weights, res, uv_mode='smart'):
             w_area = sum(pp.area for pp in mt.polygons)
             bpy.data.meshes.remove(mt)
             if uv_area > 1e-12 and w_area > 0:
-                a *= math.sqrt(w_area / uv_area)
-                uv.foreach_set('uv', a.ravel())
+                scales[o] = math.sqrt(w_area / uv_area)
+        # a near-degenerate unwrap (UV area ~ 0: projected edge-on strips, text) would get a huge
+        # factor and swamp the pack: clamp every factor to within 10x of the median
+        if scales:
+            med = float(np.median(list(scales.values())))
+            for o, f in scales.items():
+                f2 = min(max(f, med / 10), med * 10)
+                if f2 != f:
+                    log(f'  {o.name}: density factor {f:.3g} clamped to {f2:.3g} (median {med:.3g})')
+                uv = o.data.uv_layers['atlas'].data
+                a = np.empty(len(uv) * 2, dtype=np.float32)
+                uv.foreach_get('uv', a)
+                uv.foreach_set('uv', (a * f2).astype(np.float32))
     log(f'  unwrap ({uv_mode}, {len(need_smart)}/{len(objs)} smart) {time.time() - t:.1f}s')
     select_only(objs)
     # texel-density weights: scale each object's islands, then repack everything together
@@ -1091,6 +1106,145 @@ def denoise_pixels(img, res, exr_path):
     return a
 
 
+def atlas_density(objs, covered):
+    """Texels per mm: covered texels over the world-space area of the faces."""
+    area_mm2 = 0.0
+    for c in objs:
+        mt = c.data.copy()
+        mt.transform(c.matrix_world)
+        area_mm2 += sum(pp.area for pp in mt.polygons) * 1e6
+        bpy.data.meshes.remove(mt)
+    return math.sqrt(float(covered.sum()) / max(area_mm2, 1e-9))
+
+
+class DirectOnly:
+    """Scene state for the L_direct bake: only SUN_main and LAMP_disk light the scene (world black,
+    every other lamp hidden, every emission at 0)."""
+
+    def __enter__(self):
+        sc = bpy.context.scene
+        self.lights = [o for o in sc.objects if o.type == 'LIGHT' and o.name not in RT_DIRECT_LIGHTS
+                       and not o.hide_render]
+        for o in self.lights:
+            o.hide_render = True
+        self.kept = [o.name for o in sc.objects if o.type == 'LIGHT' and o.name in RT_DIRECT_LIGHTS
+                     and not o.hide_render]
+        self.world = sc.world
+        black = bpy.data.worlds.new('__rt_black')
+        black.use_nodes = True
+        for n in black.node_tree.nodes:
+            if n.type == 'BACKGROUND':
+                n.inputs['Strength'].default_value = 0.0
+        sc.world = black
+        self.emit = []
+        for m in bpy.data.materials:
+            if not m.node_tree:
+                continue
+            for n in m.node_tree.nodes:
+                si = n.inputs.get('Emission Strength') if n.type == 'BSDF_PRINCIPLED' else \
+                    n.inputs.get('Strength') if n.type == 'EMISSION' else None
+                if si is None:
+                    continue
+                src = si.links[0].from_socket if si.links else None
+                for l_ in list(si.links):
+                    m.node_tree.links.remove(l_)
+                self.emit.append((m, si, src, float(si.default_value)))
+                si.default_value = 0.0
+        log(f'  L_direct: lights kept {self.kept}, {len(self.lights)} lights hidden, world black, '
+            f'{len(self.emit)} emission inputs zeroed')
+        return self
+
+    def __exit__(self, *exc):
+        sc = bpy.context.scene
+        for o in self.lights:
+            o.hide_render = False
+        black = sc.world
+        sc.world = self.world
+        bpy.data.worlds.remove(black)
+        for m, si, src, dv in self.emit:
+            si.default_value = dv
+            if src is not None:
+                m.node_tree.links.new(src, si)
+        return False
+
+
+def bake_indirect_lightmap(name, objs, mats, res, texdir, timings):
+    """Hybrid mode: L_indirect = max(L_full - L_direct(SUN_main + LAMP_disk), 0), irradiance-style
+    (DIFFUSE, colour off), same samples for both, on the set's atlas UV (TEXCOORD_0). Written as RGBM
+    of sqrt(L) (the room's encoding); the WebP is made from the PNG afterwards."""
+    sc = bpy.context.scene
+    lm = max(256, res // LM_DIV)   # indirect light is low-frequency; lossless RGBM costs ~1 B/texel
+    ov = Override(mats, 'mask')
+    mk = new_image(f'{name}_lm_mask', lm, data=True)
+    try:
+        bake(objs, 'EMIT', mk, mats, margin=0)
+    finally:
+        ov.restore()
+    cov = pixels(mk)[:, 0] > 0.5
+    sc.cycles.samples = LIT_SAMPLES
+    sc.cycles.use_adaptive_sampling = False
+
+    def fimg(tag):
+        i = bpy.data.images.new(f'{name}_{tag}', lm, lm, alpha=False, float_buffer=True)
+        i.colorspace_settings.name = 'Linear Rec.709'
+        return i
+    tb = time.time()
+    full = fimg('L_full')
+    bake(objs, 'DIFFUSE', full, mats, pass_filter={'DIRECT', 'INDIRECT'})
+    timings['L_full'] = round(time.time() - tb, 1)
+    tb = time.time()
+    with DirectOnly():
+        direct = fimg('L_direct')
+        bake(objs, 'DIFFUSE', direct, mats, pass_filter={'DIRECT'})
+    timings['L_direct'] = round(time.time() - tb, 1)
+    F = pixels(full)[:, :3].copy()
+    Dd = pixels(direct)[:, :3].copy()
+    raw = np.maximum(F - Dd, 0.0)
+    ind_img = fimg('L_indirect_raw')
+    buf = np.ones((lm * lm, 4), dtype=np.float32)
+    buf[:, :3] = raw
+    ind_img.pixels.foreach_set(buf.ravel())
+    ind = np.maximum(denoise_pixels(ind_img, lm, os.path.join(texdir, f'{name}_L_indirect_dn.exr')), 0.0)
+    # sum check: L_direct + L_indirect vs L_full over covered texels (luminance). The indirect is
+    # denoised, so its p99 is compared with a denoised L_full (raw p99 is mostly sampling noise).
+    Fdn = np.maximum(denoise_pixels(full, lm, os.path.join(texdir, f'{name}_L_full_dn.exr')), 0.0)
+    lum = lambda a: a @ np.array([0.2126, 0.7152, 0.0722])  # noqa: E731
+    if cov.any():
+        lf, ls = lum(Fdn[cov]), lum(Dd[cov] + ind[cov])
+        check = dict(mean_full_raw=round(float(lum(F[cov]).mean()), 5), mean_full=round(float(lf.mean()), 5), mean_direct_plus_indirect=round(float(ls.mean()), 5),
+                     mean_ratio=round(float(ls.mean() / max(lf.mean(), 1e-9)), 4),
+                     p99_full=round(float(np.percentile(lf, 99)), 4),
+                     p99_direct_plus_indirect=round(float(np.percentile(ls, 99)), 4),
+                     indirect_share=round(float(lum(ind[cov]).mean() / max(lf.mean(), 1e-9)), 4),
+                     direct_share=round(float(lum(Dd[cov]).mean() / max(lf.mean(), 1e-9)), 4))
+    else:
+        check = {}
+    # RGBM of sqrt(L), as v2_bake_sunset.rgbm_png: R = 99.95th percentile of sqrt(max rgb)
+    sq = np.sqrt(ind)
+    mx = sq.max(axis=1)
+    nz = mx[cov & (mx > 1e-6)] if cov.any() else mx[mx > 1e-6]
+    R = float(np.percentile(nz, 99.95)) if nz.size else 1.0
+    R = max(0.01, math.ceil(R * 100) / 100)
+    m_ = np.clip(np.ceil(mx / R * 255) / 255, 1 / 255, 1)
+    rgb = np.clip(sq / (m_[:, None] * R), 0, 1)
+    q = np.concatenate([np.round(rgb * 255), np.round(m_ * 255)[:, None]], axis=1) / 255.0
+    dec = (q[:, :3] * q[:, 3:] * R) ** 2
+    err = float(np.abs(dec - np.minimum(ind, R * R))[cov].mean() / max(ind[cov].mean(), 1e-9)) if cov.any() else 0.0
+    out = bpy.data.images.new(f'{name}.indirect.rgbm', lm, lm, alpha=True, float_buffer=False)
+    out.colorspace_settings.name = 'Non-Color'
+    out.alpha_mode = 'CHANNEL_PACKED'
+    out.pixels.foreach_set(q.astype(np.float32).ravel())
+    png = save_png(out, os.path.join(texdir, f'{name}.indirect.rgbm.png'))
+    info = dict(lightmap=f'{name}.indirect.rgbm.webp', png=os.path.basename(png), res=lm, uv='TEXCOORD_0',
+                range_sqrt=R, linear_max=round(R * R, 4), encoding='RGBM of sqrt(L), lossless WebP; '
+                'L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)',
+                clipped_fraction=round(float((mx[cov] > R).mean()), 5) if cov.any() else 0.0,
+                rgbm_mean_rel_err=round(err, 4), samples=LIT_SAMPLES, check=check,
+                direct_lights=list(RT_DIRECT_LIGHTS))
+    log(f'{name}: indirect lightmap {lm}^2 range_sqrt {R}; check {json.dumps(check)}; rgbm err {err:.4f}')
+    return info
+
+
 def build_lit_material(name, path, cutout, scale):
     """KHR_materials_unlit for the exporter: Output <- [Mix(alpha, Transparent, .)] <-
     Mix(Is Camera Ray, Transparent, Emission(lit texture)). litScale goes to material extras."""
@@ -1148,15 +1302,16 @@ def group_of(o, roots):
 def export_set(name):
     cfg = SETS[name]
     t0 = time.time()
-    res = max(256, min(2048, int(cfg['res'] * RS)))
+    # RT: everything is PBR on one atlas per set, so it takes the lit atlas size
+    res = max(256, min(2048, int((cfg.get('lit', cfg['res']) if RT else cfg['res']) * RS)))
     srcs, skipped = source_objects(cfg)
     log(f'== {name}: {len(srcs)} visible meshes; skipped: ' +
         json.dumps({k: (len(v), v[:8]) for k, v in skipped.items()}))
     if not srcs:
         log(f'{name}: nothing to export')
         return None
-    if LIT:
-        log(f'{name}: full room kept for the lit bake; bake-only edits: {bake_scene_edits()}')
+    if LIT or RT:
+        log(f'{name}: full room kept for the bake; bake-only edits: {bake_scene_edits()}')
     else:
         purge_to(srcs)
     # ---------------------------------------------------------------- groups (anchor nodes)
@@ -1387,6 +1542,7 @@ def export_set(name):
     smax = max(emitters) if emitters else 1.0
     timings = {}
     tex, tex_lit, stats = {}, {}, {}
+    rt_info = None
     sc = bpy.context.scene
 
     def emit_bake(objs_, ch, r, data, margin=8):
@@ -1405,14 +1561,15 @@ def export_set(name):
             tb = time.time()
             imgs[ch] = emit_bake(pbr_objs, ch, res, data)
             timings[ch] = round(time.time() - tb, 1)
-        tb = time.time()
-        sc.cycles.samples = AO_SAMPLES
-        old_dist = sc.world.light_settings.distance
-        sc.world.light_settings.distance = 0.08
-        imgs['ao'] = new_image(f'{name}_ao', res, data=True)
-        bake(pbr_objs, 'AO', imgs['ao'], mats)
-        sc.world.light_settings.distance = old_dist
-        timings['ao'] = round(time.time() - tb, 1)
+        if not RT:
+            tb = time.time()
+            sc.cycles.samples = AO_SAMPLES
+            old_dist = sc.world.light_settings.distance
+            sc.world.light_settings.distance = 0.08
+            imgs['ao'] = new_image(f'{name}_ao', res, data=True)
+            bake(pbr_objs, 'AO', imgs['ao'], mats)
+            sc.world.light_settings.distance = old_dist
+            timings['ao'] = round(time.time() - tb, 1)
         tb = time.time()
         sc.cycles.samples = 4
         nrm = new_image(f'{name}_normal', res, data=True)
@@ -1454,14 +1611,14 @@ def export_set(name):
         orm_res = max(256, res // 2)
         orm = new_image(f'{name}_orm', res, data=True)
         op = np.ones((res * res, 4), dtype=np.float32)
-        op[:, 0] = masked_blur(P['ao'][:, 0], covered, res, passes=2)
+        op[:, 0] = 1.0 if RT else masked_blur(P['ao'][:, 0], covered, res, passes=2)
         op[:, 1] = P['rough'][:, 0]
         op[:, 2] = P['metal'][:, 0]
         orm.pixels.foreach_set(op.ravel())
         if orm_res != res:
             orm.scale(orm_res, orm_res)
         tex['orm'] = save_png(orm, os.path.join(texdir, f'{name}_orm.png'))
-        tex['ao'] = True
+        tex['ao'] = not RT
         n = P['normal']
         dev = np.abs(n[:, :3] - np.array([0.5, 0.5, 1.0]))[covered].max(axis=1) if covered.any() else np.zeros(1)
         bumpy = float((dev > 0.03).mean())
@@ -1472,9 +1629,12 @@ def export_set(name):
             er = max(256, res // 2)
             em.scale(er, er)
             tex['emit'] = save_png(em, os.path.join(texdir, f'{name}_emissive.png'))
+        if RT:
+            rt_info = bake_indirect_lightmap(name, pbr_objs, mats, res, texdir, timings)
         stats['pbr'] = dict(normal_bumpy_fraction=round(bumpy, 4), s2a=s2a_done,
                             base_mean=[round(float(x), 3) for x in P['base'][covered][:, :3].mean(0)] if covered.any() else None,
-                            ao_mean=round(float(P['ao'][covered][:, 0].mean()), 3) if covered.any() else None,
+                            ao_mean=round(float(P['ao'][covered][:, 0].mean()), 3) if covered.any() and 'ao' in P else None,
+                            texels_per_mm=round(atlas_density(pbr_objs, covered), 3),
                             coverage_px=round(float(covered.mean()), 3))
     for key, gg in lit_groups.items():
         g_objs, r = gg['objs'], gg['res']
@@ -1787,6 +1947,7 @@ def export_set(name):
                 lit_scale=tex_lit['main']['scale'] if 'main' in tex_lit else
                 (next(iter(tex_lit.values()))['scale'] if tex_lit else None),
                 lit_atlases={k: dict(res=t['res'], litScale=t['scale']) for k, t in tex_lit.items()},
+                rt=rt_info,
                 material_modes={m: mode_of.get(m, 'pbr') for m in sorted({s_.material.name for o in out_objs
                                 if o.type == 'MESH' for s_ in o.material_slots if s_.material})},
                 material_kinds={k: v['kind'] for k, v in kinds.items()},

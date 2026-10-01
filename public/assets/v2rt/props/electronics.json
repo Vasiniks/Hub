@@ -1,0 +1,774 @@
+{
+ "set": "electronics",
+ "sources": [
+  "NEW_electronics"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 94596,
+ "tris_after": 86768,
+ "objects": [
+  {
+   "name": "elec_uno_pcb",
+   "tris_before": 292,
+   "tris_after": 292
+  },
+  {
+   "name": "elec_uno_parts",
+   "tris_before": 11736,
+   "tris_after": 10836
+  },
+  {
+   "name": "elec_esp32_module_pcb",
+   "tris_before": 572,
+   "tris_after": 572
+  },
+  {
+   "name": "elec_esp32_module_parts",
+   "tris_before": 160,
+   "tris_after": 160
+  },
+  {
+   "name": "elec_esp32_pcb",
+   "tris_before": 76,
+   "tris_after": 76
+  },
+  {
+   "name": "elec_esp32_parts",
+   "tris_before": 8894,
+   "tris_after": 8176
+  },
+  {
+   "name": "elec_pico_pcb",
+   "tris_before": 3688,
+   "tris_after": 3672
+  },
+  {
+   "name": "elec_pico_parts",
+   "tris_before": 2926,
+   "tris_after": 2570
+  },
+  {
+   "name": "elec_hub_body",
+   "tris_before": 958,
+   "tris_after": 944
+  },
+  {
+   "name": "elec_hub_parts",
+   "tris_before": 2486,
+   "tris_after": 1754
+  },
+  {
+   "name": "elec_hub_cable_braid",
+   "tris_before": 4764,
+   "tris_after": 3112
+  },
+  {
+   "name": "elec_notepad",
+   "tris_before": 9898,
+   "tris_after": 9898
+  },
+  {
+   "name": "elec_sticky_notes",
+   "tris_before": 1440,
+   "tris_after": 1440
+  },
+  {
+   "name": "elec_rotring600",
+   "tris_before": 3564,
+   "tris_after": 2612
+  },
+  {
+   "name": "elec_stm_stage",
+   "tris_before": 4572,
+   "tris_after": 4458
+  },
+  {
+   "name": "elec_stm_stage_wires",
+   "tris_before": 3632,
+   "tris_after": 3584
+  },
+  {
+   "name": "elec_faraday_box",
+   "tris_before": 5756,
+   "tris_after": 5404
+  },
+  {
+   "name": "elec_faraday_lid",
+   "tris_before": 1804,
+   "tris_after": 1786
+  },
+  {
+   "name": "elec_breadboard",
+   "tris_before": 80,
+   "tris_after": 80
+  },
+  {
+   "name": "elec_teensy_pcb",
+   "tris_before": 60,
+   "tris_after": 60
+  },
+  {
+   "name": "elec_teensy_parts",
+   "tris_before": 8218,
+   "tris_after": 7838
+  },
+  {
+   "name": "elec_preamp_pcb",
+   "tris_before": 348,
+   "tris_after": 348
+  },
+  {
+   "name": "elec_preamp_parts",
+   "tris_before": 4072,
+   "tris_after": 3698
+  },
+  {
+   "name": "elec_multimeter",
+   "tris_before": 3024,
+   "tris_after": 3008
+  },
+  {
+   "name": "elec_lab_wiring",
+   "tris_before": 11576,
+   "tris_after": 10390
+  }
+ ],
+ "skipped": {
+  "OLD_replaced": [
+   "elec_mug_body",
+   "elec_mug_coffee"
+  ]
+ },
+ "reduction": {
+  "elec_uno_pcb": "kept",
+  "elec_uno_parts": "dissolve",
+  "elec_esp32_module_pcb": "dissolve",
+  "elec_esp32_module_parts": "kept",
+  "elec_esp32_pcb": "kept",
+  "elec_esp32_parts": "dissolve",
+  "elec_pico_pcb": "dissolve",
+  "elec_pico_parts": "dissolve",
+  "elec_hub_body": "dissolve",
+  "elec_hub_parts": "dissolve",
+  "elec_hub_cable_braid": "dissolve",
+  "elec_notepad": "kept",
+  "elec_sticky_notes": "kept",
+  "elec_rotring600": "dissolve",
+  "elec_stm_stage": "dissolve",
+  "elec_stm_stage_wires": "dissolve",
+  "elec_faraday_box": "dissolve",
+  "elec_faraday_lid": "dissolve",
+  "elec_breadboard": "kept",
+  "elec_teensy_pcb": "kept",
+  "elec_teensy_parts": "dissolve",
+  "elec_preamp_pcb": "dissolve",
+  "elec_preamp_parts": "dissolve",
+  "elec_multimeter": "dissolve",
+  "elec_lab_wiring": "dissolve"
+ },
+ "atlas": {
+  "pbr_res": 2048,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "electronics_basecolor.png",
+  "orm": "electronics_orm.png",
+  "normal": "electronics_normal.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "electronics.indirect.rgbm.webp",
+  "png": "electronics.indirect.rgbm.png",
+  "res": 512,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 1.89,
+  "linear_max": 3.5721,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 0.00026,
+  "rgbm_mean_rel_err": 0.002,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.09516,
+   "mean_full": 0.09548,
+   "mean_direct_plus_indirect": 0.10212,
+   "mean_ratio": 1.0696,
+   "p99_full": 2.7322,
+   "p99_direct_plus_indirect": 2.9548,
+   "indirect_share": 0.3439,
+   "direct_share": 0.7256
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ]
+ },
+ "material_modes": {
+  "electronics_pbr": "pbr",
+  "led_blue_on.003": "pbr_emissive",
+  "led_green_on.003": "pbr_emissive",
+  "led_red_on.003": "pbr_emissive"
+ },
+ "material_kinds": {
+  "alu_can.003": "opaque",
+  "alu_diamond.003": "opaque",
+  "anod_black.002": "opaque",
+  "bb_side.002": "opaque",
+  "board_chip.003": "opaque",
+  "braid_nylon.003": "opaque",
+  "brass.002": "opaque",
+  "breadboard_top.002": "opaque",
+  "cer_tan.003": "opaque",
+  "chrome.003": "opaque",
+  "coax_brown.002": "opaque",
+  "copper_sheet.002": "opaque",
+  "cover.003": "opaque",
+  "dmm_black.002": "opaque",
+  "dmm_btn": "opaque",
+  "dmm_face.002": "opaque",
+  "dmm_holster.002": "opaque",
+  "dmm_lcd.002": "opaque",
+  "dmm_red.002": "opaque",
+  "elec_esp32_mask_bot.003": "opaque",
+  "elec_esp32_mask_top.003": "opaque",
+  "elec_esp32_module_mask_bot.003": "opaque",
+  "elec_esp32_module_mask_top.003": "opaque",
+  "elec_page_blank.003": "opaque",
+  "elec_page_written.003": "opaque",
+  "elec_pico_mask_bot.003": "opaque",
+  "elec_pico_mask_top.003": "opaque",
+  "elec_preamp_mask_bot.002": "opaque",
+  "elec_preamp_mask_top.002": "opaque",
+  "elec_teensy_mask_bot.002": "opaque",
+  "elec_teensy_mask_top.002": "opaque",
+  "elec_uno_mask_bot.003": "opaque",
+  "elec_uno_mask_top.003": "opaque",
+  "electrode.002": "opaque",
+  "fr4_edge.003": "opaque",
+  "gold.003": "opaque",
+  "graphite.003": "opaque",
+  "hub_alu.003": "opaque",
+  "ic_black.003": "opaque",
+  "ic_dimple.003": "opaque",
+  "jst_white.002": "opaque",
+  "knurl_chrome.003": "opaque",
+  "led_blue_on.003": "emit",
+  "led_body.003": "opaque",
+  "led_green_on.003": "emit",
+  "led_red_on.003": "emit",
+  "led_yellow_off.003": "opaque",
+  "motor_blue.002": "opaque",
+  "nickel.003": "opaque",
+  "paper_edge.003": "opaque",
+  "piezo_white.002": "opaque",
+  "plastic_black.003": "opaque",
+  "plastic_white.003": "opaque",
+  "plate_gold.003": "opaque",
+  "plate_tin.003": "opaque",
+  "polyfuse.003": "opaque",
+  "port_dark.003": "opaque",
+  "res_black.003": "opaque",
+  "res_white.003": "opaque",
+  "rot_pearl.003": "opaque",
+  "rubber.003": "opaque",
+  "rubber_clear.002": "opaque",
+  "solder.003": "opaque",
+  "spiral_wire.003": "opaque",
+  "steel.002": "opaque",
+  "steel_dark.002": "opaque",
+  "sticky_mint.003": "opaque",
+  "sticky_pink.003": "opaque",
+  "sticky_yellow_written.003": "opaque",
+  "tin_lead.003": "opaque",
+  "tpe_black.003": "opaque",
+  "trimpot_blue.002": "opaque",
+  "usb3_blue.003": "opaque",
+  "wire_black.003": "opaque",
+  "wire_blue.003": "opaque",
+  "wire_green.003": "opaque",
+  "wire_orange.002": "opaque",
+  "wire_pink.002": "opaque",
+  "wire_red.003": "opaque",
+  "wire_yellow.003": "opaque",
+  "led_blue_on.003__src": "emit",
+  "led_green_on.003__src": "emit",
+  "led_red_on.003__src": "emit"
+ },
+ "emissive_materials": [
+  "led_blue_on.003",
+  "led_green_on.003",
+  "led_red_on.003"
+ ],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "elec_uno": {
+   "blender_world": [
+    0.445,
+    0.69,
+    0.7368
+   ],
+   "three_world": [
+    0.445,
+    0.7368,
+    -0.69
+   ],
+   "parent": "NEW_electronics_root",
+   "is_pivot": false
+  },
+  "elec_esp32": {
+   "blender_world": [
+    0.935,
+    0.405,
+    0.7435
+   ],
+   "three_world": [
+    0.935,
+    0.7435,
+    -0.405
+   ],
+   "parent": "NEW_electronics_root",
+   "is_pivot": false
+  },
+  "elec_pico": {
+   "blender_world": [
+    0.44,
+    0.785,
+    0.735
+   ],
+   "three_world": [
+    0.44,
+    0.735,
+    -0.785
+   ],
+   "parent": "NEW_electronics_root",
+   "is_pivot": false
+  },
+  "elec_hub": {
+   "blender_world": [
+    0.3061,
+    0.9352,
+    0.735
+   ],
+   "three_world": [
+    0.3061,
+    0.735,
+    -0.9352
+   ],
+   "parent": "NEW_electronics_root",
+   "is_pivot": false
+  },
+  "elec_hub_cable": {
+   "blender_world": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "three_world": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "parent": "NEW_electronics_root",
+   "is_pivot": false
+  },
+  "elec_notes": {
+   "blender_world": [
+    -0.52,
+    0.52,
+    0.735
+   ],
+   "three_world": [
+    -0.52,
+    0.735,
+    -0.52
+   ],
+   "parent": "NEW_electronics_root",
+   "is_pivot": false
+  },
+  "elec_stm_stage_grp": {
+   "blender_world": [
+    0.74,
+    0.53,
+    0.735
+   ],
+   "three_world": [
+    0.74,
+    0.735,
+    -0.53
+   ],
+   "parent": "NEW_electronics_root",
+   "is_pivot": false
+  },
+  "elec_faraday_grp": {
+   "blender_world": [
+    0.735,
+    0.665,
+    0.735
+   ],
+   "three_world": [
+    0.735,
+    0.735,
+    -0.665
+   ],
+   "parent": "NEW_electronics_root",
+   "is_pivot": false
+  },
+  "elec_breadboard_grp": {
+   "blender_world": [
+    0.555,
+    0.675,
+    0.735
+   ],
+   "three_world": [
+    0.555,
+    0.735,
+    -0.675
+   ],
+   "parent": "NEW_electronics_root",
+   "is_pivot": false
+  },
+  "elec_preamp_grp": {
+   "blender_world": [
+    0.845,
+    0.4,
+    0.735
+   ],
+   "three_world": [
+    0.845,
+    0.735,
+    -0.4
+   ],
+   "parent": "NEW_electronics_root",
+   "is_pivot": false
+  },
+  "elec_multimeter_grp": {
+   "blender_world": [
+    0.445,
+    0.465,
+    0.735
+   ],
+   "three_world": [
+    0.445,
+    0.735,
+    -0.465
+   ],
+   "parent": "NEW_electronics_root",
+   "is_pivot": false
+  },
+  "elec_lab_wiring_grp": {
+   "blender_world": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "three_world": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "parent": "NEW_electronics_root",
+   "is_pivot": false
+  },
+  "NEW_electronics_root": {
+   "blender_world": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "three_world": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "elec_uno__mesh": {
+   "parent": "elec_uno",
+   "tris": 11128,
+   "materials": [
+    "electronics_pbr",
+    "led_green_on.003"
+   ],
+   "blender_bbox": [
+    [
+     0.4183,
+     0.6494,
+     0.735
+    ],
+    [
+     0.4717,
+     0.7243,
+     0.7494
+    ]
+   ]
+  },
+  "elec_esp32__mesh": {
+   "parent": "elec_esp32",
+   "tris": 8984,
+   "materials": [
+    "electronics_pbr",
+    "led_red_on.003"
+   ],
+   "blender_bbox": [
+    [
+     0.921,
+     0.374,
+     0.735
+    ],
+    [
+     0.949,
+     0.4335,
+     0.7484
+    ]
+   ]
+  },
+  "elec_pico__mesh": {
+   "parent": "elec_pico",
+   "tris": 6242,
+   "materials": [
+    "electronics_pbr",
+    "led_green_on.003"
+   ],
+   "blender_bbox": [
+    [
+     0.4145,
+     0.7745,
+     0.735
+    ],
+    [
+     0.4668,
+     0.7955,
+     0.7386
+    ]
+   ]
+  },
+  "elec_hub__mesh": {
+   "parent": "elec_hub",
+   "tris": 2698,
+   "materials": [
+    "electronics_pbr",
+    "led_blue_on.003"
+   ],
+   "blender_bbox": [
+    [
+     0.2555,
+     0.9044,
+     0.735
+    ],
+    [
+     0.3538,
+     0.9777,
+     0.7507
+    ]
+   ]
+  },
+  "elec_hub_cable__mesh": {
+   "parent": "elec_hub_cable",
+   "tris": 3112,
+   "materials": [
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.1066,
+     0.7553,
+     0.7347
+    ],
+    [
+     0.3003,
+     1.0086,
+     0.8142
+    ]
+   ]
+  },
+  "elec_notes__mesh": {
+   "parent": "elec_notes",
+   "tris": 13950,
+   "materials": [
+    "electronics_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -0.7342,
+     0.376,
+     0.7344
+    ],
+    [
+     -0.4249,
+     0.6412,
+     0.7537
+    ]
+   ]
+  },
+  "elec_stm_stage_grp__mesh": {
+   "parent": "elec_stm_stage_grp",
+   "tris": 8042,
+   "materials": [
+    "electronics_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.6773,
+     0.4945,
+     0.735
+    ],
+    [
+     0.7875,
+     0.563,
+     0.796
+    ]
+   ]
+  },
+  "elec_faraday_grp__mesh": {
+   "parent": "elec_faraday_grp",
+   "tris": 7190,
+   "materials": [
+    "electronics_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.6522,
+     0.5838,
+     0.735
+    ],
+    [
+     0.8178,
+     0.7872,
+     0.901
+    ]
+   ]
+  },
+  "elec_breadboard_grp__mesh": {
+   "parent": "elec_breadboard_grp",
+   "tris": 7978,
+   "materials": [
+    "electronics_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.5138,
+     0.6478,
+     0.735
+    ],
+    [
+     0.5962,
+     0.7023,
+     0.7502
+    ]
+   ]
+  },
+  "elec_preamp_grp__mesh": {
+   "parent": "elec_preamp_grp",
+   "tris": 4046,
+   "materials": [
+    "electronics_pbr",
+    "led_green_on.003"
+   ],
+   "blender_bbox": [
+    [
+     0.8145,
+     0.38,
+     0.735
+    ],
+    [
+     0.8715,
+     0.4314,
+     0.7566
+    ]
+   ]
+  },
+  "elec_multimeter_grp__mesh": {
+   "parent": "elec_multimeter_grp",
+   "tris": 3008,
+   "materials": [
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.3907,
+     0.3753,
+     0.735
+    ],
+    [
+     0.4993,
+     0.5547,
+     0.783
+    ]
+   ]
+  },
+  "elec_lab_wiring_grp__mesh": {
+   "parent": "elec_lab_wiring_grp",
+   "tris": 10390,
+   "materials": [
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr",
+    "electronics_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.4324,
+     0.3723,
+     0.7352
+    ],
+    [
+     0.8145,
+     0.7128,
+     0.8385
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.0261,
+   "s2a": [],
+   "base_mean": [
+    0.659,
+    0.508,
+    0.411
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 1.094,
+   "coverage_px": 0.261
+  }
+ },
+ "bake_seconds": {
+  "base": 40.0,
+  "rough": 40.8,
+  "metal": 40.2,
+  "normal": 41.3,
+  "L_full": 35.8,
+  "L_direct": 30.1
+ },
+ "glb": "electronics.glb",
+ "glb_bytes": 4843380,
+ "seconds": 307.5
+}

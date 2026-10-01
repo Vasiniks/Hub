@@ -1,0 +1,289 @@
+{
+ "set": "cables",
+ "sources": [
+  "NEW_cables"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 53320,
+ "tris_after": 50514,
+ "objects": [
+  {
+   "name": "cables_monitor_dp_plug",
+   "tris_before": 1714,
+   "tris_after": 1650
+  },
+  {
+   "name": "cables_monitor_c7_plug",
+   "tris_before": 2446,
+   "tris_after": 2098
+  },
+  {
+   "name": "cables_monitor_dp_usbc_plug",
+   "tris_before": 882,
+   "tris_after": 670
+  },
+  {
+   "name": "cables_macbook_magsafe_plug",
+   "tris_before": 2544,
+   "tris_after": 2062
+  },
+  {
+   "name": "cables_bundle_wraps",
+   "tris_before": 3404,
+   "tris_after": 2684
+  },
+  {
+   "name": "cables_power_strip",
+   "tris_before": 848,
+   "tris_after": 848
+  },
+  {
+   "name": "cables_power_strip_details",
+   "tris_before": 2302,
+   "tris_after": 2262
+  },
+  {
+   "name": "cables_power_brick",
+   "tris_before": 2604,
+   "tris_after": 2604
+  },
+  {
+   "name": "cables_power_brick_details",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "cables_brick_usbc_plug",
+   "tris_before": 882,
+   "tris_after": 670
+  },
+  {
+   "name": "cables_brick_ac_head",
+   "tris_before": 1578,
+   "tris_after": 1386
+  },
+  {
+   "name": "cables_mains_plug_monitor",
+   "tris_before": 2514,
+   "tris_after": 2466
+  },
+  {
+   "name": "cables_mains_plug_brick",
+   "tris_before": 2514,
+   "tris_after": 2466
+  },
+  {
+   "name": "cables_coil_usbc_plug",
+   "tris_before": 1862,
+   "tris_after": 1802
+  },
+  {
+   "name": "cables_coil_usba_plug",
+   "tris_before": 1622,
+   "tris_after": 1554
+  },
+  {
+   "name": "cables_coil_velcro",
+   "tris_before": 1092,
+   "tris_after": 816
+  },
+  {
+   "name": "cables_monitor_dp_cable",
+   "tris_before": 3836,
+   "tris_after": 3832
+  },
+  {
+   "name": "cables_monitor_power_cable",
+   "tris_before": 6172,
+   "tris_after": 6158
+  },
+  {
+   "name": "cables_macbook_charge_cable",
+   "tris_before": 5820,
+   "tris_after": 5812
+  },
+  {
+   "name": "cables_brick_ac_cord",
+   "tris_before": 1900,
+   "tris_after": 1898
+  },
+  {
+   "name": "cables_strip_cord",
+   "tris_before": 1060,
+   "tris_after": 1052
+  },
+  {
+   "name": "cables_coil_cable",
+   "tris_before": 5448,
+   "tris_after": 5448
+  }
+ ],
+ "skipped": {},
+ "reduction": {
+  "cables_monitor_dp_plug": "dissolve",
+  "cables_monitor_c7_plug": "dissolve",
+  "cables_monitor_dp_usbc_plug": "dissolve",
+  "cables_macbook_magsafe_plug": "dissolve",
+  "cables_bundle_wraps": "dissolve",
+  "cables_power_strip": "dissolve",
+  "cables_power_strip_details": "dissolve",
+  "cables_power_brick": "kept (custom normals)",
+  "cables_power_brick_details": "kept",
+  "cables_brick_usbc_plug": "dissolve",
+  "cables_brick_ac_head": "dissolve",
+  "cables_mains_plug_monitor": "dissolve",
+  "cables_mains_plug_brick": "dissolve",
+  "cables_coil_usbc_plug": "dissolve",
+  "cables_coil_usba_plug": "dissolve",
+  "cables_coil_velcro": "dissolve",
+  "cables_monitor_dp_cable": "dissolve",
+  "cables_monitor_power_cable": "dissolve",
+  "cables_macbook_charge_cable": "dissolve",
+  "cables_brick_ac_cord": "dissolve",
+  "cables_strip_cord": "dissolve",
+  "cables_coil_cable": "dissolve"
+ },
+ "atlas": {
+  "pbr_res": 1024,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "cables_basecolor.png",
+  "orm": "cables_orm.png",
+  "normal": "cables_normal.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "cables.indirect.rgbm.webp",
+  "png": "cables.indirect.rgbm.png",
+  "res": 256,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 1.81,
+  "linear_max": 3.2761,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 0.00059,
+  "rgbm_mean_rel_err": 0.0024,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.14951,
+   "mean_full": 0.14879,
+   "mean_direct_plus_indirect": 0.15272,
+   "mean_ratio": 1.0264,
+   "p99_full": 2.1696,
+   "p99_direct_plus_indirect": 2.2937,
+   "indirect_share": 0.5588,
+   "direct_share": 0.4676
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ]
+ },
+ "material_modes": {
+  "cables_pbr": "pbr",
+  "magsafe_led_amber.001": "pbr_emissive"
+ },
+ "material_kinds": {
+  "brick_port_dark.001": "opaque",
+  "brick_seam.001": "opaque",
+  "brick_white_pc.001": "opaque",
+  "cbl_braid_white.001": "opaque",
+  "cbl_pvc_black_matte.001": "opaque",
+  "cbl_pvc_black_satin.001": "opaque",
+  "cbl_pvc_white.001": "opaque",
+  "conn_insulator_black.001": "opaque",
+  "conn_insulator_blue.001": "opaque",
+  "conn_metal_nickel.001": "opaque",
+  "conn_overmold_black.001": "opaque",
+  "conn_overmold_white.001": "opaque",
+  "magsafe_aluminium.001": "opaque",
+  "magsafe_face_black.001": "opaque",
+  "magsafe_led_amber.001": "emit",
+  "magsafe_pad_gold.001": "opaque",
+  "magsafe_sleeve_silver.001": "opaque",
+  "monitor_inlet_dark.001": "opaque",
+  "strip_hole_black.001": "opaque",
+  "strip_recess_grey.001": "opaque",
+  "strip_rocker_red.001": "opaque",
+  "strip_white_abs.001": "opaque",
+  "velcro_black.001": "opaque",
+  "ziptie_nylon_black.001": "opaque",
+  "magsafe_led_amber.001__src": "emit"
+ },
+ "emissive_materials": [
+  "magsafe_led_amber.001"
+ ],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "NEW_cables_root": {
+   "blender_world": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "three_world": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_cables_root__mesh": {
+   "parent": "NEW_cables_root",
+   "tris": 50514,
+   "materials": [
+    "cables_pbr",
+    "magsafe_led_amber.001"
+   ],
+   "blender_bbox": [
+    [
+     -0.2776,
+     0.5612,
+     0.0
+    ],
+    [
+     1.03,
+     1.2811,
+     1.0461
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.2467,
+   "s2a": [],
+   "base_mean": [
+    0.552,
+    0.551,
+    0.548
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 0.585,
+   "coverage_px": 0.078
+  }
+ },
+ "bake_seconds": {
+  "base": 29.8,
+  "rough": 29.6,
+  "metal": 29.6,
+  "normal": 29.8,
+  "L_full": 29.0,
+  "L_direct": 25.6
+ },
+ "glb": "cables.glb",
+ "glb_bytes": 1828664,
+ "seconds": 234.4
+}

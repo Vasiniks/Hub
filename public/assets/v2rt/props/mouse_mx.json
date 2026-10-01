@@ -1,0 +1,184 @@
+{
+ "set": "mouse_mx",
+ "sources": [
+  "NEW_mouse_mx"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 23024,
+ "tris_after": 14274,
+ "objects": [
+  {
+   "name": "MouseMX_Shell",
+   "tris_before": 19232,
+   "tris_after": 10844
+  },
+  {
+   "name": "MouseMX_ScrollWheel",
+   "tris_before": 1728,
+   "tris_after": 1586
+  },
+  {
+   "name": "MouseMX_ThumbWheel",
+   "tris_before": 1152,
+   "tris_after": 1148
+  },
+  {
+   "name": "MouseMX_BasePlate",
+   "tris_before": 356,
+   "tris_after": 140
+  },
+  {
+   "name": "MouseMX_FootL",
+   "tris_before": 212,
+   "tris_after": 212
+  },
+  {
+   "name": "MouseMX_FootR",
+   "tris_before": 220,
+   "tris_after": 220
+  },
+  {
+   "name": "MouseMX_USBC",
+   "tris_before": 124,
+   "tris_after": 124
+  }
+ ],
+ "skipped": {},
+ "reduction": {
+  "MouseMX_Shell": "collapse 0.60",
+  "MouseMX_ScrollWheel": "dissolve",
+  "MouseMX_ThumbWheel": "dissolve",
+  "MouseMX_BasePlate": "dissolve",
+  "MouseMX_FootL": "kept",
+  "MouseMX_FootR": "kept",
+  "MouseMX_USBC": "kept"
+ },
+ "atlas": {
+  "pbr_res": 1024,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "mouse_mx_basecolor.png",
+  "orm": "mouse_mx_orm.png",
+  "normal": "mouse_mx_normal.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "mouse_mx.indirect.rgbm.webp",
+  "png": "mouse_mx.indirect.rgbm.png",
+  "res": 256,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 0.77,
+  "linear_max": 0.5929,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 0.00038,
+  "rgbm_mean_rel_err": 0.0023,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.04212,
+   "mean_full": 0.04186,
+   "mean_direct_plus_indirect": 0.04186,
+   "mean_ratio": 1.0,
+   "p99_full": 0.1394,
+   "p99_direct_plus_indirect": 0.1394,
+   "indirect_share": 1.0,
+   "direct_share": 0.0
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ]
+ },
+ "material_modes": {
+  "mouse_mx_pbr": "pbr"
+ },
+ "material_kinds": {
+  "MX_BaseSilver.001": "opaque",
+  "MX_BlackPlastic.001": "opaque",
+  "MX_Feet.001": "opaque",
+  "MX_PaleGrey.001": "opaque",
+  "MX_SatinSilver.001": "opaque",
+  "MX_SideButton": "opaque",
+  "MX_Steel.001": "opaque",
+  "MX_Steel_Thumb.001": "opaque",
+  "MX_WellDark.001": "opaque"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "NEW_mouse_mx_root": {
+   "blender_world": [
+    0.33,
+    0.45,
+    0.735
+   ],
+   "three_world": [
+    0.33,
+    0.735,
+    -0.45
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_mouse_mx_root__mesh": {
+   "parent": "NEW_mouse_mx_root",
+   "tris": 14274,
+   "materials": [
+    "mouse_mx_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.2795,
+     0.3823,
+     0.735
+    ],
+    [
+     0.3806,
+     0.5177,
+     0.786
+    ]
+   ]
+  }
+ },
+ "credits": [
+  {
+   "key": "mx_master_3s",
+   "text": "\"Mouse Logitech MX Master 3S white\" by Guibazilla, CC BY 4.0 (https://sketchfab.com/3d-models/mouse-logitech-mx-master-3s-white-dc82de97cbe64c6a8deae3328208c984)"
+  }
+ ],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.0349,
+   "s2a": [],
+   "base_mean": [
+    0.596,
+    0.602,
+    0.614
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 3.892,
+   "coverage_px": 0.478
+  }
+ },
+ "bake_seconds": {
+  "base": 9.4,
+  "rough": 9.6,
+  "metal": 9.5,
+  "normal": 9.6,
+  "L_full": 9.9,
+  "L_direct": 8.5
+ },
+ "glb": "mouse_mx.glb",
+ "glb_bytes": 573744,
+ "seconds": 76.3
+}
