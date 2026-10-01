@@ -37,6 +37,17 @@ context in `perf/LOG.md`, `assets/MANIFEST.md`, `.claude/progress/` and `src/sce
 
 ## Blender
 Blender **5.2.2 LTS** CLI is at `~/.local/bin/blender` (`blender --background --python script.py`).
+
+**Always pass `--factory-startup`.** Without it Blender crashes at startup on this machine in Metal
+backend detection (`EXC_BAD_ACCESS` / `SIGABRT`, "Abort trap: 6"), and the run dies before your
+script sees the file.
+
+**One Blender at a time.** `room_public.blend` is 66 MB and 1.5 M triangles; two of them will not
+fit beside everything else running here. If a run dies with no crash report, it was probably killed
+for memory — say so rather than retrying blindly.
+
+**Never kill Blender by process name.** No `pkill blender`, no `killall blender`: the owner works in
+a Blender window on this same machine and that closes it. Only ever kill a PID you launched.
 The repo already has a Blender→GLB pipeline: `blender/scripts/*.py` produce `assets/processed/*.glb`
 (+ a JSON sidecar with metadata like the lamp's `socket`/`beam`), then `node scripts/optimize-glb.mjs`
 quantises them into `public/assets/processed/`. Follow that pipeline; do not invent a new one.

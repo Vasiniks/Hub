@@ -161,3 +161,96 @@ The owner's earlier instruction: non-Blender (website) work goes through **OpenC
 
 `main` ships the old web build. **`blender-remodel`** holds all of the above and is not merged.
 `bake/20260927` (old five-state bake) and `ws/lightmaps` (old runtime lightmap half) are superseded — don't merge them.
+
+
+---
+
+# Web integration — paused 2026-10-01
+
+Everything below was started after the Blender remodel landed, and is **paused mid-flight** at the
+owner's request. Nothing here is merged except where it says so. Five OpenCode agents were stopped;
+no process is running.
+
+## What is live right now
+
+**https://vasiniks.github.io/Hub/** — GitHub Pages, deployed from `main` by
+`.github/workflows/pages.yml` on every push. Pages serves the repo under `/Hub/`, so the bundle is
+built with `--base=/Hub/`; the runtime already resolves assets through `import.meta.env.BASE_URL`,
+so nothing in the code knows about the sub-path. Pages was enabled with Actions as the source.
+
+- The default URL is **the old room, complete and interactive** — verified in a real browser against
+  the live site: all models, scroll-to-sit, hover, focus, panels, keyboard nav, no console errors.
+- **`/?v2` is the baked sunset room, and it is not presentable.** Static camera, no props, flat
+  beige through the window. Do not show it to anyone as "the remodel" — that mistake was made once
+  already and it reads as the site being broken.
+
+Cold load of the live site is **5.7 s** to interactive (1.7 s locally). GitHub Pages does not allow
+custom cache headers, so the fix is smaller files, not headers.
+
+## Branch map
+
+| branch | state |
+|---|---|
+| `main` | ships. Pages workflow + the baked room behind `?v2` (merged from `ws/web-shell`). |
+| `blender-remodel` | the Blender scene, the bake, all briefs. **Not merged into `main`** — it carries ~150 MB of .blend files and that is a deliberate decision not yet taken. |
+| `ws/web-shell` | merged into `main`. Done. |
+| `ws/web-props` | WIP commit. 710-line exporter written, **zero props exported.** |
+| `ws/web-exterior` | WIP commit. Backdrop bake script, not finished. |
+| `ws/loading` | WIP commit. Loading-screen work started. |
+| `ws/v2-rig` | WIP commit, furthest along: 214 lines across `rig.ts`, `main.ts`, `bakedRoom.ts`. |
+| `ws/v2-look` | no commits; it was still diagnosing. |
+
+Worktrees are `~/Documents/GitHub/hub-wt-{shell,webprops,exterior,loading,v2rig,v2look}`. Each has a
+git-excluded `opencode.json` granting edit/bash/webfetch, a `node_modules` symlink, and its agent
+transcript at `tmp/agent.log`. Briefs are `.claude/briefs/{web-shell,web-props,web-exterior,loading,
+v2-rig,v2-look}.md` on `blender-remodel`.
+
+## What each workstream still owes
+
+1. **`ws/web-props` — the long pole.** `blender/scripts/v2_export_web.py` bakes each collection's
+   procedural materials to textures and exports a GLB. It got as far as the A1 mini — purged to a
+   48-object working set, split the screen out as its own emissive primitive — then failed on its
+   own bug: `NodeLinks.new(): ... does not support a 'None' assignment NodeSocket type`, wiring a
+   bake graph against a material that lacks the expected socket. **Nothing has been exported yet.**
+   Scope idea worth taking: do the desk first (monitor, keyboard, MacBook, mouse, lamp, PC, lab
+   corner) and ship that, rather than all 17 collections before anything lands.
+2. **`ws/v2-rig`** — stand, mouse look, scroll to sit in `?v2`, reusing `src/camera/rig.ts`. Was
+   running its own preview server when stopped. Closest to something showable.
+3. **`ws/v2-look`** — why the bake looks wrong. The black shapes on the desk are the baked contact
+   shadows of props that have not been exported; the lightmap is correct. **Do not lift the shadows
+   out of the bake to hide them.** The real runtime fault is the grade: Blender rendered with AgX
+   look "Medium High Contrast", three.js has AgX with no look.
+4. **`ws/web-exterior`** — the street as a baked backdrop instead of 373 k triangles.
+5. **`ws/loading`** — something to do during the 5.7 s wait, without delaying the reveal by more
+   than 5% or taking a second WebGL context.
+
+## Decisions left open
+
+- **"Delete v1, make `/Hub` the remodel."** The owner asked for this; it has not been done. Doing it
+  today would replace a working interactive room with a static empty shell on the public URL. The
+  plan agreed-but-not-executed: flip the default once `ws/v2-rig` and the first props land, and
+  remove the old path in the same change, so the public site is never the worse of the two.
+- Whether `blender-remodel` merges into `main` at all, given the .blend payload.
+- The four CC BY assets (Teto plush, MX Master 3S, A1 mini, motherboard) need a **visible credit on
+  the site** before they ship. Not built yet.
+
+## This machine
+
+- **Blender must be run with `--factory-startup`.** Without it it aborts in Metal backend detection
+  before the script runs (`EXC_BAD_ACCESS` → `SIGABRT`); four crash reports in one hour came from
+  this. Also: one Blender at a time (`room_public.blend` is 66 MB / 1.5 M tris), and never kill
+  Blender by process name — the owner has a window open. These are in `.claude/briefs/_common.md`.
+- The machine was at **22 GB of swap and under 100 MB free RAM** when paused, largely from running
+  two Blender exports concurrently. That is what made Blender unstable, not the agents.
+- Claude's own sandbox blocks local port binding, loopback connections, `gh`'s keyring and TLS, and
+  Blender's GPU detection. Server, browser, `gh` and Blender commands all ran outside it.
+- Leftover vite servers from several sessions were killed at the pause; `scripts/verify-*.mjs` now
+  take `ROOM_URL` and `CHROME_PATH` from `scripts/verify-env.mjs` (the hardcoded Chrome path was
+  dead on this machine).
+
+## Known quality notes on the shipping room
+
+Verified by looking, not just by passing tests: the hover highlight is a thick pure-white silhouette
+outline that reads as a cutout sticker on small dark objects; the hover label floats detached from
+its object; every panel still says "Placeholder project"; and the focused close-up is very dark at
+night. The music widget is a Spotify embed — real, licensed playback, no audio bundled in the repo.
