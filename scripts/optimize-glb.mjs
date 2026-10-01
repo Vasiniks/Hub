@@ -4,14 +4,22 @@
 // 8-bit, texture coordinates to 16-bit — which three's GLTFLoader reads natively, so the room
 // ships no decoder. Also merges duplicate accessors/materials and prunes anything unused.
 // Usage: node scripts/optimize-glb.mjs [name ...]   (default: every GLB in assets/processed)
+//        node scripts/optimize-glb.mjs --src blender/bake/sunset --dst public/assets/v2/room [name ...]
+//        (the baked sunset atlases: their TEXCOORD_1 lightmap UV must survive — see below)
 import fs from 'node:fs';
 import path from 'node:path';
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, prune, quantize } from '@gltf-transform/functions';
 
-const src = 'assets/processed';
-const dst = 'public/assets/processed';
+const argv = process.argv.slice(2);
+const opt = (flag, fallback) => {
+  const i = argv.indexOf(flag);
+  if (i < 0) return fallback;
+  return argv.splice(i, 2)[1] ?? fallback;
+};
+const src = opt('--src', 'assets/processed');
+const dst = opt('--dst', 'public/assets/processed');
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 const names = process.argv.slice(2);
 const files = fs.readdirSync(src).filter((f) => f.endsWith('.glb') && (!names.length || names.includes(path.basename(f, '.glb'))));
@@ -23,9 +31,14 @@ for (const f of files) {
     dedup(),
     // Positions keep 16 bits across the mesh's own bounds: sub-0.02 mm on a 1 m robot.
     quantize({ quantizePosition: 16, quantizeNormal: 8, quantizeTexcoord: 16, quantizeColor: 8, quantizeGeneric: 12 }),
-    prune(),
+    // keepAttributes: a lightmap UV (TEXCOORD_1) has no texture referencing it yet — the
+    // lightmap is wired at runtime — so default pruning strips it (and TEXCOORD_0).
+    // Keep all vertex attributes; the static merge + lightmap pass need them.
+    // (ws/lightmaps commit e61413e; ported for the sunset bake in public/assets/v2/room.)
+    prune({ keepAttributes: true }),
   );
   const out = path.join(dst, f);
+  fs.mkdirSync(dst, { recursive: true });
   await io.write(out, doc);
   const a = fs.statSync(path.join(src, f)).size;
   const b = fs.statSync(out).size;
