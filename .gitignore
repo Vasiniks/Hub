@@ -43,3 +43,6 @@ blender/scene/parts/stm_reference*.png
 blender/scene/parts/cooler_reference.jpg
 blender/scene/parts/cooler_reference.png
 blender/scene/parts/pc.blend
+
+# Sunset bake working copy: embeds the same non-redistributable assets as room.blend
+blender/bake/sunset/room_bake.blend*
