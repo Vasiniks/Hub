@@ -4,14 +4,17 @@
 // 8-bit, texture coordinates to 16-bit — which three's GLTFLoader reads natively, so the room
 // ships no decoder. Also merges duplicate accessors/materials and prunes anything unused.
 // Usage: node scripts/optimize-glb.mjs [name ...]   (default: every GLB in assets/processed)
+// Env overrides (for the v2 prop pipeline; defaults preserve the old behaviour):
+//   PROPS_SRC + PROPS_DST, e.g. PROPS_SRC=tmp/props_raw PROPS_DST=public/assets/v2/props
 import fs from 'node:fs';
 import path from 'node:path';
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, prune, quantize } from '@gltf-transform/functions';
 
-const src = 'assets/processed';
-const dst = 'public/assets/processed';
+const src = process.env.PROPS_SRC ?? 'assets/processed';
+const dst = process.env.PROPS_DST ?? 'public/assets/processed';
+fs.mkdirSync(dst, { recursive: true });
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 const names = process.argv.slice(2);
 const files = fs.readdirSync(src).filter((f) => f.endsWith('.glb') && (!names.length || names.includes(path.basename(f, '.glb'))));
