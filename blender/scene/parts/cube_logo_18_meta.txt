@@ -1,0 +1,4 @@
+logo_px 114
+cap_px 113 95
+logo_over_cap 1.0088
+colour_srgb #EA2219

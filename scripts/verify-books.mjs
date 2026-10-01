@@ -2,13 +2,14 @@
 // behind its cover. Reports overlaps in shelf-local space, and saves frames for inspection.
 // Usage: node scripts/verify-books.mjs [outDir]
 import { chromium } from 'playwright-core';
+import { base, chrome } from './verify-env.mjs';
 const out = process.argv[2];
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome 3.app/Contents/MacOS/Google Chrome', headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
+const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
-await page.goto('http://127.0.0.1:5173/?debug&pr=1&hour=12', { waitUntil: 'load' });
+await page.goto(`${base}/?debug&pr=1&hour=12`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__room !== undefined, null, { timeout: 60000 });
 await page.mouse.move(720, 450);
 await wait(1200);

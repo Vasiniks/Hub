@@ -1,13 +1,12 @@
 // Browser verification for the room prototype.
 // Usage: node scripts/verify-room.mjs <outDir> [hour]
 import { chromium } from 'playwright-core';
+import { base, chrome } from './verify-env.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const outDir = process.argv[2] ?? 'verify-out';
 const hour = process.argv[3] ?? '21';
-const base = process.env.ROOM_URL ?? 'http://127.0.0.1:5173/';
-const chrome = process.env.CHROME_PATH ?? '/Applications/Google Chrome 3.app/Contents/MacOS/Google Chrome';
 fs.mkdirSync(outDir, { recursive: true });
 
 const report = { hour, steps: [], errors: [], warnings: [] };
@@ -39,7 +38,7 @@ const shot = async (name) => {
   }
 };
 
-await page.goto(`${base}?debug&hour=${hour}`, { waitUntil: 'load' });
+await page.goto(`${base}/?debug&hour=${hour}`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__room !== undefined, null, { timeout: 15000 });
 await page.mouse.move(720, 450);
 await wait(3500);

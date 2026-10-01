@@ -1,6 +1,6 @@
 // Reduced motion: the room must still be fully usable, with the transitions simplified.
 import { chromium } from 'playwright-core';
-const chrome = process.env.CHROME_PATH ?? '/Applications/Google Chrome 3.app/Contents/MacOS/Google Chrome';
+import { base, chrome } from './verify-env.mjs';
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
@@ -9,7 +9,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
 const out = {};
-await page.goto('http://127.0.0.1:5173/?debug&hour=21.6', { waitUntil: 'load' });
+await page.goto(`${base}/?debug&hour=21.6`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__room !== undefined, { timeout: 30000 });
 await wait(2000);
 

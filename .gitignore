@@ -18,3 +18,31 @@ public/assets/lightmaps/
 tmp/
 .serena/
 __pycache__/
+
+# Blender remodel — backups, test copies, regenerable exports, preview renders
+*.blend1
+blender/scene/renders/
+blender/scene/room_export.glb
+blender/scene/parts/*.png
+blender/scene/parts/materials_test.blend
+# Not redistributable in this PUBLIC repo (see assets/MANIFEST.md): Sketchfab Free Standard guitar, owner downloads
+# room.blend embeds them; blender/scene/room_public.blend is the same scene with them stripped.
+assets/source/
+blender/scene/room.blend
+blender/scene/parts/tele_gb.blend
+blender/scene/parts/teto_pear.blend
+blender/scene/parts/cube_logo_ref.png
+blender/scene/parts/cube_logo_*.png
+blender/scene/parts/speedcube.blend
+blender/scene/parts/redbull.blend
+blender/scene/parts/mouse_mx.blend.tmp
+blender/scene/parts/pc_reference.jpg
+blender/scene/parts/medal_ref_*.jpg
+blender/scene/parts/gpu_reference.jpg
+blender/scene/parts/stm_reference*.png
+blender/scene/parts/cooler_reference.jpg
+blender/scene/parts/cooler_reference.png
+blender/scene/parts/pc.blend
+
+# Sunset bake working copy: embeds the same non-redistributable assets as room.blend
+blender/bake/sunset/room_bake.blend*
