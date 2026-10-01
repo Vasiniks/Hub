@@ -17,7 +17,12 @@ import { createInteraction, OVERLAY_LAYER, type InteractTarget } from './interac
 import { createPanel, createHint, createObjectNav, createShelfCaption } from './ui/panel';
 import { createLoader } from './ui/loading';
 import { createMusicWidget } from './ui/music';
-import { loadBakedRoom, V2_EXPOSURE, V2_TUNING } from './scene/bakedRoom';
+import { loadBakedRoom, V2_EXPOSURE } from './scene/bakedRoom';
+import { V2_TUNING } from './scene/v2Layout';
+import { BloomPass } from './scene/bloom';
+import { findNodes, loadV2Props } from './scene/v2Props';
+import { createPropRegistry } from './interaction/props';
+import { v2Props } from './data/v2Props';
 import { CAMERA, INTERACTION, SHELF } from './scene/layout';
 import { FramePerf } from './debug/perf';
 import { buildPickingTrees } from './interaction/bvh';
@@ -983,12 +988,15 @@ async function start() {
 }
 
 /**
- * `?v2`: the baked sunset room only — shell, desk, furniture, curtains — lit entirely by
- * their lightmaps. A flag, not a replacement: the default path above is untouched, and this
- * path loads none of it (no procedural room, no live lights, no props/exterior/interaction —
- * those are other workstreams). No live light exists in this scene, so the bake cannot be
- * double-lit; AO, shafts and bloom stay off for the same reason (all three would add light
- * or darkness the bake already holds).
+ * `?v2`: the baked sunset room — shell, desk, furniture, curtains — lit entirely by their
+ * lightmaps, walked with the default room's rig and examined through its interaction modules.
+ * A flag, not a replacement: the default path above is untouched, and this path loads none of
+ * it (no procedural room, no live lights). No live light exists in this scene, so the bake
+ * cannot be double-lit; AO, shafts and bloom stay off for the same reason (all three would add
+ * light or darkness the bake already holds).
+ *
+ * Interactive objects come from `src/data/v2Props.ts` through the prop registry
+ * (`src/interaction/props.ts`): baked fixtures now, the props GLBs as they are exported.
  */
 async function startV2() {
   const scene = new THREE.Scene();
@@ -997,11 +1005,18 @@ async function startV2() {
   scene.fog = null;
 
   const camera = new THREE.PerspectiveCamera(V2_TUNING.fov, window.innerWidth / window.innerHeight, 0.02, 40);
+  // Attention dots live on the overlay layer, as in the default room.
+  camera.layers.enable(OVERLAY_LAYER);
 
   const base = `${import.meta.env.BASE_URL}assets/v2/room/`;
   loader.advance('baked room');
-  const baked = await loadBakedRoom(base);
+  // Props load alongside the bake; with no manifest yet this resolves empty.
+  const [baked, propFiles] = await Promise.all([
+    loadBakedRoom(base),
+    loadV2Props(`${import.meta.env.BASE_URL}assets/v2/props/`),
+  ]);
   scene.add(baked.group);
+  if (propFiles.props.length) scene.add(propFiles.group);
   loader.advance('lightmaps');
 
   // Dummy lights: only to satisfy createRenderer's signature (volumetric + lamp-shadow
@@ -1015,30 +1030,54 @@ async function startV2() {
   // The bake already holds every bounce, shaft and glow: no live post-light effects.
   view.ao.enabled = false;
   view.volumetric.enabled = false;
+  // `instanceof`, not `constructor.name`: the production build renames classes.
   for (const p of view.composer.passes) {
-    if (p.constructor.name === 'BloomPass') (p as { enabled: boolean }).enabled = false;
+    if (p instanceof BloomPass) p.enabled = false;
   }
 
   // The same first-person rig as the default room — same file, same spring, same sit
-  // transition — driven by the v2 room's own poses and limits (V2_TUNING). No live chair:
-  // it is baked into the furniture atlas, so the rig moves the camera only.
+  // transition — driven by the v2 room's own poses and limits (V2_TUNING). No chair: the
+  // v2 room has none (see v2Layout.ts), so the rig moves the camera only.
   const rig = new CameraRig(camera, null, reducedMotion, V2_TUNING);
 
-  // Seam for the props workstream: picking, outlines and panels plug in here without
-  // touching the rig. When targets exist, wire them exactly like the default path:
-  // `rig.setPointer` (already wired below) → `interaction.setPointer`, `rig.holdLook(true)`
-  // while hovering a non-centred target, `rig.sitDown()` before focusing from standing,
-  // `rig.focus({ center, distance, yaw, pitch, offset? })` to examine (world-space anchor,
-  // distance in metres, yaw/pitch of the approach direction, `offset` = fraction of distance
-  // to aim right so the object sits left of the panel), `rig.unfocus()` on Esc, and
-  // `rig.lookExtent()` so pointing-vs-turning picks like the default room. `rig.interactive`
-  // (standing/seated only) gates input; `onFocusProgress`/`onReturned` drive the panel.
+  // Everything that happens because of an object (hover, outline, label, click to examine,
+  // panel, Esc / click-outside, keyboard nav) is the default room's interaction modules behind
+  // one `register()` call per object (src/interaction/props.ts).
+  const props = createPropRegistry({
+    scene,
+    camera,
+    rig,
+    outline: view.outline,
+    canvas,
+    seat: V2_TUNING.seat.position,
+    reducedMotion,
+    hint,
+  });
+  const skippedProps: string[] = [];
+  for (const def of v2Props) {
+    const src = def.source;
+    const nodes =
+      'baked' in src
+        ? findNodes(baked.group, (n) => src.baked.some((p) => n.startsWith(p)))
+        : 'props' in src
+          ? findNodes(propFiles.group, (n) => src.props.some((p) => n.startsWith(p)))
+          : [propFiles.file(src.file)].filter((n): n is THREE.Object3D => !!n);
+    // Not loaded (yet): props are listed before their GLBs are exported.
+    if (!nodes.length) {
+      skippedProps.push(def.id);
+      continue;
+    }
+    props.register({ id: def.id, label: def.label, node: nodes, panel: def.panel, focus: def.focus, dot: def.dot, lift: def.lift });
+  }
+
   function sitV2() {
     if (rig.sitDown()) hint.hide();
   }
 
   let lookHintShown = false;
   rig.onSeated = () => {
+    // A click on an object while standing sat the visitor down; now open it.
+    if (props.resumePending()) return;
     if (!lookHintShown) {
       lookHintShown = true;
       hint.show('Look around', 4200);
@@ -1055,7 +1094,7 @@ async function startV2() {
   );
 
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') return; // No focus targets yet; Esc will unfocus via the seam above.
+    if (e.key === 'Escape') return; // Esc belongs to the prop registry (back out of an object).
     const active = document.activeElement;
     const onBody = active === document.body || active === null;
     if (onBody && rig.mode === 'standing' && ['ArrowDown', ' ', 'Enter', 'PageDown'].includes(e.key)) {
@@ -1071,9 +1110,13 @@ async function startV2() {
   });
 
   loader.advance('shaders');
-  await view.warmUp([], (stage) => loader.advance(stage));
+  // Interactive objects are passed so the hover outline's shader variants compile now, not on
+  // the first hover.
+  await view.warmUp(props.groups(), (stage) => loader.advance(stage));
   loader.advance('ready');
   await loader.hide();
+  // Picking acceleration builds in idle time once the room is on screen (see interaction/bvh.ts).
+  const pickingTrees = buildPickingTrees(scene);
 
   window.addEventListener('resize', view.resize);
 
@@ -1108,6 +1151,7 @@ async function startV2() {
     frameCount++;
     last = now;
     elapsed += dt;
+    props.holdLook();
     if (parked) {
       camera.position.set(parked.p[0], parked.p[1], parked.p[2]);
       camera.lookAt(parked.t[0], parked.t[1], parked.t[2]);
@@ -1116,6 +1160,7 @@ async function startV2() {
     } else {
       rig.update(dt);
     }
+    props.update(dt, elapsed);
     view.render(dt, elapsed, !reducedMotion);
 
     if (firstFrame) {
@@ -1134,6 +1179,26 @@ async function startV2() {
         frames: () => frameCount,
         camera: () => ({ position: camera.position.toArray(), quaternion: camera.quaternion.toArray() }),
         programs: () => (view.renderer.info.programs ?? []).map((p) => p.name),
+        hovered: () => props.hoveredId,
+        focused: () => props.focusedId,
+        panelOpen: () => props.panelOpen,
+        props: () => ({ registered: props.ids(), skipped: skippedProps, files: propFiles.props.map((p) => p.entry.file) }),
+        openProp: (id: string) => props.open(id),
+        /** Try a registration from the console: any baked or prop node prefix, default framing. */
+        registerNodes: (id: string, label: string, prefixes: string[]) =>
+          !!props.register({
+            id,
+            label,
+            node: [baked.group, propFiles.group].flatMap((root) => findNodes(root, (n) => prefixes.some((p) => n.startsWith(p)))),
+            panel: { kind: 'Debug', title: label, summary: 'Registered from the console.', sections: [] },
+          }),
+        closeProp: () => props.close(),
+        forceHover: (id: string | null) => props.interaction.setForcedHover(id),
+        screenPositionOf: (id: string) => props.interaction.screenPositionOf(id),
+        hitPositionOf: (id: string) => props.interaction.hitPositionOf(id),
+        debugPick: (x: number, y: number) => props.interaction.debugPick(x, y),
+        debugState: () => ({ ...props.interaction.debugState(), lookExtent: rig.lookExtent() }),
+        pickingTrees: () => pickingTrees,
         lookExtent: () => rig.lookExtent(),
         sitDown: () => rig.sitDown(),
         setPointer: (nx: number, ny: number) => rig.setPointer(nx, ny),

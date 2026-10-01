@@ -21,7 +21,10 @@ export interface RigTuning {
   focusFov: number;
   stand: RigPose;
   seat: RigPose;
-  /** [left, right] and [up, down] limits, radians from the rest direction. */
+  /**
+   * Limits in radians from the rest direction: yaw is [left, right], pitch is [down, up] (as
+   * `updateLook` reads them; `layout.ts` labels pitch the other way round, the values are right).
+   */
   standYaw: [number, number];
   seatYaw: [number, number];
   standPitch: [number, number];
@@ -33,7 +36,7 @@ export interface RigTuning {
 
 /**
  * The only thing the sit transition needs from the room: a chair to roll in, with its two
- * poses. The v2 baked room has no live chair (it is baked into the furniture atlas), so it
+ * poses. The v2 baked room has no chair at all (none in the bake or the props), so it
  * passes `null` and the camera flies the same path without moving furniture.
  */
 export interface SitChair {
@@ -158,6 +161,11 @@ export class CameraRig {
     this.fovTo = tuning.fov;
     this.camera.position.copy(this.standPos);
     this.camera.quaternion.copy(this.baseQuat(this.standLook, 0, 0));
+  }
+
+  /** The lens while examining, so callers can frame an object for it. */
+  get focusFov() {
+    return this.tuning.focusFov;
   }
 
   get interactive() {

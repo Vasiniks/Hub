@@ -270,7 +270,9 @@ class GradedOutputPass extends OutputPass {
     u.uScatter.value = volumetric.enabled && volumetric.active ? 1 : 0;
     u.tScatter.value = volumetric.texture;
     u.uOutline.value = outline.enabled && outline.selectedObjects.length > 0 ? 1 : 0;
-    u.uOutlineStrength.value = outline.edgeStrength;
+    // The rim is added before exposure, so dividing it out keeps it the same brightness on screen
+    // at every hour (and in the v2 bake): a fixed strength glared at night and vanished by day.
+    u.uOutlineStrength.value = outline.edgeStrength / Math.max(renderer.toneMappingExposure, 1e-3);
     u.tOutlineMask.value = outline.maskTexture;
     u.tOutlineEdge.value = outline.edgeTexture;
     u.uBloom.value = bloom.enabled ? 1 : 0;
@@ -363,10 +365,12 @@ export function createRenderer(
     () => (gtao.enabled ? gtao.depthTexture : null),
     () => gtao.view.camera,
   );
-  outline.edgeStrength = 2.4;
+  // A soft warm rim rather than a hard white cut-out: at 2.4 in cool white it read as a sticker
+  // around small dark objects. Display-referred (see the composite), so it holds by day too.
+  outline.edgeStrength = 1.0;
   outline.edgeGlow = 0;
   outline.edgeThickness = 1;
-  outline.visibleEdgeColor.set('#e9edf1');
+  outline.visibleEdgeColor.set('#f3e9da');
   outline.hiddenEdgeColor.set('#20242a');
   outline.enabled = false; // switched on only while something is hovered
   composer.addPass(outline);

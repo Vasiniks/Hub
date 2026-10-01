@@ -1,7 +1,5 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import type { RigTuning } from '../camera/rig';
-import { CAMERA } from './layout';
 
 /**
  * The baked sunset room (`?v2`), from `blender/bake/sunset/`.
@@ -21,43 +19,6 @@ import { CAMERA } from './layout';
  */
 
 export const V2_EXPOSURE = 2 ** 0.45;
-
-/**
- * The v2 baked room's own dimensions — deliberately separate from `ROOM`/`SHELF` in
- * `layout.ts`, which drive the default room's builders and must not move. The baked room is
- * 0.55 m wider than the procedural one (left wall −0.30, right wall +0.25) with a 2.72 m
- * ceiling. The rig takes these as input; it never reads `ROOM`.
- */
-export const V2_ROOM = {
-  /** Inner faces, three.js metres (x right, y up, z toward the visitor). */
-  leftWallX: -2.12,
-  rightWallX: 1.95,
-  ceilingY: 2.72,
-} as const;
-
-/**
- * v2 camera tuning for `CameraRig`. Poses come from the Blender scene (`CAM_seat`
- * (0, −0.16, 1.175) and `CAM_stand` (1.06, −0.96, 1.63), Blender metres, Z-up; three.js
- * `(x, y, z)` = Blender `(x, −z, y)`). The brief gives positions only, so the rest
- * directions reuse the default room's tuned lookAts — the desk/window layout matches — and
- * the look limits, dead zone, spring and fov are the same tuned values. There is no live
- * chair in v2 (it is baked into the furniture atlas), so the v2 path passes `null` for the
- * rig's chair and the sit transition moves the camera only.
- */
-export const V2_TUNING: RigTuning = {
-  fov: CAMERA.fov,
-  focusFov: CAMERA.focusFov,
-  // Blender CAM_stand (1.06, −0.96, 1.63) → three (1.06, 1.63, 0.96).
-  stand: { position: [1.06, 1.63, 0.96], lookAt: [...CAMERA.stand.lookAt] as [number, number, number] },
-  // Blender CAM_seat (0, −0.16, 1.175) → three (0, 1.175, 0.16).
-  seat: { position: [0, 1.175, 0.16], lookAt: [...CAMERA.seat.lookAt] as [number, number, number] },
-  standYaw: [...CAMERA.standYaw] as [number, number],
-  seatYaw: [...CAMERA.seatYaw] as [number, number],
-  standPitch: [...CAMERA.standPitch] as [number, number],
-  seatPitch: [...CAMERA.seatPitch] as [number, number],
-  deadZoneX: CAMERA.deadZoneX,
-  deadZoneY: CAMERA.deadZoneY,
-};
 
 interface AtlasSpec {
   name: string;

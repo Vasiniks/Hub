@@ -62,7 +62,7 @@ body.is-hovering #scene { cursor: pointer; }
 }
 .hint.is-visible { opacity: 1; transform: translate(-50%, 0); }
 
-/* Hover caption sits just above the object's anchor */
+/* Hover caption hangs level with the object's attention dot, just beside it */
 .hover-label {
   position: fixed;
   left: 0;

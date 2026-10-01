@@ -12,6 +12,13 @@ import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
  *
  * The glow stage (a second, quarter-resolution blur chain) is also skipped while `edgeGlow`
  * is zero — its result is multiplied by zero in the overlay, so computing it was pure waste.
+ *
+ * Where there is no AO depth to share (the baked v2 room runs without AO, and `?ao=off`), the
+ * pass draws its own: a depth-only render of everything except the selection, at half
+ * resolution, only while something is outlined. The stock fallback could not be used for this —
+ * the mask shader above is rewritten for a real depth texture, so stock's packed-RGBA depth read
+ * as garbage and occluded edges came out in the visible colour, drawn straight through whatever
+ * stood in front of the object.
  */
 interface Internals {
   _oldClearColor: THREE.Color;
@@ -21,6 +28,7 @@ interface Internals {
   _selectionCache: Set<THREE.Object3D>;
   _updateSelectionCache(): void;
   _changeVisibilityOfNonSelectedObjects(v: boolean): void;
+  _changeVisibilityOfSelectedObjects(v: boolean): void;
   _updateTextureMatrix(): void;
   textureMatrix: THREE.Matrix4;
   renderScene: THREE.Scene;
@@ -60,6 +68,42 @@ export class SharedDepthOutlinePass extends OutlinePass {
 
   private readonly getDepthCamera: () => THREE.PerspectiveCamera;
 
+  /** Own scene depth, for when there is no AO depth to share. Created on first need. */
+  private ownDepth: THREE.WebGLRenderTarget | null = null;
+
+  private readonly depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide });
+
+  setSize(width: number, height: number) {
+    super.setSize(width, height);
+    this.ownDepth?.setSize(Math.max(1, Math.round(width / 2)), Math.max(1, Math.round(height / 2)));
+  }
+
+  /** Depth of everything but the selection, from the render camera. */
+  private renderOwnDepth(renderer: THREE.WebGLRenderer) {
+    const self = this as unknown as Internals;
+    if (!this.ownDepth) {
+      const w = Math.max(1, Math.round(self.renderTargetMaskBuffer.width / 2));
+      const h = Math.max(1, Math.round(self.renderTargetMaskBuffer.height / 2));
+      this.ownDepth = new THREE.WebGLRenderTarget(w, h, { depthBuffer: true, depthTexture: new THREE.DepthTexture(w, h) });
+      this.ownDepth.texture.generateMipmaps = false;
+    }
+    const scene = self.renderScene;
+    const background = scene.background;
+    const override = scene.overrideMaterial;
+    self._updateSelectionCache();
+    self._changeVisibilityOfSelectedObjects(false);
+    scene.background = null;
+    scene.overrideMaterial = this.depthOnly;
+    renderer.setRenderTarget(this.ownDepth);
+    renderer.clear();
+    renderer.render(scene, self.renderCamera);
+    scene.background = background;
+    scene.overrideMaterial = override;
+    self._changeVisibilityOfSelectedObjects(true);
+    self._visibilityCache.clear();
+    return this.ownDepth.depthTexture!;
+  }
+
   constructor(
     resolution: THREE.Vector2,
     scene: THREE.Scene,
@@ -90,21 +134,21 @@ export class SharedDepthOutlinePass extends OutlinePass {
   render(
     renderer: THREE.WebGLRenderer,
     _writeBuffer: THREE.WebGLRenderTarget,
-    readBuffer: THREE.WebGLRenderTarget,
+    _readBuffer: THREE.WebGLRenderTarget,
     _deltaTime?: number,
     maskActive?: boolean,
   ) {
     const self = this as unknown as Internals & OutlinePass;
-    const depth = this.getDepth();
-    // No shared depth this frame (AO switched off for profiling): fall back to the stock path.
-    if (!depth) return super.render(renderer, _writeBuffer, readBuffer, _deltaTime ?? 0, maskActive ?? false);
     if (this.selectedObjects.length > 0) {
+      // No AO depth to share this frame (the v2 room, `?ao=off`): draw our own.
+      const shared = this.getDepth();
       renderer.getClearColor(self._oldClearColor);
       self.oldClearAlpha = renderer.getClearAlpha();
       const oldAutoClear = renderer.autoClear;
       renderer.autoClear = false;
       if (maskActive) renderer.state.buffers.stencil.setTest(false);
       renderer.setClearColor(0xffffff, 1);
+      const depth = shared ?? this.renderOwnDepth(renderer);
 
       self._updateSelectionCache();
       const scene = self.renderScene;
@@ -113,7 +157,7 @@ export class SharedDepthOutlinePass extends OutlinePass {
       scene.background = null;
 
       // Only the selected objects, depth-tested against the scene depth AO already rendered.
-      const depthCamera = this.getDepthCamera();
+      const depthCamera = shared ? this.getDepthCamera() : self.renderCamera;
       self.textureMatrix.set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1);
       self.textureMatrix.multiply(depthCamera.projectionMatrix).multiply(depthCamera.matrixWorldInverse);
       self._changeVisibilityOfNonSelectedObjects(false);

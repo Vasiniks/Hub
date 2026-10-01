@@ -3,6 +3,17 @@ import type { BookDef } from '../data/books';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
+/**
+ * What a panel shows: one small kicker, a title, a summary and labelled rows. Projects, books and
+ * v2 props all reduce to this, so there is one kind of surface in the room (§34).
+ */
+export interface PanelContent {
+  kind: string;
+  title: string;
+  summary: string;
+  sections: { label: string; body: string }[];
+}
+
 export function createPanel(onClose: () => void) {
   const panel = $('panel');
   const kind = $('panel-kind');
@@ -41,6 +52,10 @@ export function createPanel(onClose: () => void) {
     },
     fill(project: ProjectDef) {
       write(project.kindLabel, project.title, project.summary, project.sections);
+    },
+    /** Any content, for surfaces that are not a `ProjectDef` (v2 props). */
+    fillContent(content: PanelContent) {
+      write(content.kind, content.title, content.summary, content.sections);
     },
     /** Books reuse the project panel rather than inventing a second kind of surface (§34). */
     fillBook(book: BookDef) {
@@ -93,15 +108,21 @@ export function createObjectNav(
   handlers: { onFocus: (id: string) => void; onBlur: () => void; onActivate: (id: string) => void },
 ) {
   const nav = $('object-nav');
-  for (const item of items) {
+  const add = (item: { id: string; label: string }) => {
     const b = document.createElement('button');
     b.type = 'button';
     b.textContent = item.label;
+    b.dataset.id = item.id;
     b.addEventListener('focus', () => handlers.onFocus(item.id));
     b.addEventListener('blur', handlers.onBlur);
     b.addEventListener('click', () => handlers.onActivate(item.id));
     nav.append(b);
-  }
+  };
+  items.forEach(add);
+  return {
+    /** Objects that arrive after start-up (v2 props register as their GLBs load). */
+    add,
+  };
 }
 
 /**
