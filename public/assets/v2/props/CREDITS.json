@@ -1,7 +1,18 @@
 {
  "note": "CC BY 4.0 requires this credit to be visible wherever these models ship.",
- "line": "Models: \"Mouse Logitech MX Master 3S white\" by Guibazilla · \"MotherBoard + Components\" by Daniel Cardona · \"Kasane Teto fatass plush\" by revsworks — CC BY 4.0",
+ "line": "Models: \"3D Printer - Bambu Lab A1 Mini\" by neilvfx · \"Mouse Logitech MX Master 3S white\" by Guibazilla · \"MotherBoard + Components\" by Daniel Cardona · \"Kasane Teto fatass plush\" by revsworks — CC BY 4.0",
  "items": [
+  {
+   "key": "bambu_a1_mini",
+   "title": "3D Printer - Bambu Lab A1 Mini",
+   "author": "neilvfx",
+   "licence": "CC BY 4.0",
+   "url": "https://sketchfab.com/3d-models/3d-printer-bambu-lab-a1-mini-407fb64c44be4e1888db246b447f811b",
+   "line": "\"3D Printer - Bambu Lab A1 Mini\" by neilvfx, licensed under CC BY 4.0 (https://sketchfab.com/3d-models/3d-printer-bambu-lab-a1-mini-407fb64c44be4e1888db246b447f811b)",
+   "assets": [
+    "bambu_mini.glb"
+   ]
+  },
   {
    "key": "mx_master_3s",
    "title": "Mouse Logitech MX Master 3S white",

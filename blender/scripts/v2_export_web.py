@@ -134,14 +134,15 @@ SETS = {
     'redbull': dict(src=['NEW_redbull'], budget=4000, res=512, lit=512),
     'teto_pear': dict(src=['NEW_teto_pear'], budget=None, res=256, lit=512),
     # ---- the rest
-    'robot': dict(src=['NEW_robot'], budget=32000, res=1024, lit=1024,
+    'robot': dict(src=['NEW_robot'], budget=62000, cull=0.012, weld=0.0005, res=1024, lit=1024,
                   weights=[('Robot_bumper_fabric', 1.5), ('Robot_number_*', 2.0)],
-                  ratio=[('Robot_number_*', 3.0), ('Robot_bumper_fabric', 3.0)]),
+                  ratio=[('Robot_number_*', 3.0), ('Robot_bumper_fabric', 3.0), ('Robot_aluminium', 6.0),
+                         ('Robot_black_anodised', 2.0), ('Robot_polycarbonate', 0.6)]),
     'bambu_mini': dict(src=['NEW_bambu_mini'], budget=28000, res=512, lit=1024, credits=['bambu_a1_mini'],
                        nodes=[('bambu_mini_spool*', 'bambu_mini_spool_stand'),
                               ('bambu_mini_table_*', 'bambu_mini_table_parts'), ('*', 'bambu_mini_printer')],
                        weights=[('bambu_mini_base', 1.5), ('bambu_mini_toolhead', 1.5)]),
-    'telecaster': dict(src=['NEW_telecaster', 'NEW_tele_gb'], budget=22000, res=512, lit=1024,
+    'telecaster': dict(src=['NEW_telecaster', 'NEW_tele_gb'], budget=22000, cull=0.004, res=512, lit=1024,
                        weights=[('TeleGB_Deka', 2.5), ('TeleGB_fingerboard*', 2.0), ('TeleStand', 0.5),
                                 ('TeleGB_Spring*', 0.2), ('TeleGB_Strings', 0.2)],
                        ratio=[('TeleStand', 0.5), ('TeleGB_Deka', 3.0), ('TeleGB_fingerboard', 2.0)]),
@@ -149,9 +150,10 @@ SETS = {
                      weights=[('painting_canvas', 6.0)]),
     'bookrack': dict(src=['NEW_bookrack'], budget=8000, res=256, lit=1024,
                      weights=[('bookrack_screw*', 0.2)],
-                     nodes=[('Mesh_1[67]?.001', '='), ('*', 'bookrack_hardware')]),
-    'chair': dict(src=['obj:chair_base*'], budget=8000, res=512, lit=1024),
-    'desk_misc': dict(src=['obj:driver_*', 'obj:tote*', 'obj:Mesh_14[2-6]'], budget=None, res=512, lit=512),
+                     nodes=[('Mesh_1??.001', '='), ('*', 'bookrack_hardware')]),
+    'chair': dict(src=['obj:chair_base*'], budget=8000, res=512, lit=1024, nodes=[('*', 'chair')]),
+    'desk_misc': dict(src=['obj:driver_*', 'obj:tote*', 'obj:Mesh_14[2-6]'], budget=None, res=512, lit=512,
+                      nodes=[('driver_*', 'screwdriver'), ('tote*.001', 'tote_2'), ('tote*', 'tote_1')]),
     'fixtures': dict(src=['NEW_roomshell', 'NEW_curtains'], budget=10000, res=512, lit=1024),
 }
 DESK_SET = ['monitor', 'keyboard', 'macbook', 'mouse_mx', 'lamp', 'pc', 'electronics', 'speedcube',
@@ -449,7 +451,7 @@ def evaluated_copy(o, name):
     return no
 
 
-def decimate_to(me, ratio):
+def decimate_to(me, ratio, weld=0.00005):
     """Weld + planar dissolve (frees the collapse floor on CAD plates/extrusions), then
     quadric collapse. Mirrors the v2 part scripts' own reduction order."""
     sc = bpy.context.scene
@@ -457,7 +459,7 @@ def decimate_to(me, ratio):
     o = bpy.data.objects.new('__dec', me)
     sc.collection.objects.link(o)
     mw = o.modifiers.new('WELD', 'WELD')
-    mw.merge_threshold = 0.00005
+    mw.merge_threshold = weld
     md = o.modifiers.new('DIS', 'DECIMATE')
     md.decimate_type = 'DISSOLVE'
     md.angle_limit = math.radians(1.0)
@@ -523,6 +525,37 @@ def screen_uv(o):
     for li, lp in enumerate(me.loops):
         q = pts[lp.vertex_index]
         uv.data[li].uv = ((q.dot(right) - u0) / du, (q.dot(up) - v0) / dv)
+
+
+def cull_small_parts(o, min_diag):
+    """Delete loose parts (linked face islands) whose world bounding-box diagonal is < min_diag."""
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    bm.faces.ensure_lookup_table()
+    mw = o.matrix_world
+    seen, kill = set(), []
+    for f in bm.faces:
+        if f.index in seen:
+            continue
+        stack, isl = [f], []
+        seen.add(f.index)
+        while stack:
+            x = stack.pop()
+            isl.append(x)
+            for e in x.edges:
+                for y in e.link_faces:
+                    if y.index not in seen:
+                        seen.add(y.index)
+                        stack.append(y)
+        pts = [mw @ v.co for x in isl for v in x.verts]
+        lo_ = Vector([min(q[i] for q in pts) for i in range(3)])
+        hi_ = Vector([max(q[i] for q in pts) for i in range(3)])
+        if (hi_ - lo_).length < min_diag:
+            kill += isl
+    if kill:
+        bmesh.ops.delete(bm, geom=kill, context='FACES')
+        bm.to_mesh(o.data)
+    bm.free()
 
 
 def select_only(objs, active=None):
@@ -966,12 +999,22 @@ def export_set(name):
     log(f'{name}: materials ' + json.dumps({k: v['kind'] for k, v in kinds.items()
                                             if v['kind'] != 'opaque'}) + f' (+{sum(v["kind"] == "opaque" for v in kinds.values())} opaque)')
     # ---------------------------------------------------------------- decimate
-    budget = cfg.get('budget')
+    budget = None if '--no-decimate' in ARGS else cfg.get('budget')
 
     def protected(c):
-        return all(s.material is None or kinds[s.material.name]['kind'] in ('keeper', 'glass')
+        return all(s.material is None or kinds[s.material.name]['kind'] == 'keeper'
                    for s in c.material_slots) or ntris(c.data) < NO_DECIMATE_BELOW
     after = dict(before)
+    # many-small-part CAD meshes stall the collapse: drop loose parts smaller than cfg['cull'] metres
+    culled = {}
+    if cfg.get('cull') and budget is not None and tot_before > budget:
+        for k, c in lo.items():
+            if not protected(c):
+                n0 = ntris(c.data)
+                cull_small_parts(c, cfg['cull'])
+                if ntris(c.data) < n0:
+                    culled[k] = n0 - ntris(c.data)
+        log(f'{name}: culled loose parts < {cfg["cull"] * 1000:.0f} mm: {sum(culled.values())} tris')
     if budget is not None and tot_before > budget:
         fixed = sum(before[k] for k, c in lo.items() if protected(c))
         for it in range(5):
@@ -990,7 +1033,7 @@ def export_set(name):
                     continue
                 c = lo[k]
                 old = c.data
-                c.data = decimate_to(old, r)
+                c.data = decimate_to(old, r, cfg.get('weld', 0.00005))
                 smooth_by_angle(c.data)
                 if old.users == 0:
                     bpy.data.meshes.remove(old)
@@ -1333,6 +1376,8 @@ def export_set(name):
                 sep = separate_material(c, wm, kname)
                 if sep is not None and sep is not c:
                     parts.append(sep)
+                if sep is None:     # the keeper material sits in an unused slot
+                    continue
                 emissive_nodes.append(dict(node=sep.name, material=wm.name, keeper=True,
                                            **keeper_info.get(km, {})))
         for c in parts:

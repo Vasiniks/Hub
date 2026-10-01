@@ -1,0 +1,463 @@
+{
+ "set": "telecaster",
+ "sources": [
+  "NEW_telecaster",
+  "NEW_tele_gb"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": 22000,
+ "within_budget": true,
+ "tris_before": 108089,
+ "tris_after": 21437,
+ "objects": [
+  {
+   "name": "TeleStand",
+   "tris_before": 21532,
+   "tris_after": 3096
+  },
+  {
+   "name": "TeleGB_nut",
+   "tris_before": 2392,
+   "tris_after": 684
+  },
+  {
+   "name": "TeleGB_tuning pegs",
+   "tris_before": 30594,
+   "tris_after": 214
+  },
+  {
+   "name": "TeleGB_fingerboard",
+   "tris_before": 6286,
+   "tris_after": 3616
+  },
+  {
+   "name": "TeleGB_fingerboard.001",
+   "tris_before": 15429,
+   "tris_after": 1271
+  },
+  {
+   "name": "TeleGB_Anker",
+   "tris_before": 108,
+   "tris_after": 108
+  },
+  {
+   "name": "TeleGB_Back_cil",
+   "tris_before": 768,
+   "tris_after": 219
+  },
+  {
+   "name": "TeleGB_Bridg",
+   "tris_before": 100,
+   "tris_after": 100
+  },
+  {
+   "name": "TeleGB_Deka",
+   "tris_before": 1174,
+   "tris_after": 1012
+  },
+  {
+   "name": "TeleGB_Griph",
+   "tris_before": 560,
+   "tris_after": 159
+  },
+  {
+   "name": "TeleGB_Holder_down_1",
+   "tris_before": 240,
+   "tris_after": 240
+  },
+  {
+   "name": "TeleGB_Holder_down_2",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Holder_top_1",
+   "tris_before": 240,
+   "tris_after": 240
+  },
+  {
+   "name": "TeleGB_Holder_top_2",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Humbucker",
+   "tris_before": 77,
+   "tris_after": 77
+  },
+  {
+   "name": "TeleGB_Jack",
+   "tris_before": 208,
+   "tris_after": 208
+  },
+  {
+   "name": "TeleGB_Lads",
+   "tris_before": 966,
+   "tris_after": 276
+  },
+  {
+   "name": "TeleGB_Magnet_1",
+   "tris_before": 480,
+   "tris_after": 137
+  },
+  {
+   "name": "TeleGB_Nakladka_1",
+   "tris_before": 100,
+   "tris_after": 100
+  },
+  {
+   "name": "TeleGB_Nakladka_back_1",
+   "tris_before": 54,
+   "tris_after": 54
+  },
+  {
+   "name": "TeleGB_Nakladka_back_2",
+   "tris_before": 54,
+   "tris_after": 54
+  },
+  {
+   "name": "TeleGB_Nakladka",
+   "tris_before": 493,
+   "tris_after": 141
+  },
+  {
+   "name": "TeleGB_Pod_string_1_1",
+   "tris_before": 160,
+   "tris_after": 160
+  },
+  {
+   "name": "TeleGB_Pod_string_1_2",
+   "tris_before": 100,
+   "tris_after": 100
+  },
+  {
+   "name": "TeleGB_Pod_string_1_3",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Pod_string_1_4",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Pod_string_2_1",
+   "tris_before": 160,
+   "tris_after": 160
+  },
+  {
+   "name": "TeleGB_Pod_string_2_2",
+   "tris_before": 100,
+   "tris_after": 100
+  },
+  {
+   "name": "TeleGB_Pod_string_2_3",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Pod_string_2_4",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Pod_string_3_1",
+   "tris_before": 160,
+   "tris_after": 160
+  },
+  {
+   "name": "TeleGB_Pod_string_3_2",
+   "tris_before": 100,
+   "tris_after": 100
+  },
+  {
+   "name": "TeleGB_Pod_string_3_3",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Pod_string_3_4",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Pod_string_4_1",
+   "tris_before": 160,
+   "tris_after": 160
+  },
+  {
+   "name": "TeleGB_Pod_string_4_2",
+   "tris_before": 100,
+   "tris_after": 100
+  },
+  {
+   "name": "TeleGB_Pod_string_4_3",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Pod_string_4_4",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Pod_string_5_1",
+   "tris_before": 160,
+   "tris_after": 160
+  },
+  {
+   "name": "TeleGB_Pod_string_5_2",
+   "tris_before": 100,
+   "tris_after": 100
+  },
+  {
+   "name": "TeleGB_Pod_string_5_3",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Pod_string_5_4",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Pod_string_6_1",
+   "tris_before": 160,
+   "tris_after": 160
+  },
+  {
+   "name": "TeleGB_Pod_string_6_2",
+   "tris_before": 100,
+   "tris_after": 100
+  },
+  {
+   "name": "TeleGB_Pod_string_6_3",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Pod_string_6_4",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "TeleGB_Ruchka_1",
+   "tris_before": 360,
+   "tris_after": 102
+  },
+  {
+   "name": "TeleGB_Ruchka_2",
+   "tris_before": 360,
+   "tris_after": 102
+  },
+  {
+   "name": "TeleGB_Ruchka_3_0",
+   "tris_before": 72,
+   "tris_after": 72
+  },
+  {
+   "name": "TeleGB_Ruchka_3",
+   "tris_before": 96,
+   "tris_after": 96
+  },
+  {
+   "name": "TeleGB_Singl",
+   "tris_before": 184,
+   "tris_after": 184
+  },
+  {
+   "name": "TeleGB_Spring_1",
+   "tris_before": 1936,
+   "tris_after": 551
+  },
+  {
+   "name": "TeleGB_Spring_2",
+   "tris_before": 1936,
+   "tris_after": 552
+  },
+  {
+   "name": "TeleGB_Spring_3",
+   "tris_before": 2416,
+   "tris_after": 689
+  },
+  {
+   "name": "TeleGB_Spring_4",
+   "tris_before": 1938,
+   "tris_after": 552
+  },
+  {
+   "name": "TeleGB_Spring_5",
+   "tris_before": 1936,
+   "tris_after": 552
+  },
+  {
+   "name": "TeleGB_Spring_6",
+   "tris_before": 1936,
+   "tris_after": 552
+  },
+  {
+   "name": "TeleGB_Strings",
+   "tris_before": 10720,
+   "tris_after": 3083
+  },
+  {
+   "name": "TeleGB_\u041f\u043b\u043e\u0441\u043a\u043e\u0441\u0442\u044c",
+   "tris_before": 112,
+   "tris_after": 112
+  }
+ ],
+ "skipped": {
+  "OLD_replaced": [
+   "Tele_Body",
+   "Tele_Pickguard",
+   "Tele_Neck",
+   "Tele_Frets",
+   "Tele_Hardware",
+   "Tele_Tuners",
+   "Tele_Strings"
+  ]
+ },
+ "atlas": {
+  "pbr_res": 512,
+  "lit_res": 1024,
+  "packer": {
+   "lit": "pack_islands",
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "telecaster_basecolor.png",
+  "orm": "telecaster_orm.png",
+  "lit": "telecaster_lit.png"
+ },
+ "lit_scale": 0.066,
+ "material_modes": {
+  "telecaster_lit": "lit",
+  "telecaster_pbr": "pbr"
+ },
+ "material_kinds": {
+  "Brass": "metal",
+  "Low_material2_001": "opaque",
+  "Stand_Foam_Black": "opaque",
+  "Stand_PowderCoat_Black": "opaque",
+  "Stand_Rubber_Black": "opaque",
+  "Tele_Chrome": "metal",
+  "fingerboard": "opaque",
+  "nut": "opaque",
+  "plastic black": "opaque",
+  "plastic white": "opaque",
+  "tele_gb_body_mint": "opaque",
+  "\u041c\u0430\u0442\u0435\u0440\u0438\u0430\u043b.004": "metal"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "NEW_telecaster_root": {
+   "blender_world": [
+    1.52,
+    0.05,
+    0.0
+   ],
+   "three_world": [
+    1.52,
+    0.0,
+    -0.05
+   ],
+   "parent": null,
+   "is_pivot": false
+  },
+  "NEW_telecaster_guitar": {
+   "blender_world": [
+    1.5208,
+    0.0501,
+    0.1751
+   ],
+   "three_world": [
+    1.5208,
+    0.1751,
+    -0.0501
+   ],
+   "parent": "NEW_telecaster_root",
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_telecaster_root__mesh": {
+   "parent": "NEW_telecaster_root",
+   "tris": 3096,
+   "materials": [
+    "telecaster_lit",
+    "telecaster_pbr"
+   ],
+   "blender_bbox": [
+    [
+     1.3063,
+     -0.239,
+     -0.0
+    ],
+    [
+     1.8896,
+     0.3609,
+     0.8299
+    ]
+   ]
+  },
+  "NEW_telecaster_guitar__mesh": {
+   "parent": "NEW_telecaster_guitar",
+   "tris": 18341,
+   "materials": [
+    "telecaster_lit",
+    "telecaster_pbr"
+   ],
+   "blender_bbox": [
+    [
+     1.4062,
+     -0.1256,
+     0.1495
+    ],
+    [
+     1.8307,
+     0.2522,
+     1.1105
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.0004,
+   "s2a": [],
+   "base_mean": [
+    0.881,
+    0.832,
+    0.78
+   ],
+   "ao_mean": 0.568,
+   "coverage_px": 0.342
+  },
+  "lit": {
+   "lit_scale": 0.066,
+   "raw_mean": 0.0055,
+   "denoised_mean": 0.0054,
+   "p50": 0.0034,
+   "clipped_fraction": 0.00091,
+   "coverage_px": 0.554,
+   "samples": 256
+  }
+ },
+ "bake_seconds": {
+  "base": 3.8,
+  "rough": 3.8,
+  "metal": 3.7,
+  "ao": 3.9,
+  "normal": 3.7,
+  "lit": 95.2,
+  "lit_denoise": 0.8
+ },
+ "glb": "telecaster.glb",
+ "glb_bytes": 1020416,
+ "seconds": 199.1
+}

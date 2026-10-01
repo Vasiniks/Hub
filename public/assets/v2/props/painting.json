@@ -1,0 +1,128 @@
+{
+ "set": "painting",
+ "sources": [
+  "NEW_painting"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 954,
+ "tris_after": 954,
+ "objects": [
+  {
+   "name": "painting_stretcher",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "painting_canvas",
+   "tris_before": 2,
+   "tris_after": 2
+  },
+  {
+   "name": "painting_frame_top",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "painting_frame_bottom",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "painting_frame_left",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "painting_frame_right",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "painting_frame_tray",
+   "tris_before": 12,
+   "tris_after": 12
+  }
+ ],
+ "skipped": {},
+ "atlas": {
+  "pbr_res": null,
+  "lit_res": 1024,
+  "packer": {
+   "lit": "pack_islands"
+  }
+ },
+ "textures": {
+  "lit": "painting_lit.png"
+ },
+ "lit_scale": 0.053,
+ "material_modes": {
+  "painting_lit": "lit"
+ },
+ "material_kinds": {
+  "painting_canvas": "opaque",
+  "painting_canvas_edge": "opaque",
+  "painting_frame_oak_black": "opaque"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "painting_root": {
+   "blender_world": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "three_world": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "painting__mesh": {
+   "parent": "painting_root",
+   "tris": 954,
+   "materials": [
+    "painting_lit"
+   ],
+   "blender_bbox": [
+    [
+     1.876,
+     0.3389,
+     1.376
+    ],
+    [
+     1.91,
+     0.7611,
+     1.784
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "lit": {
+   "lit_scale": 0.053,
+   "raw_mean": 0.0046,
+   "denoised_mean": 0.0046,
+   "p50": 0.0033,
+   "clipped_fraction": 0.00097,
+   "coverage_px": 0.875,
+   "samples": 256
+  }
+ },
+ "bake_seconds": {
+  "lit": 28.3,
+  "lit_denoise": 0.8
+ },
+ "glb": "painting.glb",
+ "glb_bytes": 87176,
+ "seconds": 39.3
+}

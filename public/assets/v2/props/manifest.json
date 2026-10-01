@@ -1,12 +1,12 @@
 {
- "generated": "2026-10-01T04:47:20.740Z",
+ "generated": "2026-10-01T05:31:00.937Z",
  "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
  "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
  "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
  "materials": "Two baked atlases per asset. mode \"lit\": non-metal surfaces, KHR_materials_unlit, baseColor = the Cycles DIFFUSE bake (direct + indirect + colour) of the sunset room, stored as linear/litScale in sRGB: multiply the colour by material.userData.litScale (glTF extras) to restore it; no lights touch them. mode \"pbr\": metals (metallic >= 0.5), emissive parts, glass and keepers: baseColor + ORM (R=AO, G=roughness, B=metallic) (+ normal), lit at runtime by an environment capture of the baked room. Keepers (Robot_rsl_lens, bambu_mini_screen) are their own nodes and materials.",
  "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
- "totalBytes": 5128976,
- "totalTris": 183223,
+ "totalBytes": 10082584,
+ "totalTris": 329133,
  "credits": {
   "teto_plush": {
    "title": "Kasane Teto fatass plush",
@@ -38,6 +38,631 @@
   }
  },
  "assets": [
+  {
+   "name": "bambu_mini",
+   "file": "bambu_mini.glb",
+   "bytes": 645604,
+   "tris": 27179,
+   "trisSource": 116961,
+   "budget": 28000,
+   "textureBytes": 85904,
+   "textures": [
+    {
+     "name": "bambu_mini_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 62028
+    },
+    {
+     "name": "bambu_mini_emissive",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 356
+    },
+    {
+     "name": "bambu_mini_normal",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 3156
+    },
+    {
+     "name": "bambu_mini_orm",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 7678
+    },
+    {
+     "name": "bambu_mini_basecolor",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 12686
+    }
+   ],
+   "materials": [
+    {
+     "name": "bambu_mini_ptfe_web",
+     "mode": "pbr",
+     "alphaMode": "BLEND",
+     "textures": []
+    },
+    {
+     "name": "bambu_mini_lit",
+     "mode": "lit",
+     "litScale": 0.33,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "bambu_mini_lit_cutout",
+     "mode": "lit",
+     "litScale": 0.33,
+     "alphaMode": "MASK",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "bambu_mini_screen_lit",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal",
+      "emissive"
+     ]
+    },
+    {
+     "name": "bambu_mini_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": 0.33,
+   "nodes": [
+    "bambu_mini_printer__glass_bambu_mini_ptfe",
+    "bambu_mini_printer__mesh",
+    "bambu_mini_screen",
+    "bambu_mini_printer",
+    "bambu_mini_spool_stand__mesh",
+    "bambu_mini_spool_stand",
+    "bambu_mini_table_parts__mesh",
+    "bambu_mini_table_parts",
+    "NEW_bambu_mini_root"
+   ],
+   "anchors": {
+    "bambu_mini_printer": {
+     "blender_world": [
+      1.5,
+      0.845,
+      0
+     ],
+     "three_world": [
+      1.5,
+      0,
+      -0.845
+     ],
+     "parent": "NEW_bambu_mini_root",
+     "is_pivot": false
+    },
+    "bambu_mini_spool_stand": {
+     "blender_world": [
+      1.5,
+      0.845,
+      0
+     ],
+     "three_world": [
+      1.5,
+      0,
+      -0.845
+     ],
+     "parent": "NEW_bambu_mini_root",
+     "is_pivot": false
+    },
+    "bambu_mini_table_parts": {
+     "blender_world": [
+      1.5,
+      0.845,
+      0
+     ],
+     "three_world": [
+      1.5,
+      0,
+      -0.845
+     ],
+     "parent": "NEW_bambu_mini_root",
+     "is_pivot": false
+    },
+    "NEW_bambu_mini_root": {
+     "blender_world": [
+      1.5,
+      0.845,
+      0
+     ],
+     "three_world": [
+      1.5,
+      0,
+      -0.845
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "bambu_mini_screen",
+     "material": "bambu_mini_screen_lit",
+     "emissiveFactor": [
+      0.9,
+      0.9,
+      0.9
+     ],
+     "emissiveStrength": 1,
+     "textured": true
+    }
+   ],
+   "keepers": [
+    {
+     "node": "bambu_mini_screen",
+     "material": "bambu_mini_screen_lit",
+     "keeper": true,
+     "textured_emission": true,
+     "emission_strength": 0.9,
+     "emission_color": [
+      0,
+      0,
+      0
+     ]
+    }
+   ],
+   "glass": [
+    "bambu_mini_printer__glass_bambu_mini_ptfe"
+   ],
+   "credits": [
+    "bambu_a1_mini"
+   ],
+   "sources": [
+    "NEW_bambu_mini"
+   ]
+  },
+  {
+   "name": "bookrack",
+   "file": "bookrack.glb",
+   "bytes": 209568,
+   "tris": 7430,
+   "trisSource": 13004,
+   "budget": 8000,
+   "textureBytes": 43458,
+   "textures": [
+    {
+     "name": "bookrack_normal",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 1338
+    },
+    {
+     "name": "bookrack_orm",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 10376
+    },
+    {
+     "name": "bookrack_basecolor",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 6576
+    },
+    {
+     "name": "bookrack_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 25168
+    }
+   ],
+   "materials": [
+    {
+     "name": "bookrack_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "bookrack_lit",
+     "mode": "lit",
+     "litScale": 0.62,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    }
+   ],
+   "litScale": 0.62,
+   "nodes": [
+    "bookrack_hardware__mesh",
+    "bookrack_hardware",
+    "Mesh_160.001__mesh",
+    "Mesh_160.001",
+    "Mesh_161.001__mesh",
+    "Mesh_161.001",
+    "Mesh_162.001__mesh",
+    "Mesh_162.001",
+    "Mesh_163.001__mesh",
+    "Mesh_163.001",
+    "Mesh_164.001__mesh",
+    "Mesh_164.001",
+    "Mesh_165.001__mesh",
+    "Mesh_165.001",
+    "Mesh_166.001__mesh",
+    "Mesh_166.001",
+    "Mesh_167.001__mesh",
+    "Mesh_167.001",
+    "Mesh_168.001__mesh",
+    "Mesh_168.001",
+    "Mesh_169.001__mesh",
+    "Mesh_169.001",
+    "Mesh_170.001__mesh",
+    "Mesh_170.001",
+    "Mesh_171.001__mesh",
+    "Mesh_171.001",
+    "Mesh_172.001__mesh",
+    "Mesh_172.001",
+    "Mesh_173.001__mesh",
+    "Mesh_173.001",
+    "Mesh_174.001__mesh",
+    "Mesh_174.001",
+    "Mesh_175.001__mesh",
+    "Mesh_175.001",
+    "Mesh_176.001__mesh",
+    "Mesh_176.001",
+    "Mesh_177.001__mesh",
+    "Mesh_177.001",
+    "Mesh_178.001__mesh",
+    "Mesh_178.001",
+    "NEW_bookrack_root"
+   ],
+   "anchors": {
+    "bookrack_hardware": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_165.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_166.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_167.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_168.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_169.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_170.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_171.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_172.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_173.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_174.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_175.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_176.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_177.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_178.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_160.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_161.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_162.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_163.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_164.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "NEW_bookrack_root": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_bookrack"
+   ]
+  },
   {
    "name": "cables",
    "file": "cables.glb",
@@ -88,7 +713,7 @@
     {
      "name": "cables_lit",
      "mode": "lit",
-     "litScale": 1.4000000000000001,
+     "litScale": 1.4,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -105,7 +730,7 @@
      ]
     }
    ],
-   "litScale": 1.4000000000000001,
+   "litScale": 1.4,
    "nodes": [
     "NEW_cables_root__mesh",
     "NEW_cables_root"
@@ -144,6 +769,256 @@
    "credits": [],
    "sources": [
     "NEW_cables"
+   ]
+  },
+  {
+   "name": "chair",
+   "file": "chair.glb",
+   "bytes": 279444,
+   "tris": 7743,
+   "trisSource": 13846,
+   "budget": 8000,
+   "textureBytes": 104788,
+   "textures": [
+    {
+     "name": "chair_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 104788
+    }
+   ],
+   "materials": [
+    {
+     "name": "chair_lit",
+     "mode": "lit",
+     "litScale": 0.0039,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    }
+   ],
+   "litScale": 0.0039,
+   "nodes": [
+    "chair__mesh",
+    "chair",
+    "Node_259"
+   ],
+   "anchors": {
+    "chair": {
+     "blender_world": [
+      0.42,
+      -0.3,
+      0
+     ],
+     "three_world": [
+      0.42,
+      0,
+      0.3
+     ],
+     "parent": "Node_259",
+     "is_pivot": false
+    },
+    "Node_259": {
+     "blender_world": [
+      0.42,
+      -0.3,
+      0
+     ],
+     "three_world": [
+      0.42,
+      0,
+      0.3
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "obj:chair_base*"
+   ]
+  },
+  {
+   "name": "desk_misc",
+   "file": "desk_misc.glb",
+   "bytes": 302308,
+   "tris": 8308,
+   "trisSource": 8308,
+   "budget": null,
+   "textureBytes": 60194,
+   "textures": [
+    {
+     "name": "desk_misc_lit",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 26196
+    },
+    {
+     "name": "desk_misc_normal",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 9654
+    },
+    {
+     "name": "desk_misc_orm",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 12370
+    },
+    {
+     "name": "desk_misc_basecolor",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 11974
+    }
+   ],
+   "materials": [
+    {
+     "name": "desk_misc_lit",
+     "mode": "lit",
+     "litScale": 0.12,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "desk_misc_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": 0.12,
+   "nodes": [
+    "tote_1__mesh",
+    "tote_1",
+    "tote_2__mesh",
+    "tote_2",
+    "Node_205",
+    "room__mesh",
+    "room",
+    "screwdriver__mesh",
+    "screwdriver",
+    "Scene.017"
+   ],
+   "anchors": {
+    "screwdriver": {
+     "blender_world": [
+      0.58,
+      0.56,
+      0.735
+     ],
+     "three_world": [
+      0.58,
+      0.735,
+      -0.56
+     ],
+     "parent": "Scene.017",
+     "is_pivot": false
+    },
+    "tote_1": {
+     "blender_world": [
+      0.64,
+      0.8,
+      0
+     ],
+     "three_world": [
+      0.64,
+      0,
+      -0.8
+     ],
+     "parent": "Node_205",
+     "is_pivot": false
+    },
+    "tote_2": {
+     "blender_world": [
+      0.64,
+      0.8,
+      0
+     ],
+     "three_world": [
+      0.64,
+      0,
+      -0.8
+     ],
+     "parent": "Node_205",
+     "is_pivot": false
+    },
+    "room": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": null,
+     "is_pivot": false
+    },
+    "Scene.017": {
+     "blender_world": [
+      0.58,
+      0.56,
+      0.735
+     ],
+     "three_world": [
+      0.58,
+      0.735,
+      -0.56
+     ],
+     "parent": null,
+     "is_pivot": false
+    },
+    "Node_205": {
+     "blender_world": [
+      0.64,
+      0.8,
+      0
+     ],
+     "three_world": [
+      0.64,
+      0,
+      -0.8
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "obj:driver_*",
+    "obj:tote*",
+    "obj:Mesh_14[2-6]"
    ]
   },
   {
@@ -520,6 +1395,164 @@
    "credits": [],
    "sources": [
     "NEW_electronics"
+   ]
+  },
+  {
+   "name": "fixtures",
+   "file": "fixtures.glb",
+   "bytes": 271584,
+   "tris": 9804,
+   "trisSource": 35471,
+   "budget": 10000,
+   "textureBytes": 48146,
+   "textures": [
+    {
+     "name": "fixtures_normal",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 5610
+    },
+    {
+     "name": "fixtures_orm",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 4386
+    },
+    {
+     "name": "fixtures_basecolor",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 4500
+    },
+    {
+     "name": "fixtures_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 33650
+    }
+   ],
+   "materials": [
+    {
+     "name": "fixtures_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "fixtures_lit",
+     "mode": "lit",
+     "litScale": 1.7,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "rs_thermo_digits",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "rs_smoke_led",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": 1.7,
+   "nodes": [
+    "fixtures__mesh",
+    "fixtures_root",
+    "NEW_roomshell_root__mesh",
+    "NEW_roomshell_root"
+   ],
+   "anchors": {
+    "NEW_roomshell_root": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": null,
+     "is_pivot": false
+    },
+    "fixtures_root": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "NEW_roomshell_root__mesh",
+     "material": "rs_thermo_digits",
+     "emissiveFactor": [
+      0.85,
+      0.93,
+      1
+     ],
+     "emissiveStrength": 4,
+     "textured": false
+    },
+    {
+     "node": "NEW_roomshell_root__mesh",
+     "material": "rs_smoke_led",
+     "emissiveFactor": [
+      0.1,
+      1,
+      0.15
+     ],
+     "emissiveStrength": 6,
+     "textured": false
+    }
+   ],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_roomshell",
+    "NEW_curtains"
    ]
   },
   {
@@ -1224,6 +2257,65 @@
    ]
   },
   {
+   "name": "painting",
+   "file": "painting.glb",
+   "bytes": 71612,
+   "tris": 954,
+   "trisSource": 954,
+   "budget": null,
+   "textureBytes": 54798,
+   "textures": [
+    {
+     "name": "painting_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 54798
+    }
+   ],
+   "materials": [
+    {
+     "name": "painting_lit",
+     "mode": "lit",
+     "litScale": 0.053,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    }
+   ],
+   "litScale": 0.053,
+   "nodes": [
+    "painting__mesh",
+    "painting_root"
+   ],
+   "anchors": {
+    "painting_root": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_painting"
+   ]
+  },
+  {
    "name": "pc",
    "file": "pc.glb",
    "bytes": 1304200,
@@ -1294,7 +2386,7 @@
     {
      "name": "pc_lit",
      "mode": "lit",
-     "litScale": 5.6000000000000005,
+     "litScale": 5.6,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -1325,7 +2417,7 @@
     {
      "name": "pc_lit_cutout",
      "mode": "lit",
-     "litScale": 5.6000000000000005,
+     "litScale": 5.6,
      "alphaMode": "MASK",
      "textures": [
       "baseColor"
@@ -1376,7 +2468,7 @@
      ]
     }
    ],
-   "litScale": 5.6000000000000005,
+   "litScale": 5.6,
    "nodes": [
     "NEW_pc_root__glass_pc_glass",
     "NEW_pc_root__glass_pc_glass_edge",
@@ -1565,6 +2657,144 @@
    ]
   },
   {
+   "name": "robot",
+   "file": "robot.glb",
+   "bytes": 2652712,
+   "tris": 63055,
+   "trisSource": 131522,
+   "budget": 62000,
+   "textureBytes": 385478,
+   "textures": [
+    {
+     "name": "robot_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 45422
+    },
+    {
+     "name": "robot_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 58892
+    },
+    {
+     "name": "robot_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 91000
+    },
+    {
+     "name": "robot_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 190164
+    }
+   ],
+   "materials": [
+    {
+     "name": "robot_polycarbonate.001_web",
+     "mode": "pbr",
+     "alphaMode": "BLEND",
+     "textures": []
+    },
+    {
+     "name": "robot_lit",
+     "mode": "lit",
+     "litScale": 0.17,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "robot_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "robot_rsl_amber",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": []
+    }
+   ],
+   "litScale": 0.17,
+   "nodes": [
+    "NEW_robot_root__glass_robot_polycarbonate.001",
+    "NEW_robot_root__mesh",
+    "Robot_rsl_lens",
+    "NEW_robot_root"
+   ],
+   "anchors": {
+    "NEW_robot_root": {
+     "blender_world": [
+      -1.2069,
+      -0.3633,
+      0
+     ],
+     "three_world": [
+      -1.2069,
+      0,
+      0.3633
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "Robot_rsl_lens",
+     "material": "robot_rsl_amber",
+     "emissiveFactor": [
+      1,
+      0.45,
+      0.05
+     ],
+     "emissiveStrength": 3.5,
+     "textured": false
+    }
+   ],
+   "keepers": [
+    {
+     "node": "Robot_rsl_lens",
+     "material": "robot_rsl_amber",
+     "keeper": true,
+     "textured_emission": false,
+     "emission_strength": 3.5,
+     "emission_color": [
+      1,
+      0.45,
+      0.05
+     ]
+    }
+   ],
+   "glass": [
+    "NEW_robot_root__glass_robot_polycarbonate.001"
+   ],
+   "credits": [],
+   "sources": [
+    "NEW_robot"
+   ]
+  },
+  {
    "name": "speedcube",
    "file": "speedcube.glb",
    "bytes": 206932,
@@ -1587,7 +2817,7 @@
     {
      "name": "speedcube_lit",
      "mode": "lit",
-     "litScale": 2.8000000000000003,
+     "litScale": 2.8,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor"
@@ -1596,14 +2826,14 @@
     {
      "name": "speedcube_lit_cutout",
      "mode": "lit",
-     "litScale": 2.8000000000000003,
+     "litScale": 2.8,
      "alphaMode": "MASK",
      "textures": [
       "baseColor"
      ]
     }
    ],
-   "litScale": 2.8000000000000003,
+   "litScale": 2.8,
    "nodes": [
     "NEW_speedcube_root__mesh",
     "NEW_speedcube_root"
@@ -1630,6 +2860,109 @@
    "credits": [],
    "sources": [
     "NEW_speedcube"
+   ]
+  },
+  {
+   "name": "telecaster",
+   "file": "telecaster.glb",
+   "bytes": 520776,
+   "tris": 21437,
+   "trisSource": 108089,
+   "budget": 22000,
+   "textureBytes": 93816,
+   "textures": [
+    {
+     "name": "telecaster_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 53912
+    },
+    {
+     "name": "telecaster_orm",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 14732
+    },
+    {
+     "name": "telecaster_basecolor",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 25172
+    }
+   ],
+   "materials": [
+    {
+     "name": "telecaster_lit",
+     "mode": "lit",
+     "litScale": 0.066,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "telecaster_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM"
+     ]
+    }
+   ],
+   "litScale": 0.066,
+   "nodes": [
+    "NEW_telecaster_guitar__mesh",
+    "NEW_telecaster_guitar",
+    "NEW_telecaster_root__mesh",
+    "NEW_telecaster_root"
+   ],
+   "anchors": {
+    "NEW_telecaster_root": {
+     "blender_world": [
+      1.52,
+      0.05,
+      0
+     ],
+     "three_world": [
+      1.52,
+      0,
+      -0.05
+     ],
+     "parent": null,
+     "is_pivot": false
+    },
+    "NEW_telecaster_guitar": {
+     "blender_world": [
+      1.5208,
+      0.0501,
+      0.1751
+     ],
+     "three_world": [
+      1.5208,
+      0.1751,
+      -0.0501
+     ],
+     "parent": "NEW_telecaster_root",
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_telecaster",
+    "NEW_tele_gb"
    ]
   },
   {
