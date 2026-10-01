@@ -24,6 +24,7 @@ import { findNodes, loadV2Props } from './scene/v2Props';
 import { createV2PropLight } from './scene/v2PropLight';
 import { createPropRegistry } from './interaction/props';
 import { v2Props } from './data/v2Props';
+import { loadExteriorBackdrop } from './scene/exteriorBackdrop';
 import { CAMERA, INTERACTION, SHELF } from './scene/layout';
 import { FramePerf } from './debug/perf';
 import { buildPickingTrees } from './interaction/bvh';
@@ -1014,12 +1015,15 @@ async function startV2() {
   camera.layers.enable(OVERLAY_LAYER);
 
   const base = `${import.meta.env.BASE_URL}assets/v2/room/`;
-  // Props load alongside the bake; with no manifest yet this resolves empty.
-  const [baked, propFiles] = await Promise.all([
+  // Props and the street outside load alongside the bake; with no props manifest yet the props resolve empty.
+  const [baked, propFiles, exterior] = await Promise.all([
     loadBakedRoom(base),
     loadV2Props(`${import.meta.env.BASE_URL}assets/v2/props/`),
+    // The street outside the window: two baked panorama cards (exteriorBackdrop.ts).
+    loadExteriorBackdrop(`${import.meta.env.BASE_URL}assets/v2/exterior/`),
   ]);
   scene.add(baked.group);
+  scene.add(exterior.group);
   if (propFiles.props.length) scene.add(propFiles.group);
   // Live sun + lamp for the PBR props only; the baked room ignores live light (v2PropLight.ts).
   const propLight = createV2PropLight(scene, baked.atlases.shell, propFiles.group);
