@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 /**
  * The baked sunset room (`?v2`), from `blender/bake/sunset/`.
@@ -178,7 +179,8 @@ export async function loadBakedRoom(base: string, options: BakedRoomOptions = {}
     rangeSqrt: a.web.range_sqrt,
   }));
 
-  const loader = new GLTFLoader();
+  // Geometry is EXT_meshopt_compression (scripts/meshopt-glb.mjs).
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const group = new THREE.Group();
   group.name = 'bakedRoom';
   const atlases: Record<string, THREE.Group> = {};

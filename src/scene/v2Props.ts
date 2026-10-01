@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 /**
  * The v2 props, as the props workstream exports them: world-space GLBs in
@@ -128,7 +129,8 @@ export async function loadV2Props(base: string): Promise<V2Props> {
     manifest = null;
   }
 
-  const loader = new GLTFLoader();
+  // Geometry is EXT_meshopt_compression (scripts/meshopt-glb.mjs).
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const entries = entriesOf(manifest);
   const loaded = await Promise.all(
     entries.map(async (entry) => {
