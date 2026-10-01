@@ -75,7 +75,7 @@
   "normal": "lorenz_normal.png",
   "lit": "lorenz_lit.png"
  },
- "lit_scale": 4.6000000000000005,
+ "lit_scale": 4.8,
  "material_modes": {
   "lorenz_lit": "lit",
   "lorenz_pbr": "pbr"
@@ -94,7 +94,36 @@
  "emissive_materials": [],
  "emissive_strength_max": 1.0,
  "emissive_nodes": [],
+ "screen_nodes": [],
  "anchors": {
+  "paper": {
+   "blender_world": [
+    -0.4525,
+    0.9291,
+    0.735
+   ],
+   "three_world": [
+    -0.4525,
+    0.735,
+    -0.9291
+   ],
+   "parent": "NEW_lorenz_root",
+   "is_pivot": false
+  },
+  "lorenz_sculpture": {
+   "blender_world": [
+    -0.4525,
+    0.9291,
+    0.735
+   ],
+   "three_world": [
+    -0.4525,
+    0.735,
+    -0.9291
+   ],
+   "parent": "NEW_lorenz_root",
+   "is_pivot": false
+  },
   "NEW_lorenz_root": {
    "blender_world": [
     -0.4525,
@@ -111,9 +140,9 @@
   }
  },
  "meshes": {
-  "NEW_lorenz_root__mesh": {
-   "parent": "NEW_lorenz_root",
-   "tris": 10216,
+  "paper__mesh": {
+   "parent": "paper",
+   "tris": 328,
    "materials": [
     "lorenz_lit",
     "lorenz_pbr"
@@ -122,6 +151,26 @@
     [
      -1.0146,
      0.4232,
+     0.7351
+    ],
+    [
+     -0.7414,
+     0.7484,
+     0.7392
+    ]
+   ]
+  },
+  "lorenz_sculpture__mesh": {
+   "parent": "lorenz_sculpture",
+   "tris": 9888,
+   "materials": [
+    "lorenz_lit",
+    "lorenz_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -0.5153,
+     0.8741,
      0.7351
     ],
     [
@@ -146,25 +195,25 @@
    "coverage_px": 0.057
   },
   "lit": {
-   "lit_scale": 4.6000000000000005,
+   "lit_scale": 4.8,
    "raw_mean": 0.1651,
    "denoised_mean": 0.1651,
    "p50": 0.0019,
-   "clipped_fraction": 0.00195,
+   "clipped_fraction": 0.00065,
    "coverage_px": 0.657,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 5.2,
-  "rough": 5.2,
-  "metal": 5.2,
-  "ao": 5.3,
-  "normal": 5.3,
-  "lit": 29.9,
-  "lit_denoise": 0.8
+  "base": 5.1,
+  "rough": 5.1,
+  "metal": 5.1,
+  "ao": 5.2,
+  "normal": 5.2,
+  "lit": 29.7,
+  "lit_denoise": 0.2
  },
  "glb": "lorenz.glb",
- "glb_bytes": 602580,
- "seconds": 72.5
+ "glb_bytes": 604076,
+ "seconds": 70.5
 }

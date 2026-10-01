@@ -8,11 +8,14 @@
 //        (the baked sunset atlases: their TEXCOORD_1 lightmap UV must survive — see below)
 // Env overrides (for the v2 prop pipeline; defaults preserve the old behaviour):
 //   PROPS_SRC + PROPS_DST, e.g. PROPS_SRC=tmp/props_raw PROPS_DST=public/assets/v2/props
+// In that v2 mode, primitives with KHR_materials_unlit (baked-light props) drop NORMAL/TANGENT,
+// which nothing reads for them, and identical vertices are then welded (the splits that only
+// carried hard-edge normals merge back).
 import fs from 'node:fs';
 import path from 'node:path';
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { dedup, prune, quantize } from '@gltf-transform/functions';
+import { dedup, prune, quantize, weld } from '@gltf-transform/functions';
 
 const argv = process.argv.slice(2);
 const opt = (flag, fallback) => {
@@ -24,12 +27,22 @@ const src = opt('--src', process.env.PROPS_SRC ?? 'assets/processed');
 const dst = opt('--dst', process.env.PROPS_DST ?? 'public/assets/processed');
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 const names = argv; // what is left once the flags are taken out
+const v2 = process.env.PROPS_SRC !== undefined;
+const stripUnlitNormals = () => (doc) => {
+  for (const mesh of doc.getRoot().listMeshes()) {
+    for (const prim of mesh.listPrimitives()) {
+      if (!prim.getMaterial()?.getExtension('KHR_materials_unlit')) continue;
+      for (const sem of ['NORMAL', 'TANGENT']) if (prim.getAttribute(sem)) prim.setAttribute(sem, null);
+    }
+  }
+};
 const files = fs.readdirSync(src).filter((f) => f.endsWith('.glb') && (!names.length || names.includes(path.basename(f, '.glb'))));
 let before = 0;
 let after = 0;
 for (const f of files) {
   const doc = await io.read(path.join(src, f));
   await doc.transform(
+    ...(v2 ? [stripUnlitNormals(), weld()] : []),
     dedup(),
     // Positions keep 16 bits across the mesh's own bounds: sub-0.02 mm on a 1 m robot.
     quantize({ quantizePosition: 16, quantizeNormal: 8, quantizeTexcoord: 16, quantizeColor: 8, quantizeGeneric: 12 }),

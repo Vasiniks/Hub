@@ -1,6 +1,6 @@
 {
  "note": "CC BY 4.0 requires this credit to be visible wherever these models ship.",
- "line": "Models: \"Mouse Logitech MX Master 3S white\" by Guibazilla — CC BY 4.0",
+ "line": "Models: \"Mouse Logitech MX Master 3S white\" by Guibazilla · \"MotherBoard + Components\" by Daniel Cardona · \"Kasane Teto fatass plush\" by revsworks — CC BY 4.0",
  "items": [
   {
    "key": "mx_master_3s",
@@ -11,6 +11,28 @@
    "line": "\"Mouse Logitech MX Master 3S white\" by Guibazilla, licensed under CC BY 4.0 (https://sketchfab.com/3d-models/mouse-logitech-mx-master-3s-white-dc82de97cbe64c6a8deae3328208c984)",
    "assets": [
     "mouse_mx.glb"
+   ]
+  },
+  {
+   "key": "motherboard",
+   "title": "MotherBoard + Components",
+   "author": "Daniel Cardona",
+   "licence": "CC BY 4.0",
+   "url": "https://sketchfab.com/3d-models/motherboard-components-3bc94057328243d4b341a55f59160f8a",
+   "line": "\"MotherBoard + Components\" by Daniel Cardona, licensed under CC BY 4.0 (https://sketchfab.com/3d-models/motherboard-components-3bc94057328243d4b341a55f59160f8a)",
+   "assets": [
+    "pc.glb"
+   ]
+  },
+  {
+   "key": "teto_plush",
+   "title": "Kasane Teto fatass plush",
+   "author": "revsworks",
+   "licence": "CC BY 4.0",
+   "url": "https://sketchfab.com/3d-models/kasane-teto-fatass-plush-bd8157eb42a04161b2628e58dfd2a852",
+   "line": "\"Kasane Teto fatass plush\" by revsworks, licensed under CC BY 4.0 (https://sketchfab.com/3d-models/kasane-teto-fatass-plush-bd8157eb42a04161b2628e58dfd2a852)",
+   "assets": [
+    "pc.glb"
    ]
   }
  ]

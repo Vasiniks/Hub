@@ -111,7 +111,7 @@
   "normal": "lamp_normal.png",
   "lit": "lamp_lit.png"
  },
- "lit_scale": 160,
+ "lit_scale": 8.0,
  "material_modes": {
   "lamp_diffuser": "pbr_emissive",
   "lamp_lit": "lit",
@@ -134,6 +134,7 @@
  ],
  "emissive_strength_max": 1.0,
  "emissive_nodes": [],
+ "screen_nodes": [],
  "anchors": {
   "NEW_lamp_root": {
    "blender_world": [
@@ -237,25 +238,25 @@
    "coverage_px": 0.487
   },
   "lit": {
-   "lit_scale": 160,
+   "lit_scale": 8.0,
    "raw_mean": 3.0086,
    "denoised_mean": 3.0125,
    "p50": 0.2959,
-   "clipped_fraction": 0.00036,
+   "clipped_fraction": 0.12914,
    "coverage_px": 0.412,
    "samples": 256
   }
  },
  "bake_seconds": {
   "base": 12.0,
-  "rough": 11.8,
-  "metal": 11.9,
-  "ao": 14.2,
-  "normal": 17.8,
-  "lit": 26.9,
-  "lit_denoise": 0.2
+  "rough": 12.2,
+  "metal": 12.0,
+  "ao": 14.3,
+  "normal": 17.9,
+  "lit": 26.8,
+  "lit_denoise": 0.8
  },
  "glb": "lamp.glb",
- "glb_bytes": 1223052,
- "seconds": 121.2
+ "glb_bytes": 1260560,
+ "seconds": 122.4
 }

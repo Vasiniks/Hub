@@ -79,6 +79,11 @@ BAKE_MANIFEST = os.path.join(REPO, 'blender', 'bake', 'sunset', 'manifest.json')
 # s2a: globs of objects whose normal map is baked from the full-resolution mesh.
 # keepers: material name -> output node name ('' = keep the object's own name).
 KEEPERS = {'robot_rsl_amber': 'Robot_rsl_lens', 'bambu_mini_screen_lit': 'bambu_mini_screen'}
+# display panels the runtime draws on (coordinator, 2026-10-01): own node + scalar PBR material, UV0 =
+# 0..1 across the visible face, u to the right and v up as seen from the seat; never in an atlas
+SCREENS = {'mon_screen_antiglare': dict(node='mon_screen', material='mon_screen',
+                                        base=(0.004, 0.004, 0.005, 1.0), rough=0.15)}
+SEAT = Vector((0.0, -0.16, 1.175))   # CAM_seat: where 'front' is seen from
 CREDITS = {
     'teto_plush': '"Kasane Teto fatass plush" by revsworks, CC BY 4.0 '
                   '(https://sketchfab.com/3d-models/kasane-teto-fatass-plush-bd8157eb42a04161b2628e58dfd2a852)',
@@ -121,28 +126,33 @@ SETS = {
     'lorenz': dict(src=['NEW_lorenz'], budget=15000, res=512, lit=1024,
                    weights=[('NEW_lorenz_paper_page1', 5.0), ('NEW_lorenz_paper_page*', 3.0),
                             ('NEW_lorenz_wire', 0.6)],
-                   ratio=[('NEW_lorenz_paper*', 3.0), ('NEW_lorenz_base', 2.0)]),
+                   ratio=[('NEW_lorenz_paper*', 3.0), ('NEW_lorenz_base', 2.0)],
+                   nodes=[('NEW_lorenz_paper_*', 'paper'), ('NEW_lorenz_staple', 'paper'),
+                          ('*', 'lorenz_sculpture')]),
     'cables': dict(src=['NEW_cables'], budget=15000, res=512, lit=512,
                    weights=[('*_cable', 0.08), ('*_cord', 0.08)]),
     'redbull': dict(src=['NEW_redbull'], budget=4000, res=512, lit=512),
     'teto_pear': dict(src=['NEW_teto_pear'], budget=None, res=256, lit=512),
     # ---- the rest
-    'robot': dict(src=['NEW_robot'], budget=40000, res=1024, lit=1024,
+    'robot': dict(src=['NEW_robot'], budget=32000, res=1024, lit=1024,
                   weights=[('Robot_bumper_fabric', 1.5), ('Robot_number_*', 2.0)],
                   ratio=[('Robot_number_*', 3.0), ('Robot_bumper_fabric', 3.0)]),
-    'bambu_mini': dict(src=['NEW_bambu_mini'], budget=35000, res=512, lit=1024, credits=['bambu_a1_mini'],
+    'bambu_mini': dict(src=['NEW_bambu_mini'], budget=28000, res=512, lit=1024, credits=['bambu_a1_mini'],
+                       nodes=[('bambu_mini_spool*', 'bambu_mini_spool_stand'),
+                              ('bambu_mini_table_*', 'bambu_mini_table_parts'), ('*', 'bambu_mini_printer')],
                        weights=[('bambu_mini_base', 1.5), ('bambu_mini_toolhead', 1.5)]),
-    'telecaster': dict(src=['NEW_telecaster', 'NEW_tele_gb'], budget=28000, res=512, lit=1024,
+    'telecaster': dict(src=['NEW_telecaster', 'NEW_tele_gb'], budget=22000, res=512, lit=1024,
                        weights=[('TeleGB_Deka', 2.5), ('TeleGB_fingerboard*', 2.0), ('TeleStand', 0.5),
                                 ('TeleGB_Spring*', 0.2), ('TeleGB_Strings', 0.2)],
                        ratio=[('TeleStand', 0.5), ('TeleGB_Deka', 3.0), ('TeleGB_fingerboard', 2.0)]),
     'painting': dict(src=['NEW_painting'], budget=None, res=256, lit=1024,
                      weights=[('painting_canvas', 6.0)]),
     'bookrack': dict(src=['NEW_bookrack'], budget=8000, res=256, lit=1024,
-                     weights=[('bookrack_screw*', 0.2)]),
-    'chair': dict(src=['obj:chair_base*'], budget=10000, res=512, lit=1024),
+                     weights=[('bookrack_screw*', 0.2)],
+                     nodes=[('Mesh_1[67]?.001', '='), ('*', 'bookrack_hardware')]),
+    'chair': dict(src=['obj:chair_base*'], budget=8000, res=512, lit=1024),
     'desk_misc': dict(src=['obj:driver_*', 'obj:tote*', 'obj:Mesh_14[2-6]'], budget=None, res=512, lit=512),
-    'fixtures': dict(src=['NEW_roomshell', 'NEW_curtains'], budget=None, res=512, lit=1024),
+    'fixtures': dict(src=['NEW_roomshell', 'NEW_curtains'], budget=10000, res=512, lit=1024),
 }
 DESK_SET = ['monitor', 'keyboard', 'macbook', 'mouse_mx', 'lamp', 'pc', 'electronics', 'speedcube',
             'lorenz', 'cables', 'redbull', 'teto_pear']
@@ -486,6 +496,33 @@ def alive(o):
         return o.name in bpy.data.objects
     except ReferenceError:
         return False
+
+
+def screen_uv(o):
+    """Planar UV 'UVMap' over the face: u along screen-right, v along screen-up, as seen from SEAT."""
+    me = o.data
+    mw = o.matrix_world
+    m3 = mw.to_3x3()
+    n = Vector((0.0, 0.0, 0.0))
+    for p in me.polygons:
+        n += (m3 @ p.normal) * p.area
+    n.normalize()
+    pts = [mw @ v.co for v in me.vertices]
+    cen = sum(pts, Vector()) / len(pts)
+    if n.dot(SEAT - cen) < 0:
+        n = -n
+    right = Vector((0.0, 0.0, 1.0)).cross(n).normalized()
+    up = n.cross(right)
+    us = [q.dot(right) for q in pts]
+    vs = [q.dot(up) for q in pts]
+    u0, du = min(us), max(1e-9, max(us) - min(us))
+    v0, dv = min(vs), max(1e-9, max(vs) - min(vs))
+    while me.uv_layers:
+        me.uv_layers.remove(me.uv_layers[0])
+    uv = me.uv_layers.new(name='UVMap')
+    for li, lp in enumerate(me.loops):
+        q = pts[lp.vertex_index]
+        uv.data[li].uv = ((q.dot(right) - u0) / du, (q.dot(up) - v0) / dv)
 
 
 def select_only(objs, active=None):
@@ -860,14 +897,30 @@ def export_set(name):
     else:
         purge_to(srcs)
     # ---------------------------------------------------------------- groups (anchor nodes)
-    groups = {}
+    # one node per top-level group; cfg['nodes'] splits a group into named child nodes (logically
+    # distinct objects the runtime picks separately), placed at the group's transform
+    groups, vparent = {}, {}
     for o in srcs:
         g = group_of(o, None)
-        groups.setdefault(g.name if g else '__world', []).append(o.name)
-    group_mw = {gn: (bpy.data.objects[gn].matrix_world.copy() if gn != '__world' else Matrix())
+        gname = g.name if g else '__world'
+        vn = match(o.name, cfg.get('nodes'))
+        if vn == '=':          # one node per object, named after it (e.g. each book)
+            vn = o.name
+        if vn:
+            vparent[vn] = gname
+            groups.setdefault(vn, []).append(o.name)
+        else:
+            groups.setdefault(gname, []).append(o.name)
+
+    def real(gn):
+        return vparent.get(gn, gn)
+    group_mw = {gn: (bpy.data.objects[real(gn)].matrix_world.copy() if real(gn) != '__world' else Matrix())
                 for gn in groups}
     group_parent = {}
     for gn in groups:
+        if gn in vparent:
+            group_parent[gn] = vparent[gn] if vparent[gn] != '__world' else None
+            continue
         if gn == '__world':
             continue
         ch = ancestors(bpy.data.objects[gn])
@@ -959,6 +1012,18 @@ def export_set(name):
     PBR_KINDS = ('metal', 'emit', 'keeper', 'glass') if LIT else ('opaque', 'cutout', 'metal', 'emit',
                                                                    'keeper', 'glass')
     lo_parts = {}
+    screen_objs = {}
+    for k, c in list(lo.items()):
+        for sm in {sl.material for sl in c.material_slots if sl.material and sl.material.name in SCREENS}:
+            cfg_s = SCREENS[sm.name]
+            piece = separate_material(c, sm, cfg_s['node'] + '__lo')
+            if piece is None:
+                continue
+            screen_uv(piece)
+            screen_objs[piece] = cfg_s
+            lo_parts.setdefault(k, []).append(piece)
+            if piece is c:
+                del lo[k]
     lit_objs, pbr_objs = [], []
     for k, c in lo.items():
         pm = {s.material for s in c.material_slots if s.material and kinds[s.material.name]['kind'] in PBR_KINDS}
@@ -971,7 +1036,7 @@ def export_set(name):
         if alive(c) and c not in parts_ and c.data.polygons:
             parts_.append(c)
             lit_objs.append(c)
-        lo_parts[k] = parts_
+        lo_parts[k] = lo_parts.get(k, []) + parts_
     log(f'{name}: {len(lit_objs)} lit parts ({sum(ntris(o.data) for o in lit_objs)} tris), '
         f'{len(pbr_objs)} pbr parts ({sum(ntris(o.data) for o in pbr_objs)} tris)')
     # ---------------------------------------------------------------- atlas UVs (one per mode)
@@ -1212,6 +1277,16 @@ def export_set(name):
         for s_ in c.material_slots:
             if s_.material:
                 s_.material = web[s_.material.name]
+    screen_nodes = []
+    for c, cfg_s in screen_objs.items():
+        sm = bpy.data.materials.get(cfg_s['material']) or build_material(
+            cfg_s['material'], tex, 'keeper_scalar',
+            scalar_info=dict(base=cfg_s['base'], rough=cfg_s['rough'], emit_color=(0, 0, 0, 1), emit_strength=0.0))
+        mode_of[sm.name] = 'pbr_screen'
+        c.data.materials.clear()
+        c.data.materials.append(sm)
+        screen_nodes.append(dict(node=cfg_s['node'], material=sm.name,
+                                 uv='UV0 0..1 across the visible face; u to the right, v up, seen from CAM_seat'))
     tex_all = dict(tex)
     if tex_lit:
         tex_all['lit'] = tex_lit['lit']
@@ -1260,7 +1335,11 @@ def export_set(name):
                     parts.append(sep)
                 emissive_nodes.append(dict(node=sep.name, material=wm.name, keeper=True,
                                            **keeper_info.get(km, {})))
-        knames = {e['node'] for e in emissive_nodes}
+        for c in parts:
+            if c in screen_objs:
+                c.name = screen_objs[c]['node']
+                c.data.name = c.name
+        knames = {e['node'] for e in emissive_nodes} | {cfg_s['node'] for cfg_s in screen_objs.values()}
         glass = {}
         for c in list(parts):
             if c.name in knames:
@@ -1347,7 +1426,7 @@ def export_set(name):
                                 if o.type == 'MESH' for s_ in o.material_slots if s_.material})},
                 material_kinds={k: v['kind'] for k, v in kinds.items()},
                 emissive_materials=emissive_mats, emissive_strength_max=round(smax, 3),
-                emissive_nodes=emissive_nodes, anchors=anchors, meshes=meshes,
+                emissive_nodes=emissive_nodes, screen_nodes=screen_nodes, anchors=anchors, meshes=meshes,
                 credits=[dict(key=c, text=CREDITS[c]) for c in cfg.get('credits', [])],
                 bake_stats=stats, bake_seconds=timings, glb=os.path.basename(glb),
                 glb_bytes=os.path.getsize(glb), seconds=round(time.time() - t0, 1))
