@@ -32,7 +32,7 @@
   "type": "log2",
   "min": -12,
   "max": 6,
-  "decode": "L = t > 0.5/255 ? 2^(min + t*(max-min)) : 0 per channel; alpha straight (far: opaque)"
+  "decode": "L = t > 0.5/255 ? 2^(min + t*(max-min)) : 0 per channel; alpha straight (back: opaque)"
  },
  "radiance": "Scene-linear Rec.709 radiance, as Cycles wrote it before the view transform. The approved grade is applied at runtime: AgX (Blender look Medium High Contrast), exposure +0.45 EV (toneMappingExposure 2^0.45). Unlit/emissive: never lit again.",
  "render": {
@@ -51,55 +51,56 @@
   "ior": 1.5,
   "about": "The approved stills see the street through Mesh_11, a single-sided IOR 1.5 Principled glass plane (not thin-walled) at Blender y = 1.398: every view ray refracts once and never exits, magnifying the street ~1.5x. The runtime reproduces it by refracting the view ray at this plane (three z = -1.398) and applying Fresnel transmittance; ior 1 = a plain opening. The layers themselves are baked without the glass."
  },
- "tris": 198,
- "bytes": 364854,
+ "tris": 6,
+ "bytes": 268360,
  "layers": [
   {
-   "name": "far",
-   "file": "far.webp",
-   "bytes": 88336,
+   "name": "back",
+   "file": "back.webp",
+   "bytes": 86696,
    "size": [
-    1312,
-    1045
+    1303,
+    1039
    ],
    "lon": [
-    -47.62008323829977,
-    34.34932804970853
+    -47.5756972300776,
+    33.83574911193294
    ],
    "lat": [
     -23.248978167583473,
-    42.05488119733713
+    41.69499579011322
    ],
    "opaque": true,
    "proxy": {
-    "type": "disc+cylinder",
-    "center": [
-     0.53,
-     0.5599999999999999
-    ],
+    "type": "ground+wall",
     "groundY": -3.05,
-    "radius": 55,
+    "wallZ": -26.5,
+    "nearZ": -1.398,
+    "x": [
+     -200,
+     200
+    ],
     "top": 80
    },
    "proxy_blender": {
-    "type": "disc+cylinder",
-    "center": [
-     0.53,
-     -0.5599999999999999
-    ],
+    "type": "ground+wall",
     "ground_z": -3.05,
-    "radius": 55,
+    "wall_y": 26.5,
+    "x": [
+     -200,
+     200
+    ],
     "top_z": 80
    },
    "spp": 256,
    "ppd": 16,
    "stats_linear": {
-    "peak": 8.629032135009766,
-    "p50": 0.3206373453140259,
-    "p01": 0.01055391039699316,
-    "p999": 3.162594795227051,
+    "peak": 46.699798583984375,
+    "p50": 0.31319761276245117,
+    "p01": 0.012913587503135204,
+    "p999": 2.8160367012023926,
     "coverage": 1,
-    "below_min_frac": 0.0000014587466448827169,
+    "below_min_frac": 4.92434846560995e-7,
     "above_max_frac": 0
    },
    "encode": {
@@ -111,32 +112,32 @@
      "effort": 6
     },
     "display_error_vs_png": {
-     "meanCodes": 0.817,
-     "maxCodes": 57.9,
-     "over4": 0.01121
+     "meanCodes": 0.83,
+     "maxCodes": 20.7,
+     "over4": 0.0123
     }
    }
   },
   {
-   "name": "mid",
-   "file": "mid.webp",
-   "bytes": 70096,
+   "name": "front",
+   "file": "front.webp",
+   "bytes": 181664,
    "size": [
-    1628,
-    376
+    1458,
+    671
    ],
    "lon": [
-    -47.5756972300776,
-    33.83574911193295
+    -47.53018107986643,
+    33.449097068643106
    ],
    "lat": [
-    -9.771267142363032,
-    9.03467538689943
+    -19.32510785518409,
+    17.96187514285145
    ],
    "opaque": false,
    "proxy": {
     "type": "planeZ",
-    "z": -26.5,
+    "z": -20,
     "x": [
      -200,
      200
@@ -148,7 +149,7 @@
    },
    "proxy_blender": {
     "type": "plane_y",
-    "y": 26.5,
+    "y": 20,
     "x": [
      -200,
      200
@@ -159,81 +160,14 @@
     ]
    },
    "spp": 256,
-   "ppd": 20,
+   "ppd": 18,
    "stats_linear": {
-    "peak": 48.50449752807617,
-    "p50": 0.06897374987602234,
-    "p01": 0.008902967907488346,
-    "p999": 1.5639824867248535,
-    "coverage": 0.5290968555596215,
-    "below_min_frac": 0.000003811838918221897,
-    "above_max_frac": 0
-   },
-   "encode": {
-    "format": "webp",
-    "opts": {
-     "quality": 95,
-     "alphaQuality": 100,
-     "smartSubsample": true,
-     "effort": 6
-    },
-    "display_error_vs_png": {
-     "meanCodes": 1.174,
-     "maxCodes": 13.1,
-     "over4": 0.03415
-    }
-   }
-  },
-  {
-   "name": "street",
-   "file": "street.webp",
-   "bytes": 146880,
-   "size": [
-    1622,
-    603
-   ],
-   "lon": [
-    -47.543072749909456,
-    33.558861970295524
-   ],
-   "lat": [
-    -12.198229133444517,
-    17.940840565013126
-   ],
-   "opaque": false,
-   "proxy": {
-    "type": "planeZ",
-    "z": -21.5,
-    "x": [
-     -200,
-     200
-    ],
-    "y": [
-     -12,
-     40
-    ]
-   },
-   "proxy_blender": {
-    "type": "plane_y",
-    "y": 21.5,
-    "x": [
-     -200,
-     200
-    ],
-    "z": [
-     -12,
-     40
-    ]
-   },
-   "spp": 256,
-   "ppd": 20,
-   "stats_linear": {
-    "peak": 9.08883285522461,
-    "p50": 0.02146497368812561,
-    "p01": 0.003117789514362812,
-    "p999": 4.944930076599121,
-    "coverage": 0.07576175840894173,
-    "below_min_frac": 0.0000794084107480136,
+    "peak": 8.4703950881958,
+    "p50": 0.02332952432334423,
+    "p01": 0.003383458824828267,
+    "p999": 4.910755157470703,
+    "coverage": 0.08742658317643139,
+    "below_min_frac": 0.0000572411015641131,
     "above_max_frac": 0
    },
    "encode": {
@@ -244,73 +178,7 @@
      "effort": 6
     },
     "display_error_vs_png": {
-     "meanCodes": 0.761,
-     "maxCodes": 2.2,
-     "over4": 0
-    }
-   }
-  },
-  {
-   "name": "near",
-   "file": "near.webp",
-   "bytes": 59542,
-   "size": [
-    1112,
-    386
-   ],
-   "lon": [
-    -37.37701221978331,
-    32.096027499343485
-   ],
-   "lat": [
-    -19.349243266195014,
-    4.782124865738439
-   ],
-   "opaque": false,
-   "proxy": {
-    "type": "planeZ",
-    "z": -10.7,
-    "x": [
-     -200,
-     200
-    ],
-    "y": [
-     -12,
-     40
-    ]
-   },
-   "proxy_blender": {
-    "type": "plane_y",
-    "y": 10.7,
-    "x": [
-     -200,
-     200
-    ],
-    "z": [
-     -12,
-     40
-    ]
-   },
-   "spp": 256,
-   "ppd": 16,
-   "stats_linear": {
-    "peak": 0.7599575519561768,
-    "p50": 0.02610120177268982,
-    "p01": 0.012360112741589546,
-    "p999": 0.11273545771837234,
-    "coverage": 0.05059501621500727,
-    "below_min_frac": 0.000022520843428883837,
-    "above_max_frac": 0
-   },
-   "encode": {
-    "format": "webp",
-    "opts": {
-     "nearLossless": true,
-     "quality": 60,
-     "effort": 6
-    },
-    "display_error_vs_png": {
-     "meanCodes": 1.027,
+     "meanCodes": 0.853,
      "maxCodes": 2.2,
      "over4": 0
     }

@@ -1,30 +1,31 @@
 import * as THREE from 'three';
 
 /**
- * The street outside the `?v2` window: four baked panorama layers instead of ~390k triangles.
+ * The street outside the `?v2` window: two baked panorama cards instead of ~390k triangles.
  *
  * `blender/scripts/v2_exterior_web.py` renders `NEW_exterior` in Cycles (the approved dusk
  * setup) as equirectangular panoramas from one bake eye — the midpoint of the seated and
- * standing eyes — one per depth layer (far: ground + back rows + sky, opaque; mid: the houses
- * across the street; street: hydro poles, wires, street maples, parked sedan; near: the young
- * maples). Each layer here is a few triangles at that layer's real depth (a ground disc +
- * cylinder wall, three vertical planes). The
- * fragment shader projects the fragment's world position back to the bake eye and reads the
- * panorama there, so anything that really lies on its proxy is exact from any viewpoint and the
- * rest parallaxes approximately — the seated↔standing move slides the layers past each other.
+ * standing eyes — one per card: `back` (opaque: road and lawns on a ground plane, then the
+ * houses across the street, back-row trees and sky on a wall at the house fronts) and `front`
+ * (alpha: hydro poles, wires, street maples, the young maples in front, on one vertical plane).
+ * The fragment shader projects the fragment's world position back to the bake eye and reads the
+ * panorama there, so anything that really lies on its card is exact from any viewpoint and the
+ * rest parallaxes approximately — the seated↔standing move slides the cards past each other.
+ * Two cards, not more: each is a full-window fragment layer, and the site must run on low-end
+ * GPUs. No extra render pass: both draw inside the scene pass.
  *
  * Grade: texels are scene-linear radiance (log2-encoded, 8 bits), written straight into the HDR
  * scene buffer — emissive, unlit — so the room's AgX output pass and its 2^0.45 exposure grade
  * the street exactly like the baked room. Nothing here is lit, nothing lights anything.
  *
- * Drawing: painter's order far → mid → street → near (sidecar order), all after the opaque room (transparent queue,
+ * Drawing: painter's order back → front (sidecar order), all after the opaque room (transparent queue,
  * renderOrder), depth-tested against the room so only the window shows them, never writing
  * depth. Every vertex is pushed onto the far plane (skybox trick), so the 55 m proxies are never
  * clipped by the room camera's far plane and never occlude anything.
  */
 
 interface LayerSpec {
-  name: 'far' | 'mid' | 'street' | 'near';
+  name: 'back' | 'front';
   file: string;
   size: [number, number];
   /** Panorama extent in degrees, from the bake eye: azimuth (+ = right of -Z) and elevation. */
@@ -32,7 +33,7 @@ interface LayerSpec {
   lat: [number, number];
   opaque: boolean;
   proxy:
-    | { type: 'disc+cylinder'; center: [number, number]; groundY: number; radius: number; top: number }
+    | { type: 'ground+wall'; groundY: number; wallZ: number; nearZ: number; x: [number, number]; top: number }
     | { type: 'planeZ'; z: number; x: [number, number]; y: [number, number] };
 }
 
@@ -74,22 +75,17 @@ uniform vec3 eye;
 uniform vec4 range;    // lon0, lon1, lat0, lat1 (radians)
 uniform vec2 logRange; // log2 min, max
 uniform float opaque;
-uniform int proxyType; // 0: plane z = proxy.x; 1: ground disc y = proxy.z (centre proxy.xy in xz, radius proxy.w) + wall
+uniform int proxyType; // 0: plane z = proxy.x; 1: ground y = proxy.y in front of the wall z = proxy.x
 uniform vec4 proxy;
 uniform vec2 glass;    // plane z, IOR (<= 1: no glass)
 varying vec3 vWorld;
 
 vec3 hitProxy(vec3 o, vec3 d) {
-  if (proxyType == 0) return o + d * ((proxy.x - o.z) / d.z);
-  if (d.y < 0.0) {
-    vec3 p = o + d * ((proxy.z - o.y) / d.y);
-    if (length(p.xz - proxy.xy) <= proxy.w) return p;
+  if (proxyType == 1 && d.y < 0.0) {
+    vec3 p = o + d * ((proxy.y - o.y) / d.y);
+    if (p.z >= proxy.x) return p;
   }
-  vec2 oc = o.xz - proxy.xy;
-  float a = dot(d.xz, d.xz);
-  float b = 2.0 * dot(oc, d.xz);
-  float c = dot(oc, oc) - proxy.w * proxy.w;
-  return o + d * ((-b + sqrt(max(b * b - 4.0 * a * c, 0.0))) / (2.0 * a));
+  return o + d * ((proxy.x - o.z) / d.z);
 }
 
 void main() {
@@ -127,26 +123,15 @@ function proxyGeometry(spec: LayerSpec): THREE.BufferGeometry {
     g.setIndex([0, 1, 2, 0, 2, 3]);
     return g;
   }
-  // Ground disc (fan) + cylinder wall around the bake eye.
-  const n = 64;
-  const [cx, cz] = p.center;
-  const pos: number[] = [cx, p.groundY, cz];
-  const idx: number[] = [];
-  for (let i = 0; i <= n; i++) {
-    const a = (i / n) * Math.PI * 2;
-    const x = cx + p.radius * Math.sin(a);
-    const z = cz - p.radius * Math.cos(a);
-    pos.push(x, p.groundY, z, x, p.top, z);
-  }
-  for (let i = 0; i < n; i++) {
-    const r0 = 1 + i * 2;
-    const r1 = 1 + (i + 1) * 2;
-    idx.push(0, r1, r0); // disc
-    idx.push(r0, r1, r1 + 1, r0, r1 + 1, r0 + 1); // wall
-  }
+  // Ground quad from the window out to the wall, then the wall up to `top`.
+  const [x0, x1] = p.x;
+  const { groundY: gy, wallZ: wz, nearZ: nz, top } = p;
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setIndex(idx);
+  g.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute([x0, gy, nz, x1, gy, nz, x1, gy, wz, x0, gy, wz, x0, top, wz, x1, top, wz], 3),
+  );
+  g.setIndex([0, 2, 1, 0, 3, 2, 3, 5, 2, 3, 4, 5]);
   return g;
 }
 
@@ -199,7 +184,7 @@ export async function loadExteriorBackdrop(base: string): Promise<ExteriorBackdr
           value:
             spec.proxy.type === 'planeZ'
               ? new THREE.Vector4(spec.proxy.z, 0, 0, 0)
-              : new THREE.Vector4(spec.proxy.center[0], spec.proxy.center[1], spec.proxy.groundY, spec.proxy.radius),
+              : new THREE.Vector4(spec.proxy.wallZ, spec.proxy.groundY, 0, 0),
         },
         glass: { value: glass },
       },

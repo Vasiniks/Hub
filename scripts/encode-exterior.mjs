@@ -1,6 +1,6 @@
 // Pipeline step for the `?v2` street backdrop: blender/scripts/v2_exterior_web.py writes the
 // log-encoded layer PNGs + tmp/exterior/layers.json; this compresses them for the web and writes
-// public/assets/v2/exterior/{far,mid,near}.webp + exterior.json (the runtime sidecar).
+// public/assets/v2/exterior/{back,front}.webp + exterior.json (the runtime sidecar).
 //
 //   node scripts/encode-exterior.mjs            encode with the chosen settings
 //   node scripts/encode-exterior.mjs --measure  compare candidate encodings (bytes + error)
@@ -18,12 +18,10 @@ const EXPOSURE = 2 ** 0.45;
 
 // Chosen per layer after --measure (see .claude/briefs/report-web-exterior.md).
 const CHOSEN = {
-  // smooth sky/ground: lossy is ~1 display code off, 8x smaller than lossless
-  far: { format: 'webp', opts: { quality: 95, alphaQuality: 100, smartSubsample: true, effort: 6 } },
-  mid: { format: 'webp', opts: { quality: 95, alphaQuality: 100, smartSubsample: true, effort: 6 } },
-  // wires/foliage: near-lossless costs the same bytes as q95 here at half the error
-  street: { format: 'webp', opts: { nearLossless: true, quality: 60, effort: 6 } },
-  near: { format: 'webp', opts: { nearLossless: true, quality: 60, effort: 6 } },
+  // smooth sky/ground/houses: lossy is ~1 display code off, ~8x smaller than lossless
+  back: { format: 'webp', opts: { quality: 95, alphaQuality: 100, smartSubsample: true, effort: 6 } },
+  // wires/foliage over alpha: near-lossless keeps edges at the bytes of lossy q95
+  front: { format: 'webp', opts: { nearLossless: true, quality: 60, effort: 6 } },
 };
 
 const meta = JSON.parse(fs.readFileSync(path.join(SRC, 'layers.json'), 'utf8'));
@@ -98,7 +96,7 @@ if (process.argv.includes('--measure')) {
 fs.mkdirSync(DST, { recursive: true });
 const layers = [];
 let bytes = 0;
-for (const name of ['far', 'mid', 'street', 'near']) {
+for (const name of ['back', 'front']) {
   const m = meta[name];
   if (!m) continue;
   const c = CHOSEN[name];
@@ -110,8 +108,8 @@ for (const name of ['far', 'mid', 'street', 'near']) {
   bytes += buf.length;
   const p = m.proxy;
   const proxy =
-    p.type === 'disc+cylinder'
-      ? { type: p.type, center: [p.center[0], -p.center[1]], groundY: p.ground_z, radius: p.radius, top: p.top_z }
+    p.type === 'ground+wall'
+      ? { type: p.type, groundY: p.ground_z, wallZ: -p.wall_y, nearZ: -1.398, x: p.x, top: p.top_z }
       : { type: 'planeZ', z: -p.y, x: p.x, y: p.z };
   layers.push({
     name,
@@ -120,7 +118,7 @@ for (const name of ['far', 'mid', 'street', 'near']) {
     size: m.size,
     lon: m.lon,
     lat: m.lat,
-    opaque: name === 'far',
+    opaque: name === 'back',
     proxy,
     proxy_blender: p,
     spp: m.spp,
@@ -130,26 +128,26 @@ for (const name of ['far', 'mid', 'street', 'near']) {
   });
   console.log(name, out, buf.length, 'bytes', JSON.stringify(err));
 }
-const eyeB = meta.far.eye_blender;
+const eyeB = meta.back.eye_blender;
 const sidecar = {
   about:
     'Street backdrop for ?v2: Cycles panoramas of NEW_exterior (room.blend, approved dusk setup) from one bake eye; see src/scene/exteriorBackdrop.ts and blender/scripts/v2_exterior_web.py.',
-  source: meta.far.source,
+  source: meta.back.source,
   coordinates: 'three.js Y-up metres; three (x, y, z) = Blender (x, z, -y). *_blender fields are Blender Z-up.',
   eye: toThree(eyeB),
   eye_blender: eyeB,
-  poses_blender: meta.far.poses_blender,
+  poses_blender: meta.back.poses_blender,
   camera_basis:
     'Equirectangular from `eye`: azimuth = atan2(x, -z) in three (Blender atan2(x, y)), + to the right of the -Z (Blender +Y) view; elevation = asin(y). u = (az - lon0)/(lon1 - lon0), v = (el - lat0)/(lat1 - lat0), v = 0 is the bottom image row. lon/lat in degrees.',
   encoding: {
     type: 'log2',
     min: LOG.min,
     max: LOG.max,
-    decode: 'L = t > 0.5/255 ? 2^(min + t*(max-min)) : 0 per channel; alpha straight (far: opaque)',
+    decode: 'L = t > 0.5/255 ? 2^(min + t*(max-min)) : 0 per channel; alpha straight (back: opaque)',
   },
   radiance:
     'Scene-linear Rec.709 radiance, as Cycles wrote it before the view transform. The approved grade is applied at runtime: AgX (Blender look Medium High Contrast), exposure +0.45 EV (toneMappingExposure 2^0.45). Unlit/emissive: never lit again.',
-  render: meta.far.render,
+  render: meta.back.render,
   glass: {
     plane_z: -1.398,
     ior: 1.5,
@@ -160,7 +158,7 @@ const sidecar = {
   bytes,
   layers,
 };
-// tris as built by exteriorBackdrop.ts: disc 64 + wall 128, two planes x 2
-sidecar.tris = 64 * 3 + layers.filter((l) => l.proxy.type === 'planeZ').length * 2;
+// tris as built by exteriorBackdrop.ts: ground + wall quads (4), front plane (2)
+sidecar.tris = layers.reduce((n, l) => n + (l.proxy.type === 'ground+wall' ? 4 : 2), 0);
 fs.writeFileSync(path.join(DST, 'exterior.json'), JSON.stringify(sidecar, null, 1));
 console.log('total', bytes, 'bytes; tris', sidecar.tris);

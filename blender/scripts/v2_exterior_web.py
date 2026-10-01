@@ -1,5 +1,5 @@
 """
-v2_exterior_web.py -- the street outside the window as four baked panorama layers.
+v2_exterior_web.py -- the street outside the window as two baked panorama cards.
 
 The exterior (`NEW_exterior`, ~390k tris) is seen through one window from two eye
 positions ~1.4 m apart. Instead of shipping geometry, each depth layer is rendered
@@ -10,13 +10,15 @@ fragment's world position back to the bake eye and looks the panorama up. A surf
 point that really lies on the proxy is therefore exact from any viewpoint; content
 off the proxy shows parallax error proportional to its depth spread.
 
-    far   opaque   ground plane z=GROUND_Z out to R_FAR + a cylinder wall r=R_FAR + sky.
-                   Holds ground, terrain, back-row trees, far houses, sky.
-    mid   alpha    vertical plane y=Y_MID: the houses across the street, their hedges,
-                   fences, the parked SUV.
-    street alpha   vertical plane y=Y_STREET: hydro poles, wires, street maples, the
-                   sedan, hydrant, mailbox, bins, stop sign.
-    near  alpha    vertical plane y=Y_NEAR: the young maples in front of the house.
+    back   opaque  ground plane z=GROUND_Z up to the house fronts, then a vertical wall
+                   y=Y_BACK: road, lawns, the houses across the street, hedges, fences,
+                   the parked SUV, back-row trees, terrain, sky.
+    front  alpha   vertical plane y=Y_FRONT: hydro poles, wires, street maples, the
+                   sedan, hydrant, mailbox, bins, stop sign, the young maples in front.
+
+Two cards, not more: the site must run on low-end GPUs and every card is a full-window
+fragment layer (owner, 2026-10-01). The four-layer variant (far/mid/street/near) measured
+in the report was only ~1 mean code closer to the reference.
 
 Lighting stays exactly as approved: nothing is deleted. Objects outside a layer are
 made camera-invisible (they still cast shadows and bounce light), the ground is a
@@ -67,15 +69,13 @@ GLASS_X = (-1.275, 0.975)
 GLASS_Z = (0.745, 2.455)
 
 GROUND_Z = -3.05
-R_FAR = 55.0          # far ground disc radius / wall radius around the bake eye (xy)
-FAR_TOP = 80.0        # wall top z
-Y_MID = 26.5          # houses plane (front walls at 25.5-26)
-Y_STREET = 21.5       # street-furniture plane (poles at ~21.4)
-Y_NEAR = 10.7         # near plane
+Y_BACK = 26.5         # back wall: the house fronts across the street (25.5-26)
+WALL_TOP = 80.0       # back wall top z
+Y_FRONT = float(os.environ.get("EXT_Y_FRONT", "20.0"))   # front card plane (swept 14/17/20: 20 best)
 PLANE_Z = (-12.0, 40.0)   # vertical planes extend below grade: layers draw painter-style
-PLANE_Y = {"mid": Y_MID, "street": Y_STREET, "near": Y_NEAR}
+PLANE_X = (-200.0, 200.0)
 
-PPD = {"far": 16.0, "mid": 20.0, "street": 20.0, "near": 16.0}   # pixels per degree
+PPD = {"back": 16.0, "front": 18.0}   # pixels per degree
 MARGIN_DEG = 3.0
 
 # Log encoding of linear radiance into 8 bits per channel:
@@ -94,7 +94,8 @@ GROUND = {"EXT_ground_near", "EXT_street_asphalt", "EXT_curbs_gutters",
 SKIP = {"EXT_house_facade", "EXT_window_trim"}
 FORCE_MID = {"EXT_fences"}
 FORCE_STREET = {"EXT_power_lines", "EXT_hydro_poles"}
-LAYERS = ("far", "mid", "street", "near")   # back to front
+LAYERS = ("back", "front")   # back to front
+MEMBERS = {"back": ("ground", "far", "mid"), "front": ("street", "near")}
 
 
 # ---------------------------------------------------------------- helpers
@@ -168,23 +169,15 @@ def render(path, w, h, spp, fmt, transparent=False):
 # ---------------------------------------------------------------- proxy geometry
 def proxy_hit(layer, o, d):
     """Intersect ray o + t d (t > 0) with the layer's proxy; returns point or None."""
-    if layer == "far":
-        best = None
+    if layer == "back":
         if d[2] < -1e-6:
             t = (GROUND_Z - o[2]) / d[2]
             p = [o[i] + t * d[i] for i in range(3)]
-            if math.hypot(p[0] - EYE[0], p[1] - EYE[1]) <= R_FAR:
-                best = p
-        if best is None:
-            # cylinder around EYE (xy), radius R_FAR
-            ox, oy = o[0] - EYE[0], o[1] - EYE[1]
-            a = d[0] ** 2 + d[1] ** 2
-            b = 2 * (ox * d[0] + oy * d[1])
-            c = ox * ox + oy * oy - R_FAR ** 2
-            t = (-b + math.sqrt(b * b - 4 * a * c)) / (2 * a)
-            best = [o[i] + t * d[i] for i in range(3)]
-        return best
-    y = PLANE_Y[layer]
+            if p[1] <= Y_BACK:
+                return p
+        y = Y_BACK
+    else:
+        y = Y_FRONT
     if d[1] <= 1e-6:
         return None
     t = (y - o[1]) / d[1]
@@ -230,12 +223,12 @@ def prep_layer(layer, cls):
     ext_names = set(sum(cls.values(), []))
     for o in all_room_meshes(ext_names):
         o.visible_camera = False
-    keep = set(cls["ground"] + cls["far"]) if layer == "far" else set(cls[layer])
+    keep = set(sum((cls[k] for k in MEMBERS[layer]), []))
     for o in ext_objects():
         if o.name in keep:
             o.visible_camera = True
             o.is_holdout = False
-        elif layer != "far" and o.name in cls["ground"]:
+        elif layer == "front" and o.name in cls["ground"]:
             o.visible_camera = True
             o.is_holdout = True
         else:
@@ -301,28 +294,27 @@ def cmd_layer(layer, spp, ppd):
     os.makedirs(TMP, exist_ok=True)
     out = os.path.join(TMP, f"{layer}.exr")
     print("LAYER", layer, "range", [round(v, 2) for v in rng], "size", w, h)
-    render(out, w, h, spp, 'EXR', transparent=(layer != "far"))
+    render(out, w, h, spp, 'EXR', transparent=(layer == "front"))
     import hashlib
     src = bpy.data.filepath
     with open(src, "rb") as fh:
         sha = hashlib.sha1(fh.read()).hexdigest()[:12]
     sc = bpy.context.scene
     vs = sc.view_settings
-    if layer == "far":
-        proxy = {"type": "disc+cylinder", "center": [EYE[0], EYE[1]], "ground_z": GROUND_Z,
-                 "radius": R_FAR, "top_z": FAR_TOP}
+    if layer == "back":
+        proxy = {"type": "ground+wall", "ground_z": GROUND_Z, "wall_y": Y_BACK,
+                 "x": list(PLANE_X), "top_z": WALL_TOP}
     else:
-        proxy = {"type": "plane_y", "y": PLANE_Y[layer],
-                 "x": [-200.0, 200.0], "z": list(PLANE_Z)}
+        proxy = {"type": "plane_y", "y": Y_FRONT, "x": list(PLANE_X), "z": list(PLANE_Z)}
     with open(os.path.join(TMP, f"{layer}.range.json"), "w") as f:
         json.dump({"layer": layer, "lon": [rng[0], rng[1]], "lat": [rng[2], rng[3]],
                    "size": [w, h], "spp": spp, "ppd": ppd, "proxy": proxy,
-                   "objects": sorted(cls["ground"] + cls["far"]) if layer == "far" else sorted(cls[layer]),
+                   "objects": sorted(sum((cls[k] for k in MEMBERS[layer]), [])),
                    "eye_blender": list(EYE),
                    "poses_blender": {"seat": list(SEAT), "stand": list(STAND)},
                    "source": {"file": "blender/scene/room.blend", "sha1_12": sha},
                    "render": {"engine": "CYCLES", "device": "CUDA", "denoiser": "OPTIX",
-                              "samples": spp, "film_transparent": layer != "far",
+                              "samples": spp, "film_transparent": layer == "front",
                               "view_transform": vs.view_transform, "look": vs.look,
                               "exposure_ev": round(vs.exposure, 4),
                               "note": "data is pre-view-transform linear; exposure/look not baked in"}},
@@ -351,7 +343,7 @@ def cmd_encode():
         px, w, h = load_px(exr)
         with open(os.path.join(TMP, f"{layer}.range.json")) as f:
             r = json.load(f)
-        if layer != "far":
+        if layer == "front":
             # crop the alpha layers to their content (+4 px), keeping the angular mapping
             on = px[..., 3] > 2e-3
             rows, cols = np.nonzero(on.any(axis=1))[0], np.nonzero(on.any(axis=0))[0]
@@ -367,7 +359,7 @@ def cmd_encode():
             r["size"] = [w, h]
         a = np.clip(px[..., 3], 0.0, 1.0)
         rgb = np.clip(px[..., :3], 0.0, None)
-        if layer == "far":
+        if layer == "back":
             a = np.ones_like(a)
         else:
             # un-premultiply; hide fringe where coverage is negligible
@@ -384,7 +376,7 @@ def cmd_encode():
         st["above_max_frac"] = float((rgb > 2.0 ** LOG_MAX).mean())
         v = (np.log2(np.maximum(rgb, lo)) - LOG_MIN) / (LOG_MAX - LOG_MIN)
         v = np.where(rgb <= 0, 0.0, np.clip(v, 1.0 / 255.0, 1.0))
-        if layer != "far":
+        if layer == "front":
             # Bleed colour into the transparent texels (log domain), so bilinear filtering at
             # a coverage edge mixes in the neighbour's colour rather than black.
             filled = a > 0.02
@@ -424,24 +416,15 @@ def proxy_mesh(layer):
     import bmesh
     me = bpy.data.meshes.new("PROXY_" + layer)
     bm = bmesh.new()
-    if layer == "far":
-        n = 96
-        c = bm.verts.new((EYE[0], EYE[1], GROUND_Z))
-        rim, top = [], []
-        for i in range(n + 1):
-            a = 2 * math.pi * i / n
-            x, y = EYE[0] + R_FAR * math.sin(a), EYE[1] + R_FAR * math.cos(a)
-            rim.append(bm.verts.new((x, y, GROUND_Z)))
-            top.append(bm.verts.new((x, y, FAR_TOP)))
-        for i in range(n):
-            bm.faces.new((c, rim[i], rim[i + 1]))
-            bm.faces.new((rim[i], top[i], top[i + 1], rim[i + 1]))
+    x0, x1 = PLANE_X
+    if layer == "back":
+        quads = [((x0, GLASS_Y, GROUND_Z), (x1, GLASS_Y, GROUND_Z), (x1, Y_BACK, GROUND_Z), (x0, Y_BACK, GROUND_Z)),
+                 ((x0, Y_BACK, GROUND_Z), (x1, Y_BACK, GROUND_Z), (x1, Y_BACK, WALL_TOP), (x0, Y_BACK, WALL_TOP))]
     else:
-        y = PLANE_Y[layer]
-        x0, x1 = -200.0, 200.0
-        v = [bm.verts.new(p) for p in ((x0, y, PLANE_Z[0]), (x1, y, PLANE_Z[0]),
-                                       (x1, y, PLANE_Z[1]), (x0, y, PLANE_Z[1]))]
-        bm.faces.new(v)
+        y = Y_FRONT
+        quads = [((x0, y, PLANE_Z[0]), (x1, y, PLANE_Z[0]), (x1, y, PLANE_Z[1]), (x0, y, PLANE_Z[1]))]
+    for q in quads:
+        bm.faces.new([bm.verts.new(v) for v in q])
     bm.to_mesh(me)
     bm.free()
     o = bpy.data.objects.new("PROXY_" + layer, me)
@@ -509,7 +492,7 @@ def proxy_material(layer, rng):
     L(comb2.outputs[0], em.inputs['Color'])
     em.inputs['Strength'].default_value = 1.0
     out = N('ShaderNodeOutputMaterial')
-    if layer == "far":
+    if layer == "back":
         L(em.outputs[0], out.inputs['Surface'])
     else:
         tr = N('ShaderNodeBsdfTransparent')
