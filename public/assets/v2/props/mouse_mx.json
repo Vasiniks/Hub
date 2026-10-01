@@ -165,14 +165,14 @@
   }
  },
  "bake_seconds": {
-  "base": 2.7,
-  "rough": 2.6,
+  "base": 2.6,
+  "rough": 2.7,
   "metal": 2.6,
   "ao": 2.7,
   "normal": 2.6,
   "lit": 24.0
  },
  "glb": "mouse_mx.glb",
- "glb_bytes": 474228,
- "seconds": 49.3
+ "glb_bytes": 474204,
+ "seconds": 49.6
 }

@@ -369,6 +369,7 @@
    "parent": "bambu_mini_printer",
    "tris": 4,
    "materials": [
+    "bambu_mini_pbr",
     "bambu_mini_screen_lit"
    ],
    "blender_bbox": [
@@ -495,15 +496,15 @@
   }
  },
  "bake_seconds": {
-  "base": 4.9,
-  "rough": 4.9,
-  "metal": 4.9,
-  "emit": 4.8,
+  "base": 5.0,
+  "rough": 5.1,
+  "metal": 5.0,
+  "emit": 5.0,
   "ao": 5.3,
-  "normal": 5.2,
-  "lit": 94.1
+  "normal": 5.1,
+  "lit": 93.7
  },
  "glb": "bambu_mini.glb",
- "glb_bytes": 2855024,
- "seconds": 184.3
+ "glb_bytes": 2854964,
+ "seconds": 185.1
 }

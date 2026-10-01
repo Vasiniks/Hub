@@ -1,12 +1,12 @@
 {
- "generated": "2026-10-01T17:54:01.735Z",
+ "generated": "2026-10-01T19:25:39.126Z",
  "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
  "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
  "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
  "materials": "Two baked atlases per asset. mode \"lit\": non-metal surfaces, KHR_materials_unlit, baseColor = the Cycles DIFFUSE bake (direct + indirect + colour) of the sunset room, stored as linear/litScale in sRGB: multiply the colour by material.userData.litScale (glTF extras) to restore it; no lights touch them. mode \"pbr\": metals (metallic >= 0.5), emissive parts, glass and keepers: baseColor + ORM (R=AO, G=roughness, B=metallic) (+ normal), lit at runtime by an environment capture of the baked room. Keepers (Robot_rsl_lens, bambu_mini_screen) are their own nodes and materials.",
  "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
- "totalBytes": 26542108,
- "totalTris": 953052,
+ "totalBytes": 25450392,
+ "totalTris": 898068,
  "credits": {
   "teto_plush": {
    "title": "Kasane Teto fatass plush",
@@ -41,11 +41,11 @@
   {
    "name": "bambu_mini",
    "file": "bambu_mini.glb",
-   "bytes": 1437000,
+   "bytes": 1436944,
    "tris": 75380,
    "trisSource": 116961,
    "budget": null,
-   "textureBytes": 232986,
+   "textureBytes": 232928,
    "textures": [
     {
      "name": "bambu_mini_lit",
@@ -54,7 +54,7 @@
       2048,
       2048
      ],
-     "bytes": 199646
+     "bytes": 199588
     },
     {
      "name": "bambu_mini_emissive",
@@ -291,11 +291,11 @@
   {
    "name": "bookrack",
    "file": "bookrack.glb",
-   "bytes": 343140,
+   "bytes": 422928,
    "tris": 13004,
    "trisSource": 13004,
    "budget": null,
-   "textureBytes": 110706,
+   "textureBytes": 192918,
    "textures": [
     {
      "name": "bookrack_normal",
@@ -304,7 +304,7 @@
       256,
       256
      ],
-     "bytes": 3300
+     "bytes": 2034
     },
     {
      "name": "bookrack_orm",
@@ -313,7 +313,7 @@
       256,
       256
      ],
-     "bytes": 22682
+     "bytes": 12568
     },
     {
      "name": "bookrack_basecolor",
@@ -322,16 +322,16 @@
       256,
       256
      ],
-     "bytes": 15272
+     "bytes": 8778
     },
     {
      "name": "bookrack_lit",
      "mime": "image/webp",
      "size": [
-      1024,
-      1024
+      2048,
+      2048
      ],
-     "bytes": 69452
+     "bytes": 169538
     }
    ],
    "materials": [
@@ -349,7 +349,7 @@
     {
      "name": "bookrack_lit",
      "mode": "lit",
-     "litScale": 0.43,
+     "litScale": 0.75,
      "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -357,13 +357,13 @@
      ]
     }
    ],
-   "litScale": 0.43,
+   "litScale": 0.75,
    "litAtlases": {
     "lit": {
-     "res": 1024,
-     "litScale": 0.43,
-     "texelsPerMm": 0.389,
-     "clipped": 0.00099
+     "res": 2048,
+     "litScale": 0.75,
+     "texelsPerMm": 0.85,
+     "clipped": 0.00098
     }
    },
    "reduction": {
@@ -739,11 +739,11 @@
   {
    "name": "cables",
    "file": "cables.glb",
-   "bytes": 880868,
+   "bytes": 880844,
    "tris": 50514,
    "trisSource": 53320,
    "budget": null,
-   "textureBytes": 91748,
+   "textureBytes": 91724,
    "textures": [
     {
      "name": "cables_orm",
@@ -770,7 +770,7 @@
       1024,
       1024
      ],
-     "bytes": 73994
+     "bytes": 73970
     }
    ],
    "materials": [
@@ -882,27 +882,27 @@
   {
    "name": "chair",
    "file": "chair.glb",
-   "bytes": 477144,
+   "bytes": 825976,
    "tris": 13846,
    "trisSource": 13846,
    "budget": null,
-   "textureBytes": 184928,
+   "textureBytes": 533754,
    "textures": [
     {
      "name": "chair_lit",
      "mime": "image/webp",
      "size": [
-      1024,
-      1024
+      2048,
+      2048
      ],
-     "bytes": 184928
+     "bytes": 533754
     }
    ],
    "materials": [
     {
      "name": "chair_lit",
      "mode": "lit",
-     "litScale": 0.004,
+     "litScale": 0.0038,
      "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -910,13 +910,13 @@
      ]
     }
    ],
-   "litScale": 0.004,
+   "litScale": 0.0038,
    "litAtlases": {
     "lit": {
-     "res": 1024,
-     "litScale": 0.004,
-     "texelsPerMm": 0.304,
-     "clipped": 0.00098
+     "res": 2048,
+     "litScale": 0.0038,
+     "texelsPerMm": 0.698,
+     "clipped": 0.00096
     }
    },
    "reduction": {
@@ -971,11 +971,11 @@
   {
    "name": "desk_misc",
    "file": "desk_misc.glb",
-   "bytes": 460516,
+   "bytes": 388660,
    "tris": 8308,
    "trisSource": 8308,
    "budget": null,
-   "textureBytes": 218404,
+   "textureBytes": 157952,
    "textures": [
     {
      "name": "desk_misc_lit",
@@ -984,7 +984,7 @@
       1024,
       1024
      ],
-     "bytes": 131308
+     "bytes": 135850
     },
     {
      "name": "desk_misc_normal",
@@ -993,7 +993,7 @@
       512,
       512
      ],
-     "bytes": 23022
+     "bytes": 13812
     },
     {
      "name": "desk_misc_orm",
@@ -1002,7 +1002,7 @@
       256,
       256
      ],
-     "bytes": 25982
+     "bytes": 5150
     },
     {
      "name": "desk_misc_basecolor",
@@ -1011,7 +1011,7 @@
       512,
       512
      ],
-     "bytes": 38092
+     "bytes": 3140
     }
    ],
    "materials": [
@@ -1042,8 +1042,8 @@
     "lit": {
      "res": 1024,
      "litScale": 0.12,
-     "texelsPerMm": 0.482,
-     "clipped": 0.00004
+     "texelsPerMm": 0.461,
+     "clipped": 0.00002
     }
    },
    "reduction": {
@@ -1180,11 +1180,11 @@
   {
    "name": "electronics",
    "file": "electronics.glb",
-   "bytes": 2454984,
+   "bytes": 2477000,
    "tris": 86768,
    "trisSource": 94596,
    "budget": null,
-   "textureBytes": 488928,
+   "textureBytes": 535116,
    "textures": [
     {
      "name": "electronics_lit",
@@ -1193,7 +1193,7 @@
       2048,
       2048
      ],
-     "bytes": 194902
+     "bytes": 194802
     },
     {
      "name": "electronics_normal",
@@ -1202,7 +1202,7 @@
       1024,
       1024
      ],
-     "bytes": 28138
+     "bytes": 52652
     },
     {
      "name": "electronics_orm",
@@ -1211,7 +1211,7 @@
       512,
       512
      ],
-     "bytes": 87088
+     "bytes": 111776
     },
     {
      "name": "electronics_basecolor",
@@ -1220,7 +1220,7 @@
       1024,
       1024
      ],
-     "bytes": 178800
+     "bytes": 175886
     }
    ],
    "materials": [
@@ -1287,8 +1287,8 @@
     "lit": {
      "res": 2048,
      "litScale": 2,
-     "texelsPerMm": 2.011,
-     "clipped": 0.04124
+     "texelsPerMm": 1.453,
+     "clipped": 0.02526
     }
    },
    "reduction": {
@@ -1596,20 +1596,20 @@
   {
    "name": "fixtures",
    "file": "fixtures.glb",
-   "bytes": 758184,
+   "bytes": 660064,
    "tris": 34763,
    "trisSource": 35471,
    "budget": null,
-   "textureBytes": 104708,
+   "textureBytes": 59734,
    "textures": [
     {
-     "name": "fixtures_normal",
+     "name": "fixtures_lit",
      "mime": "image/webp",
      "size": [
-      512,
-      512
+      1024,
+      1024
      ],
-     "bytes": 5814
+     "bytes": 35988
     },
     {
      "name": "fixtures_orm",
@@ -1618,7 +1618,7 @@
       256,
       256
      ],
-     "bytes": 9854
+     "bytes": 12744
     },
     {
      "name": "fixtures_basecolor",
@@ -1627,19 +1627,20 @@
       512,
       512
      ],
-     "bytes": 11814
-    },
-    {
-     "name": "fixtures_lit",
-     "mime": "image/webp",
-     "size": [
-      1024,
-      1024
-     ],
-     "bytes": 77226
+     "bytes": 11002
     }
    ],
    "materials": [
+    {
+     "name": "fixtures_lit",
+     "mode": "lit",
+     "litScale": 1.5,
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
     {
      "name": "fixtures_pbr",
      "mode": "pbr",
@@ -1647,18 +1648,7 @@
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
-      "ORM",
-      "normal"
-     ]
-    },
-    {
-     "name": "fixtures_lit",
-     "mode": "lit",
-     "litScale": 1.6,
-     "doubleSided": true,
-     "alphaMode": "OPAQUE",
-     "textures": [
-      "baseColor"
+      "ORM"
      ]
     },
     {
@@ -1669,8 +1659,7 @@
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
-      "ORM",
-      "normal"
+      "ORM"
      ]
     },
     {
@@ -1681,17 +1670,16 @@
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
-      "ORM",
-      "normal"
+      "ORM"
      ]
     }
    ],
-   "litScale": 1.6,
+   "litScale": 1.5,
    "litAtlases": {
     "lit": {
      "res": 1024,
-     "litScale": 1.6,
-     "texelsPerMm": 0.843,
+     "litScale": 1.5,
+     "texelsPerMm": 0.314,
      "clipped": 0.00099
     }
    },
@@ -1839,11 +1827,11 @@
   {
    "name": "keyboard",
    "file": "keyboard.glb",
-   "bytes": 580164,
+   "bytes": 580140,
    "tris": 32382,
    "trisSource": 32462,
    "budget": null,
-   "textureBytes": 92348,
+   "textureBytes": 92320,
    "textures": [
     {
      "name": "keyboard_lit",
@@ -1852,7 +1840,7 @@
       1024,
       1024
      ],
-     "bytes": 89994
+     "bytes": 89966
     },
     {
      "name": "keyboard_orm",
@@ -1951,11 +1939,11 @@
   {
    "name": "lamp",
    "file": "lamp.glb",
-   "bytes": 3517128,
-   "tris": 96222,
+   "bytes": 1745668,
+   "tris": 41238,
    "trisSource": 98334,
    "budget": null,
-   "textureBytes": 683366,
+   "textureBytes": 795556,
    "textures": [
     {
      "name": "lamp_lit",
@@ -1964,7 +1952,7 @@
       2048,
       2048
      ],
-     "bytes": 203596
+     "bytes": 203932
     },
     {
      "name": "lamp_normal",
@@ -1973,7 +1961,7 @@
       1024,
       1024
      ],
-     "bytes": 107326
+     "bytes": 217170
     },
     {
      "name": "lamp_orm",
@@ -1982,7 +1970,7 @@
       512,
       512
      ],
-     "bytes": 123026
+     "bytes": 123090
     },
     {
      "name": "lamp_basecolor",
@@ -1991,7 +1979,7 @@
       1024,
       1024
      ],
-     "bytes": 249418
+     "bytes": 251364
     }
    ],
    "materials": [
@@ -2049,13 +2037,13 @@
     "medal_m3_ribbon": "kept",
     "medal_m4_ribbon": "kept",
     "medal_m1_clasp": "kept",
-    "medal_m1_disc": "kept",
+    "medal_m1_disc": "relief -> 2999 tris + s2a normal",
     "medal_m2_clasp": "kept",
-    "medal_m2_disc": "kept",
+    "medal_m2_disc": "relief -> 2999 tris + s2a normal",
     "medal_m3_clasp": "kept",
-    "medal_m3_disc": "kept",
+    "medal_m3_disc": "relief -> 2999 tris + s2a normal",
     "medal_m4_clasp": "kept",
-    "medal_m4_disc": "kept"
+    "medal_m4_disc": "relief -> 2999 tris + s2a normal"
    },
    "nodes": [
     "NEW_lamp_pivot__mesh",
@@ -2121,7 +2109,7 @@
    "tris": 39682,
    "trisSource": 39832,
    "budget": null,
-   "textureBytes": 148726,
+   "textureBytes": 148722,
    "textures": [
     {
      "name": "lorenz_lit",
@@ -2130,7 +2118,7 @@
       1024,
       1024
      ],
-     "bytes": 33636
+     "bytes": 33632
     },
     {
      "name": "lorenz_normal",
@@ -2266,11 +2254,11 @@
   {
    "name": "macbook",
    "file": "macbook.glb",
-   "bytes": 380760,
+   "bytes": 339388,
    "tris": 14742,
    "trisSource": 14742,
    "budget": null,
-   "textureBytes": 93846,
+   "textureBytes": 77540,
    "textures": [
     {
      "name": "macbook_normal",
@@ -2279,7 +2267,7 @@
       1024,
       1024
      ],
-     "bytes": 9170
+     "bytes": 7176
     },
     {
      "name": "macbook_orm",
@@ -2288,7 +2276,7 @@
       512,
       512
      ],
-     "bytes": 24664
+     "bytes": 8662
     },
     {
      "name": "macbook_basecolor",
@@ -2297,7 +2285,7 @@
       1024,
       1024
      ],
-     "bytes": 24004
+     "bytes": 7594
     },
     {
      "name": "macbook_lit",
@@ -2306,7 +2294,7 @@
       1024,
       1024
      ],
-     "bytes": 36008
+     "bytes": 54108
     }
    ],
    "materials": [
@@ -2324,7 +2312,7 @@
     {
      "name": "macbook_lit",
      "mode": "lit",
-     "litScale": 0.011,
+     "litScale": 0.34,
      "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -2332,13 +2320,13 @@
      ]
     }
    ],
-   "litScale": 0.011,
+   "litScale": 0.34,
    "litAtlases": {
     "lit": {
      "res": 1024,
-     "litScale": 0.011,
-     "texelsPerMm": 1.854,
-     "clipped": 0.00097
+     "litScale": 0.34,
+     "texelsPerMm": 1.112,
+     "clipped": 0.00059
     }
    },
    "reduction": {
@@ -2403,20 +2391,20 @@
   {
    "name": "monitor",
    "file": "monitor.glb",
-   "bytes": 236756,
+   "bytes": 318636,
    "tris": 8490,
    "trisSource": 8610,
    "budget": null,
-   "textureBytes": 71584,
+   "textureBytes": 153466,
    "textures": [
     {
      "name": "monitor_lit",
      "mime": "image/webp",
      "size": [
-      1024,
-      1024
+      2048,
+      2048
      ],
-     "bytes": 52398
+     "bytes": 134280
     },
     {
      "name": "monitor_orm",
@@ -2448,7 +2436,7 @@
     {
      "name": "monitor_lit",
      "mode": "lit",
-     "litScale": 0.034,
+     "litScale": 0.036,
      "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -2477,12 +2465,12 @@
      ]
     }
    ],
-   "litScale": 0.034,
+   "litScale": 0.036,
    "litAtlases": {
     "lit": {
-     "res": 1024,
-     "litScale": 0.034,
-     "texelsPerMm": 0.614,
+     "res": 2048,
+     "litScale": 0.036,
+     "texelsPerMm": 1.264,
      "clipped": 0.00096
     }
    },
@@ -2561,11 +2549,11 @@
   {
    "name": "mouse_mx",
    "file": "mouse_mx.glb",
-   "bytes": 278836,
+   "bytes": 278812,
    "tris": 14274,
    "trisSource": 23024,
    "budget": null,
-   "textureBytes": 78330,
+   "textureBytes": 78306,
    "textures": [
     {
      "name": "mouse_mx_lit",
@@ -2574,7 +2562,7 @@
       1024,
       1024
      ],
-     "bytes": 45604
+     "bytes": 45580
     },
     {
      "name": "mouse_mx_normal",
@@ -2678,11 +2666,11 @@
   {
    "name": "painting",
    "file": "painting.glb",
-   "bytes": 115940,
+   "bytes": 115980,
    "tris": 954,
    "trisSource": 954,
    "budget": null,
-   "textureBytes": 99126,
+   "textureBytes": 99166,
    "textures": [
     {
      "name": "painting_lit",
@@ -2691,7 +2679,7 @@
       1024,
       1024
      ],
-     "bytes": 99126
+     "bytes": 99166
     }
    ],
    "materials": [
@@ -2755,21 +2743,12 @@
   {
    "name": "pc",
    "file": "pc.glb",
-   "bytes": 5941732,
+   "bytes": 6108528,
    "tris": 212788,
    "trisSource": 245380,
    "budget": null,
-   "textureBytes": 673264,
+   "textureBytes": 903422,
    "textures": [
-    {
-     "name": "pc_normal",
-     "mime": "image/webp",
-     "size": [
-      1024,
-      1024
-     ],
-     "bytes": 11452
-    },
     {
      "name": "pc_orm",
      "mime": "image/webp",
@@ -2777,7 +2756,7 @@
       512,
       512
      ],
-     "bytes": 69654
+     "bytes": 75494
     },
     {
      "name": "pc_basecolor",
@@ -2786,7 +2765,7 @@
       1024,
       1024
      ],
-     "bytes": 123810
+     "bytes": 124048
     },
     {
      "name": "pc_lit",
@@ -2795,7 +2774,7 @@
       2048,
       2048
      ],
-     "bytes": 320260
+     "bytes": 259414
     },
     {
      "name": "pc_emissive",
@@ -2804,7 +2783,16 @@
       512,
       512
      ],
-     "bytes": 22718
+     "bytes": 30828
+    },
+    {
+     "name": "pc_interior_lit",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 288552
     },
     {
      "name": "pc_plush_lit",
@@ -2813,7 +2801,7 @@
       1024,
       1024
      ],
-     "bytes": 125370
+     "bytes": 125086
     }
    ],
    "materials": [
@@ -2838,8 +2826,7 @@
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
-      "ORM",
-      "normal"
+      "ORM"
      ]
     },
     {
@@ -2861,7 +2848,6 @@
      "textures": [
       "baseColor",
       "ORM",
-      "normal",
       "emissive"
      ]
     },
@@ -2873,8 +2859,17 @@
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
-      "ORM",
-      "normal"
+      "ORM"
+     ]
+    },
+    {
+     "name": "pc_lit_interior",
+     "mode": "lit",
+     "litScale": 2,
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
      ]
     },
     {
@@ -2885,8 +2880,7 @@
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
-      "ORM",
-      "normal"
+      "ORM"
      ]
     },
     {
@@ -2897,8 +2891,7 @@
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
-      "ORM",
-      "normal"
+      "ORM"
      ]
     },
     {
@@ -2909,8 +2902,7 @@
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
-      "ORM",
-      "normal"
+      "ORM"
      ]
     },
     {
@@ -2929,14 +2921,20 @@
     "lit": {
      "res": 2048,
      "litScale": 2,
-     "texelsPerMm": 0.175,
-     "clipped": 0.01979
+     "texelsPerMm": 1.085,
+     "clipped": 0.00484
+    },
+    "lit_interior": {
+     "res": 2048,
+     "litScale": 2,
+     "texelsPerMm": 0.155,
+     "clipped": 0.02728
     },
     "lit_plush": {
      "res": 1024,
      "litScale": 0.27,
      "texelsPerMm": 0.942,
-     "clipped": 0.00077
+     "clipped": 0.0008
     }
    },
    "reduction": {
@@ -3126,21 +3124,12 @@
   {
    "name": "redbull",
    "file": "redbull.glb",
-   "bytes": 91212,
+   "bytes": 198644,
    "tris": 1069,
    "trisSource": 15095,
    "budget": null,
-   "textureBytes": 61656,
+   "textureBytes": 178818,
    "textures": [
-    {
-     "name": "redbull_normal",
-     "mime": "image/webp",
-     "size": [
-      512,
-      512
-     ],
-     "bytes": 5440
-    },
     {
      "name": "redbull_orm",
      "mime": "image/webp",
@@ -3148,7 +3137,7 @@
       256,
       256
      ],
-     "bytes": 10218
+     "bytes": 9204
     },
     {
      "name": "redbull_basecolor",
@@ -3157,7 +3146,16 @@
       512,
       512
      ],
-     "bytes": 45998
+     "bytes": 22058
+    },
+    {
+     "name": "redbull_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 147556
     }
    ],
    "materials": [
@@ -3168,13 +3166,29 @@
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
-      "ORM",
-      "normal"
+      "ORM"
+     ]
+    },
+    {
+     "name": "redbull_lit",
+     "mode": "lit",
+     "litScale": 2,
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
      ]
     }
    ],
-   "litScale": null,
-   "litAtlases": {},
+   "litScale": 2,
+   "litAtlases": {
+    "lit": {
+     "res": 1024,
+     "litScale": 2,
+     "texelsPerMm": 5.874,
+     "clipped": 0.18767
+    }
+   },
    "reduction": {
     "RedBull_can": "collapse 0.60"
    },
@@ -3209,11 +3223,11 @@
   {
    "name": "robot",
    "file": "robot.glb",
-   "bytes": 4469060,
+   "bytes": 4553496,
    "tris": 129694,
    "trisSource": 131522,
    "budget": null,
-   "textureBytes": 226040,
+   "textureBytes": 495532,
    "textures": [
     {
      "name": "robot_lit",
@@ -3222,7 +3236,16 @@
       2048,
       2048
      ],
-     "bytes": 225512
+     "bytes": 253496
+    },
+    {
+     "name": "robot_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 7468
     },
     {
      "name": "robot_orm",
@@ -3231,7 +3254,16 @@
       512,
       512
      ],
-     "bytes": 528
+     "bytes": 82104
+    },
+    {
+     "name": "robot_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 152464
     }
    ],
    "materials": [
@@ -3245,7 +3277,7 @@
     {
      "name": "robot_lit",
      "mode": "lit",
-     "litScale": 0.25,
+     "litScale": 0.2,
      "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
@@ -3257,7 +3289,11 @@
      "mode": "pbr",
      "doubleSided": true,
      "alphaMode": "OPAQUE",
-     "textures": []
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
     },
     {
      "name": "robot_rsl_amber",
@@ -3268,13 +3304,13 @@
      "textures": []
     }
    ],
-   "litScale": 0.25,
+   "litScale": 0.2,
    "litAtlases": {
     "lit": {
      "res": 2048,
-     "litScale": 0.25,
-     "texelsPerMm": 0.687,
-     "clipped": 0.00088
+     "litScale": 0.2,
+     "texelsPerMm": 0.277,
+     "clipped": 0.00093
     }
    },
    "reduction": {
@@ -3357,11 +3393,11 @@
   {
    "name": "speedcube",
    "file": "speedcube.glb",
-   "bytes": 490404,
+   "bytes": 490412,
    "tris": 27262,
    "trisSource": 34184,
    "budget": null,
-   "textureBytes": 89664,
+   "textureBytes": 89672,
    "textures": [
     {
      "name": "speedcube_lit",
@@ -3370,7 +3406,7 @@
       1024,
       1024
      ],
-     "bytes": 89664
+     "bytes": 89672
     }
    ],
    "materials": [
@@ -3401,7 +3437,7 @@
      "res": 1024,
      "litScale": 2,
      "texelsPerMm": 2.766,
-     "clipped": 0.01971
+     "clipped": 0.01972
     }
    },
    "reduction": {
@@ -3465,11 +3501,11 @@
   {
    "name": "telecaster",
    "file": "telecaster.glb",
-   "bytes": 2712552,
+   "bytes": 2712512,
    "tris": 91718,
    "trisSource": 108089,
    "budget": null,
-   "textureBytes": 247250,
+   "textureBytes": 247210,
    "textures": [
     {
      "name": "telecaster_lit",
@@ -3478,7 +3514,7 @@
       2048,
       2048
      ],
-     "bytes": 247072
+     "bytes": 247032
     },
     {
      "name": "telecaster_orm",
@@ -3627,11 +3663,11 @@
   {
    "name": "teto_pear",
    "file": "teto_pear.glb",
-   "bytes": 55404,
+   "bytes": 55436,
    "tris": 1192,
    "trisSource": 1192,
    "budget": null,
-   "textureBytes": 38578,
+   "textureBytes": 38612,
    "textures": [
     {
      "name": "teto_pear_lit",
@@ -3640,7 +3676,7 @@
       1024,
       1024
      ],
-     "bytes": 38578
+     "bytes": 38612
     }
    ],
    "materials": [

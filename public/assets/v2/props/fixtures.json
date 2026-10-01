@@ -480,14 +480,13 @@
  "textures": {
   "base": "fixtures_basecolor.png",
   "orm": "fixtures_orm.png",
-  "normal": "fixtures_normal.png",
   "lit": "fixtures_lit.png"
  },
- "lit_scale": 1.6,
+ "lit_scale": 1.5,
  "lit_atlases": {
   "main": {
    "res": 1024,
-   "litScale": 1.6
+   "litScale": 1.5
   }
  },
  "material_modes": {
@@ -497,11 +496,11 @@
   "rs_thermo_digits": "pbr_emissive"
  },
  "material_kinds": {
-  "curtain_rod_black": "metal",
+  "curtain_rod_black": "opaque",
   "rs_ceiling_diffuser": "opaque",
   "rs_cord_black": "opaque",
   "rs_decora_white": "opaque",
-  "rs_duct_galv": "metal",
+  "rs_duct_galv": "opaque",
   "rs_fixture_white": "opaque",
   "rs_nail_hole": "opaque",
   "rs_register_enamel": "opaque",
@@ -579,7 +578,7 @@
    "parent": "fixtures_root",
    "tris": 16908,
    "materials": [
-    "fixtures_pbr"
+    "fixtures_lit"
    ],
    "blender_bbox": [
     [
@@ -598,38 +597,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0771,
+   "normal_bumpy_fraction": 0.0016,
    "s2a": [],
    "base_mean": [
-    0.273,
-    0.272,
-    0.278
+    0.83,
+    0.821,
+    0.797
    ],
-   "ao_mean": 0.656,
-   "coverage_px": 0.039
+   "ao_mean": 0.439,
+   "coverage_px": 0.522
   },
   "lit": {
-   "lit_scale": 1.6,
+   "lit_scale": 1.5,
    "res": 1024,
    "uv": "smart",
-   "texels_per_mm": 0.843,
-   "raw_mean": 0.0279,
-   "denoised_mean": 0.0278,
-   "p50": 0.0054,
+   "texels_per_mm": 0.314,
+   "raw_mean": 0.0187,
+   "denoised_mean": 0.0186,
+   "p50": 0.0015,
    "clipped_fraction": 0.00099,
-   "coverage_px": 0.488,
+   "coverage_px": 0.104,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 61.6,
-  "rough": 62.6,
-  "metal": 61.7,
-  "ao": 62.0,
-  "normal": 61.5,
-  "lit": 52.3
+  "base": 6.5,
+  "rough": 6.6,
+  "metal": 6.6,
+  "ao": 7.0,
+  "normal": 6.6,
+  "lit": 101.0
  },
  "glb": "fixtures.glb",
- "glb_bytes": 1607212,
- "seconds": 462.7
+ "glb_bytes": 1561780,
+ "seconds": 237.7
 }

@@ -105,11 +105,11 @@
   "normal": "macbook_normal.png",
   "lit": "macbook_lit.png"
  },
- "lit_scale": 0.011,
+ "lit_scale": 0.34,
  "lit_atlases": {
   "main": {
    "res": 1024,
-   "litScale": 0.011
+   "litScale": 0.34
   }
  },
  "material_modes": {
@@ -120,12 +120,12 @@
   "mbp_alu_silver_blasted": "metal",
   "mbp_bezel_black": "opaque",
   "mbp_feet_rubber": "opaque",
-  "mbp_hinge_cover_dark": "metal",
+  "mbp_hinge_cover_dark": "opaque",
   "mbp_magsafe_pins": "metal",
   "mbp_port_interior": "opaque",
   "mbp_port_tongue": "opaque",
   "mbp_screw_steel": "metal",
-  "stand_alu_spacegrey_anod": "metal",
+  "stand_alu_spacegrey_anod": "opaque",
   "stand_silicone_pad": "opaque"
  },
  "emissive_materials": [],
@@ -187,7 +187,6 @@
    "parent": "NEW_macbook_root",
    "tris": 3308,
    "materials": [
-    "macbook_pbr",
     "macbook_lit"
    ],
    "blender_bbox": [
@@ -207,38 +206,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0065,
+   "normal_bumpy_fraction": 0.0033,
    "s2a": [],
    "base_mean": [
-    0.635,
-    0.641,
-    0.661
+    0.819,
+    0.834,
+    0.849
    ],
-   "ao_mean": 0.282,
-   "coverage_px": 0.653
+   "ao_mean": 0.286,
+   "coverage_px": 0.709
   },
   "lit": {
-   "lit_scale": 0.011,
+   "lit_scale": 0.34,
    "res": 1024,
    "uv": "smart",
-   "texels_per_mm": 1.854,
-   "raw_mean": 0.0001,
-   "denoised_mean": 0.0,
-   "p50": 0.0,
-   "clipped_fraction": 0.00097,
-   "coverage_px": 0.582,
+   "texels_per_mm": 1.112,
+   "raw_mean": 0.0181,
+   "denoised_mean": 0.0182,
+   "p50": 0.0002,
+   "clipped_fraction": 0.00059,
+   "coverage_px": 0.589,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 9.6,
-  "rough": 9.5,
-  "metal": 9.6,
-  "ao": 10.9,
-  "normal": 9.7,
-  "lit": 17.3
+  "base": 5.5,
+  "rough": 5.5,
+  "metal": 5.6,
+  "ao": 6.7,
+  "normal": 5.7,
+  "lit": 24.1
  },
  "glb": "macbook.glb",
- "glb_bytes": 645268,
- "seconds": 87.8
+ "glb_bytes": 628212,
+ "seconds": 74.1
 }

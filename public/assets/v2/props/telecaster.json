@@ -516,13 +516,13 @@
  },
  "bake_seconds": {
   "base": 4.0,
-  "rough": 4.0,
-  "metal": 4.0,
+  "rough": 4.1,
+  "metal": 4.3,
   "ao": 3.9,
   "normal": 3.9,
-  "lit": 161.0
+  "lit": 161.9
  },
  "glb": "telecaster.glb",
- "glb_bytes": 4810236,
- "seconds": 284.2
+ "glb_bytes": 4810196,
+ "seconds": 286.5
 }

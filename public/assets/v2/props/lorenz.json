@@ -226,14 +226,14 @@
   }
  },
  "bake_seconds": {
-  "base": 5.2,
-  "rough": 5.3,
-  "metal": 5.2,
-  "ao": 5.4,
+  "base": 5.3,
+  "rough": 5.4,
+  "metal": 5.3,
+  "ao": 5.5,
   "normal": 5.3,
-  "lit": 33.4
+  "lit": 33.5
  },
  "glb": "lorenz.glb",
- "glb_bytes": 1374904,
- "seconds": 75.3
+ "glb_bytes": 1374900,
+ "seconds": 75.7
 }

@@ -149,7 +149,7 @@
  },
  "atlas": {
   "pbr_res": 256,
-  "lit_res": 1024,
+  "lit_res": 2048,
   "packer": {
    "lit_main": "pack_islands",
    "pbr": "pack_islands"
@@ -161,11 +161,11 @@
   "normal": "bookrack_normal.png",
   "lit": "bookrack_lit.png"
  },
- "lit_scale": 0.43,
+ "lit_scale": 0.75,
  "lit_atlases": {
   "main": {
-   "res": 1024,
-   "litScale": 0.43
+   "res": 2048,
+   "litScale": 0.75
   }
  },
  "material_modes": {
@@ -189,9 +189,9 @@
   "Material_60.001": "opaque",
   "Material_61.001": "opaque",
   "Material_8.001": "opaque",
-  "br_screw_recess": "metal",
+  "br_screw_recess": "opaque",
   "br_screw_zinc": "metal",
-  "rm_alu_dark.001": "metal",
+  "rm_alu_dark.001": "opaque",
   "rm_plastic_black.001": "opaque"
  },
  "emissive_materials": [],
@@ -499,7 +499,8 @@
    "parent": "bookrack_hardware",
    "tris": 1800,
    "materials": [
-    "bookrack_pbr"
+    "bookrack_pbr",
+    "bookrack_lit"
    ],
    "blender_bbox": [
     [
@@ -822,7 +823,7 @@
    "parent": "Mesh_162.001",
    "tris": 64,
    "materials": [
-    "bookrack_pbr"
+    "bookrack_lit"
    ],
    "blender_bbox": [
     [
@@ -879,38 +880,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0363,
+   "normal_bumpy_fraction": 0.0095,
    "s2a": [],
    "base_mean": [
-    0.606,
-    0.53,
-    0.37
+    0.847,
+    0.685,
+    0.34
    ],
-   "ao_mean": 0.407,
-   "coverage_px": 0.166
+   "ao_mean": 0.528,
+   "coverage_px": 0.433
   },
   "lit": {
-   "lit_scale": 0.43,
-   "res": 1024,
+   "lit_scale": 0.75,
+   "res": 2048,
    "uv": "smart",
-   "texels_per_mm": 0.389,
-   "raw_mean": 0.0017,
-   "denoised_mean": 0.0016,
+   "texels_per_mm": 0.85,
+   "raw_mean": 0.0021,
+   "denoised_mean": 0.0021,
    "p50": 0.0,
-   "clipped_fraction": 0.00099,
-   "coverage_px": 0.406,
+   "clipped_fraction": 0.00098,
+   "coverage_px": 0.485,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 6.6,
-  "rough": 6.5,
-  "metal": 6.4,
-  "ao": 6.5,
-  "normal": 6.6,
-  "lit": 33.5
+  "base": 3.9,
+  "rough": 4.0,
+  "metal": 4.0,
+  "ao": 4.1,
+  "normal": 3.9,
+  "lit": 77.0
  },
  "glb": "bookrack.glb",
- "glb_bytes": 682004,
- "seconds": 96.4
+ "glb_bytes": 764964,
+ "seconds": 132.6
 }

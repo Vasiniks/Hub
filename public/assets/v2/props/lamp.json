@@ -8,7 +8,7 @@
  "budget": null,
  "within_budget": true,
  "tris_before": 98334,
- "tris_after": 96222,
+ "tris_after": 41238,
  "objects": [
   {
    "name": "lamp_body.001",
@@ -63,7 +63,7 @@
   {
    "name": "medal_m1_disc",
    "tris_before": 16745,
-   "tris_after": 16745
+   "tris_after": 2999
   },
   {
    "name": "medal_m2_clasp",
@@ -73,7 +73,7 @@
   {
    "name": "medal_m2_disc",
    "tris_before": 16745,
-   "tris_after": 16745
+   "tris_after": 2999
   },
   {
    "name": "medal_m3_clasp",
@@ -83,7 +83,7 @@
   {
    "name": "medal_m3_disc",
    "tris_before": 16745,
-   "tris_after": 16745
+   "tris_after": 2999
   },
   {
    "name": "medal_m4_clasp",
@@ -93,7 +93,7 @@
   {
    "name": "medal_m4_disc",
    "tris_before": 16745,
-   "tris_after": 16745
+   "tris_after": 2999
   }
  ],
  "skipped": {},
@@ -108,13 +108,13 @@
   "medal_m3_ribbon": "kept",
   "medal_m4_ribbon": "kept",
   "medal_m1_clasp": "kept",
-  "medal_m1_disc": "kept",
+  "medal_m1_disc": "relief -> 2999 tris + s2a normal",
   "medal_m2_clasp": "kept",
-  "medal_m2_disc": "kept",
+  "medal_m2_disc": "relief -> 2999 tris + s2a normal",
   "medal_m3_clasp": "kept",
-  "medal_m3_disc": "kept",
+  "medal_m3_disc": "relief -> 2999 tris + s2a normal",
   "medal_m4_clasp": "kept",
-  "medal_m4_disc": "kept"
+  "medal_m4_disc": "relief -> 2999 tris + s2a normal"
  },
  "atlas": {
   "pbr_res": 1024,
@@ -212,7 +212,7 @@
   },
   "NEW_lamp_pivot__mesh": {
    "parent": "NEW_lamp_pivot",
-   "tris": 94626,
+   "tris": 39642,
    "materials": [
     "lamp_lit",
     "lamp_diffuser",
@@ -220,9 +220,9 @@
    ],
    "blender_bbox": [
     [
-     -0.7214,
+     -0.7213,
      0.6896,
-     0.7745
+     0.7747
     ],
     [
      -0.4254,
@@ -235,55 +235,55 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.2921,
+   "normal_bumpy_fraction": 0.4744,
    "s2a": [
     [
      "medal_m1_disc",
-     13172
+     14836
     ],
     [
      "medal_m2_disc",
-     13032
+     14791
     ],
     [
      "medal_m3_disc",
-     12880
+     14770
     ],
     [
      "medal_m4_disc",
-     13007
+     14699
     ]
    ],
    "base_mean": [
-    0.787,
-    0.587,
-    0.593
+    0.788,
+    0.588,
+    0.594
    ],
-   "ao_mean": 0.421,
-   "coverage_px": 0.199
+   "ao_mean": 0.418,
+   "coverage_px": 0.226
   },
   "lit": {
    "lit_scale": 2.0,
    "res": 2048,
    "uv": "smart",
    "texels_per_mm": 2.475,
-   "raw_mean": 3.8823,
-   "denoised_mean": 3.8863,
-   "p50": 0.2976,
+   "raw_mean": 3.8828,
+   "denoised_mean": 3.8868,
+   "p50": 0.2978,
    "clipped_fraction": 0.28027,
    "coverage_px": 0.435,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 19.7,
-  "rough": 19.6,
-  "metal": 19.9,
-  "ao": 21.3,
-  "normal": 23.8,
+  "base": 17.8,
+  "rough": 17.8,
+  "metal": 17.8,
+  "ao": 19.6,
+  "normal": 23.9,
   "lit": 66.9
  },
  "glb": "lamp.glb",
- "glb_bytes": 5290816,
- "seconds": 201.3
+ "glb_bytes": 2492352,
+ "seconds": 193.3
 }

@@ -132,13 +132,14 @@
  "textures": {
   "base": "robot_basecolor.png",
   "orm": "robot_orm.png",
+  "normal": "robot_normal.png",
   "lit": "robot_lit.png"
  },
- "lit_scale": 0.25,
+ "lit_scale": 0.2,
  "lit_atlases": {
   "main": {
    "res": 2048,
-   "litScale": 0.25
+   "litScale": 0.2
   }
  },
  "material_modes": {
@@ -149,9 +150,9 @@
  },
  "material_kinds": {
   "robot_aluminium.001": "metal",
-  "robot_black_anodised.001": "metal",
+  "robot_black_anodised.001": "opaque",
   "robot_black_plastic.001": "opaque",
-  "robot_blue_anodised.001": "metal",
+  "robot_blue_anodised.001": "opaque",
   "robot_bumper_fabric.001": "opaque",
   "robot_bumper_number.001": "opaque",
   "robot_foam_ball": "opaque",
@@ -160,8 +161,8 @@
   "robot_nylon_tan.001": "opaque",
   "robot_orange.001": "opaque",
   "robot_polycarbonate.001": "glass",
-  "robot_purple_anodised.001": "metal",
-  "robot_red_anodised.001": "metal",
+  "robot_purple_anodised.001": "opaque",
+  "robot_red_anodised.001": "opaque",
   "robot_rsl_amber": "keeper",
   "robot_rubber.001": "opaque",
   "robot_white_plastic.001": "opaque",
@@ -265,34 +266,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0,
+   "normal_bumpy_fraction": 0.0116,
    "s2a": [],
-   "base_mean": null,
-   "ao_mean": null,
-   "coverage_px": 0.0
+   "base_mean": [
+    0.793,
+    0.812,
+    0.829
+   ],
+   "ao_mean": 0.402,
+   "coverage_px": 0.007
   },
   "lit": {
-   "lit_scale": 0.25,
+   "lit_scale": 0.2,
    "res": 2048,
    "uv": "smart",
-   "texels_per_mm": 0.687,
-   "raw_mean": 0.0047,
-   "denoised_mean": 0.0045,
-   "p50": 0.0029,
-   "clipped_fraction": 0.00088,
-   "coverage_px": 0.245,
+   "texels_per_mm": 0.277,
+   "raw_mean": 0.0027,
+   "denoised_mean": 0.0025,
+   "p50": 0.0004,
+   "clipped_fraction": 0.00093,
+   "coverage_px": 0.092,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 10.1,
-  "rough": 10.1,
-  "metal": 9.9,
-  "ao": 9.5,
-  "normal": 9.6,
-  "lit": 68.5
+  "base": 4.2,
+  "rough": 4.3,
+  "metal": 4.3,
+  "ao": 4.4,
+  "normal": 4.1,
+  "lit": 55.7
  },
  "glb": "robot.glb",
- "glb_bytes": 7945004,
- "seconds": 150.6
+ "glb_bytes": 8336324,
+ "seconds": 110.5
 }

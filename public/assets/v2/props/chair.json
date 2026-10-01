@@ -39,7 +39,7 @@
  },
  "atlas": {
   "pbr_res": null,
-  "lit_res": 1024,
+  "lit_res": 2048,
   "packer": {
    "lit_main": "pack_islands"
   }
@@ -47,11 +47,11 @@
  "textures": {
   "lit": "chair_lit.png"
  },
- "lit_scale": 0.004,
+ "lit_scale": 0.0038,
  "lit_atlases": {
   "main": {
-   "res": 1024,
-   "litScale": 0.004
+   "res": 2048,
+   "litScale": 0.0038
   }
  },
  "material_modes": {
@@ -121,22 +121,22 @@
  "credits": [],
  "bake_stats": {
   "lit": {
-   "lit_scale": 0.004,
-   "res": 1024,
+   "lit_scale": 0.0038,
+   "res": 2048,
    "uv": "smart",
-   "texels_per_mm": 0.304,
+   "texels_per_mm": 0.698,
    "raw_mean": 0.0004,
    "denoised_mean": 0.0003,
-   "p50": 0.0,
-   "clipped_fraction": 0.00098,
-   "coverage_px": 0.312,
+   "p50": 0.0001,
+   "clipped_fraction": 0.00096,
+   "coverage_px": 0.412,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "lit": 12.2
+  "lit": 38.8
  },
  "glb": "chair.glb",
- "glb_bytes": 830556,
- "seconds": 18.8
+ "glb_bytes": 1179384,
+ "seconds": 47.3
 }

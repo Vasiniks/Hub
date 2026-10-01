@@ -264,15 +264,15 @@
    "raw_mean": 0.1004,
    "denoised_mean": 0.1,
    "p50": 0.0004,
-   "clipped_fraction": 0.01971,
+   "clipped_fraction": 0.01972,
    "coverage_px": 0.491,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "lit": 56.3
+  "lit": 56.5
  },
  "glb": "speedcube.glb",
- "glb_bytes": 887704,
- "seconds": 137.6
+ "glb_bytes": 887712,
+ "seconds": 136.6
 }

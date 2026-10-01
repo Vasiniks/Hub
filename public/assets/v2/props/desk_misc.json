@@ -178,7 +178,7 @@
   "Material_39": "opaque",
   "Material_41": "opaque",
   "Material_47": "opaque",
-  "rm_alu_bead": "metal",
+  "rm_alu_bead": "opaque",
   "rm_plastic_black": "opaque",
   "rm_rubber_black": "opaque",
   "rm_steel_chrome": "metal"
@@ -336,7 +336,6 @@
    "parent": "room",
    "tris": 1500,
    "materials": [
-    "desk_misc_pbr",
     "desk_misc_lit"
    ],
    "blender_bbox": [
@@ -356,38 +355,38 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.1341,
+   "normal_bumpy_fraction": 0.1218,
    "s2a": [],
    "base_mean": [
-    0.899,
-    0.9,
-    0.894
+    0.898,
+    0.898,
+    0.891
    ],
-   "ao_mean": 0.413,
-   "coverage_px": 0.184
+   "ao_mean": 0.421,
+   "coverage_px": 0.217
   },
   "lit": {
    "lit_scale": 0.12,
    "res": 1024,
    "uv": "smart",
-   "texels_per_mm": 0.482,
-   "raw_mean": 0.0067,
+   "texels_per_mm": 0.461,
+   "raw_mean": 0.0068,
    "denoised_mean": 0.0067,
    "p50": 0.0025,
-   "clipped_fraction": 4e-05,
-   "coverage_px": 0.279,
+   "clipped_fraction": 2e-05,
+   "coverage_px": 0.255,
    "samples": 256
   }
  },
  "bake_seconds": {
-  "base": 7.8,
-  "rough": 7.9,
-  "metal": 8.0,
-  "ao": 8.1,
-  "normal": 8.0,
-  "lit": 30.3
+  "base": 3.9,
+  "rough": 4.0,
+  "metal": 4.0,
+  "ao": 4.2,
+  "normal": 4.0,
+  "lit": 34.3
  },
  "glb": "desk_misc.glb",
- "glb_bytes": 787292,
- "seconds": 100.9
+ "glb_bytes": 726088,
+ "seconds": 85.3
 }
