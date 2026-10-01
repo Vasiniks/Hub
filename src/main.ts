@@ -17,7 +17,7 @@ import { createInteraction, OVERLAY_LAYER, type InteractTarget } from './interac
 import { createPanel, createHint, createObjectNav, createShelfCaption } from './ui/panel';
 import { createLoader } from './ui/loading';
 import { createMusicWidget } from './ui/music';
-import { loadBakedRoom, V2_EXPOSURE } from './scene/bakedRoom';
+import { loadBakedRoom, V2_EXPOSURE, V2_TUNING } from './scene/bakedRoom';
 import { CAMERA, INTERACTION, SHELF } from './scene/layout';
 import { FramePerf } from './debug/perf';
 import { buildPickingTrees } from './interaction/bvh';
@@ -996,12 +996,7 @@ async function startV2() {
   scene.background = new THREE.Color('#c4b6a8');
   scene.fog = null;
 
-  const camera = new THREE.PerspectiveCamera(CAMERA.fov, window.innerWidth / window.innerHeight, 0.02, 40);
-  const standP = CAMERA.stand.position;
-  const standT = CAMERA.stand.lookAt;
-  camera.position.set(standP[0], standP[1], standP[2]);
-  camera.lookAt(standT[0], standT[1], standT[2]);
-  camera.updateMatrixWorld();
+  const camera = new THREE.PerspectiveCamera(V2_TUNING.fov, window.innerWidth / window.innerHeight, 0.02, 40);
 
   const base = `${import.meta.env.BASE_URL}assets/v2/room/`;
   loader.advance('baked room');
@@ -1023,32 +1018,82 @@ async function startV2() {
   for (const p of view.composer.passes) {
     if (p.constructor.name === 'BloomPass') (p as { enabled: boolean }).enabled = false;
   }
+
+  // The same first-person rig as the default room — same file, same spring, same sit
+  // transition — driven by the v2 room's own poses and limits (V2_TUNING). No live chair:
+  // it is baked into the furniture atlas, so the rig moves the camera only.
+  const rig = new CameraRig(camera, null, reducedMotion, V2_TUNING);
+
+  // Seam for the props workstream: picking, outlines and panels plug in here without
+  // touching the rig. When targets exist, wire them exactly like the default path:
+  // `rig.setPointer` (already wired below) → `interaction.setPointer`, `rig.holdLook(true)`
+  // while hovering a non-centred target, `rig.sitDown()` before focusing from standing,
+  // `rig.focus({ center, distance, yaw, pitch, offset? })` to examine (world-space anchor,
+  // distance in metres, yaw/pitch of the approach direction, `offset` = fraction of distance
+  // to aim right so the object sits left of the panel), `rig.unfocus()` on Esc, and
+  // `rig.lookExtent()` so pointing-vs-turning picks like the default room. `rig.interactive`
+  // (standing/seated only) gates input; `onFocusProgress`/`onReturned` drive the panel.
+  function sitV2() {
+    if (rig.sitDown()) hint.hide();
+  }
+
+  let lookHintShown = false;
+  rig.onSeated = () => {
+    if (!lookHintShown) {
+      lookHintShown = true;
+      hint.show('Look around', 4200);
+    }
+  };
+
+  window.addEventListener(
+    'wheel',
+    (e) => {
+      e.preventDefault();
+      if (rig.mode === 'standing' && e.deltaY > 2) sitV2();
+    },
+    { passive: false },
+  );
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') return; // No focus targets yet; Esc will unfocus via the seam above.
+    const active = document.activeElement;
+    const onBody = active === document.body || active === null;
+    if (onBody && rig.mode === 'standing' && ['ArrowDown', ' ', 'Enter', 'PageDown'].includes(e.key)) {
+      e.preventDefault();
+      sitV2();
+    }
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    const nx = (e.clientX / window.innerWidth) * 2 - 1;
+    const ny = -(e.clientY / window.innerHeight) * 2 + 1;
+    rig.setPointer(nx, ny);
+  });
+
   loader.advance('shaders');
   await view.warmUp([], (stage) => loader.advance(stage));
   loader.advance('ready');
   await loader.hide();
-  requestAnimationFrame(() => document.getElementById('veil')!.classList.add('is-lifted'));
 
   window.addEventListener('resize', view.resize);
 
   let last = performance.now();
   let elapsed = 0;
   let frameCount = 0;
+  let firstFrame = true;
   let benchPaused = false;
   let reportedError = false;
+  /** Debug only: park the camera anywhere to inspect a model close up. */
+  let parked: { p: number[]; t: number[]; fov: number } | null = null;
   function frame(now: number) {
+    // Schedule first: a runtime error in one frame must never freeze the room.
     requestAnimationFrame(frame);
     if (benchPaused) {
       last = now;
       return;
     }
     try {
-      view.renderer.info.reset();
-      const dt = Math.min(0.05, (now - last) / 1000);
-      frameCount++;
-      last = now;
-      elapsed += dt;
-      view.render(dt, elapsed, !reducedMotion);
+      step(now);
     } catch (err) {
       if (!reportedError) {
         reportedError = true;
@@ -1057,20 +1102,48 @@ async function startV2() {
     }
   }
 
+  function step(now: number) {
+    view.renderer.info.reset();
+    const dt = Math.min(0.05, (now - last) / 1000);
+    frameCount++;
+    last = now;
+    elapsed += dt;
+    if (parked) {
+      camera.position.set(parked.p[0], parked.p[1], parked.p[2]);
+      camera.lookAt(parked.t[0], parked.t[1], parked.t[2]);
+      camera.fov = parked.fov;
+      camera.updateProjectionMatrix();
+    } else {
+      rig.update(dt);
+    }
+    view.render(dt, elapsed, !reducedMotion);
+
+    if (firstFrame) {
+      firstFrame = false;
+      requestAnimationFrame(() => document.getElementById('veil')!.classList.add('is-lifted'));
+      window.setTimeout(() => {
+        if (rig.mode === 'standing') hint.show('Scroll to sit down');
+      }, 2200);
+    }
+  }
+
   if (params.has('debug')) {
     Object.assign(window, {
       __room: {
-        mode: () => 'v2' as const,
+        mode: () => rig.mode,
         frames: () => frameCount,
         camera: () => ({ position: camera.position.toArray(), quaternion: camera.quaternion.toArray() }),
         programs: () => (view.renderer.info.programs ?? []).map((p) => p.name),
-        parkCamera: (p: number[], t?: number[], fov = 54) => {
-          camera.position.set(p[0], p[1], p[2]);
-          const tt = t ?? [0, 0.8, -0.6];
-          camera.lookAt(tt[0], tt[1], tt[2]);
-          camera.fov = fov;
-          camera.updateProjectionMatrix();
-          camera.updateMatrixWorld();
+        lookExtent: () => rig.lookExtent(),
+        sitDown: () => rig.sitDown(),
+        setPointer: (nx: number, ny: number) => rig.setPointer(nx, ny),
+        parkCamera: (p: number[] | null, t?: number[], fov = 54) => {
+          if (!p) {
+            parked = null;
+            camera.fov = V2_TUNING.fov;
+            return;
+          }
+          parked = { p, t: t ?? [0, 0.8, -0.6], fov };
         },
         v2: {
           atlases: () => Object.keys(baked.atlases),

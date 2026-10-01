@@ -4,6 +4,44 @@ import { CAMERA } from '../scene/layout';
 
 export type RigMode = 'standing' | 'sitting' | 'seated' | 'focusing' | 'focused' | 'returning';
 
+/**
+ * Everything about the rig that depends on the room it is in, rather than on how a head
+ * moves. The default room passes `CAMERA` from `src/scene/layout.ts` unchanged; the v2
+ * baked room passes its own tuning (Blender `CAM_seat`/`CAM_stand`, same look limits until
+ * the props pass retunes them). Nothing in here may import `ROOM`/`SHELF` — those drive
+ * the procedural room's builders, and sharing them would move the default room's walls.
+ */
+export interface RigPose {
+  position: [number, number, number];
+  lookAt: [number, number, number];
+}
+
+export interface RigTuning {
+  fov: number;
+  focusFov: number;
+  stand: RigPose;
+  seat: RigPose;
+  /** [left, right] and [up, down] limits, radians from the rest direction. */
+  standYaw: [number, number];
+  seatYaw: [number, number];
+  standPitch: [number, number];
+  seatPitch: [number, number];
+  /** Fraction of the screen around the centre that does not turn the head. */
+  deadZoneX: number;
+  deadZoneY: number;
+}
+
+/**
+ * The only thing the sit transition needs from the room: a chair to roll in, with its two
+ * poses. The v2 baked room has no live chair (it is baked into the furniture atlas), so it
+ * passes `null` and the camera flies the same path without moving furniture.
+ */
+export interface SitChair {
+  chair: { position: THREE.Vector3; rotation: { y: number } };
+  chairStart: { position: THREE.Vector3; rotationY: number };
+  chairSeated: { position: THREE.Vector3; rotationY: number };
+}
+
 export interface FocusTarget {
   center: THREE.Vector3;
   distance: number;
@@ -60,13 +98,14 @@ export class CameraRig {
   onReturned?: () => void;
 
   private readonly camera: THREE.PerspectiveCamera;
-  private readonly room: RoomRefs;
+  private readonly room: SitChair | null;
   private readonly reduced: boolean;
+  private readonly tuning: RigTuning;
 
-  private readonly standPos = new THREE.Vector3(...CAMERA.stand.position);
-  private readonly standLook = yawPitchTo(this.standPos, new THREE.Vector3(...CAMERA.stand.lookAt));
-  private readonly seatPos = new THREE.Vector3(...CAMERA.seat.position);
-  private readonly seatLook = yawPitchTo(this.seatPos, new THREE.Vector3(...CAMERA.seat.lookAt));
+  private readonly standPos: THREE.Vector3;
+  private readonly standLook: { yaw: number; pitch: number };
+  private readonly seatPos: THREE.Vector3;
+  private readonly seatLook: { yaw: number; pitch: number };
 
   private pointer = new THREE.Vector2();
   private lookYaw = 0;
@@ -80,9 +119,9 @@ export class CameraRig {
   private savedLook = { yaw: 0, pitch: 0 };
 
   /** Lens: the focus move dollies in a little, which reads as a camera rather than a teleport. */
-  private fov = CAMERA.fov;
-  private fovFrom = CAMERA.fov;
-  private fovTo = CAMERA.fov;
+  private fov: number;
+  private fovFrom: number;
+  private fovTo: number;
 
   private t0 = 0;
   private duration = 1;
@@ -94,10 +133,29 @@ export class CameraRig {
   private arcA = new THREE.Vector3();
   private arcB = new THREE.Vector3();
 
-  constructor(camera: THREE.PerspectiveCamera, room: RoomRefs, reducedMotion: boolean) {
+  /**
+   * @param room The sit-transition chair, or `null` when the room has no live chair to move
+   *   (the v2 baked room). `RoomRefs` satisfies `SitChair`, so the default path passes its
+   *   room unchanged. @param tuning Room-specific poses and limits; defaults to `CAMERA`
+   *   (the default room), so existing callers stay byte-for-byte identical.
+   */
+  constructor(
+    camera: THREE.PerspectiveCamera,
+    room: SitChair | RoomRefs | null,
+    reducedMotion: boolean,
+    tuning: RigTuning = CAMERA as unknown as RigTuning,
+  ) {
     this.camera = camera;
     this.room = room;
     this.reduced = reducedMotion;
+    this.tuning = tuning;
+    this.standPos = new THREE.Vector3(...tuning.stand.position);
+    this.standLook = yawPitchTo(this.standPos, new THREE.Vector3(...tuning.stand.lookAt));
+    this.seatPos = new THREE.Vector3(...tuning.seat.position);
+    this.seatLook = yawPitchTo(this.seatPos, new THREE.Vector3(...tuning.seat.lookAt));
+    this.fov = tuning.fov;
+    this.fovFrom = tuning.fov;
+    this.fovTo = tuning.fov;
     this.camera.position.copy(this.standPos);
     this.camera.quaternion.copy(this.baseQuat(this.standLook, 0, 0));
   }
@@ -119,8 +177,8 @@ export class CameraRig {
    */
   lookExtent() {
     const standing = this.mode === 'standing';
-    const yawRange = standing ? CAMERA.standYaw : CAMERA.seatYaw;
-    const pitchRange = standing ? CAMERA.standPitch : CAMERA.seatPitch;
+    const yawRange = standing ? this.tuning.standYaw : this.tuning.seatYaw;
+    const pitchRange = standing ? this.tuning.standPitch : this.tuning.seatPitch;
     const yaw = Math.abs(this.lookYaw) / (this.lookYaw >= 0 ? yawRange[0] : yawRange[1]);
     const pitch = Math.abs(this.lookPitch) / (this.lookPitch >= 0 ? pitchRange[1] : pitchRange[0]);
     return Math.max(yaw, pitch);
@@ -139,7 +197,7 @@ export class CameraRig {
     if (this.mode === 'seated') this.savedLook = { yaw: this.lookYaw, pitch: this.lookPitch };
     this.begin('focusing', this.reduced ? 0.35 : 1.5);
     this.fovFrom = this.fov;
-    this.fovTo = CAMERA.focusFov;
+    this.fovTo = this.tuning.focusFov;
     this.fromPos.copy(this.camera.position);
     this.fromQuat.copy(this.camera.quaternion);
 
@@ -164,7 +222,7 @@ export class CameraRig {
     if (this.mode !== 'focused' && this.mode !== 'focusing') return false;
     this.begin('returning', this.reduced ? 0.3 : 1.2);
     this.fovFrom = this.fov;
-    this.fovTo = CAMERA.fov;
+    this.fovTo = this.tuning.fov;
     this.fromPos.copy(this.camera.position);
     this.fromQuat.copy(this.camera.quaternion);
     this.lookYaw = this.targetYaw = this.savedLook.yaw;
@@ -197,8 +255,8 @@ export class CameraRig {
       this.targetYaw = this.lookYaw;
       this.targetPitch = this.lookPitch;
     } else {
-      const sx = shapeAxis(this.pointer.x, CAMERA.deadZoneX);
-      const sy = shapeAxis(this.pointer.y, CAMERA.deadZoneY);
+      const sx = shapeAxis(this.pointer.x, this.tuning.deadZoneX);
+      const sy = shapeAxis(this.pointer.y, this.tuning.deadZoneY);
       this.targetYaw = sx > 0 ? -sx * yawRange[1] : -sx * yawRange[0];
       this.targetPitch = sy > 0 ? sy * pitchRange[1] : sy * pitchRange[0];
     }
@@ -248,7 +306,7 @@ export class CameraRig {
 
     switch (this.mode) {
       case 'standing': {
-        this.updateLook(dt, CAMERA.standYaw, CAMERA.standPitch);
+        this.updateLook(dt, this.tuning.standYaw, this.tuning.standPitch);
         this.camera.position.copy(this.standPos).y += idle.y * 1.4;
         this.camera.quaternion.copy(this.baseQuat(this.standLook, this.lookYaw + idle.yaw * 1.3, this.lookPitch + idle.pitch));
         break;
@@ -268,8 +326,11 @@ export class CameraRig {
         this.camera.quaternion.setFromEuler(_euler.set(pitch, yaw, roll, 'YXZ'));
 
         const c = easeOutCubic(THREE.MathUtils.clamp((u - 0.12) / 0.62, 0, 1));
-        this.room.chair.position.lerpVectors(this.room.chairStart.position, this.room.chairSeated.position, c);
-        this.room.chair.rotation.y = THREE.MathUtils.lerp(this.room.chairStart.rotationY, this.room.chairSeated.rotationY, c);
+        // No live chair in rooms like the v2 bake: the camera flies the same path alone.
+        if (this.room) {
+          this.room.chair.position.lerpVectors(this.room.chairStart.position, this.room.chairSeated.position, c);
+          this.room.chair.rotation.y = THREE.MathUtils.lerp(this.room.chairStart.rotationY, this.room.chairSeated.rotationY, c);
+        }
 
         if (u >= 1) {
           this.mode = 'seated';
@@ -283,7 +344,7 @@ export class CameraRig {
       }
       case 'seated': {
         this.lookBlend = Math.min(1, this.lookBlend + dt / 1.2);
-        this.updateLook(dt * this.lookBlend, CAMERA.seatYaw, CAMERA.seatPitch);
+        this.updateLook(dt * this.lookBlend, this.tuning.seatYaw, this.tuning.seatPitch);
         this.camera.position.copy(this.seatPos).y += idle.y;
         this.camera.quaternion.copy(this.baseQuat(this.seatLook, this.lookYaw + idle.yaw, this.lookPitch + idle.pitch));
         break;
