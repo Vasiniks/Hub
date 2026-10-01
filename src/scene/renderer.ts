@@ -53,6 +53,17 @@ class MultisampleScenePass extends Pass {
     this.target.setSize(width, height);
   }
 
+  get samples() {
+    return this.target.samples;
+  }
+
+  /** Change the MSAA sample count; the target is reallocated on its next use. */
+  setSamples(samples: number) {
+    if (samples === this.target.samples) return;
+    this.target.samples = samples;
+    this.target.dispose();
+  }
+
   dispose() {
     this.target.dispose();
   }
@@ -292,6 +303,12 @@ export function createRenderer(
   camera: THREE.PerspectiveCamera,
   sun: THREE.DirectionalLight,
   lamp: THREE.SpotLight,
+  /**
+   * `deep`: the quality ladder may go past the default floor (1× without MSAA, then below 1×),
+   * so weak GPUs still get a smooth frame. The baked room (`?v2`) has no AO, shafts or bloom to
+   * shed, so resolution and MSAA are its only levers.
+   */
+  opts: { deepLadder?: boolean } = {},
 ) {
   const params = new URLSearchParams(location.search);
   // Must precede every material compile (see areaLights.ts).
@@ -565,6 +582,8 @@ export function createRenderer(
 
   /** Candidate render resolutions, highest first. */
   const RATIO_STEPS = [1.5, 1.25, 1];
+  /** Below 1×, for `deepLadder` only, after MSAA is already off. */
+  const DEEP_STEPS = [0.85, 0.7];
 
   /**
    * Safety net only. Calibration has already chosen the resolution, so this exists for a
@@ -575,12 +594,31 @@ export function createRenderer(
   let clock = 0;
   function watchPerformance(dt: number) {
     clock += dt;
-    if (!adaptive || pixelRatio <= 1 || clock < 10) return;
+    if (!adaptive || clock < 10) return;
     recent[recentCount % recent.length] = dt;
     recentCount++;
     if (recentCount % 60 !== 0 || recentCount < recent.length) return;
     const median = Float32Array.from(recent).sort()[recent.length >> 1];
-    if (median > 1 / 30) setPixelRatio(Math.max(1, pixelRatio - 0.25));
+    // Start a fresh window after a step, so stale slow frames cannot trigger a second one.
+    if (median > 1 / 30 && stepDownQuality()) recentCount = 0;
+  }
+
+  /**
+   * One rung down the quality ladder: 1.5 → 1.25 → 1 (the default floor); with `deepLadder`
+   * then MSAA off, 0.85, 0.7. Returns false at the floor.
+   */
+  function stepDownQuality() {
+    const floor = opts.deepLadder ? 0.7 : 1;
+    const next = RATIO_STEPS.find((r) => r < pixelRatio - 0.01 && r >= 1);
+    if (next !== undefined) return setPixelRatio(Math.min(window.devicePixelRatio, next));
+    if (!opts.deepLadder) return false;
+    if (scenePass.samples > 0) {
+      scenePass.setSamples(0);
+      return true;
+    }
+    const lower = DEEP_STEPS.find((r) => r < pixelRatio - 0.01);
+    if (lower === undefined || lower < floor) return false;
+    return setPixelRatio(lower);
   }
 
   /**
@@ -653,6 +691,9 @@ export function createRenderer(
     /** False when the resolution is pinned (`?pr=`), so nothing may change it. */
     adaptive,
     /** Step down to the next lower render resolution. Returns false at the floor. */
+    stepDownQuality,
+    /** Current MSAA sample count of the scene pass. */
+    msaa: () => scenePass.samples,
     stepDownResolution() {
       const next = RATIO_STEPS.find((r) => r < pixelRatio - 0.01);
       if (next === undefined) return false;

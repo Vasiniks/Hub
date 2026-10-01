@@ -21,6 +21,7 @@ import { loadBakedRoom, V2_EXPOSURE } from './scene/bakedRoom';
 import { V2_TUNING } from './scene/v2Layout';
 import { BloomPass } from './scene/bloom';
 import { findNodes, loadV2Props } from './scene/v2Props';
+import { createV2PropLight } from './scene/v2PropLight';
 import { createPropRegistry } from './interaction/props';
 import { v2Props } from './data/v2Props';
 import { CAMERA, INTERACTION, SHELF } from './scene/layout';
@@ -748,31 +749,6 @@ async function start() {
    */
   const FRAME_BUDGET_MS = 15.5;
 
-  /**
-   * Resolve once the GPU has actually finished the work queued so far.
-   *
-   * `gl.finish()` does not block on this ANGLE/Metal path, and frame-to-frame rAF timing is
-   * no better: while the loading screen is up nothing is being presented, so rAF free-runs at
-   * the refresh rate while the driver quietly queues a backlog. Both report a frame that fits
-   * in one interval when it really takes two. A fence is the one signal that tells the truth.
-   */
-  function gpuFence(gl: WebGL2RenderingContext) {
-    const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-    if (!sync) return Promise.resolve();
-    gl.flush();
-    return new Promise<void>((resolve) => {
-      const poll = () => {
-        const status = gl.clientWaitSync(sync, 0, 0);
-        if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED || status === gl.WAIT_FAILED) {
-          gl.deleteSync(sync);
-          resolve();
-          return;
-        }
-        setTimeout(poll, 0);
-      };
-      poll();
-    });
-  }
 
   /**
    * §23/§43: choose the render resolution before the first visible frame, by running the
@@ -988,6 +964,32 @@ async function start() {
 }
 
 /**
+ * Resolve once the GPU has actually finished the work queued so far.
+ *
+ * `gl.finish()` does not block on this ANGLE/Metal path, and frame-to-frame rAF timing is
+ * no better: while the loading screen is up nothing is being presented, so rAF free-runs at
+ * the refresh rate while the driver quietly queues a backlog. Both report a frame that fits
+ * in one interval when it really takes two. A fence is the one signal that tells the truth.
+ */
+function gpuFence(gl: WebGL2RenderingContext) {
+  const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+  if (!sync) return Promise.resolve();
+  gl.flush();
+  return new Promise<void>((resolve) => {
+    const poll = () => {
+      const status = gl.clientWaitSync(sync, 0, 0);
+      if (status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED || status === gl.WAIT_FAILED) {
+        gl.deleteSync(sync);
+        resolve();
+        return;
+      }
+      setTimeout(poll, 0);
+    };
+    poll();
+  });
+}
+
+/**
  * `?v2`: the baked sunset room — shell, desk, furniture, curtains — lit entirely by their
  * lightmaps, walked with the default room's rig and examined through its interaction modules.
  * A flag, not a replacement: the default path above is untouched, and this path loads none of
@@ -1017,6 +1019,8 @@ async function startV2() {
   ]);
   scene.add(baked.group);
   if (propFiles.props.length) scene.add(propFiles.group);
+  // Live sun + lamp for the PBR props only; the baked room ignores live light (v2PropLight.ts).
+  const propLight = createV2PropLight(scene, baked.atlases.shell, propFiles.group);
   loader.advance('lightmaps');
 
   // Dummy lights: only to satisfy createRenderer's signature (volumetric + lamp-shadow
@@ -1024,7 +1028,8 @@ async function startV2() {
   // material is unlit-by-live-lights by construction (see bakedRoom.ts).
   const sun = new THREE.DirectionalLight(0x000000, 0);
   const lamp = new THREE.SpotLight(0x000000, 0);
-  const view = createRenderer(canvas, scene, camera, sun, lamp);
+  // deepLadder: weak GPUs may drop MSAA and go below 1× (see stepDownQuality in renderer.ts).
+  const view = createRenderer(canvas, scene, camera, sun, lamp, { deepLadder: true });
   // Sunset grade: AgX (set by createRenderer) at the bake's +0.45 EV.
   view.renderer.toneMappingExposure = V2_EXPOSURE;
   // The bake already holds every bounce, shaft and glow: no live post-light effects.
@@ -1113,10 +1118,9 @@ async function startV2() {
   // Interactive objects are passed so the hover outline's shader variants compile now, not on
   // the first hover.
   await view.warmUp(props.groups(), (stage) => loader.advance(stage));
-  loader.advance('ready');
-  await loader.hide();
-  // Picking acceleration builds in idle time once the room is on screen (see interaction/bvh.ts).
-  const pickingTrees = buildPickingTrees(scene);
+  // warmUp captured the room with the props in it, unlit by their own reflections; record it
+  // again without them so the props' image-based light is the baked room alone.
+  propLight.captureWithoutProps(view.captureEnvironmentNow);
 
   window.addEventListener('resize', view.resize);
 
@@ -1126,6 +1130,8 @@ async function startV2() {
   let firstFrame = true;
   let benchPaused = false;
   let reportedError = false;
+  /** Suppressed while calibrating, so the reveal does not fire behind the loading bar. */
+  let calibrating = true;
   /** Debug only: park the camera anywhere to inspect a model close up. */
   let parked: { p: number[]; t: number[]; fov: number } | null = null;
   function frame(now: number) {
@@ -1163,7 +1169,7 @@ async function startV2() {
     props.update(dt, elapsed);
     view.render(dt, elapsed, !reducedMotion);
 
-    if (firstFrame) {
+    if (firstFrame && !calibrating) {
       firstFrame = false;
       requestAnimationFrame(() => document.getElementById('veil')!.classList.add('is-lifted'));
       window.setTimeout(() => {
@@ -1176,6 +1182,7 @@ async function startV2() {
     Object.assign(window, {
       __room: {
         mode: () => rig.mode,
+        calibration: () => calibration,
         frames: () => frameCount,
         camera: () => ({ position: camera.position.toArray(), quaternion: camera.quaternion.toArray() }),
         programs: () => (view.renderer.info.programs ?? []).map((p) => p.name),
@@ -1224,6 +1231,49 @@ async function startV2() {
       },
     });
   }
+
+  /**
+   * Choose the render quality before the first visible frame, the way the default room does
+   * (see `calibrate` in `start()`): run real frames in a burst, fence once, and step down the
+   * ladder — resolution, then MSAA, then below 1× — until the frame fits the budget. A low-end
+   * GPU starts on a rung it can hold instead of discovering it from stutter.
+   */
+  const FRAME_BUDGET_MS = 15.5;
+  async function calibrate() {
+    const gl = view.renderer.getContext() as WebGL2RenderingContext;
+    const burst = async (n: number) => {
+      const t0 = performance.now();
+      for (let i = 0; i < n; i++) step(performance.now());
+      await gpuFence(gl);
+      return (performance.now() - t0) / n;
+    };
+    await burst(4); // discard: driver first-use
+    const measure = async () => {
+      const first = await burst(6);
+      if (Math.abs(first - FRAME_BUDGET_MS) > FRAME_BUDGET_MS * 0.25) return first;
+      return (first + (await burst(6))) / 2;
+    };
+    let cost = await measure();
+    const trace = [{ ratio: view.pixelRatio(), msaa: view.msaa(), ms: +cost.toFixed(2) }];
+    let steps = 0;
+    while (view.adaptive && cost > FRAME_BUDGET_MS && steps < 5 && view.stepDownQuality()) {
+      steps++;
+      await burst(3);
+      cost = await measure();
+      trace.push({ ratio: view.pixelRatio(), msaa: view.msaa(), ms: +cost.toFixed(2) });
+    }
+    return { frameMs: +cost.toFixed(2), chosen: view.pixelRatio(), msaa: view.msaa(), steps, trace };
+  }
+  loader.advance('measuring');
+  const calibration = await calibrate();
+  calibrating = false;
+  // The calibration frames advanced the clocks; put them back so the visitor starts at zero.
+  elapsed = 0;
+  frameCount = 0;
+  loader.advance('ready');
+  await loader.hide();
+  // Picking acceleration builds in idle time once the room is on screen (see interaction/bvh.ts).
+  const pickingTrees = buildPickingTrees(scene);
 
   last = performance.now();
   requestAnimationFrame(frame);
