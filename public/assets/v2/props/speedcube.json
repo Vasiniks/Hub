@@ -1,0 +1,239 @@
+{
+ "set": "speedcube",
+ "sources": [
+  "NEW_speedcube"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": 12000,
+ "within_budget": true,
+ "tris_before": 34184,
+ "tris_after": 11632,
+ "objects": [
+  {
+   "name": "NEW_speedcube_piece_---",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_--0",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_--+",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_-0-",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_-00",
+   "tris_before": 948,
+   "tris_after": 316
+  },
+  {
+   "name": "NEW_speedcube_piece_-0+",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_-+-",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_-+0",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_-++",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_0--",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_0-0",
+   "tris_before": 948,
+   "tris_after": 316
+  },
+  {
+   "name": "NEW_speedcube_piece_0-+",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_00-",
+   "tris_before": 948,
+   "tris_after": 316
+  },
+  {
+   "name": "NEW_speedcube_piece_00+",
+   "tris_before": 948,
+   "tris_after": 316
+  },
+  {
+   "name": "NEW_speedcube_piece_0+-",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_0+0",
+   "tris_before": 948,
+   "tris_after": 316
+  },
+  {
+   "name": "NEW_speedcube_piece_0++",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_+--",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_+-0",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_+-+",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_+0-",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_+00",
+   "tris_before": 948,
+   "tris_after": 316
+  },
+  {
+   "name": "NEW_speedcube_piece_+0+",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_++-",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_++0",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_piece_+++",
+   "tris_before": 1368,
+   "tris_after": 456
+  },
+  {
+   "name": "NEW_speedcube_core",
+   "tris_before": 624,
+   "tris_after": 104
+  },
+  {
+   "name": "NEW_speedcube_emblem18",
+   "tris_before": 512,
+   "tris_after": 512
+  }
+ ],
+ "skipped": {},
+ "atlas": {
+  "pbr_res": null,
+  "lit_res": 512,
+  "packer": {
+   "lit": "pack_islands"
+  }
+ },
+ "textures": {
+  "lit": "speedcube_lit.png"
+ },
+ "lit_scale": 2.8000000000000003,
+ "material_modes": {
+  "speedcube_lit": "lit",
+  "speedcube_lit_cutout": "lit"
+ },
+ "material_kinds": {
+  "speedcube_body_grey.002": "opaque",
+  "speedcube_cap_blue.002": "opaque",
+  "speedcube_cap_green.002": "opaque",
+  "speedcube_cap_orange.002": "opaque",
+  "speedcube_cap_red.002": "opaque",
+  "speedcube_cap_white.002": "opaque",
+  "speedcube_cap_yellow.002": "opaque",
+  "speedcube_emblem_18_print.001": "cutout"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "anchors": {
+  "NEW_speedcube_root": {
+   "blender_world": [
+    -0.33,
+    0.62,
+    0.735
+   ],
+   "three_world": [
+    -0.33,
+    0.735,
+    -0.62
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_speedcube_root__mesh": {
+   "parent": "NEW_speedcube_root",
+   "tris": 11632,
+   "materials": [
+    "speedcube_lit",
+    "speedcube_lit_cutout"
+   ],
+   "blender_bbox": [
+    [
+     -0.3682,
+     0.5818,
+     0.735
+    ],
+    [
+     -0.2918,
+     0.6582,
+     0.7905
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "lit": {
+   "lit_scale": 2.8000000000000003,
+   "raw_mean": 0.0967,
+   "denoised_mean": 0.0968,
+   "p50": 0.0006,
+   "clipped_fraction": 0.00157,
+   "coverage_px": 0.499,
+   "samples": 256
+  }
+ },
+ "bake_seconds": {
+  "lit": 65.1,
+  "lit_denoise": 0.2
+ },
+ "glb": "speedcube.glb",
+ "glb_bytes": 400752,
+ "seconds": 194.5
+}

@@ -1,0 +1,261 @@
+{
+ "set": "lamp",
+ "sources": [
+  "NEW_lamp",
+  "NEW_medals"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": 20000,
+ "within_budget": true,
+ "tris_before": 98334,
+ "tris_after": 19350,
+ "objects": [
+  {
+   "name": "lamp_body.001",
+   "tris_before": 2370,
+   "tris_after": 1276
+  },
+  {
+   "name": "lamp_arm",
+   "tris_before": 1776,
+   "tris_after": 956
+  },
+  {
+   "name": "lamp_head.001",
+   "tris_before": 3584,
+   "tris_after": 1930
+  },
+  {
+   "name": "lamp_diffuser_bezel",
+   "tris_before": 1792,
+   "tris_after": 964
+  },
+  {
+   "name": "lamp_diffuser_disc",
+   "tris_before": 1024,
+   "tris_after": 518
+  },
+  {
+   "name": "medal_m1_ribbon",
+   "tris_before": 3256,
+   "tris_after": 876
+  },
+  {
+   "name": "medal_m2_ribbon",
+   "tris_before": 2776,
+   "tris_after": 746
+  },
+  {
+   "name": "medal_m3_ribbon",
+   "tris_before": 3556,
+   "tris_after": 956
+  },
+  {
+   "name": "medal_m4_ribbon",
+   "tris_before": 2916,
+   "tris_after": 784
+  },
+  {
+   "name": "medal_m1_clasp",
+   "tris_before": 2076,
+   "tris_after": 558
+  },
+  {
+   "name": "medal_m1_disc",
+   "tris_before": 16745,
+   "tris_after": 2028
+  },
+  {
+   "name": "medal_m2_clasp",
+   "tris_before": 2076,
+   "tris_after": 558
+  },
+  {
+   "name": "medal_m2_disc",
+   "tris_before": 16745,
+   "tris_after": 2028
+  },
+  {
+   "name": "medal_m3_clasp",
+   "tris_before": 2076,
+   "tris_after": 558
+  },
+  {
+   "name": "medal_m3_disc",
+   "tris_before": 16745,
+   "tris_after": 2028
+  },
+  {
+   "name": "medal_m4_clasp",
+   "tris_before": 2076,
+   "tris_after": 558
+  },
+  {
+   "name": "medal_m4_disc",
+   "tris_before": 16745,
+   "tris_after": 2028
+  }
+ ],
+ "skipped": {},
+ "atlas": {
+  "pbr_res": 1024,
+  "lit_res": 1024,
+  "packer": {
+   "lit": "pack_islands",
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "lamp_basecolor.png",
+  "orm": "lamp_orm.png",
+  "normal": "lamp_normal.png",
+  "lit": "lamp_lit.png"
+ },
+ "lit_scale": 160,
+ "material_modes": {
+  "lamp_diffuser": "pbr_emissive",
+  "lamp_lit": "lit",
+  "lamp_pbr": "pbr"
+ },
+ "material_kinds": {
+  "lamp_diffuser": "emit",
+  "lamp_white_plastic.001": "opaque",
+  "medals_gold_antique.001": "metal",
+  "medals_gold_polished.001": "metal",
+  "medals_ribbon_blue.001": "opaque",
+  "medals_ribbon_red.001": "opaque",
+  "medals_silver_antique.001": "metal",
+  "medals_silver_polished.001": "metal",
+  "medals_steel": "metal",
+  "lamp_diffuser__src": "emit"
+ },
+ "emissive_materials": [
+  "lamp_diffuser"
+ ],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "anchors": {
+  "NEW_lamp_root": {
+   "blender_world": [
+    -0.6638,
+    0.9181,
+    0.735
+   ],
+   "three_world": [
+    -0.6638,
+    0.735,
+    -0.9181
+   ],
+   "parent": null,
+   "is_pivot": false
+  },
+  "NEW_lamp_pivot": {
+   "blender_world": [
+    -0.7012,
+    0.955,
+    0.885
+   ],
+   "three_world": [
+    -0.7012,
+    0.885,
+    -0.955
+   ],
+   "parent": "NEW_lamp_root",
+   "is_pivot": true
+  }
+ },
+ "meshes": {
+  "NEW_lamp_root__mesh": {
+   "parent": "NEW_lamp_root",
+   "tris": 1276,
+   "materials": [
+    "lamp_lit"
+   ],
+   "blender_bbox": [
+    [
+     -0.7637,
+     0.8182,
+     0.735
+    ],
+    [
+     -0.5639,
+     1.018,
+     0.8853
+    ]
+   ]
+  },
+  "NEW_lamp_pivot__mesh": {
+   "parent": "NEW_lamp_pivot",
+   "tris": 18074,
+   "materials": [
+    "lamp_lit",
+    "lamp_diffuser",
+    "lamp_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -0.7213,
+     0.6897,
+     0.7747
+    ],
+    [
+     -0.4254,
+     0.9741,
+     1.1895
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.371,
+   "s2a": [
+    [
+     "medal_m1_disc",
+     50891
+    ],
+    [
+     "medal_m2_disc",
+     50675
+    ],
+    [
+     "medal_m3_disc",
+     50955
+    ],
+    [
+     "medal_m4_disc",
+     50776
+    ]
+   ],
+   "base_mean": [
+    0.858,
+    0.848,
+    0.83
+   ],
+   "ao_mean": 0.47,
+   "coverage_px": 0.487
+  },
+  "lit": {
+   "lit_scale": 160,
+   "raw_mean": 3.0086,
+   "denoised_mean": 3.0125,
+   "p50": 0.2959,
+   "clipped_fraction": 0.00036,
+   "coverage_px": 0.412,
+   "samples": 256
+  }
+ },
+ "bake_seconds": {
+  "base": 12.0,
+  "rough": 11.8,
+  "metal": 11.9,
+  "ao": 14.2,
+  "normal": 17.8,
+  "lit": 26.9,
+  "lit_denoise": 0.2
+ },
+ "glb": "lamp.glb",
+ "glb_bytes": 1223052,
+ "seconds": 121.2
+}

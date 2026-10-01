@@ -1,0 +1,227 @@
+{
+ "set": "monitor",
+ "sources": [
+  "NEW_monitor"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 8610,
+ "tris_after": 8610,
+ "objects": [
+  {
+   "name": "NEW_monitor_bezel",
+   "tris_before": 672,
+   "tris_after": 672
+  },
+  {
+   "name": "NEW_monitor_glass_border",
+   "tris_before": 56,
+   "tris_after": 56
+  },
+  {
+   "name": "NEW_monitor_screen",
+   "tris_before": 2,
+   "tris_after": 2
+  },
+  {
+   "name": "NEW_monitor_rear_housing",
+   "tris_before": 3354,
+   "tris_after": 3354
+  },
+  {
+   "name": "NEW_monitor_io",
+   "tris_before": 880,
+   "tris_after": 880
+  },
+  {
+   "name": "NEW_monitor_io_tongues",
+   "tris_before": 336,
+   "tris_after": 336
+  },
+  {
+   "name": "NEW_monitor_led",
+   "tris_before": 44,
+   "tris_after": 44
+  },
+  {
+   "name": "NEW_monitor_joystick",
+   "tris_before": 158,
+   "tris_after": 158
+  },
+  {
+   "name": "NEW_monitor_carriage",
+   "tris_before": 444,
+   "tris_after": 444
+  },
+  {
+   "name": "NEW_monitor_slider",
+   "tris_before": 236,
+   "tris_after": 236
+  },
+  {
+   "name": "NEW_monitor_column",
+   "tris_before": 1004,
+   "tris_after": 1004
+  },
+  {
+   "name": "NEW_monitor_base",
+   "tris_before": 728,
+   "tris_after": 728
+  },
+  {
+   "name": "NEW_monitor_feet",
+   "tris_before": 696,
+   "tris_after": 696
+  }
+ ],
+ "skipped": {},
+ "atlas": {
+  "pbr_res": 512,
+  "lit_res": 1024,
+  "packer": {
+   "lit": "pack_islands",
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "monitor_basecolor.png",
+  "orm": "monitor_orm.png",
+  "normal": "monitor_normal.png",
+  "lit": "monitor_lit.png"
+ },
+ "lit_scale": 0.025,
+ "material_modes": {
+  "mon_power_led": "pbr_emissive",
+  "monitor_lit": "lit",
+  "monitor_pbr": "pbr"
+ },
+ "material_kinds": {
+  "mon_alu_channel_dark": "metal",
+  "mon_alu_spacegrey": "metal",
+  "mon_bezel_black_matte": "opaque",
+  "mon_feet_rubber": "opaque",
+  "mon_glass_border_black": "opaque",
+  "mon_port_black": "opaque",
+  "mon_port_nickel": "metal",
+  "mon_port_tongue": "opaque",
+  "mon_power_led": "emit",
+  "mon_rear_black_textured": "opaque",
+  "mon_recess_dark": "opaque",
+  "mon_screen_antiglare": "opaque",
+  "mon_power_led__src": "emit"
+ },
+ "emissive_materials": [
+  "mon_power_led"
+ ],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "anchors": {
+  "NEW_monitor_lift": {
+   "blender_world": [
+    -0.05,
+    1.015,
+    0.735
+   ],
+   "three_world": [
+    -0.05,
+    0.735,
+    -1.015
+   ],
+   "parent": "NEW_monitor_root",
+   "is_pivot": false
+  },
+  "NEW_monitor_root": {
+   "blender_world": [
+    -0.05,
+    1.015,
+    0.735
+   ],
+   "three_world": [
+    -0.05,
+    0.735,
+    -1.015
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_monitor_lift__mesh": {
+   "parent": "NEW_monitor_lift",
+   "tris": 6182,
+   "materials": [
+    "monitor_lit",
+    "monitor_pbr",
+    "mon_power_led"
+   ],
+   "blender_bbox": [
+    [
+     -0.37,
+     0.9589,
+     0.9268
+    ],
+    [
+     0.27,
+     1.0305,
+     1.3017
+    ]
+   ]
+  },
+  "NEW_monitor_root__mesh": {
+   "parent": "NEW_monitor_root",
+   "tris": 2428,
+   "materials": [
+    "monitor_pbr",
+    "monitor_lit"
+   ],
+   "blender_bbox": [
+    [
+     -0.2007,
+     0.9,
+     0.7351
+    ],
+    [
+     0.1007,
+     1.105,
+     1.18
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.0027,
+   "s2a": [],
+   "base_mean": [
+    0.354,
+    0.364,
+    0.383
+   ],
+   "ao_mean": 0.516,
+   "coverage_px": 0.528
+  },
+  "lit": {
+   "lit_scale": 0.025,
+   "raw_mean": 0.002,
+   "denoised_mean": 0.002,
+   "p50": 0.0,
+   "clipped_fraction": 0.00187,
+   "coverage_px": 0.374,
+   "samples": 256
+  }
+ },
+ "bake_seconds": {
+  "base": 27.8,
+  "rough": 28.1,
+  "metal": 36.5,
+  "ao": 10.5,
+  "normal": 12.4,
+  "lit": 79.4,
+  "lit_denoise": 5.8
+ },
+ "glb": "monitor.glb",
+ "glb_bytes": 376488,
+ "seconds": 282.7
+}

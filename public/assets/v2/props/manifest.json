@@ -1,0 +1,1018 @@
+{
+ "generated": "2026-10-01T04:30:19.616Z",
+ "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
+ "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
+ "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
+ "materials": "Two baked atlases per asset. mode \"lit\": non-metal surfaces, KHR_materials_unlit, baseColor = the Cycles DIFFUSE bake (direct + indirect + colour) of the sunset room, stored as linear/litScale in sRGB: multiply the colour by material.userData.litScale (glTF extras) to restore it; no lights touch them. mode \"pbr\": metals (metallic >= 0.5), emissive parts, glass and keepers: baseColor + ORM (R=AO, G=roughness, B=metallic) (+ normal), lit at runtime by an environment capture of the baked room. Keepers (Robot_rsl_lens, bambu_mini_screen) are their own nodes and materials.",
+ "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
+ "totalBytes": 2855104,
+ "totalTris": 108072,
+ "credits": {
+  "teto_plush": {
+   "title": "Kasane Teto fatass plush",
+   "author": "revsworks",
+   "licence": "CC BY 4.0",
+   "url": "https://sketchfab.com/3d-models/kasane-teto-fatass-plush-bd8157eb42a04161b2628e58dfd2a852",
+   "line": "\"Kasane Teto fatass plush\" by revsworks, licensed under CC BY 4.0 (https://sketchfab.com/3d-models/kasane-teto-fatass-plush-bd8157eb42a04161b2628e58dfd2a852)"
+  },
+  "mx_master_3s": {
+   "title": "Mouse Logitech MX Master 3S white",
+   "author": "Guibazilla",
+   "licence": "CC BY 4.0",
+   "url": "https://sketchfab.com/3d-models/mouse-logitech-mx-master-3s-white-dc82de97cbe64c6a8deae3328208c984",
+   "line": "\"Mouse Logitech MX Master 3S white\" by Guibazilla, licensed under CC BY 4.0 (https://sketchfab.com/3d-models/mouse-logitech-mx-master-3s-white-dc82de97cbe64c6a8deae3328208c984)"
+  },
+  "bambu_a1_mini": {
+   "title": "3D Printer - Bambu Lab A1 Mini",
+   "author": "neilvfx",
+   "licence": "CC BY 4.0",
+   "url": "https://sketchfab.com/3d-models/3d-printer-bambu-lab-a1-mini-407fb64c44be4e1888db246b447f811b",
+   "line": "\"3D Printer - Bambu Lab A1 Mini\" by neilvfx, licensed under CC BY 4.0 (https://sketchfab.com/3d-models/3d-printer-bambu-lab-a1-mini-407fb64c44be4e1888db246b447f811b)"
+  },
+  "motherboard": {
+   "title": "MotherBoard + Components",
+   "author": "Daniel Cardona",
+   "licence": "CC BY 4.0",
+   "url": "https://sketchfab.com/3d-models/motherboard-components-3bc94057328243d4b341a55f59160f8a",
+   "line": "\"MotherBoard + Components\" by Daniel Cardona, licensed under CC BY 4.0 (https://sketchfab.com/3d-models/motherboard-components-3bc94057328243d4b341a55f59160f8a)"
+  }
+ },
+ "assets": [
+  {
+   "name": "cables",
+   "file": "cables.glb",
+   "bytes": 309532,
+   "tris": 14535,
+   "trisSource": 53320,
+   "budget": 15000,
+   "textureBytes": 27050,
+   "textures": [
+    {
+     "name": "cables_orm",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 5746
+    },
+    {
+     "name": "cables_basecolor",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 6218
+    },
+    {
+     "name": "cables_lit",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 15086
+    }
+   ],
+   "materials": [
+    {
+     "name": "cables_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM"
+     ]
+    },
+    {
+     "name": "cables_lit",
+     "mode": "lit",
+     "litScale": 1.4000000000000001,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "magsafe_led_amber.001",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM"
+     ]
+    }
+   ],
+   "litScale": 1.4000000000000001,
+   "nodes": [
+    "NEW_cables_root__mesh",
+    "NEW_cables_root"
+   ],
+   "anchors": {
+    "NEW_cables_root": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "NEW_cables_root__mesh",
+     "material": "magsafe_led_amber.001",
+     "emissiveFactor": [
+      1,
+      0.42,
+      0.04
+     ],
+     "emissiveStrength": 6,
+     "textured": false
+    }
+   ],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_cables"
+   ]
+  },
+  {
+   "name": "keyboard",
+   "file": "keyboard.glb",
+   "bytes": 365900,
+   "tris": 19433,
+   "trisSource": 32462,
+   "budget": 20000,
+   "textureBytes": 44492,
+   "textures": [
+    {
+     "name": "keyboard_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 42580
+    },
+    {
+     "name": "keyboard_orm",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 1164
+    },
+    {
+     "name": "keyboard_basecolor",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 748
+    }
+   ],
+   "materials": [
+    {
+     "name": "keyboard_lit",
+     "mode": "lit",
+     "litScale": 0.66,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "keyboard_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM"
+     ]
+    }
+   ],
+   "litScale": 0.66,
+   "nodes": [
+    "NEW_keyboard_root__mesh",
+    "NEW_keyboard_root"
+   ],
+   "anchors": {
+    "NEW_keyboard_root": {
+     "blender_world": [
+      -0.05,
+      0.435,
+      0.735
+     ],
+     "three_world": [
+      -0.05,
+      0.735,
+      -0.435
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_keyboard"
+   ]
+  },
+  {
+   "name": "lamp",
+   "file": "lamp.glb",
+   "bytes": 779320,
+   "tris": 19350,
+   "trisSource": 98334,
+   "budget": 20000,
+   "textureBytes": 273362,
+   "textures": [
+    {
+     "name": "lamp_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 19222
+    },
+    {
+     "name": "lamp_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 130030
+    },
+    {
+     "name": "lamp_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 45446
+    },
+    {
+     "name": "lamp_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 78664
+    }
+   ],
+   "materials": [
+    {
+     "name": "lamp_lit",
+     "mode": "lit",
+     "litScale": 160,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "lamp_diffuser",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "lamp_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": 160,
+   "nodes": [
+    "NEW_lamp_pivot__mesh",
+    "NEW_lamp_pivot",
+    "NEW_lamp_root__mesh",
+    "NEW_lamp_root"
+   ],
+   "anchors": {
+    "NEW_lamp_root": {
+     "blender_world": [
+      -0.6638,
+      0.9181,
+      0.735
+     ],
+     "three_world": [
+      -0.6638,
+      0.735,
+      -0.9181
+     ],
+     "parent": null,
+     "is_pivot": false
+    },
+    "NEW_lamp_pivot": {
+     "blender_world": [
+      -0.7012,
+      0.955,
+      0.885
+     ],
+     "three_world": [
+      -0.7012,
+      0.885,
+      -0.955
+     ],
+     "parent": "NEW_lamp_root",
+     "is_pivot": true
+    }
+   },
+   "emissive": [
+    {
+     "node": "NEW_lamp_pivot__mesh",
+     "material": "lamp_diffuser",
+     "emissiveFactor": [
+      1,
+      0.86,
+      0.68
+     ],
+     "emissiveStrength": 6,
+     "textured": false
+    }
+   ],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_lamp",
+    "NEW_medals"
+   ]
+  },
+  {
+   "name": "lorenz",
+   "file": "lorenz.glb",
+   "bytes": 376560,
+   "tris": 10216,
+   "trisSource": 39832,
+   "budget": 15000,
+   "textureBytes": 98338,
+   "textures": [
+    {
+     "name": "lorenz_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 14990
+    },
+    {
+     "name": "lorenz_normal",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 40778
+    },
+    {
+     "name": "lorenz_orm",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 24360
+    },
+    {
+     "name": "lorenz_basecolor",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 18210
+    }
+   ],
+   "materials": [
+    {
+     "name": "lorenz_lit",
+     "mode": "lit",
+     "litScale": 4.6000000000000005,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "lorenz_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": 4.6000000000000005,
+   "nodes": [
+    "NEW_lorenz_root__mesh",
+    "NEW_lorenz_root"
+   ],
+   "anchors": {
+    "NEW_lorenz_root": {
+     "blender_world": [
+      -0.4525,
+      0.9291,
+      0.735
+     ],
+     "three_world": [
+      -0.4525,
+      0.735,
+      -0.9291
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_lorenz"
+   ]
+  },
+  {
+   "name": "macbook",
+   "file": "macbook.glb",
+   "bytes": 238284,
+   "tris": 9704,
+   "trisSource": 14742,
+   "budget": 10000,
+   "textureBytes": 36806,
+   "textures": [
+    {
+     "name": "macbook_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 6828
+    },
+    {
+     "name": "macbook_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 11366
+    },
+    {
+     "name": "macbook_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 11570
+    },
+    {
+     "name": "macbook_lit",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 7042
+    }
+   ],
+   "materials": [
+    {
+     "name": "macbook_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "macbook_lit",
+     "mode": "lit",
+     "litScale": 0.017,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    }
+   ],
+   "litScale": 0.017,
+   "nodes": [
+    "NEW_macbook_laptop__mesh",
+    "NEW_macbook_laptop",
+    "NEW_macbook_root__mesh",
+    "NEW_macbook_root"
+   ],
+   "anchors": {
+    "NEW_macbook_laptop": {
+     "blender_world": [
+      -0.05,
+      0.7115,
+      0.7891
+     ],
+     "three_world": [
+      -0.05,
+      0.7891,
+      -0.7115
+     ],
+     "parent": "NEW_macbook_root",
+     "is_pivot": false
+    },
+    "NEW_macbook_root": {
+     "blender_world": [
+      -0.05,
+      0.7336,
+      0.735
+     ],
+     "three_world": [
+      -0.05,
+      0.735,
+      -0.7336
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_macbook"
+   ]
+  },
+  {
+   "name": "monitor",
+   "file": "monitor.glb",
+   "bytes": 209128,
+   "tris": 8610,
+   "trisSource": 8610,
+   "budget": null,
+   "textureBytes": 38336,
+   "textures": [
+    {
+     "name": "monitor_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 26178
+    },
+    {
+     "name": "monitor_normal",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 938
+    },
+    {
+     "name": "monitor_orm",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 5484
+    },
+    {
+     "name": "monitor_basecolor",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 5736
+    }
+   ],
+   "materials": [
+    {
+     "name": "monitor_lit",
+     "mode": "lit",
+     "litScale": 0.025,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "monitor_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "mon_power_led",
+     "mode": "pbr",
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": 0.025,
+   "nodes": [
+    "NEW_monitor_lift__mesh",
+    "NEW_monitor_lift",
+    "NEW_monitor_root__mesh",
+    "NEW_monitor_root"
+   ],
+   "anchors": {
+    "NEW_monitor_lift": {
+     "blender_world": [
+      -0.05,
+      1.015,
+      0.735
+     ],
+     "three_world": [
+      -0.05,
+      0.735,
+      -1.015
+     ],
+     "parent": "NEW_monitor_root",
+     "is_pivot": false
+    },
+    "NEW_monitor_root": {
+     "blender_world": [
+      -0.05,
+      1.015,
+      0.735
+     ],
+     "three_world": [
+      -0.05,
+      0.735,
+      -1.015
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "NEW_monitor_lift__mesh",
+     "material": "mon_power_led",
+     "emissiveFactor": [
+      0.855,
+      0.8879,
+      1
+     ],
+     "emissiveStrength": 3,
+     "textured": false
+    }
+   ],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_monitor"
+   ]
+  },
+  {
+   "name": "mouse_mx",
+   "file": "mouse_mx.glb",
+   "bytes": 247788,
+   "tris": 11616,
+   "trisSource": 23024,
+   "budget": 12000,
+   "textureBytes": 63014,
+   "textures": [
+    {
+     "name": "mouse_mx_lit",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 41496
+    },
+    {
+     "name": "mouse_mx_normal",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 9964
+    },
+    {
+     "name": "mouse_mx_orm",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 7920
+    },
+    {
+     "name": "mouse_mx_basecolor",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 3634
+    }
+   ],
+   "materials": [
+    {
+     "name": "mouse_mx_lit",
+     "mode": "lit",
+     "litScale": 0.17,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "mouse_mx_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": 0.17,
+   "nodes": [
+    "NEW_mouse_mx_root__mesh",
+    "NEW_mouse_mx_root"
+   ],
+   "anchors": {
+    "NEW_mouse_mx_root": {
+     "blender_world": [
+      0.33,
+      0.45,
+      0.735
+     ],
+     "three_world": [
+      0.33,
+      0.735,
+      -0.45
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [
+    "mx_master_3s"
+   ],
+   "sources": [
+    "NEW_mouse_mx"
+   ]
+  },
+  {
+   "name": "redbull",
+   "file": "redbull.glb",
+   "bytes": 83140,
+   "tris": 1784,
+   "trisSource": 15095,
+   "budget": 4000,
+   "textureBytes": 42144,
+   "textures": [
+    {
+     "name": "redbull_normal",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 2386
+    },
+    {
+     "name": "redbull_orm",
+     "mime": "image/webp",
+     "size": [
+      256,
+      256
+     ],
+     "bytes": 5888
+    },
+    {
+     "name": "redbull_basecolor",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 33870
+    }
+   ],
+   "materials": [
+    {
+     "name": "redbull_pbr",
+     "mode": "pbr",
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "nodes": [
+    "NEW_redbull_root__mesh",
+    "NEW_redbull_root"
+   ],
+   "anchors": {
+    "NEW_redbull_root": {
+     "blender_world": [
+      -0.47,
+      0.72,
+      0.735
+     ],
+     "three_world": [
+      -0.47,
+      0.735,
+      -0.72
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_redbull"
+   ]
+  },
+  {
+   "name": "speedcube",
+   "file": "speedcube.glb",
+   "bytes": 207100,
+   "tris": 11632,
+   "trisSource": 34184,
+   "budget": 12000,
+   "textureBytes": 18602,
+   "textures": [
+    {
+     "name": "speedcube_lit",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 18602
+    }
+   ],
+   "materials": [
+    {
+     "name": "speedcube_lit",
+     "mode": "lit",
+     "litScale": 2.8000000000000003,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    },
+    {
+     "name": "speedcube_lit_cutout",
+     "mode": "lit",
+     "litScale": 2.8000000000000003,
+     "alphaMode": "MASK",
+     "textures": [
+      "baseColor"
+     ]
+    }
+   ],
+   "litScale": 2.8000000000000003,
+   "nodes": [
+    "NEW_speedcube_root__mesh",
+    "NEW_speedcube_root"
+   ],
+   "anchors": {
+    "NEW_speedcube_root": {
+     "blender_world": [
+      -0.33,
+      0.62,
+      0.735
+     ],
+     "three_world": [
+      -0.33,
+      0.735,
+      -0.62
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_speedcube"
+   ]
+  },
+  {
+   "name": "teto_pear",
+   "file": "teto_pear.glb",
+   "bytes": 38352,
+   "tris": 1192,
+   "trisSource": 1192,
+   "budget": null,
+   "textureBytes": 18868,
+   "textures": [
+    {
+     "name": "teto_pear_lit",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 18868
+    }
+   ],
+   "materials": [
+    {
+     "name": "teto_pear_lit",
+     "mode": "lit",
+     "litScale": 0.16,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    }
+   ],
+   "litScale": 0.16,
+   "nodes": [
+    "NEW_teto_pear_root__mesh",
+    "NEW_teto_pear_root"
+   ],
+   "anchors": {
+    "NEW_teto_pear_root": {
+     "blender_world": [
+      -0.05,
+      0.945,
+      0.7452
+     ],
+     "three_world": [
+      -0.05,
+      0.7452,
+      -0.945
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_teto_pear"
+   ]
+  }
+ ]
+}

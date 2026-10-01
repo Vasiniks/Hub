@@ -6,6 +6,8 @@
 // Usage: node scripts/optimize-glb.mjs [name ...]   (default: every GLB in assets/processed)
 //        node scripts/optimize-glb.mjs --src blender/bake/sunset --dst public/assets/v2/room [name ...]
 //        (the baked sunset atlases: their TEXCOORD_1 lightmap UV must survive — see below)
+// Env overrides (for the v2 prop pipeline; defaults preserve the old behaviour):
+//   PROPS_SRC + PROPS_DST, e.g. PROPS_SRC=tmp/props_raw PROPS_DST=public/assets/v2/props
 import fs from 'node:fs';
 import path from 'node:path';
 import { NodeIO } from '@gltf-transform/core';
@@ -18,10 +20,10 @@ const opt = (flag, fallback) => {
   if (i < 0) return fallback;
   return argv.splice(i, 2)[1] ?? fallback;
 };
-const src = opt('--src', 'assets/processed');
-const dst = opt('--dst', 'public/assets/processed');
+const src = opt('--src', process.env.PROPS_SRC ?? 'assets/processed');
+const dst = opt('--dst', process.env.PROPS_DST ?? 'public/assets/processed');
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
-const names = process.argv.slice(2);
+const names = argv; // what is left once the flags are taken out
 const files = fs.readdirSync(src).filter((f) => f.endsWith('.glb') && (!names.length || names.includes(path.basename(f, '.glb'))));
 let before = 0;
 let after = 0;
