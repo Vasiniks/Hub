@@ -67,7 +67,9 @@ function entriesOf(manifest: unknown): PropEntry[] {
   const list: unknown[] = Array.isArray(manifest)
     ? manifest
     : manifest && typeof manifest === 'object'
-      ? Array.isArray((manifest as { props?: unknown }).props)
+      ? Array.isArray((manifest as { assets?: unknown }).assets)
+        ? ((manifest as { assets: unknown[] }).assets)
+        : Array.isArray((manifest as { props?: unknown }).props)
         ? ((manifest as { props: unknown[] }).props)
         : Array.isArray((manifest as { files?: unknown }).files)
           ? ((manifest as { files: unknown[] }).files)
@@ -92,6 +94,26 @@ function entriesOf(manifest: unknown): PropEntry[] {
   return out;
 }
 
+/**
+ * Lit materials (`KHR_materials_unlit`, the Cycles diffuse bake of the sunset room) store
+ * scene-linear radiance divided by `litScale` so it fits 8 bits; the scale rides in the glTF
+ * material extras. Multiply it back into the colour so the texture reads as radiance again —
+ * the output pass then applies exposure and Blender's view exactly as it does to the room.
+ */
+function restoreLitScale(root: THREE.Object3D) {
+  const done = new Set<THREE.Material>();
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+      if (done.has(m)) continue;
+      done.add(m);
+      const k = Number((m.userData as { litScale?: unknown }).litScale);
+      if (k > 0 && (m as THREE.MeshBasicMaterial).isMeshBasicMaterial) (m as THREE.MeshBasicMaterial).color.multiplyScalar(k);
+    }
+  });
+}
+
 export async function loadV2Props(base: string): Promise<V2Props> {
   const group = new THREE.Group();
   group.name = 'v2Props';
@@ -112,6 +134,7 @@ export async function loadV2Props(base: string): Promise<V2Props> {
     entries.map(async (entry) => {
       const gltf = await loader.loadAsync(base + entry.file);
       gltf.scene.name = `prop-file:${entry.name}`;
+      restoreLitScale(gltf.scene);
       return { entry, root: gltf.scene } satisfies LoadedProp;
     }),
   );
