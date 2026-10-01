@@ -1087,11 +1087,12 @@ async function startV2() {
   for (const def of v2Props) {
     const src = def.source;
     const nodes =
-      'baked' in src
-        ? findNodes(baked.group, (n) => src.baked.some((p) => n.startsWith(p)))
-        : 'props' in src
-          ? findNodes(propFiles.group, (n) => src.props.some((p) => n.startsWith(p)))
-          : [propFiles.file(src.file)].filter((n): n is THREE.Object3D => !!n);
+      'file' in src
+        ? [propFiles.file(src.file)].filter((n): n is THREE.Object3D => !!n)
+        : [
+            ...findNodes(baked.group, (n) => (src.baked ?? []).some((p) => n.startsWith(p))),
+            ...findNodes(propFiles.group, (n) => (src.props ?? []).some((p) => n.startsWith(p))),
+          ];
     // Not loaded (yet): props are listed before their GLBs are exported.
     if (!nodes.length) {
       skippedProps.push(def.id);

@@ -10,13 +10,14 @@ import { projects } from './projects';
  * before their files land.
  *
  * - `baked`: name prefixes in the baked room atlases (fixtures baked into the lightmap).
- * - `props`: name prefixes across the props GLBs (`public/assets/v2/props/`).
+ * - `props`: name prefixes across the props GLBs (`public/assets/v2/props/`). An entry may list
+ *   both: the bookshelf is a baked board with exported books on it.
  * - `file`: a whole props GLB by manifest name (`robot`) or file (`robot.glb`).
  */
 export interface V2PropDef {
   id: string;
   label: string;
-  source: { baked: string[] } | { props: string[] } | { file: string };
+  source: { baked?: string[]; props?: string[] } | { file: string };
   panel: PanelContent;
   focus?: PropFocus;
   dot?: [number, number, number];
@@ -42,8 +43,9 @@ export const v2Props: V2PropDef[] = [
     label: 'FRC robot',
     source: { file: 'robot' },
     panel: projectPanel('frc-robot'),
-    // From the room's open side, looking down onto the mechanisms, as in the default room.
-    focus: { yaw: 2.05, pitch: 0.6 },
+    // It stands in the corner by the door: approach from the open floor in front of it (the seat's
+    // bearing would put the camera past the desk), looking down onto the mechanisms.
+    focus: { yaw: 0.8, pitch: 0.5, distance: 1.8 },
     lift: false,
   },
   {
@@ -67,11 +69,12 @@ export const v2Props: V2PropDef[] = [
     panel: projectPanel('notebooks'),
   },
   {
-    // The wall shelf, baked into the furniture atlas. Its books and items are not in the bake (they
-    // come with the props export), so for now this is the empty board with its brackets and ends.
+    // The wall shelf: board, brackets and bookends are baked into the furniture atlas; its books
+    // and items come with the props export.
     id: 'bookshelf',
     label: 'Bookshelf',
-    source: { baked: ['bookrack_'] },
+    // The baked board, brackets and bookends, plus the exported books and hardware on them.
+    source: { baked: ['bookrack_'], props: ['bookrack_hardware', 'Mesh_16', 'Mesh_17'] },
     // TEMPORARY copy, like every panel in the default room: content comes later.
     panel: {
       kind: 'From the shelf',
