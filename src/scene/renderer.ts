@@ -172,6 +172,34 @@ const COMPOSITE_BODY = /* glsl */ `
   }
 `;
 
+/**
+ * A display transform sampled from Blender's own colour management (see `src/scene/v2Look.ts`):
+ * scene-linear Rec.709 (after exposure) → display-encoded sRGB, as an N³ table laid out as N
+ * blue slices of N×N side by side (width N², height N). When set it replaces AgX, the sRGB encode
+ * and the cinematic grade, because Blender's view transform already is the whole image formation.
+ */
+export interface DisplayLUT {
+  texture: THREE.DataTexture;
+  size: number;
+  log2Min: number;
+  log2Max: number;
+}
+
+/** Per-channel log2 shaper, then two bilinear fetches (red/green within a slice) mixed across blue. */
+const DISPLAY_LUT_PARS = /* glsl */ `
+  uniform sampler2D tDisplayLUT;
+  uniform vec3 uDisplayLUT; // size, log2 min, log2 max
+  vec3 displayLUT( vec3 x ) {
+    float n = uDisplayLUT.x;
+    vec3 s = clamp( ( log2( max( x, vec3( 1e-10 ) ) ) - uDisplayLUT.y ) / ( uDisplayLUT.z - uDisplayLUT.y ), 0.0, 1.0 ) * ( n - 1.0 );
+    float b0 = min( floor( s.b ), n - 2.0 );
+    float v = ( s.g + 0.5 ) / n;
+    vec3 c0 = texture2D( tDisplayLUT, vec2( ( b0 * n + s.r + 0.5 ) / ( n * n ), v ) ).rgb;
+    vec3 c1 = texture2D( tDisplayLUT, vec2( ( ( b0 + 1.0 ) * n + s.r + 0.5 ) / ( n * n ), v ) ).rgb;
+    return mix( c0, c1, s.b - b0 );
+  }
+`;
+
 export interface CompositeInputs {
   camera: THREE.PerspectiveCamera;
   scene: () => THREE.Texture;
@@ -244,6 +272,39 @@ class GradedOutputPass extends OutputPass {
       source.slice(end);
     // OutputPass rebuilds its defines when the tone mapping changes; keep the grade switch in the
     // source instead so that rebuild cannot drop it.
+    material.needsUpdate = true;
+    this.composedFragment = material.fragmentShader;
+  }
+
+  /** The composite as built above; `setDisplayLUT(null)` returns to it byte for byte. */
+  private readonly composedFragment: string;
+
+  /**
+   * Swap AgX + sRGB encode + grade for a sampled display transform (the `?v2` room), or back.
+   * Exposure stays `renderer.toneMappingExposure`, applied in scene-linear before the table, as
+   * Blender applies its view exposure. The default room never calls this, so its shader source is
+   * untouched.
+   */
+  setDisplayLUT(lut: DisplayLUT | null) {
+    const material = (this as unknown as { material: THREE.RawShaderMaterial }).material;
+    const u = this.uniforms as Record<string, THREE.IUniform>;
+    if (!lut) {
+      material.fragmentShader = this.composedFragment;
+      material.needsUpdate = true;
+      return;
+    }
+    u.tDisplayLUT = { value: lut.texture };
+    u.uDisplayLUT = { value: new THREE.Vector3(lut.size, lut.log2Min, lut.log2Max) };
+    const toneMap = '#ifdef LINEAR_TONE_MAPPING';
+    const encode = '#ifdef SRGB_TRANSFER';
+    const grade = '#ifdef GRADE';
+    const src = this.composedFragment;
+    if (!src.includes(toneMap) || !src.includes(encode) || !src.includes(grade)) throw new Error('display LUT: OutputShader changed');
+    material.fragmentShader = src
+      .replace('varying vec2 vUv;', `varying vec2 vUv;\n${DISPLAY_LUT_PARS}`)
+      .replace(toneMap, '#if 1\n\t\t\t\tgl_FragColor.rgb = displayLUT( gl_FragColor.rgb * toneMappingExposure );\n\t\t\t#elif defined( LINEAR_TONE_MAPPING )')
+      .replace(encode, '#if 0')
+      .replace(grade, '#if 0');
     material.needsUpdate = true;
   }
 
@@ -659,6 +720,8 @@ export function createRenderer(
     captureEnvironmentNow,
     requestEnvironmentCapture,
     applyLight,
+    /** `?v2`: Blender's display transform in place of AgX + grade (`null` restores them). */
+    setDisplayLUT: (lut: DisplayLUT | null) => output.setDisplayLUT(lut),
     resize,
     render(dt: number, time: number, animateGrain: boolean) {
       // A redrawn shadow map changes the shafts; they are otherwise reused (see volumetric.ts).

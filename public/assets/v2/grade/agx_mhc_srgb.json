@@ -1,0 +1,37 @@
+{
+ "file": "agx_mhc_srgb.bin",
+ "size": 33,
+ "log2_min": -12.47393,
+ "log2_max": 6.5,
+ "shaper": "rec709",
+ "shaper_matrix_rows": [
+  [
+   1.0,
+   0.0,
+   0.0
+  ],
+  [
+   0.0,
+   1.0,
+   0.0
+  ],
+  [
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "error_on_frame_pixels": {
+  "mean_8bit": 0.2566,
+  "p99_8bit": 1.6073,
+  "max_8bit": 6.783,
+  "bytes": 215622,
+  "n": 33,
+  "hi": 6.5,
+  "shaper": "rec709"
+ },
+ "layout": "float16 RGB, red fastest, then green, then blue",
+ "input": "linear Rec.709 AFTER exposure; y = shaper_matrix * x; s = (log2(y) - log2_min) / (log2_max - log2_min), per channel",
+ "output": "display-encoded sRGB (what Blender writes to an 8-bit PNG), 0..1",
+ "source": "C:\\Program Files\\Blender Foundation\\Blender 5.2\\5.2\\datafiles\\colormanagement\\config.ocio: look 'AgX - Medium High Contrast' (LookTransform into its process space) + display sRGB / view AgX"
+}

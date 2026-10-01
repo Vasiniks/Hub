@@ -1,0 +1,644 @@
+{
+ "CAM_stand": {
+  "baked_fraction": 0.586,
+  "cycles_prev_vs_ref": {
+   "mae": [
+    8.36,
+    6.06,
+    5.67
+   ],
+   "mae_mean": 6.7,
+   "bias": [
+    -3.52,
+    -2.62,
+    -2.87
+   ],
+   "luma_ref": 55.7,
+   "luma_web": 52.8,
+   "luma_mae": 6.46,
+   "within5": 0.638,
+   "within10": 0.832
+  },
+  "old": {
+   "vs_ref": {
+    "mae": [
+     22.71,
+     23.35,
+     27.77
+    ],
+    "mae_mean": 24.61,
+    "bias": [
+     15.68,
+     21.23,
+     25.66
+    ],
+    "luma_ref": 55.7,
+    "luma_web": 76.0,
+    "luma_mae": 22.77,
+    "within5": 0.287,
+    "within10": 0.405
+   },
+   "vs_prev": {
+    "mae": [
+     22.61,
+     24.64,
+     29.14
+    ],
+    "mae_mean": 25.46,
+    "bias": [
+     19.2,
+     23.85,
+     28.53
+    ],
+    "luma_ref": 52.8,
+    "luma_web": 76.0,
+    "luma_mae": 24.11,
+    "within5": 0.287,
+    "within10": 0.404
+   },
+   "linear_vs_prev": {
+    "mean_ratio": [
+     1.844,
+     1.566,
+     1.362
+    ],
+    "median_abs_log2": [
+     1.253,
+     1.421,
+     1.359
+    ]
+   }
+  },
+  "lutonly": {
+   "vs_ref": {
+    "mae": [
+     26.28,
+     24.33,
+     25.25
+    ],
+    "mae_mean": 25.29,
+    "bias": [
+     21.49,
+     21.07,
+     21.64
+    ],
+    "luma_ref": 55.7,
+    "luma_web": 76.9,
+    "luma_mae": 24.76,
+    "within5": 0.357,
+    "within10": 0.42
+   },
+   "vs_prev": {
+    "mae": [
+     26.64,
+     24.75,
+     25.33
+    ],
+    "mae_mean": 25.58,
+    "bias": [
+     25.01,
+     23.69,
+     24.52
+    ],
+    "luma_ref": 52.8,
+    "luma_web": 76.9,
+    "luma_mae": 25.19,
+    "within5": 0.454,
+    "within10": 0.467
+   },
+   "linear_vs_prev": {
+    "mean_ratio": [
+     1.844,
+     1.566,
+     1.362
+    ],
+    "median_abs_log2": [
+     1.253,
+     1.421,
+     1.359
+    ]
+   }
+  },
+  "albedoonly": {
+   "vs_ref": {
+    "mae": [
+     15.28,
+     8.39,
+     8.66
+    ],
+    "mae_mean": 10.77,
+    "bias": [
+     -7.6,
+     -0.89,
+     5.01
+    ],
+    "luma_ref": 55.7,
+    "luma_web": 53.8,
+    "luma_mae": 9.41,
+    "within5": 0.493,
+    "within10": 0.705
+   },
+   "vs_prev": {
+    "mae": [
+     11.83,
+     6.21,
+     9.01
+    ],
+    "mae_mean": 9.02,
+    "bias": [
+     -4.07,
+     1.73,
+     7.89
+    ],
+    "luma_ref": 52.8,
+    "luma_web": 53.8,
+    "luma_mae": 6.99,
+    "within5": 0.506,
+    "within10": 0.78
+   },
+   "linear_vs_prev": {
+    "mean_ratio": [
+     0.963,
+     0.965,
+     0.968
+    ],
+    "median_abs_log2": [
+     0.051,
+     0.05,
+     0.048
+    ]
+   }
+  },
+  "albedo_agx_nograde": {
+   "vs_ref": {
+    "mae": [
+     15.52,
+     10.25,
+     14.08
+    ],
+    "mae_mean": 13.28,
+    "bias": [
+     4.57,
+     7.88,
+     11.65
+    ],
+    "luma_ref": 55.7,
+    "luma_web": 63.1,
+    "luma_mae": 10.4,
+    "within5": 0.349,
+    "within10": 0.586
+   },
+   "vs_prev": {
+    "mae": [
+     13.85,
+     11.97,
+     15.42
+    ],
+    "mae_mean": 13.75,
+    "bias": [
+     8.1,
+     10.5,
+     14.52
+    ],
+    "luma_ref": 52.8,
+    "luma_web": 63.1,
+    "luma_mae": 11.95,
+    "within5": 0.168,
+    "within10": 0.432
+   },
+   "linear_vs_prev": {
+    "mean_ratio": [
+     0.963,
+     0.965,
+     0.968
+    ],
+    "median_abs_log2": [
+     0.051,
+     0.05,
+     0.048
+    ]
+   }
+  },
+  "new": {
+   "vs_ref": {
+    "mae": [
+     8.86,
+     6.5,
+     6.6
+    ],
+    "mae_mean": 7.32,
+    "bias": [
+     -5.9,
+     -4.01,
+     -4.07
+    ],
+    "luma_ref": 55.7,
+    "luma_web": 51.3,
+    "luma_mae": 6.96,
+    "within5": 0.597,
+    "within10": 0.792
+   },
+   "vs_prev": {
+    "mae": [
+     2.9,
+     1.92,
+     1.86
+    ],
+    "mae_mean": 2.23,
+    "bias": [
+     -2.38,
+     -1.39,
+     -1.19
+    ],
+    "luma_ref": 52.8,
+    "luma_web": 51.3,
+    "luma_mae": 2.11,
+    "within5": 0.957,
+    "within10": 0.971
+   },
+   "linear_vs_prev": {
+    "mean_ratio": [
+     0.963,
+     0.965,
+     0.968
+    ],
+    "median_abs_log2": [
+     0.051,
+     0.05,
+     0.048
+    ]
+   }
+  },
+  "spec": {
+   "vs_ref": {
+    "mae": [
+     9.59,
+     7.58,
+     7.21
+    ],
+    "mae_mean": 8.12,
+    "bias": [
+     -4.1,
+     -2.1,
+     -2.48
+    ],
+    "luma_ref": 55.7,
+    "luma_web": 53.1,
+    "luma_mae": 7.94,
+    "within5": 0.564,
+    "within10": 0.747
+   },
+   "vs_prev": {
+    "mae": [
+     4.31,
+     3.51,
+     3.14
+    ],
+    "mae_mean": 3.65,
+    "bias": [
+     -0.58,
+     0.52,
+     0.4
+    ],
+    "luma_ref": 52.8,
+    "luma_web": 53.1,
+    "luma_mae": 3.64,
+    "within5": 0.897,
+    "within10": 0.915
+   },
+   "linear_vs_prev": {
+    "mean_ratio": [
+     0.986,
+     1.0,
+     1.013
+    ],
+    "median_abs_log2": [
+     0.052,
+     0.051,
+     0.049
+    ]
+   }
+  }
+ },
+ "CAM_seat": {
+  "baked_fraction": 0.265,
+  "cycles_prev_vs_ref": {
+   "mae": [
+    10.84,
+    8.54,
+    7.69
+   ],
+   "mae_mean": 9.02,
+   "bias": [
+    -7.19,
+    -5.45,
+    -4.88
+   ],
+   "luma_ref": 123.5,
+   "luma_web": 117.7,
+   "luma_mae": 8.91,
+   "within5": 0.576,
+   "within10": 0.786
+  },
+  "old": {
+   "vs_ref": {
+    "mae": [
+     29.13,
+     22.33,
+     22.15
+    ],
+    "mae_mean": 24.54,
+    "bias": [
+     -24.35,
+     -17.65,
+     -14.58
+    ],
+    "luma_ref": 123.5,
+    "luma_web": 104.7,
+    "luma_mae": 23.44,
+    "within5": 0.188,
+    "within10": 0.353
+   },
+   "vs_prev": {
+    "mae": [
+     21.6,
+     16.76,
+     17.78
+    ],
+    "mae_mean": 18.72,
+    "bias": [
+     -17.17,
+     -12.2,
+     -9.7
+    ],
+    "luma_ref": 117.7,
+    "luma_web": 104.7,
+    "luma_mae": 17.48,
+    "within5": 0.385,
+    "within10": 0.553
+   },
+   "linear_vs_prev": {
+    "mean_ratio": [
+     0.981,
+     0.98,
+     0.994
+    ],
+    "median_abs_log2": [
+     0.034,
+     0.036,
+     0.018
+    ]
+   }
+  },
+  "lutonly": {
+   "vs_ref": {
+    "mae": [
+     12.42,
+     9.65,
+     8.5
+    ],
+    "mae_mean": 10.19,
+    "bias": [
+     -7.47,
+     -5.68,
+     -4.78
+    ],
+    "luma_ref": 123.5,
+    "luma_web": 117.5,
+    "luma_mae": 10.09,
+    "within5": 0.548,
+    "within10": 0.759
+   },
+   "vs_prev": {
+    "mae": [
+     3.09,
+     2.41,
+     2.08
+    ],
+    "mae_mean": 2.52,
+    "bias": [
+     -0.28,
+     -0.24,
+     0.09
+    ],
+    "luma_ref": 117.7,
+    "luma_web": 117.5,
+    "luma_mae": 2.5,
+    "within5": 0.928,
+    "within10": 0.957
+   },
+   "linear_vs_prev": {
+    "mean_ratio": [
+     0.981,
+     0.98,
+     0.994
+    ],
+    "median_abs_log2": [
+     0.034,
+     0.036,
+     0.018
+    ]
+   }
+  },
+  "albedoonly": {
+   "vs_ref": {
+    "mae": [
+     28.83,
+     22.22,
+     22.2
+    ],
+    "mae_mean": 24.42,
+    "bias": [
+     -25.28,
+     -18.44,
+     -15.48
+    ],
+    "luma_ref": 123.5,
+    "luma_web": 103.8,
+    "luma_mae": 23.31,
+    "within5": 0.182,
+    "within10": 0.342
+   },
+   "vs_prev": {
+    "mae": [
+     21.1,
+     16.45,
+     17.56
+    ],
+    "mae_mean": 18.37,
+    "bias": [
+     -18.1,
+     -12.99,
+     -10.6
+    ],
+    "luma_ref": 117.7,
+    "luma_web": 103.8,
+    "luma_mae": 17.15,
+    "within5": 0.377,
+    "within10": 0.55
+   },
+   "linear_vs_prev": {
+    "mean_ratio": [
+     0.968,
+     0.966,
+     0.968
+    ],
+    "median_abs_log2": [
+     0.049,
+     0.052,
+     0.049
+    ]
+   }
+  },
+  "albedo_agx_nograde": {
+   "vs_ref": {
+    "mae": [
+     15.51,
+     14.17,
+     14.34
+    ],
+    "mae_mean": 14.67,
+    "bias": [
+     -4.25,
+     1.04,
+     3.49
+    ],
+    "luma_ref": 123.5,
+    "luma_web": 123.6,
+    "luma_mae": 14.1,
+    "within5": 0.251,
+    "within10": 0.558
+   },
+   "vs_prev": {
+    "mae": [
+     10.18,
+     10.59,
+     12.19
+    ],
+    "mae_mean": 10.98,
+    "bias": [
+     2.93,
+     6.49,
+     8.37
+    ],
+    "luma_ref": 117.7,
+    "luma_web": 123.6,
+    "luma_mae": 10.17,
+    "within5": 0.283,
+    "within10": 0.584
+   },
+   "linear_vs_prev": {
+    "mean_ratio": [
+     0.968,
+     0.966,
+     0.968
+    ],
+    "median_abs_log2": [
+     0.049,
+     0.052,
+     0.049
+    ]
+   }
+  },
+  "new": {
+   "vs_ref": {
+    "mae": [
+     12.1,
+     9.55,
+     8.65
+    ],
+    "mae_mean": 10.1,
+    "bias": [
+     -8.48,
+     -6.52,
+     -5.8
+    ],
+    "luma_ref": 123.5,
+    "luma_web": 116.6,
+    "luma_mae": 9.97,
+    "within5": 0.538,
+    "within10": 0.747
+   },
+   "vs_prev": {
+    "mae": [
+     2.71,
+     2.35,
+     2.3
+    ],
+    "mae_mean": 2.45,
+    "bias": [
+     -1.3,
+     -1.07,
+     -0.93
+    ],
+    "luma_ref": 117.7,
+    "luma_web": 116.6,
+    "luma_mae": 2.41,
+    "within5": 0.93,
+    "within10": 0.965
+   },
+   "linear_vs_prev": {
+    "mean_ratio": [
+     0.968,
+     0.966,
+     0.968
+    ],
+    "median_abs_log2": [
+     0.049,
+     0.052,
+     0.049
+    ]
+   }
+  },
+  "spec": {
+   "vs_ref": {
+    "mae": [
+     13.61,
+     12.94,
+     11.16
+    ],
+    "mae_mean": 12.57,
+    "bias": [
+     0.51,
+     3.36,
+     3.06
+    ],
+    "luma_ref": 123.5,
+    "luma_web": 126.3,
+    "luma_mae": 12.88,
+    "within5": 0.481,
+    "within10": 0.584
+   },
+   "vs_prev": {
+    "mae": [
+     9.88,
+     10.46,
+     9.43
+    ],
+    "mae_mean": 9.92,
+    "bias": [
+     7.69,
+     8.81,
+     7.94
+    ],
+    "luma_ref": 117.7,
+    "luma_web": 126.3,
+    "luma_mae": 10.23,
+    "within5": 0.603,
+    "within10": 0.657
+   },
+   "linear_vs_prev": {
+    "mean_ratio": [
+     0.996,
+     0.997,
+     1.002
+    ],
+    "median_abs_log2": [
+     0.115,
+     0.115,
+     0.127
+    ]
+   }
+  }
+ }
+}

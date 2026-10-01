@@ -1,0 +1,206 @@
+{
+ "config": "C:\\Program Files\\Blender Foundation\\Blender 5.2\\5.2\\datafiles\\colormanagement\\config.ocio",
+ "scene_linear": "Linear Rec.709",
+ "look": "AgX - Medium High Contrast",
+ "look_process_space": "AgX Log",
+ "look_transform": "<GroupTransform direction=forward, transforms=\n        <GradingPrimaryTransform direction=forward, style=log, values=<brightness=<r=0, g=0, b=0, m=0>, contrast=<r=1.2, g=1.2, b=1.2, m=1>, gamma=<r=1, g=1, b=1, m=1>, offset=<r=0, g=0, b=0, m=0>, exposure=<r=0, g=0, b=0, m=0>, lift=<r=0, g=0, b=0, m=0>, gain=<r=1, g=1, b=1, m=1>, saturation=1, pivot=<contrast=-0.2, black=0, white=1>>>>",
+ "validation_vs_blender_save_render": {
+  "exposure=0.0,look=AgX - Medium High Contrast": {
+   "mean_8bit": 0.0029,
+   "max_8bit": 0.0078,
+   "max_8bit_if_exposure_ignored": 0.01
+  },
+  "exposure=0.45,look=AgX - Medium High Contrast": {
+   "mean_8bit": 0.0029,
+   "max_8bit": 0.0079,
+   "max_8bit_if_exposure_ignored": 58.53
+  },
+  "exposure=0.0,look=None": {
+   "mean_8bit": 0.0031,
+   "max_8bit": 0.0078,
+   "max_8bit_if_exposure_ignored": 0.01
+  }
+ },
+ "frame_check": {
+  "prev_CAM_stand": {
+   "mean_8bit": 0.356,
+   "p99_8bit": 1.058
+  },
+  "ref_CAM_stand": {
+   "mean_8bit": 0.359,
+   "p99_8bit": 1.061
+  },
+  "prev_CAM_seat": {
+   "mean_8bit": 0.34,
+   "p99_8bit": 1.052
+  },
+  "ref_CAM_seat": {
+   "mean_8bit": 0.355,
+   "p99_8bit": 1.057
+  }
+ },
+ "rec709_to_egamut": [
+  [
+   0.5593711137771606,
+   0.30478334426879883,
+   0.13584555685520172
+  ],
+  [
+   0.07622070610523224,
+   0.7879717946052551,
+   0.13580746948719025
+  ],
+  [
+   0.06552670896053314,
+   0.16454675793647766,
+   0.7699264883995056
+  ]
+ ],
+ "lut_choices": {
+  "rec709_n33_hi12.53": {
+   "mean_8bit": 0.4049,
+   "p99_8bit": 1.6469,
+   "max_8bit": 9.222,
+   "bytes": 215622,
+   "n": 33,
+   "hi": 12.5260688117,
+   "shaper": "rec709"
+  },
+  "rec709_n33_hi6.50": {
+   "mean_8bit": 0.2566,
+   "p99_8bit": 1.6073,
+   "max_8bit": 6.783,
+   "bytes": 215622,
+   "n": 33,
+   "hi": 6.5,
+   "shaper": "rec709"
+  },
+  "rec709_n41_hi12.53": {
+   "mean_8bit": 0.2823,
+   "p99_8bit": 1.2748,
+   "max_8bit": 7.156,
+   "bytes": 413526,
+   "n": 41,
+   "hi": 12.5260688117,
+   "shaper": "rec709"
+  },
+  "rec709_n41_hi6.50": {
+   "mean_8bit": 0.1602,
+   "p99_8bit": 0.7912,
+   "max_8bit": 6.047,
+   "bytes": 413526,
+   "n": 41,
+   "hi": 6.5,
+   "shaper": "rec709"
+  },
+  "rec709_n49_hi12.53": {
+   "mean_8bit": 0.189,
+   "p99_8bit": 0.8548,
+   "max_8bit": 6.968,
+   "bytes": 705894,
+   "n": 49,
+   "hi": 12.5260688117,
+   "shaper": "rec709"
+  },
+  "rec709_n49_hi6.50": {
+   "mean_8bit": 0.1172,
+   "p99_8bit": 0.7389,
+   "max_8bit": 4.523,
+   "bytes": 705894,
+   "n": 49,
+   "hi": 6.5,
+   "shaper": "rec709"
+  },
+  "egamut_n33_hi12.53": {
+   "mean_8bit": 0.7201,
+   "p99_8bit": 5.0778,
+   "max_8bit": 22.431,
+   "bytes": 215622,
+   "n": 33,
+   "hi": 12.5260688117,
+   "shaper": "egamut"
+  },
+  "egamut_n33_hi6.50": {
+   "mean_8bit": 0.4962,
+   "p99_8bit": 4.7067,
+   "max_8bit": 16.204,
+   "bytes": 215622,
+   "n": 33,
+   "hi": 6.5,
+   "shaper": "egamut"
+  },
+  "egamut_n41_hi12.53": {
+   "mean_8bit": 0.5396,
+   "p99_8bit": 4.5318,
+   "max_8bit": 16.732,
+   "bytes": 413526,
+   "n": 41,
+   "hi": 12.5260688117,
+   "shaper": "egamut"
+  },
+  "egamut_n41_hi6.50": {
+   "mean_8bit": 0.3649,
+   "p99_8bit": 3.955,
+   "max_8bit": 13.972,
+   "bytes": 413526,
+   "n": 41,
+   "hi": 6.5,
+   "shaper": "egamut"
+  },
+  "egamut_n49_hi12.53": {
+   "mean_8bit": 0.4011,
+   "p99_8bit": 3.8405,
+   "max_8bit": 12.689,
+   "bytes": 705894,
+   "n": 49,
+   "hi": 12.5260688117,
+   "shaper": "egamut"
+  },
+  "egamut_n49_hi6.50": {
+   "mean_8bit": 0.2542,
+   "p99_8bit": 2.7925,
+   "max_8bit": 10.803,
+   "bytes": 705894,
+   "n": 49,
+   "hi": 6.5,
+   "shaper": "egamut"
+  }
+ },
+ "chosen": {
+  "file": "agx_mhc_srgb.bin",
+  "size": 33,
+  "log2_min": -12.47393,
+  "log2_max": 6.5,
+  "shaper": "rec709",
+  "shaper_matrix_rows": [
+   [
+    1.0,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    1.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    1.0
+   ]
+  ],
+  "error_on_frame_pixels": {
+   "mean_8bit": 0.2566,
+   "p99_8bit": 1.6073,
+   "max_8bit": 6.783,
+   "bytes": 215622,
+   "n": 33,
+   "hi": 6.5,
+   "shaper": "rec709"
+  },
+  "layout": "float16 RGB, red fastest, then green, then blue",
+  "input": "linear Rec.709 AFTER exposure; y = shaper_matrix * x; s = (log2(y) - log2_min) / (log2_max - log2_min), per channel",
+  "output": "display-encoded sRGB (what Blender writes to an 8-bit PNG), 0..1",
+  "source": "C:\\Program Files\\Blender Foundation\\Blender 5.2\\5.2\\datafiles\\colormanagement\\config.ocio: look 'AgX - Medium High Contrast' (LookTransform into its process space) + display sRGB / view AgX"
+ }
+}
