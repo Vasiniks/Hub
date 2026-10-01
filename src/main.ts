@@ -17,6 +17,7 @@ import { createInteraction, OVERLAY_LAYER, type InteractTarget } from './interac
 import { createPanel, createHint, createObjectNav, createShelfCaption } from './ui/panel';
 import { createLoader } from './ui/loading';
 import { createMusicWidget } from './ui/music';
+import { loadBakedRoom, V2_EXPOSURE } from './scene/bakedRoom';
 import { CAMERA, INTERACTION, SHELF } from './scene/layout';
 import { FramePerf } from './debug/perf';
 import { buildPickingTrees } from './interaction/bvh';
@@ -981,8 +982,125 @@ async function start() {
   }
 }
 
-start().catch((err) => {
-  console.error(err);
-  loader.fail('This room needs WebGL. Try a current desktop browser.');
-  document.getElementById('veil')!.classList.add('is-lifted');
-});
+/**
+ * `?v2`: the baked sunset room only — shell, desk, furniture, curtains — lit entirely by
+ * their lightmaps. A flag, not a replacement: the default path above is untouched, and this
+ * path loads none of it (no procedural room, no live lights, no props/exterior/interaction —
+ * those are other workstreams). No live light exists in this scene, so the bake cannot be
+ * double-lit; AO, shafts and bloom stay off for the same reason (all three would add light
+ * or darkness the bake already holds).
+ */
+async function startV2() {
+  const scene = new THREE.Scene();
+  // Placeholder until the exterior workstream lands: the window currently looks onto this.
+  scene.background = new THREE.Color('#c4b6a8');
+  scene.fog = null;
+
+  const camera = new THREE.PerspectiveCamera(CAMERA.fov, window.innerWidth / window.innerHeight, 0.02, 40);
+  const standP = CAMERA.stand.position;
+  const standT = CAMERA.stand.lookAt;
+  camera.position.set(standP[0], standP[1], standP[2]);
+  camera.lookAt(standT[0], standT[1], standT[2]);
+  camera.updateMatrixWorld();
+
+  const base = `${import.meta.env.BASE_URL}assets/v2/room/`;
+  loader.advance('baked room');
+  const baked = await loadBakedRoom(base);
+  scene.add(baked.group);
+  loader.advance('lightmaps');
+
+  // Dummy lights: only to satisfy createRenderer's signature (volumetric + lamp-shadow
+  // passes). They are never added to the scene and never light anything — every baked
+  // material is unlit-by-live-lights by construction (see bakedRoom.ts).
+  const sun = new THREE.DirectionalLight(0x000000, 0);
+  const lamp = new THREE.SpotLight(0x000000, 0);
+  const view = createRenderer(canvas, scene, camera, sun, lamp);
+  // Sunset grade: AgX (set by createRenderer) at the bake's +0.45 EV.
+  view.renderer.toneMappingExposure = V2_EXPOSURE;
+  // The bake already holds every bounce, shaft and glow: no live post-light effects.
+  view.ao.enabled = false;
+  view.volumetric.enabled = false;
+  for (const p of view.composer.passes) {
+    if (p.constructor.name === 'BloomPass') (p as { enabled: boolean }).enabled = false;
+  }
+  loader.advance('shaders');
+  await view.warmUp([], (stage) => loader.advance(stage));
+  loader.advance('ready');
+  await loader.hide();
+  requestAnimationFrame(() => document.getElementById('veil')!.classList.add('is-lifted'));
+
+  window.addEventListener('resize', view.resize);
+
+  let last = performance.now();
+  let elapsed = 0;
+  let frameCount = 0;
+  let benchPaused = false;
+  let reportedError = false;
+  function frame(now: number) {
+    requestAnimationFrame(frame);
+    if (benchPaused) {
+      last = now;
+      return;
+    }
+    try {
+      view.renderer.info.reset();
+      const dt = Math.min(0.05, (now - last) / 1000);
+      frameCount++;
+      last = now;
+      elapsed += dt;
+      view.render(dt, elapsed, !reducedMotion);
+    } catch (err) {
+      if (!reportedError) {
+        reportedError = true;
+        console.error(err);
+      }
+    }
+  }
+
+  if (params.has('debug')) {
+    Object.assign(window, {
+      __room: {
+        mode: () => 'v2' as const,
+        frames: () => frameCount,
+        camera: () => ({ position: camera.position.toArray(), quaternion: camera.quaternion.toArray() }),
+        programs: () => (view.renderer.info.programs ?? []).map((p) => p.name),
+        parkCamera: (p: number[], t?: number[], fov = 54) => {
+          camera.position.set(p[0], p[1], p[2]);
+          const tt = t ?? [0, 0.8, -0.6];
+          camera.lookAt(tt[0], tt[1], tt[2]);
+          camera.fov = fov;
+          camera.updateProjectionMatrix();
+          camera.updateMatrixWorld();
+        },
+        v2: {
+          atlases: () => Object.keys(baked.atlases),
+          tris: () => baked.tris,
+          setAtlasVisible: (name: string, visible: boolean) => {
+            baked.atlases[name].visible = visible;
+          },
+        },
+        bench: async (pose: { p: number[]; t: number[]; fov: number }) => {
+          const { createBench } = await import('./debug/bench');
+          return createBench({ renderer: view.renderer, composer: view.composer, scene, camera, pause: (on) => (benchPaused = on) }).run(pose);
+        },
+      },
+    });
+  }
+
+  last = performance.now();
+  requestAnimationFrame(frame);
+}
+
+if (new URLSearchParams(location.search).has('v2')) {
+  startV2().catch((err) => {
+    console.error(err);
+    loader.fail('This room needs WebGL. Try a current desktop browser.');
+    document.getElementById('veil')!.classList.add('is-lifted');
+  });
+} else {
+  start().catch((err) => {
+    console.error(err);
+    loader.fail('This room needs WebGL. Try a current desktop browser.');
+    document.getElementById('veil')!.classList.add('is-lifted');
+  });
+}
