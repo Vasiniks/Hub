@@ -244,23 +244,33 @@ kbd {
 
 
 /* ---- Loading state -------------------------------------------------------
-   A bar on an empty field. It only moves when a preparation stage finishes. */
+   A bar on an empty field. It only moves when a preparation stage finishes.
+   Above it, a live trace of the monitor's Lorenz system keeps the wait —
+   watchable from the first frame, tilted by the pointer, gone with the loader. */
 .loader {
   position: fixed;
   inset: 0;
   z-index: 40;
   display: grid;
   place-content: center;
-  gap: 18px;
+  gap: 14px;
   background: #0f1216;
   transition: opacity 400ms var(--ease-out);
 }
 .loader.is-done { opacity: 0; pointer-events: none; }
+.loader-trace {
+  width: min(384px, 72vw);
+  height: auto;
+  aspect-ratio: 2 / 1;
+  border: 1px solid rgba(233, 236, 239, 0.12);
+  border-radius: 6px;
+}
 .loader-track {
   width: 260px;
   height: 2px;
   background: rgba(233, 236, 239, 0.14);
   overflow: hidden;
+  justify-self: center;
 }
 .loader-fill {
   height: 100%;
@@ -276,6 +286,14 @@ kbd {
   letter-spacing: 0.08em;
   text-transform: lowercase;
   color: var(--ink-faint);
+}
+.loader-caption {
+  margin: 0;
+  text-align: center;
+  font: 400 11px/1.4 var(--font);
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: rgba(233, 236, 239, 0.3);
 }
 .loader.is-failed .loader-fill { background: var(--signal); }
 
