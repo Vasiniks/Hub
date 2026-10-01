@@ -22,12 +22,14 @@
       html, body { margin: 0; height: 100%; overflow: hidden; background: #0f1216; color: #e9ecef; }
       body { font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; }
       .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-      .loader { position: fixed; inset: 0; z-index: 40; display: grid; place-content: center; gap: 14px; background: #0f1216; }
-      .loader-trace { width: min(384px, 72vw); height: auto; aspect-ratio: 2 / 1; border: 1px solid rgba(233, 236, 239, 0.12); border-radius: 6px; }
-      .loader-track { width: 260px; height: 2px; background: rgba(233, 236, 239, 0.14); overflow: hidden; justify-self: center; }
+      .loader { position: fixed; inset: 0; z-index: 40; display: grid; place-content: center; justify-items: center; gap: 14px; background: #0f1216; }
+      .loader-toy { display: block; padding: 0; margin: 0; border: 0; background: none; color: inherit; font: inherit; cursor: crosshair; border-radius: 7px; opacity: 0; visibility: hidden; }
+      .loader-trace { display: block; width: min(384px, 72vw); height: auto; aspect-ratio: 2 / 1; background: #04070a; border: 1px solid rgba(233, 236, 239, 0.12); border-radius: 6px; }
+      .loader-caption { opacity: 0; margin: 0 0 10px; text-align: center; font-size: 11px; letter-spacing: 0.06em; text-transform: lowercase; color: rgba(233, 236, 239, 0.34); }
+      .loader-caption-after { display: none; }
+      .loader-track { width: 260px; height: 2px; background: rgba(233, 236, 239, 0.14); overflow: hidden; }
       .loader-fill { height: 100%; background: #e9ecef; transform: scaleX(0); transform-origin: left center; }
       .loader-label { margin: 0; text-align: center; font-size: 12px; letter-spacing: 0.08em; text-transform: lowercase; color: rgba(233, 236, 239, 0.42); }
-      .loader-caption { margin: 0; text-align: center; font-size: 11px; letter-spacing: 0.06em; text-transform: lowercase; color: rgba(233, 236, 239, 0.3); }
       /* The panel and the music widget carry the `hidden` attribute until they are opened, so
          the browser default already keeps them out of the first paint. An id rule here would
          outrank their own class rules and hide them permanently. */
@@ -39,12 +41,16 @@
     <div id="veil" aria-hidden="true"></div>
 
     <!-- Real preparation stages, not a timed animation: the bar moves when work completes.
-         The trace is the monitor's Lorenz system running live while the room loads. -->
-    <div id="loader" class="loader" role="status" aria-live="polite">
-      <canvas id="loader-trace" class="loader-trace" width="384" height="192" aria-hidden="true"></canvas>
+         Above it, the desk monitor's Lorenz system is already running, and the visitor can drop
+         points into it while they wait (src/ui/loadingTrace.ts). It reports no progress. -->
+    <div id="loader" class="loader">
+      <button type="button" id="loader-toy" class="loader-toy"
+        aria-label="The Lorenz attractor from the desk monitor. Press to drop a point into it; left and right arrows turn it.">
+        <canvas id="loader-trace" class="loader-trace" width="384" height="192" aria-hidden="true"></canvas>
+      </button>
+      <p class="loader-caption" aria-hidden="true"><span class="loader-caption-before">the attractor from the desk monitor &middot; click to drop a point in</span><span class="loader-caption-after">wherever it starts, it ends up on the same two wings</span></p>
       <div class="loader-track"><div class="loader-fill" id="loader-fill"></div></div>
-      <p class="loader-label" id="loader-label">Preparing the room</p>
-      <p class="loader-caption" aria-hidden="true">the monitor runs this live &mdash; step inside</p>
+      <p class="loader-label" id="loader-label" role="status" aria-live="polite">Preparing the room</p>
     </div>
 
     <p id="hint" class="hint" aria-live="polite"></p>

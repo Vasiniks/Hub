@@ -5,18 +5,20 @@
  * a guess and nothing advances on a timer, so the bar never claims progress that has not
  * happened. The CSS transition only smooths the travel between two real positions.
  *
- * The wait itself belongs to the room: a live trace of the Lorenz system that runs on the
- * desk monitor once inside (see `loadingTrace.ts`). It is watch-only Canvas2D work that
- * stops synchronously in `hide()`/`fail()`, so it can never hold the reveal hostage.
+ * The wait itself belongs to the room: the desk monitor's Lorenz system, already running, that
+ * the visitor can drop points into (`loadingTrace.ts`). It is Canvas2D, started here, and
+ * stopped synchronously in `hide()`/`fail()` — it never holds the reveal hostage and never
+ * touches the bar.
  */
-import { createLoadingTrace } from './loadingTrace';
+import { loadingTrace } from './loadingTrace';
 
-export function createLoader(stages: readonly string[]) {
+/** `firstLabel` names the first stage when the markup's generic one would be vaguer. */
+export function createLoader(stages: readonly string[], firstLabel?: string) {
   const root = document.getElementById('loader')!;
   const fill = document.getElementById('loader-fill')!;
   const label = document.getElementById('loader-label')!;
-  const traceCanvas = document.getElementById('loader-trace') as HTMLCanvasElement | null;
-  const trace = traceCanvas ? createLoadingTrace(traceCanvas, root) : { stop() {} };
+  const trace = loadingTrace();
+  if (firstLabel) label.textContent = firstLabel;
   let done = 0;
   /** When each stage finished, in ms since navigation start — read by the startup profiler. */
   const marks: { stage: string; at: number }[] = [];

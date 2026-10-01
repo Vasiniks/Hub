@@ -42,7 +42,10 @@ const arrivalEnabled = params.get('arrive') !== '0' && hourOverride === null;
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const hint = createHint();
-const loader = createLoader(['assets', 'scene', 'light', 'shaders', 'passes', 'calibrate']);
+// Six real stages on either path; `?v2` names its own (download, renderer, then the same warm-up).
+const loader = params.has('v2')
+  ? createLoader(['room', 'renderer', 'environment', 'shaders', 'passes', 'measure'], 'loading the baked room')
+  : createLoader(['assets', 'scene', 'light', 'shaders', 'passes', 'calibrate']);
 
 async function start() {
   const scene = new THREE.Scene();
@@ -1004,10 +1007,9 @@ async function startV2() {
   camera.updateMatrixWorld();
 
   const base = `${import.meta.env.BASE_URL}assets/v2/room/`;
-  loader.advance('baked room');
   const baked = await loadBakedRoom(base);
   scene.add(baked.group);
-  loader.advance('lightmaps');
+  loader.advance('starting the renderer');
 
   // Dummy lights: only to satisfy createRenderer's signature (volumetric + lamp-shadow
   // passes). They are never added to the scene and never light anything — every baked

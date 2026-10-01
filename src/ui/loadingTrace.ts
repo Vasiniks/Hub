@@ -1,180 +1,161 @@
 /**
  * The monitor is already on.
  *
- * While the room loads, the loader shows a live trace of the same Lorenz system that runs
- * on the desk monitor once inside (see `src/scene/lorenz.ts`: σ = 10, ρ = 28, β = 8/3,
- * integrated with RK4). It is watchable from the first frame, and the visitor can tilt the
- * projection by moving the pointer over the loader — a small reaction, not a game, and it
- * never affects loading.
+ * While the room loads, the loader shows the same Lorenz system that runs on the desk monitor
+ * once inside, and the visitor can drop points into it: a click (or Enter / Space on the focused
+ * figure) starts a new trajectory where they pointed, and they watch it get pulled onto the same
+ * two wings as every other start. That is the one thing a strange attractor says, and it takes
+ * about a second to see — the length of the wait. Simulation and drawing: `lorenzToy.ts`.
  *
- * Budget discipline (the loader's whole budget is what the GPU and network are not using):
- * - Canvas2D only. A second WebGL context during `view.warmUp` is forbidden; this is one
- *   small 2D canvas, one polyline stroke plus a head dot per frame, at ~24 Hz.
- * - The trail buffer is small (1600 points) and seeded synchronously in microseconds, so the
- *   first painted frame already shows the full two-lobed figure.
- * - `stop()` cancels the loop and removes the listener synchronously. It is called from
- *   `hide()`/`fail()` before the reveal, so the activity can never hold the reveal hostage
- *   or burn CPU behind the room.
+ * Budget (the loader may only use what the GPU and network are not using):
+ * - Canvas2D, one 384×192 canvas (× devicePixelRatio, capped at 2), repainted at 24 Hz.
+ *   No WebGL: the room is compiling shaders and uploading textures in this window.
+ * - Drawn in a worker on an OffscreenCanvas, so it keeps moving while the page's main thread is
+ *   blocked by the room's own loading work. Without OffscreenCanvas it runs on the page, and
+ *   only then is the simulation fetched into the page (a dynamic import, not in the bundle).
+ * - Invisible until it is running: the visitor never sees a figure that does not answer.
+ * - `stop()` is synchronous: worker terminated (or loop cancelled), listeners removed, focus
+ *   released. `loading.ts` calls it before the reveal, so it never holds the reveal hostage.
  *
- * Honesty: this module never reports progress. The bar and the stage label in `loading.ts`
- * stay purely stage-driven (`loader.advance`); the caption here is static text.
+ * Honesty: this module never reports progress; the bar stays purely stage-driven.
  *
- * Accessibility: the canvas is decorative (`aria-hidden` in markup) — screen readers hear
- * only the honest `role="status"` label. The trace is watch-only with an optional
- * pointer enhancement, so keyboard users lose nothing and focus is never trapped. Under
- * `prefers-reduced-motion` exactly one static frame is painted and no loop ever starts.
+ * Accessibility: the canvas sits in a real <button> with its own label, so it is reachable by
+ * Tab and works with Enter/Space; ←/→ turn the figure (the pointer does the same by hovering).
+ * Under `prefers-reduced-motion` nothing loops: the figure is painted once, and a dropped point
+ * is integrated to its end at once and drawn as a finished path.
  */
+import { TOY_H, TOY_HZ, TOY_TURN, TOY_W } from './lorenzToySize';
 
-const SIGMA = 10;
-const RHO = 28;
-const BETA = 8 / 3;
+export interface LoadingTrace {
+  /** Stop for good: nothing runs, nothing listens, focus is back on the page. Idempotent. */
+  stop(): void;
+}
 
-/** Internal pixels. Small on purpose: one stroke at this size costs well under a millisecond. */
-const W = 384;
-const H = 192;
-const TRAIL = 1600;
-/** Repaints per second. The attractor drifts slowly; more than this is invisible. */
-const HZ = 24;
+/** What the page-side controls drive, wherever the figure is actually drawn. */
+interface Driver {
+  drop(at: [number, number] | null): void;
+  turnTo(target: number): void;
+  stop(): void;
+}
 
-export function createLoadingTrace(canvas: HTMLCanvasElement, host: HTMLElement) {
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext('2d', { alpha: false })!;
+const NOOP: LoadingTrace = { stop() {} };
+let instance: LoadingTrace | null = null;
+
+/** The one trace for this page; a second call returns the same one. */
+export function loadingTrace(): LoadingTrace {
+  if (instance) return instance;
+  const canvas = document.getElementById('loader-trace') as HTMLCanvasElement | null;
+  const button = document.getElementById('loader-toy') as HTMLButtonElement | null;
+  instance = canvas && button ? create(canvas, button) : NOOP;
+  return instance;
+}
+
+function create(canvas: HTMLCanvasElement, button: HTMLButtonElement): LoadingTrace {
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.round(TOY_W * dpr);
+  canvas.height = Math.round(TOY_H * dpr);
+  // Shown only once a figure is on it and it answers input.
+  const live = () => (button.dataset.live = '');
 
-  // Trajectory ring buffer — the same RK4 system as the monitor screen.
-  const xs = new Float32Array(TRAIL);
-  const ys = new Float32Array(TRAIL);
-  const zs = new Float32Array(TRAIL);
-  let head = 0;
-  let state: [number, number, number] = [0.9, 1.2, 22.0];
+  const driver = startInWorker(canvas, dpr, reduced, live) ?? startOnPage(canvas, dpr, reduced, live);
 
-  function integrate(h: number) {
-    const [x, y, z] = state;
-    const k1x = SIGMA * (y - x);
-    const k1y = x * (RHO - z) - y;
-    const k1z = x * y - BETA * z;
-    const mx = x + (h / 2) * k1x;
-    const my = y + (h / 2) * k1y;
-    const mz = z + (h / 2) * k1z;
-    const k2x = SIGMA * (my - mx);
-    const k2y = mx * (RHO - mz) - my;
-    const k2z = mx * my - BETA * mz;
-    const nx = x + (h / 2) * k2x;
-    const ny = y + (h / 2) * k2y;
-    const nz = z + (h / 2) * k2z;
-    const k3x = SIGMA * (ny - nx);
-    const k3y = nx * (RHO - nz) - ny;
-    const k3z = nx * ny - BETA * nz;
-    const ox = x + h * k3x;
-    const oy = y + h * k3y;
-    const oz = z + h * k3z;
-    const k4x = SIGMA * (oy - ox);
-    const k4y = ox * (RHO - oz) - oy;
-    const k4z = ox * oy - BETA * oz;
-    state = [
-      x + (h / 6) * (k1x + 2 * k2x + 2 * k3x + k4x),
-      y + (h / 6) * (k1y + 2 * k2y + 2 * k3y + k4y),
-      z + (h / 6) * (k1z + 2 * k2z + 2 * k3z + k4z),
-    ];
-    xs[head] = state[0];
-    ys[head] = state[1];
-    zs[head] = state[2];
-    head = (head + 1) % TRAIL;
+  let turnTarget = 0;
+  function onClick(e: MouseEvent) {
+    const r = canvas.getBoundingClientRect();
+    // Keyboard activation (detail 0) or a click on the border: drop one in from above.
+    const pointed = e.detail > 0 && r.width > 0 && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    driver.drop(pointed ? [((e.clientX - r.left) / r.width) * TOY_W, ((e.clientY - r.top) / r.height) * TOY_H] : null);
+    // After the first drop the caption turns from the instruction to what they just saw.
+    button.dataset.dropped = '';
   }
-
-  // Seed the trail so the first visible frame already shows the full figure.
-  for (let i = 0; i < TRAIL; i++) integrate(0.0035);
-
-  // Pointer tilt: an offset around the slow oscillation, eased toward the pointer.
-  let tilt = 0;
-  let tiltTarget = 0;
-  function onPointerMove(e: PointerEvent) {
-    const r = host.getBoundingClientRect();
+  function onKey(e: KeyboardEvent) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    turnTarget = Math.max(-TOY_TURN, Math.min(TOY_TURN, turnTarget + (e.key === 'ArrowLeft' ? -0.15 : 0.15)));
+    driver.turnTo(turnTarget);
+  }
+  function onMove(e: PointerEvent) {
+    const r = canvas.getBoundingClientRect();
     if (r.width <= 0) return;
-    tiltTarget = ((e.clientX - r.left) / r.width - 0.5) * 0.7;
+    turnTarget = ((e.clientX - r.left) / r.width - 0.5) * 1.4 * TOY_TURN;
+    driver.turnTo(turnTarget);
   }
+  button.addEventListener('click', onClick);
+  button.addEventListener('keydown', onKey);
+  if (!reduced) button.addEventListener('pointermove', onMove);
 
-  let spin = 0;
-  let orbit = 0;
-
-  function paint() {
-    const cos = Math.cos(spin + tilt);
-    const sin = Math.sin(spin + tilt);
-    const scale = H / 56;
-    const cx = W / 2;
-    const cy = H / 2 + 6;
-
-    ctx.fillStyle = '#0f1216';
-    ctx.fillRect(0, 0, W, H);
-
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    for (let j = 0; j < TRAIL; j++) {
-      const idx = (head + j) % TRAIL;
-      const rx = xs[idx] * cos - ys[idx] * sin;
-      const ry = xs[idx] * sin + ys[idx] * cos;
-      const depth = 1 + ry / 90;
-      const px = cx + rx * scale * depth;
-      const py = cy - (zs[idx] - 27) * scale * depth;
-      if (j === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.strokeStyle = 'rgba(138,186,226,0.78)';
-    ctx.lineWidth = 1.1;
-    ctx.stroke();
-
-    // Leading point.
-    const hx = (head - 1 + TRAIL) % TRAIL;
-    const hrx = xs[hx] * cos - ys[hx] * sin;
-    const hry = xs[hx] * sin + ys[hx] * cos;
-    const hd = 1 + hry / 90;
-    ctx.fillStyle = 'rgba(240,246,252,0.95)';
-    ctx.beginPath();
-    ctx.arc(cx + hrx * scale * hd, cy - (zs[hx] - 27) * scale * hd, 2, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Reduced motion: one full static figure, painted once, no loop, no listener.
-  if (reduced) {
-    paint();
-    return { stop() {} };
-  }
-
-  host.addEventListener('pointermove', onPointerMove);
-  let raf = 0;
-  let last = performance.now();
   let stopped = false;
-
-  function frame(now: number) {
-    if (stopped) return;
-    const dt = Math.min(0.1, (now - last) / 1000);
-    last = now;
-    // Advance by wall-clock time so the motion is frame-rate independent: a fixed step,
-    // more of them when the main thread was busy loading. Same h as the monitor's drift, so
-    // the handoff reads as continuous. Capped — this must never do real work per frame.
-    const steps = Math.min(30, Math.max(6, Math.round(dt * HZ * 6)));
-    for (let i = 0; i < steps; i++) integrate(0.0032);
-    orbit += dt * 0.055;
-    spin = Math.sin(orbit) * 0.62;
-    tilt += (tiltTarget - tilt) * Math.min(1, dt * 4);
-    paint();
-    // Pace the loop instead of free-running: the figure needs no more than this.
-    window.setTimeout(() => {
-      if (!stopped) raf = requestAnimationFrame(frame);
-    }, 1000 / HZ);
-  }
-  raf = requestAnimationFrame(frame);
-
-  let done = false;
   return {
     stop() {
-      if (done) return;
-      done = true;
+      if (stopped) return;
+      stopped = true;
+      driver.stop();
+      button.removeEventListener('click', onClick);
+      button.removeEventListener('keydown', onKey);
+      button.removeEventListener('pointermove', onMove);
+      // Hand the keyboard back to the room: Space on <body> means "sit" once inside.
+      if (document.activeElement === button) button.blur();
+      button.disabled = true;
+    },
+  };
+}
+
+function startInWorker(canvas: HTMLCanvasElement, dpr: number, reduced: boolean, live: () => void): Driver | null {
+  if (!('transferControlToOffscreen' in canvas) || typeof Worker === 'undefined') return null;
+  let worker: Worker;
+  try {
+    worker = new Worker(new URL('./loadingTrace.worker.ts', import.meta.url), { type: 'module' });
+  } catch {
+    return null;
+  }
+  const offscreen = canvas.transferControlToOffscreen();
+  // If the worker never starts, the figure simply stays hidden; loading is unaffected.
+  worker.onmessage = (e: MessageEvent<{ type: string }>) => {
+    if (e.data.type === 'live') live();
+  };
+  worker.postMessage({ type: 'init', canvas: offscreen, dpr, reduced }, [offscreen]);
+  return {
+    drop: (at) => worker.postMessage({ type: 'drop', at }),
+    turnTo: (target) => worker.postMessage({ type: 'turn', target }),
+    // Synchronous from the page's side: no further frame is drawn after this returns.
+    stop: () => worker.terminate(),
+  };
+}
+
+/** Fallback without OffscreenCanvas: the same figure on the page's own thread. */
+function startOnPage(canvas: HTMLCanvasElement, dpr: number, reduced: boolean, live: () => void): Driver {
+  let toy: import('./lorenzToy').LorenzToy | null = null;
+  let stopped = false;
+  let raf = 0;
+  let timer = 0;
+  const frame = (now: number, last: number) => {
+    if (stopped || !toy) return;
+    toy.tick((now - last) / 1000);
+    timer = window.setTimeout(() => {
+      if (!stopped) raf = requestAnimationFrame((t) => frame(t, now));
+    }, 1000 / TOY_HZ);
+  };
+  const ctx = canvas.getContext('2d', { alpha: false });
+  if (ctx) {
+    import('./lorenzToy')
+      .then(({ createLorenzToy }) => {
+        if (stopped) return;
+        toy = createLorenzToy(ctx, dpr, reduced);
+        toy.paint();
+        live();
+        const start = performance.now();
+        if (!reduced) raf = requestAnimationFrame((t) => frame(t, start));
+      })
+      .catch(() => {}); // the figure stays hidden; loading is unaffected
+  }
+  return {
+    drop: (at) => toy?.drop(at),
+    turnTo: (target) => toy?.turnTo(target),
+    stop: () => {
       stopped = true;
       cancelAnimationFrame(raf);
-      host.removeEventListener('pointermove', onPointerMove);
+      clearTimeout(timer);
     },
   };
 }
