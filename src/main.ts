@@ -24,6 +24,7 @@ import { V2_TUNING } from './scene/v2Layout';
 import { BloomPass } from './scene/bloom';
 import { findNodes, loadV2Props } from './scene/v2Props';
 import { createV2PropLight } from './scene/v2PropLight';
+import { createV2Animations } from './scene/v2Animate';
 import { createPropRegistry } from './interaction/props';
 import { v2Props } from './data/v2Props';
 import { loadExteriorBackdrop } from './scene/exteriorBackdrop';
@@ -1034,6 +1035,8 @@ async function startV2() {
   if (propFiles.props.length) scene.add(propFiles.group);
   // Live sun + lamp for the PBR props only; the baked room ignores live light (v2PropLight.ts).
   const propLight = createV2PropLight(scene, baked.atlases.shell, propFiles.group);
+  // The robot's pulsing status light and the attractor on the monitor (v2Animate.ts).
+  const animations = createV2Animations(propFiles.group, reducedMotion);
   loader.advance('starting the renderer');
 
   // Dummy lights: only to satisfy createRenderer's signature (volumetric + lamp-shadow
@@ -1189,6 +1192,7 @@ async function startV2() {
       rig.update(dt);
     }
     props.update(dt, elapsed);
+    animations.update(dt, elapsed, camera, props.focusedId ? 1 : 0);
     view.render(dt, elapsed, !reducedMotion);
 
     if (firstFrame && !calibrating) {
