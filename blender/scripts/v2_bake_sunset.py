@@ -33,7 +33,12 @@ MANIFEST = os.path.join(OUT, 'manifest.json')
 LM_UV = 'UVMap_lightmap'
 BAKE_NODE = 'LM_BAKE'
 MARGIN_UV_PX = 6          # gap between islands in the packed lightmap UV: 3 px of own-island gutter per side
-BAKE_MARGIN_PX = 16       # Cycles' ADJACENT_FACES margin (fills every gutter); re-dilated after the denoise
+# Cycles' bake margin must stay within half the gutter: with several objects baked into one image Blender
+# applies each object's margin on its own, over texels other objects already baked. A 16 px margin (8 px in
+# the first bake, with 4 px gutters) wrote ~10-texel bands of one object's extension into its neighbours'
+# islands: the sky-blue strips on the left wall by the door and at the window corner. The gutters are
+# filled by the island-aware dilation below instead. (scripts/v2look/blender_albedo.py reads this too.)
+BAKE_MARGIN_PX = MARGIN_UV_PX // 2
 DILATE_PX = 32            # post-bake fill of gutters and buried texels from valid texels of the same island
 ROBOT_LIGHT_AVG = 3.5     # driver 3.5 + 3.5*sin(frame*2pi/96) -> mean 3.5
 
@@ -429,7 +434,7 @@ def split_poor_islands(o, fill_min=POOR_FILL):
     for f in poor:
         f[tag] = 1
     ngons = [f for f in poor if len(f.verts) > 4]
-    if ngons:
+    if ngons:   # concave n-gons: triangles re-joined into quads where they make a decent one
         tr = bmesh.ops.triangulate(bm, faces=ngons, quad_method='BEAUTY', ngon_method='BEAUTY')
         bmesh.ops.join_triangles(bm, faces=tr['faces'], angle_face_threshold=math.radians(1),
                                  angle_shape_threshold=math.radians(60), cmp_materials=True)
@@ -705,6 +710,21 @@ def optimize_geometry(o):
     return dict(tris_before_opt=before, optimized='weld 1e-5 + limited dissolve 0.5 deg (UV/seam/sharp/material/normal)' + note)
 
 
+def triangulate(o):
+    """Triangulate every quad and n-gon once the lightmap UV is packed, so the bake and the GLB are the same
+    triangles (a guard: a concave n-gon or a non-planar quad may otherwise be split two ways). The loop
+    UVs carry over unchanged; the exporter would triangulate anyway, so the triangle count is the same."""
+    me = o.data
+    bm = bmesh.new(); bm.from_mesh(me)
+    faces = [f for f in bm.faces if len(f.verts) > 3]
+    n = len(faces)
+    if faces:
+        bmesh.ops.triangulate(bm, faces=faces, quad_method='BEAUTY', ngon_method='BEAUTY')
+        bm.to_mesh(me); me.update()
+    bm.free()
+    return n
+
+
 def tile_cut(o, tile):
     """bisect the edit mesh along world X/Y/Z so no piece is longer than TILE; cut edges become seams."""
     me = o.data
@@ -915,6 +935,10 @@ def stage_prepare(opt, man):
         log(name, 'visibility', round(time.time() - tv, 1), 's,', vis.casts - c0, 'rays')
         tp = time.time()
         _, packer = pack_atlas(isl, res)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for o in objs:   # after the unwrap: the loop UVs carry over to the triangles
+            info[o.name]['triangulated_faces'] = triangulate(o)
+        bpy.ops.object.mode_set(mode='EDIT')
         log(name, 'poor islands split per face:', nsplit)
         log(name, len(isl), 'islands packed in', round(time.time() - tp, 1), 's by', packer)
         bpy.ops.object.mode_set(mode='OBJECT')

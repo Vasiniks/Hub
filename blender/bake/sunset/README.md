@@ -29,7 +29,10 @@ save anything called room.blend. In the copy it then does the following:
   any camera inside the room. (The first bake used "faces away from the room centre", which also
   caught visible faces.)
 
-`bake` runs a Cycles DIFFUSE bake (direct + indirect, colour off). Texels whose centre is in no
+`bake` runs a Cycles DIFFUSE bake (direct + indirect, colour off) with a margin of only half the
+gutter: with several objects baked into one image, Blender applies each object's margin over texels
+other objects already baked (the first bake's 8 px margin over 4 px gutters painted sky-lit bands
+into the left wall by the door and at the window corner). Texels whose centre is in no
 UV triangle (gutters) or that bake exactly black (buried in other geometry: a wall face running into
 the next wall, the ceiling above the crown) are refilled from valid texels of the same island, before
 OIDN and again after it, so bilinear filtering never reads a black or foreign texel. Then it writes the
