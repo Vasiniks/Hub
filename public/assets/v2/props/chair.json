@@ -1,0 +1,128 @@
+{
+ "set": "chair",
+ "sources": [
+  "obj:chair_base*"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": 8000,
+ "within_budget": true,
+ "tris_before": 13846,
+ "tris_after": 7743,
+ "objects": [
+  {
+   "name": "chair_base",
+   "tris_before": 5362,
+   "tris_after": 2967
+  },
+  {
+   "name": "chair_base_1",
+   "tris_before": 120,
+   "tris_after": 120
+  },
+  {
+   "name": "chair_base_2",
+   "tris_before": 5932,
+   "tris_after": 3302
+  },
+  {
+   "name": "chair_base_3",
+   "tris_before": 2432,
+   "tris_after": 1354
+  }
+ ],
+ "skipped": {},
+ "atlas": {
+  "pbr_res": null,
+  "lit_res": 1024,
+  "packer": {
+   "lit": "pack_islands"
+  }
+ },
+ "textures": {
+  "lit": "chair_lit.png"
+ },
+ "lit_scale": 0.0039,
+ "material_modes": {
+  "chair_lit": "lit"
+ },
+ "material_kinds": {
+  "Material_62": "opaque",
+  "Material_8": "opaque",
+  "rm_plastic_black": "opaque",
+  "rm_plastic_black_nylon": "opaque"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "chair": {
+   "blender_world": [
+    0.42,
+    -0.3,
+    0.0
+   ],
+   "three_world": [
+    0.42,
+    0.0,
+    0.3
+   ],
+   "parent": "Node_259",
+   "is_pivot": false
+  },
+  "Node_259": {
+   "blender_world": [
+    0.42,
+    -0.3,
+    0.0
+   ],
+   "three_world": [
+    0.42,
+    0.0,
+    0.3
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "chair__mesh": {
+   "parent": "chair",
+   "tris": 7743,
+   "materials": [
+    "chair_lit"
+   ],
+   "blender_bbox": [
+    [
+     -0.0139,
+     -0.8003,
+     0.0008
+    ],
+    [
+     0.9273,
+     0.1359,
+     1.1201
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "lit": {
+   "lit_scale": 0.0039,
+   "raw_mean": 0.0004,
+   "denoised_mean": 0.0003,
+   "p50": 0.0001,
+   "clipped_fraction": 0.00089,
+   "coverage_px": 0.51,
+   "samples": 256
+  }
+ },
+ "bake_seconds": {
+  "lit": 15.3,
+  "lit_denoise": 0.8
+ },
+ "glb": "chair.glb",
+ "glb_bytes": 491944,
+ "seconds": 22.7
+}

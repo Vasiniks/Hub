@@ -70,7 +70,7 @@ for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.glb')).sort()) {
     return {
       name: m.getName(),
       mode: unlit ? 'lit' : 'pbr',
-      ...(unlit ? { litScale: m.getExtras()?.litScale ?? 1 } : {}),
+      ...(unlit ? { litScale: +(+(m.getExtras()?.litScale ?? 1)).toPrecision(6) } : {}),
       ...(emissive ? { emissive: true } : {}),
       alphaMode: m.getAlphaMode(),
       textures: [m.getBaseColorTexture() && 'baseColor', m.getMetallicRoughnessTexture() && 'ORM',
@@ -91,7 +91,7 @@ for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.glb')).sort()) {
     textureBytes: textures.reduce((a, t) => a + t.bytes, 0),
     textures,
     materials,
-    litScale: sidecar.lit_scale ?? null,
+    litScale: sidecar.lit_scale == null ? null : +(+sidecar.lit_scale).toPrecision(6),
     nodes: root.listNodes().map((n) => n.getName()),
     anchors: sidecar.anchors ?? {},
     emissive,

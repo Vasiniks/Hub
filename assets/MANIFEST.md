@@ -59,6 +59,14 @@ PBR), then `scripts/optimize-glb.mjs`. Per-file triangles, bytes, materials and 
 | `cables.glb` | desk cabling, power strip, brick, MagSafe | none (`v2_cables.py`) | own work |
 | `redbull.glb` | Red Bull can | owner download, source unidentified; Red Bull trademark label | gate lifted by owner |
 | `teto_pear.glb` | Teto pear | "Teto Pear" by Luquez18 (Sketchfab Free Standard) | gate lifted by owner |
+| `robot.glb` | FRC Team 1360 robot (status light `Robot_rsl_lens` is its own node) | team's own CAD | owner-approved |
+| `bambu_mini.glb` | Bambu Lab A1 mini + spool stand (screen `bambu_mini_screen` its own node) | "3D Printer - Bambu Lab A1 Mini" by neilvfx | CC BY 4.0 — **credit required** |
+| `telecaster.glb` | guitar stand + Greg Bennett T-style guitar | "Greg Bennett Formula FA1 Tele" by Arseniy_Go_On (Sketchfab Free Standard) | gate lifted by owner |
+| `painting.glb` | Monet *Water Lilies* in its frame | AIC open-access image | CC0 / public domain |
+| `bookrack.glb` | books (one node each), screws | none (old room's books, `build_book.py`) | own work |
+| `chair.glb` | task chair | none (`build_chair.py` / `build_furniture.py`) | own work |
+| `desk_misc.glb` | screwdriver, two totes, small desk parts | none (`build_bins.py`, `build_desk_items.py`) | own work |
+| `fixtures.glb` | outlets, switch, thermostat, smoke alarm, register, ceiling light, door/window hardware, curtain rod/rings/clips | none (`v2_roomshell.py`, `v2_curtains.py`) | own work |
 
 Untouched downloads live in `assets/source/textures/<id>/`.
 
