@@ -1,4 +1,5 @@
 import type { PropFocus, PanelContent } from '../interaction/props';
+import { projects } from './projects';
 
 /**
  * Which nodes in the v2 room are interactive, and what they open.
@@ -24,7 +25,40 @@ export interface V2PropDef {
   tick?: (time: number, activity: number) => void;
 }
 
+/**
+ * A panel from the project copy in `projects.ts`, so the default room's text and the v2 room's
+ * stay one source. `title` overrides the project title where the v2 object is a different thing
+ * (the brass Lorenz sculpture took the polyhedron's place).
+ */
+function projectPanel(id: string, title?: string): PanelContent {
+  const p = projects.find((q) => q.id === id);
+  if (!p) throw new Error(`v2Props: no project '${id}'`);
+  return { kind: p.kindLabel, title: title ?? p.title, summary: p.summary, sections: p.sections };
+}
+
 export const v2Props: V2PropDef[] = [
+  {
+    id: 'frc-robot',
+    label: 'FRC robot',
+    source: { file: 'robot' },
+    panel: projectPanel('frc-robot'),
+    // From the room's open side, looking down onto the mechanisms, as in the default room.
+    focus: { yaw: 2.05, pitch: 0.6 },
+    lift: false,
+  },
+  {
+    id: 'lorenz',
+    label: 'Lorenz attractor',
+    source: { file: 'lorenz' },
+    panel: projectPanel('polyhedron', 'Lorenz attractor'),
+  },
+  {
+    id: 'lab-bench',
+    label: 'Lab bench',
+    source: { file: 'electronics' },
+    panel: projectPanel('dev-board'),
+    lift: false,
+  },
   {
     // The wall shelf, baked into the furniture atlas. Its books and items are not in the bake (they
     // come with the props export), so for now this is the empty board with its brackets and ends.
