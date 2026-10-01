@@ -33,7 +33,7 @@ The GLBs are world-space, glTF Y-up, `TEXCOORD_0` = original UV, `TEXCOORD_1` = 
 4. **Grade.** Blender was AgX, look "Medium High Contrast", exposure +0.45 EV. Use
    `AgXToneMapping` with `toneMappingExposure = 2 ** 0.45` and compare against
    `blender/bake/sunset/compare_CAM_seat.png` and `compare_CAM_stand.png`. Those are Cycles
-   references for the same two camera poses — put your screenshot beside each and report what差
+   references for the same two camera poses — put your screenshot beside each and report what
    differs. Blender metres are Z-up; three.js `(x, y, z)` = Blender `(x, -z, y)`. Cameras:
    `CAM_seat` (0, -0.16, 1.175), `CAM_stand` (1.06, -0.96, 1.63).
 5. **Room dimensions.** The new shell is 0.55 m wider (left wall −0.30, right wall +0.25) with a
