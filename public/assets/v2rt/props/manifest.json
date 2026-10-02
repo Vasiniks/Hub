@@ -1,13 +1,13 @@
 {
- "generated": "2026-10-02T05:43:15.566Z",
+ "generated": "2026-10-02T06:05:08.565Z",
  "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
  "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
  "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
  "materials": "Hybrid real-time (v2rt): every material is PBR (baseColor, ORM with R = 1, normal where it matters, emissive where it emits) on one atlas per set (TEXCOORD_0; the PC has three: case, interior, plush). The indirect-only lightmap of each set uses the same TEXCOORD_0: L_indirect = L_full - L_direct(SUN_main + LAMP_disk), Cycles DIFFUSE irradiance (colour off), clamped >= 0. Sun and lamp are rendered live with shadow maps; sky, screens, PC RGB, fixtures and every bounce are in the lightmap. Lightmap files: assets[].lightmaps[] (one per PBR atlas; .materials lists the materials that sample it), RGBM of sqrt(L) in lossless WebP; decode L = (rgb * a * rangeSqrt)^2 with lightMapIntensity = PI, colorSpace NoColorSpace, flipY false (same orientation as the glTF textures). Keepers (Robot_rsl_lens, bambu_mini_screen) and mon_screen are their own nodes and materials.",
  "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
- "totalBytes": 20289588,
+ "totalBytes": 20289596,
  "totalTris": 898068,
- "lightmapBytes": 58435792,
+ "lightmapBytes": 58457712,
  "credits": {
   "teto_plush": {
    "title": "Kasane Teto fatass plush",
@@ -2849,11 +2849,11 @@
   {
    "name": "pc",
    "file": "pc.glb",
-   "bytes": 3805172,
+   "bytes": 3805180,
    "tris": 212788,
    "trisSource": 245380,
    "budget": null,
-   "textureBytes": 1505110,
+   "textureBytes": 1505120,
    "textures": [
     {
      "name": "pc_normal",
@@ -2943,7 +2943,7 @@
       1024,
       1024
      ],
-     "bytes": 112822
+     "bytes": 112832
     },
     {
      "name": "pc_plush_orm",
@@ -3169,7 +3169,7 @@
    "lightmaps": [
     {
      "file": "pc.indirect.rgbm.webp",
-     "rangeSqrt": 3.03,
+     "rangeSqrt": 3.04,
      "uv": "TEXCOORD_0",
      "res": 2048,
      "materials": [
@@ -3181,22 +3181,24 @@
       "pc_pbr_cutout",
       "pc_screen_text"
      ],
-     "bytes": 4055360,
+     "bytes": 4073650,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.08383,
       "mean_full": 0.0839,
-      "mean_direct_plus_indirect": 0.08385,
-      "mean_ratio": 0.9994,
+      "mean_direct_plus_indirect": 0.0839,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 1.0005,
       "p99_full": 0.8019,
-      "p99_direct_plus_indirect": 0.801,
-      "indirect_share": 0.8761,
-      "direct_share": 0.1233
+      "p99_direct_plus_indirect": 0.8019,
+      "clamped_texels": 0.0003,
+      "indirect_share": 0.8764,
+      "direct_share": 0.1236
      }
     },
     {
      "file": "pc_interior.indirect.rgbm.webp",
-     "rangeSqrt": 4.43,
+     "rangeSqrt": 4.42,
      "uv": "TEXCOORD_0",
      "res": 2048,
      "materials": [
@@ -3205,15 +3207,17 @@
       "pc_led_green_interior",
       "pc_pbr_interior"
      ],
-     "bytes": 6702784,
+     "bytes": 6707736,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.15157,
-      "mean_full": 0.15157,
+      "mean_full": 0.15158,
       "mean_direct_plus_indirect": 0.15158,
       "mean_ratio": 1,
-      "p99_full": 2.0626,
-      "p99_direct_plus_indirect": 2.0631,
+      "raw_mean_ratio": 1,
+      "p99_full": 2.0629,
+      "p99_direct_plus_indirect": 2.0629,
+      "clamped_texels": 0.0001,
       "indirect_share": 0.9988,
       "direct_share": 0.0012
      }
@@ -3226,15 +3230,17 @@
      "materials": [
       "pc_pbr_plush"
      ],
-     "bytes": 1580096,
+     "bytes": 1578774,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.03348,
       "mean_full": 0.03332,
       "mean_direct_plus_indirect": 0.03332,
       "mean_ratio": 1,
+      "raw_mean_ratio": 0.9953,
       "p99_full": 0.2043,
       "p99_direct_plus_indirect": 0.2043,
+      "clamped_texels": 0,
       "indirect_share": 1,
       "direct_share": 0
      }
