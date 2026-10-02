@@ -122,10 +122,16 @@ function restoreLitScale(root: THREE.Object3D) {
  */
 function lightmapOf(entry: PropEntry): { file: string; rangeSqrt: number; channel: number } | null {
   const r = entry as unknown as Record<string, unknown>;
-  const lm = (r.lightmap ?? r.indirect) as string | { file?: string; range_sqrt?: number; uv?: number } | undefined;
+  const lm = (r.lightmap ?? r.indirect) as
+    | string
+    | { file?: string; range_sqrt?: number; rangeSqrt?: number; uv?: number | string }
+    | undefined;
   const file = typeof lm === 'string' ? lm : lm?.file;
-  const rangeSqrt = Number((typeof lm === 'object' ? lm?.range_sqrt : undefined) ?? r.range_sqrt ?? r.rangeSqrt ?? r.lightmap_range_sqrt);
-  const channel = Number((typeof lm === 'object' ? lm?.uv : undefined) ?? r.lightmap_uv ?? r.uv_channel ?? r.uv ?? 0);
+  const o = typeof lm === 'object' ? lm : undefined;
+  const rangeSqrt = Number(o?.rangeSqrt ?? o?.range_sqrt ?? r.range_sqrt ?? r.rangeSqrt ?? r.lightmap_range_sqrt);
+  // A UV index, or its glTF attribute name ('TEXCOORD_1' → 1).
+  const uv = o?.uv ?? r.lightmap_uv ?? r.uv_channel ?? r.uv ?? 0;
+  const channel = typeof uv === 'string' ? Number(uv.replace(/^\D+/, '')) : Number(uv);
   return file && rangeSqrt > 0 ? { file, rangeSqrt, channel: Number.isFinite(channel) ? channel : 0 } : null;
 }
 
