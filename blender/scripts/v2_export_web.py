@@ -1241,24 +1241,25 @@ def bake_indirect_lightmap(name, objs, mats, res, texdir, timings):
     timings['L_direct'] = round(time.time() - tb, 1)
     F = pixels(full)[:, :3].copy()
     Dd = pixels(direct)[:, :3].copy()
-    raw = np.maximum(F - Dd, 0.0)
-    ind_img = fimg('L_indirect_raw')
-    buf = np.ones((lm * lm, 4), dtype=np.float32)
-    buf[:, :3] = raw
-    ind_img.pixels.foreach_set(buf.ravel())
-    ind = np.maximum(denoise_pixels(ind_img, lm, os.path.join(texdir, f'{name}_L_indirect_dn.exr')), 0.0)
-    # sum check: L_direct + L_indirect vs L_full over covered texels (luminance). The indirect is
-    # denoised, so its p99 is compared with a denoised L_full (raw p99 is mostly sampling noise).
+    # denoise L_full and L_direct separately, then subtract and clamp: subtracting two noisy bakes and
+    # clamping at 0 biases the indirect upward (it overstated it by ~45 % on sets the lamp dominates)
     Fdn = np.maximum(denoise_pixels(full, lm, os.path.join(texdir, f'{name}_L_full_dn.exr')), 0.0)
+    Ddn = np.maximum(denoise_pixels(direct, lm, os.path.join(texdir, f'{name}_L_direct_dn.exr')), 0.0)
+    ind = np.maximum(Fdn - Ddn, 0.0)
+    # checks over covered texels (luminance): denoised D + I vs denoised L_full, and, independent of
+    # the denoiser, the raw bakes' means
     lum = lambda a: a @ np.array([0.2126, 0.7152, 0.0722])  # noqa: E731
     if cov.any():
-        lf, ls = lum(Fdn[cov]), lum(Dd[cov] + ind[cov])
-        check = dict(mean_full_raw=round(float(lum(F[cov]).mean()), 5), mean_full=round(float(lf.mean()), 5), mean_direct_plus_indirect=round(float(ls.mean()), 5),
+        lf, ls = lum(Fdn[cov]), lum(Ddn[cov] + ind[cov])
+        check = dict(mean_full_raw=round(float(lum(F[cov]).mean()), 5), mean_full=round(float(lf.mean()), 5),
+                     mean_direct_plus_indirect=round(float(ls.mean()), 5),
                      mean_ratio=round(float(ls.mean() / max(lf.mean(), 1e-9)), 4),
+                     raw_mean_ratio=round(float((lum(Dd[cov]).mean() + lum(ind[cov]).mean()) / max(lum(F[cov]).mean(), 1e-9)), 4),
                      p99_full=round(float(np.percentile(lf, 99)), 4),
                      p99_direct_plus_indirect=round(float(np.percentile(ls, 99)), 4),
+                     clamped_texels=round(float((lum(Fdn[cov]) < lum(Ddn[cov])).mean()), 4),
                      indirect_share=round(float(lum(ind[cov]).mean() / max(lf.mean(), 1e-9)), 4),
-                     direct_share=round(float(lum(Dd[cov]).mean() / max(lf.mean(), 1e-9)), 4))
+                     direct_share=round(float(lum(Ddn[cov]).mean() / max(lf.mean(), 1e-9)), 4))
     else:
         check = {}
     # RGBM of sqrt(L), as v2_bake_sunset.rgbm_png: R = 99.95th percentile of sqrt(max rgb)
