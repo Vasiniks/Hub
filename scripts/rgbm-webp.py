@@ -25,16 +25,17 @@ for n in names:
     if not rt:
         print(f'{n}: no rt lightmap in the sidecar, skipped')
         continue
-    png = os.path.join(SRC, 'tex', n, rt['png'])
-    out = os.path.join(DST, rt['lightmap'])
-    im = Image.open(png).convert('RGBA')
-    im.save(out, 'WEBP', lossless=True, exact=True, quality=100, method=6)
-    a = np.asarray(im)
-    b = np.asarray(Image.open(out).convert('RGBA'))
-    same = bool((a == b).all())
-    size = os.path.getsize(out)
-    total += size
-    print(f'{n}: {rt["lightmap"]} {im.size[0]}^2 {size / 1024:.0f} KB  round-trip exact: {same}')
-    if not same:
-        raise SystemExit(f'{n}: lossless WebP round trip changed pixels')
+    for at in rt.get('atlases', [rt]):          # one lightmap per PBR atlas (the PC has three)
+        png = os.path.join(SRC, 'tex', n, at['png'])
+        out = os.path.join(DST, at['lightmap'])
+        im = Image.open(png).convert('RGBA')
+        im.save(out, 'WEBP', lossless=True, exact=True, quality=100, method=6)
+        a = np.asarray(im)
+        b = np.asarray(Image.open(out).convert('RGBA'))
+        same = bool((a == b).all())
+        size = os.path.getsize(out)
+        total += size
+        print(f'{n}: {at["lightmap"]} {im.size[0]}^2 {size / 1024:.0f} KB  round-trip exact: {same}')
+        if not same:
+            raise SystemExit(f'{n}: lossless WebP round trip changed pixels')
 print(f'total {total / 1024:.0f} KB')
