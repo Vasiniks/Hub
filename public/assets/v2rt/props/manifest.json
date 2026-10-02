@@ -1,13 +1,13 @@
 {
- "generated": "2026-10-02T06:20:34.011Z",
+ "generated": "2026-10-02T06:36:38.882Z",
  "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
  "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
  "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
  "materials": "Hybrid real-time (v2rt): every material is PBR (baseColor, ORM with R = 1, normal where it matters, emissive where it emits) on one atlas per set (TEXCOORD_0; the PC has three: case, interior, plush). The indirect-only lightmap of each set uses the same TEXCOORD_0: L_indirect = L_full - L_direct(SUN_main + LAMP_disk), Cycles DIFFUSE irradiance (colour off), clamped >= 0. Sun and lamp are rendered live with shadow maps; sky, screens, PC RGB, fixtures and every bounce are in the lightmap. Lightmap files: assets[].lightmaps[] (one per PBR atlas; .materials lists the materials that sample it), RGBM of sqrt(L) in lossless WebP; decode L = (rgb * a * rangeSqrt)^2 with lightMapIntensity = PI, colorSpace NoColorSpace, flipY false (same orientation as the glTF textures). Keepers (Robot_rsl_lens, bambu_mini_screen) and mon_screen are their own nodes and materials.",
  "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
- "totalBytes": 20289652,
+ "totalBytes": 20289684,
  "totalTris": 898068,
- "lightmapBytes": 58461134,
+ "lightmapBytes": 58460230,
  "credits": {
   "teto_plush": {
    "title": "Kasane Teto fatass plush",
@@ -2806,15 +2806,17 @@
      "materials": [
       "painting_pbr"
      ],
-     "bytes": 986356,
+     "bytes": 986332,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.01521,
       "mean_full": 0.01531,
       "mean_direct_plus_indirect": 0.01531,
       "mean_ratio": 1,
+      "raw_mean_ratio": 1.0065,
       "p99_full": 0.086,
       "p99_direct_plus_indirect": 0.086,
+      "clamped_texels": 0,
       "indirect_share": 1,
       "direct_share": 0
      }
@@ -3787,11 +3789,11 @@
   {
    "name": "telecaster",
    "file": "telecaster.glb",
-   "bytes": 1678124,
+   "bytes": 1678156,
    "tris": 91718,
    "trisSource": 108089,
    "budget": null,
-   "textureBytes": 623348,
+   "textureBytes": 623378,
    "textures": [
     {
      "name": "telecaster_normal",
@@ -3800,7 +3802,7 @@
       2048,
       2048
      ],
-     "bytes": 159396
+     "bytes": 159394
     },
     {
      "name": "telecaster_basecolor",
@@ -3818,7 +3820,7 @@
       1024,
       1024
      ],
-     "bytes": 191774
+     "bytes": 191806
     }
    ],
    "materials": [
@@ -3906,15 +3908,17 @@
      "materials": [
       "telecaster_pbr"
      ],
-     "bytes": 4660038,
+     "bytes": 4659158,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.01399,
       "mean_full": 0.0134,
       "mean_direct_plus_indirect": 0.0134,
       "mean_ratio": 1,
+      "raw_mean_ratio": 0.9582,
       "p99_full": 0.0625,
       "p99_direct_plus_indirect": 0.0625,
+      "clamped_texels": 0.0013,
       "indirect_share": 1,
       "direct_share": 0
      }

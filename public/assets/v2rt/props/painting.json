@@ -85,8 +85,10 @@
    "mean_full": 0.01531,
    "mean_direct_plus_indirect": 0.01531,
    "mean_ratio": 1.0,
+   "raw_mean_ratio": 1.0065,
    "p99_full": 0.086,
    "p99_direct_plus_indirect": 0.086,
+   "clamped_texels": 0.0,
    "indirect_share": 1.0,
    "direct_share": 0.0
   },
@@ -115,8 +117,10 @@
      "mean_full": 0.01531,
      "mean_direct_plus_indirect": 0.01531,
      "mean_ratio": 1.0,
+     "raw_mean_ratio": 1.0065,
      "p99_full": 0.086,
      "p99_direct_plus_indirect": 0.086,
+     "clamped_texels": 0.0,
      "indirect_share": 1.0,
      "direct_share": 0.0
     },
@@ -196,14 +200,14 @@
   }
  },
  "bake_seconds": {
-  "base": 9.8,
-  "rough": 9.6,
-  "metal": 9.6,
-  "normal": 10.0,
-  "L_full": 23.0,
-  "L_direct": 13.4
+  "base": 9.6,
+  "rough": 9.5,
+  "metal": 9.5,
+  "normal": 9.7,
+  "L_full": 21.6,
+  "L_direct": 12.9
  },
  "glb": "painting.glb",
  "glb_bytes": 194700,
- "seconds": 96.9
+ "seconds": 93.2
 }

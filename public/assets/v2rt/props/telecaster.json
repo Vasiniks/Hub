@@ -408,8 +408,10 @@
    "mean_full": 0.0134,
    "mean_direct_plus_indirect": 0.0134,
    "mean_ratio": 1.0,
+   "raw_mean_ratio": 0.9582,
    "p99_full": 0.0625,
    "p99_direct_plus_indirect": 0.0625,
+   "clamped_texels": 0.0013,
    "indirect_share": 1.0,
    "direct_share": 0.0
   },
@@ -438,8 +440,10 @@
      "mean_full": 0.0134,
      "mean_direct_plus_indirect": 0.0134,
      "mean_ratio": 1.0,
+     "raw_mean_ratio": 0.9582,
      "p99_full": 0.0625,
      "p99_direct_plus_indirect": 0.0625,
+     "clamped_texels": 0.0013,
      "indirect_share": 1.0,
      "direct_share": 0.0
     },
@@ -564,14 +568,14 @@
   }
  },
  "bake_seconds": {
-  "base": 97.8,
-  "rough": 97.2,
-  "metal": 98.0,
-  "normal": 96.7,
-  "L_full": 161.3,
-  "L_direct": 108.7
+  "base": 96.4,
+  "rough": 95.3,
+  "metal": 96.0,
+  "normal": 95.3,
+  "L_full": 153.4,
+  "L_direct": 105.5
  },
  "glb": "telecaster.glb",
- "glb_bytes": 5629356,
- "seconds": 857.5
+ "glb_bytes": 5629388,
+ "seconds": 835.7
 }
