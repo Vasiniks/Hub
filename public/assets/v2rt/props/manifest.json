@@ -1,13 +1,13 @@
 {
- "generated": "2026-10-02T06:05:08.565Z",
+ "generated": "2026-10-02T06:20:34.011Z",
  "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
  "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
  "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
  "materials": "Hybrid real-time (v2rt): every material is PBR (baseColor, ORM with R = 1, normal where it matters, emissive where it emits) on one atlas per set (TEXCOORD_0; the PC has three: case, interior, plush). The indirect-only lightmap of each set uses the same TEXCOORD_0: L_indirect = L_full - L_direct(SUN_main + LAMP_disk), Cycles DIFFUSE irradiance (colour off), clamped >= 0. Sun and lamp are rendered live with shadow maps; sky, screens, PC RGB, fixtures and every bounce are in the lightmap. Lightmap files: assets[].lightmaps[] (one per PBR atlas; .materials lists the materials that sample it), RGBM of sqrt(L) in lossless WebP; decode L = (rgb * a * rangeSqrt)^2 with lightMapIntensity = PI, colorSpace NoColorSpace, flipY false (same orientation as the glTF textures). Keepers (Robot_rsl_lens, bambu_mini_screen) and mon_screen are their own nodes and materials.",
  "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
- "totalBytes": 20289596,
+ "totalBytes": 20289652,
  "totalTris": 898068,
- "lightmapBytes": 58457712,
+ "lightmapBytes": 58461134,
  "credits": {
   "teto_plush": {
    "title": "Kasane Teto fatass plush",
@@ -42,11 +42,11 @@
   {
    "name": "bambu_mini",
    "file": "bambu_mini.glb",
-   "bytes": 1433336,
+   "bytes": 1433392,
    "tris": 75380,
    "trisSource": 116961,
    "budget": null,
-   "textureBytes": 646790,
+   "textureBytes": 646844,
    "textures": [
     {
      "name": "bambu_mini_normal",
@@ -73,7 +73,7 @@
       1024,
       1024
      ],
-     "bytes": 201400
+     "bytes": 201454
     },
     {
      "name": "bambu_mini_emissive",
@@ -180,15 +180,17 @@
       "bambu_mini_ptfe_web",
       "bambu_mini_screen_lit"
      ],
-     "bytes": 5638576,
+     "bytes": 5639368,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.00945,
       "mean_full": 0.00905,
       "mean_direct_plus_indirect": 0.00905,
       "mean_ratio": 1,
+      "raw_mean_ratio": 0.9574,
       "p99_full": 0.0492,
       "p99_direct_plus_indirect": 0.0492,
+      "clamped_texels": 0.0065,
       "indirect_share": 1,
       "direct_share": 0
      }
@@ -3562,17 +3564,19 @@
       "robot_polycarbonate.001_web",
       "robot_rsl_amber"
      ],
-     "bytes": 4466088,
+     "bytes": 4468718,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.01429,
       "mean_full": 0.01383,
-      "mean_direct_plus_indirect": 0.01383,
-      "mean_ratio": 1.0002,
+      "mean_direct_plus_indirect": 0.01385,
+      "mean_ratio": 1.0013,
+      "raw_mean_ratio": 0.967,
       "p99_full": 0.1211,
-      "p99_direct_plus_indirect": 0.1212,
-      "indirect_share": 0.9777,
-      "direct_share": 0.0224
+      "p99_direct_plus_indirect": 0.1211,
+      "clamped_texels": 0.0006,
+      "indirect_share": 0.9768,
+      "direct_share": 0.0245
      }
     }
    ],

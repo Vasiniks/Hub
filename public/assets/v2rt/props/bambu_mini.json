@@ -269,8 +269,10 @@
    "mean_full": 0.00905,
    "mean_direct_plus_indirect": 0.00905,
    "mean_ratio": 1.0,
+   "raw_mean_ratio": 0.9574,
    "p99_full": 0.0492,
    "p99_direct_plus_indirect": 0.0492,
+   "clamped_texels": 0.0065,
    "indirect_share": 1.0,
    "direct_share": 0.0
   },
@@ -302,8 +304,10 @@
      "mean_full": 0.00905,
      "mean_direct_plus_indirect": 0.00905,
      "mean_ratio": 1.0,
+     "raw_mean_ratio": 0.9574,
      "p99_full": 0.0492,
      "p99_direct_plus_indirect": 0.0492,
+     "clamped_texels": 0.0065,
      "indirect_share": 1.0,
      "direct_share": 0.0
     },
@@ -546,16 +550,16 @@
   }
  },
  "bake_seconds": {
-  "base": 54.7,
-  "rough": 54.6,
-  "metal": 54.2,
-  "alpha": 55.3,
-  "emit": 53.1,
-  "normal": 56.9,
-  "L_full": 105.1,
-  "L_direct": 66.8
+  "base": 53.9,
+  "rough": 54.1,
+  "metal": 53.4,
+  "alpha": 54.7,
+  "emit": 52.5,
+  "normal": 56.0,
+  "L_full": 100.3,
+  "L_direct": 65.0
  },
  "glb": "bambu_mini.glb",
- "glb_bytes": 3381576,
- "seconds": 614.9
+ "glb_bytes": 3381632,
+ "seconds": 601.9
 }
