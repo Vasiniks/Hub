@@ -148,6 +148,16 @@ export function applyRGBMSpecular(mat: THREE.MeshStandardMaterial, rangeSqrt: nu
   mat.customProgramCacheKey = () => `baked-rgbm-spec:${rangeSqrt}`;
 }
 
+interface RtMaterialParams {
+  roughness?: number;
+  metalness?: number;
+  ior?: number;
+  specularIntensity?: number;
+  clearcoat?: number;
+  clearcoatRoughness?: number;
+  sheen?: number;
+}
+
 export interface BakedRoomOptions {
   /**
    * `'rt'`: the hybrid real-time room (`?rt`). Every surface becomes a lit standard material:
@@ -177,9 +187,14 @@ export async function loadBakedRoom(base: string, options: BakedRoomOptions = {}
   })) as {
     atlases: Record<
       string,
-      { glb: string; web: { file: string; range_sqrt: number }; indirect?: { file: string; range_sqrt: number } }
+      {
+        glb: string;
+        web: { file: string; range_sqrt: number };
+        indirect?: { file: string; range_sqrt: number };
+        /** Blender's Principled inputs per shipped GLB material, already in three's terms. */
+        materials?: Record<string, { three?: RtMaterialParams }>;
+      }
     >;
-    materials?: Record<string, Record<string, { roughness?: number; metallic?: number }>>;
   };
   const rt = options.lighting === 'rt';
   const albedoManifest = useAlbedo
@@ -224,13 +239,28 @@ export async function loadBakedRoom(base: string, options: BakedRoomOptions = {}
         if (rt) {
           let lit = madeRt.get(src.name);
           if (!lit) {
-            const m = manifest.materials?.[spec.name]?.[src.name] ?? {};
-            lit = new THREE.MeshStandardMaterial({
+            // Blender's own values (room-indirect bake: `atlases.<a>.materials`). A coat (the floor,
+            // the bookrack's powder coat) or sheen (rug, curtains) needs the physical material.
+            const m = manifest.atlases[spec.name].materials?.[src.name]?.three ?? {};
+            const physical = (m.clearcoat ?? 0) > 0 || (m.sheen ?? 0) > 0;
+            const params = {
               name: `rt:${spec.name}:${src.name || 'mat'}`,
               map: albedo,
               roughness: m.roughness ?? SPECULAR[src.name] ?? 0.8,
-              metalness: m.metallic ?? 0,
-            });
+              metalness: m.metalness ?? 0,
+            };
+            lit = physical
+              ? new THREE.MeshPhysicalMaterial({
+                  ...params,
+                  ior: m.ior ?? 1.5,
+                  specularIntensity: m.specularIntensity ?? 1,
+                  clearcoat: m.clearcoat ?? 0,
+                  clearcoatRoughness: m.clearcoatRoughness ?? 0,
+                  sheen: m.sheen ?? 0,
+                  // Blender's sheen tint defaults to white; three's sheen colour defaults to black (no sheen).
+                  sheenColor: new THREE.Color(1, 1, 1),
+                })
+              : new THREE.MeshStandardMaterial(params);
             if (albedo && isDecal(src.name)) {
               lit.transparent = true;
               lit.depthWrite = false;

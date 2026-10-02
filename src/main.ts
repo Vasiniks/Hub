@@ -100,7 +100,13 @@ async function startV2() {
   const propLight = rt ? null : createV2PropLight(scene, baked.atlases.shell, propFiles.group);
   if (rt) {
     propFiles.group.traverse((o) => {
-      if ((o as THREE.Mesh).isMesh) o.castShadow = o.receiveShadow = true;
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      // Glass (the PC's side panels, the robot's polycarbonate) lets the sun and the lamp through:
+      // in Cycles it is transmissive, here it must simply not cast.
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mesh.castShadow = !mats.some((m) => m.transparent);
+      mesh.receiveShadow = true;
     });
   }
   // The robot's pulsing status light and the attractor on the monitor (v2Animate.ts).
