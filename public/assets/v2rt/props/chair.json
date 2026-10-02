@@ -1,0 +1,206 @@
+{
+ "set": "chair",
+ "sources": [
+  "obj:chair_base*"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 13846,
+ "tris_after": 13846,
+ "objects": [
+  {
+   "name": "chair_base",
+   "tris_before": 5362,
+   "tris_after": 5362
+  },
+  {
+   "name": "chair_base_1",
+   "tris_before": 120,
+   "tris_after": 120
+  },
+  {
+   "name": "chair_base_2",
+   "tris_before": 5932,
+   "tris_after": 5932
+  },
+  {
+   "name": "chair_base_3",
+   "tris_before": 2432,
+   "tris_after": 2432
+  }
+ ],
+ "skipped": {},
+ "reduction": {
+  "chair_base": "kept (custom normals)",
+  "chair_base_1": "kept",
+  "chair_base_2": "kept (custom normals)",
+  "chair_base_3": "kept (custom normals)"
+ },
+ "atlas": {
+  "pbr_res": 2048,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "chair_basecolor.png",
+  "orm": "chair_orm.png",
+  "normal": "chair_normal.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "chair.indirect.rgbm.webp",
+  "png": "chair.indirect.rgbm.png",
+  "res": 2048,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 0.5,
+  "linear_max": 0.25,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 0.00032,
+  "rgbm_mean_rel_err": 0.0023,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.01877,
+   "mean_full": 0.01819,
+   "mean_direct_plus_indirect": 0.01819,
+   "mean_ratio": 1.0,
+   "p99_full": 0.1237,
+   "p99_direct_plus_indirect": 0.1237,
+   "indirect_share": 1.0,
+   "direct_share": 0.0
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "chair_pbr"
+  ],
+  "atlases": [
+   {
+    "lightmap": "chair.indirect.rgbm.webp",
+    "png": "chair.indirect.rgbm.png",
+    "res": 2048,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 0.5,
+    "linear_max": 0.25,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00032,
+    "rgbm_mean_rel_err": 0.0023,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.01877,
+     "mean_full": 0.01819,
+     "mean_direct_plus_indirect": 0.01819,
+     "mean_ratio": 1.0,
+     "p99_full": 0.1237,
+     "p99_direct_plus_indirect": 0.1237,
+     "indirect_share": 1.0,
+     "direct_share": 0.0
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "chair_pbr"
+    ]
+   }
+  ]
+ },
+ "material_modes": {
+  "chair_pbr": "pbr"
+ },
+ "material_kinds": {
+  "Material_62": "opaque",
+  "Material_8": "opaque",
+  "rm_plastic_black": "opaque",
+  "rm_plastic_black_nylon": "opaque"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "chair": {
+   "blender_world": [
+    0.42,
+    -0.3,
+    0.0
+   ],
+   "three_world": [
+    0.42,
+    0.0,
+    0.3
+   ],
+   "parent": "Node_259",
+   "is_pivot": false
+  },
+  "Node_259": {
+   "blender_world": [
+    0.42,
+    -0.3,
+    0.0
+   ],
+   "three_world": [
+    0.42,
+    0.0,
+    0.3
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "chair__mesh": {
+   "parent": "chair",
+   "tris": 13846,
+   "materials": [
+    "chair_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -0.014,
+     -0.8003,
+     0.0009
+    ],
+    [
+     0.9273,
+     0.136,
+     1.12
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.3698,
+   "s2a": [],
+   "base_mean": [
+    0.138,
+    0.143,
+    0.158
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 0.698,
+   "coverage_px": 0.412
+  }
+ },
+ "bake_seconds": {
+  "base": 6.7,
+  "rough": 6.7,
+  "metal": 6.7,
+  "normal": 7.0,
+  "L_full": 43.3,
+  "L_direct": 21.3
+ },
+ "glb": "chair.glb",
+ "glb_bytes": 1607600,
+ "seconds": 108.6
+}

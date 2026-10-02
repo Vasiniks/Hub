@@ -1,0 +1,349 @@
+{
+ "set": "robot",
+ "sources": [
+  "NEW_robot"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 131522,
+ "tris_after": 129694,
+ "objects": [
+  {
+   "name": "Robot_white_plastic",
+   "tris_before": 24,
+   "tris_after": 24
+  },
+  {
+   "name": "Robot_foam_ball",
+   "tris_before": 1734,
+   "tris_after": 1734
+  },
+  {
+   "name": "Robot_aluminium",
+   "tris_before": 56755,
+   "tris_after": 56176
+  },
+  {
+   "name": "Robot_black_anodised",
+   "tris_before": 25963,
+   "tris_after": 25281
+  },
+  {
+   "name": "Robot_rubber",
+   "tris_before": 8800,
+   "tris_after": 8800
+  },
+  {
+   "name": "Robot_grey_plastic",
+   "tris_before": 3143,
+   "tris_after": 2819
+  },
+  {
+   "name": "Robot_purple_anodised",
+   "tris_before": 1351,
+   "tris_after": 1346
+  },
+  {
+   "name": "Robot_polycarbonate",
+   "tris_before": 17138,
+   "tris_after": 17132
+  },
+  {
+   "name": "Robot_orange",
+   "tris_before": 1834,
+   "tris_after": 1834
+  },
+  {
+   "name": "Robot_blue_anodised",
+   "tris_before": 8835,
+   "tris_after": 8835
+  },
+  {
+   "name": "Robot_green_pcb",
+   "tris_before": 815,
+   "tris_after": 815
+  },
+  {
+   "name": "Robot_nylon_tan",
+   "tris_before": 24,
+   "tris_after": 24
+  },
+  {
+   "name": "Robot_red_anodised",
+   "tris_before": 240,
+   "tris_after": 240
+  },
+  {
+   "name": "Robot_black_plastic",
+   "tris_before": 24,
+   "tris_after": 24
+  },
+  {
+   "name": "Robot_bumper_fabric",
+   "tris_before": 1300,
+   "tris_after": 1300
+  },
+  {
+   "name": "Robot_number_1360_posX",
+   "tris_before": 1656,
+   "tris_after": 1608
+  },
+  {
+   "name": "Robot_number_1360_negX",
+   "tris_before": 1656,
+   "tris_after": 1610
+  },
+  {
+   "name": "Robot_rsl_lens",
+   "tris_before": 230,
+   "tris_after": 230
+  }
+ ],
+ "skipped": {},
+ "reduction": {
+  "Robot_white_plastic": "kept",
+  "Robot_foam_ball": "dissolve",
+  "Robot_aluminium": "dissolve",
+  "Robot_black_anodised": "dissolve",
+  "Robot_rubber": "dissolve",
+  "Robot_grey_plastic": "dissolve",
+  "Robot_purple_anodised": "dissolve",
+  "Robot_polycarbonate": "dissolve",
+  "Robot_orange": "dissolve",
+  "Robot_blue_anodised": "dissolve",
+  "Robot_green_pcb": "dissolve",
+  "Robot_nylon_tan": "kept",
+  "Robot_red_anodised": "kept",
+  "Robot_black_plastic": "kept",
+  "Robot_bumper_fabric": "dissolve",
+  "Robot_number_1360_posX": "dissolve",
+  "Robot_number_1360_negX": "dissolve",
+  "Robot_rsl_lens": "kept"
+ },
+ "atlas": {
+  "pbr_res": 2048,
+  "lit_res": null,
+  "packer": {
+   "pbr": "smart_project fallback (pack_islands gave up)"
+  }
+ },
+ "textures": {
+  "base": "robot_basecolor.png",
+  "orm": "robot_orm.png",
+  "normal": "robot_normal.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "robot.indirect.rgbm.webp",
+  "png": "robot.indirect.rgbm.png",
+  "res": 2048,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 1.6,
+  "linear_max": 2.56,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 0.00027,
+  "rgbm_mean_rel_err": 0.0024,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.01429,
+   "mean_full": 0.01383,
+   "mean_direct_plus_indirect": 0.01383,
+   "mean_ratio": 1.0002,
+   "p99_full": 0.1211,
+   "p99_direct_plus_indirect": 0.1212,
+   "indirect_share": 0.9777,
+   "direct_share": 0.0224
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "robot_pbr",
+   "robot_polycarbonate.001_web",
+   "robot_rsl_amber"
+  ],
+  "atlases": [
+   {
+    "lightmap": "robot.indirect.rgbm.webp",
+    "png": "robot.indirect.rgbm.png",
+    "res": 2048,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 1.6,
+    "linear_max": 2.56,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00027,
+    "rgbm_mean_rel_err": 0.0024,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.01429,
+     "mean_full": 0.01383,
+     "mean_direct_plus_indirect": 0.01383,
+     "mean_ratio": 1.0002,
+     "p99_full": 0.1211,
+     "p99_direct_plus_indirect": 0.1212,
+     "indirect_share": 0.9777,
+     "direct_share": 0.0224
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "robot_pbr",
+     "robot_polycarbonate.001_web",
+     "robot_rsl_amber"
+    ]
+   }
+  ]
+ },
+ "material_modes": {
+  "robot_pbr": "pbr",
+  "robot_polycarbonate.001_web": "glass",
+  "robot_rsl_amber": "pbr_emissive_keeper"
+ },
+ "material_kinds": {
+  "robot_aluminium.001": "opaque",
+  "robot_black_anodised.001": "opaque",
+  "robot_black_plastic.001": "opaque",
+  "robot_blue_anodised.001": "opaque",
+  "robot_bumper_fabric.001": "opaque",
+  "robot_bumper_number.001": "opaque",
+  "robot_foam_ball": "opaque",
+  "robot_green_pcb.001": "opaque",
+  "robot_grey_plastic.001": "opaque",
+  "robot_nylon_tan.001": "opaque",
+  "robot_orange.001": "opaque",
+  "robot_polycarbonate.001": "glass",
+  "robot_purple_anodised.001": "opaque",
+  "robot_red_anodised.001": "opaque",
+  "robot_rsl_amber": "keeper",
+  "robot_rubber.001": "opaque",
+  "robot_white_plastic.001": "opaque",
+  "robot_rsl_amber__src": "keeper"
+ },
+ "emissive_materials": [
+  "robot_rsl_amber"
+ ],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [
+  {
+   "node": "Robot_rsl_lens",
+   "material": "robot_rsl_amber",
+   "keeper": true,
+   "textured_emission": false,
+   "emission_strength": 3.5,
+   "emission_color": [
+    1.0,
+    0.45,
+    0.05
+   ]
+  }
+ ],
+ "screen_nodes": [],
+ "anchors": {
+  "NEW_robot_root": {
+   "blender_world": [
+    -1.2069,
+    -0.3633,
+    0.0
+   ],
+   "three_world": [
+    -1.2069,
+    0.0,
+    0.3633
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "Robot_rsl_lens": {
+   "parent": "NEW_robot_root",
+   "tris": 230,
+   "materials": [
+    "robot_rsl_amber"
+   ],
+   "blender_bbox": [
+    [
+     -0.9797,
+     -0.1912,
+     0.1505
+    ],
+    [
+     -0.9118,
+     -0.1247,
+     0.224
+    ]
+   ]
+  },
+  "NEW_robot_root__glass_robot_polycarbonate.001": {
+   "parent": "NEW_robot_root",
+   "tris": 17132,
+   "materials": [
+    "robot_polycarbonate.001_web"
+   ],
+   "blender_bbox": [
+    [
+     -1.6776,
+     -1.0473,
+     0.0329
+    ],
+    [
+     -0.492,
+     0.1103,
+     0.5504
+    ]
+   ]
+  },
+  "NEW_robot_root__mesh": {
+   "parent": "NEW_robot_root",
+   "tris": 112332,
+   "materials": [
+    "robot_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -1.8127,
+     -1.1102,
+     0.0
+    ],
+    [
+     -0.4375,
+     0.2426,
+     0.5543
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.0193,
+   "s2a": [],
+   "base_mean": [
+    0.616,
+    0.586,
+    0.612
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 0.225,
+   "coverage_px": 0.15
+  }
+ },
+ "bake_seconds": {
+  "base": 30.6,
+  "rough": 31.0,
+  "metal": 30.5,
+  "normal": 29.9,
+  "L_full": 61.0,
+  "L_direct": 39.2
+ },
+ "glb": "robot.glb",
+ "glb_bytes": 9114772,
+ "seconds": 287.6
+}

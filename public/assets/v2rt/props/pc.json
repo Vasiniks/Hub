@@ -456,52 +456,176 @@
   "pbr_res": 2048,
   "lit_res": null,
   "packer": {
-   "pbr": "pack_islands"
+   "pbr": "pack_islands",
+   "pbr_interior": "smart_project fallback (pack_islands gave up)",
+   "pbr_plush": "pack_islands"
   }
  },
  "textures": {
   "base": "pc_basecolor.png",
   "orm": "pc_orm.png",
   "normal": "pc_normal.png",
-  "emit": "pc_emissive.png"
+  "emit": "pc_emissive.png",
+  "base_interior": "pc_interior_basecolor.png",
+  "orm_interior": "pc_interior_orm.png",
+  "normal_interior": "pc_interior_normal.png",
+  "emit_interior": "pc_interior_emissive.png",
+  "base_plush": "pc_plush_basecolor.png",
+  "orm_plush": "pc_plush_orm.png",
+  "normal_plush": "pc_plush_normal.png",
+  "emit_plush": "pc_plush_emissive.png"
  },
  "lit_scale": null,
  "lit_atlases": {},
  "rt": {
   "lightmap": "pc.indirect.rgbm.webp",
   "png": "pc.indirect.rgbm.png",
-  "res": 512,
+  "res": 2048,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 5.0,
-  "linear_max": 25.0,
+  "range_sqrt": 3.03,
+  "linear_max": 9.1809,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00357,
-  "rgbm_mean_rel_err": 0.0018,
+  "clipped_fraction": 0.00033,
+  "rgbm_mean_rel_err": 0.0024,
   "samples": 256,
   "check": {
-   "mean_full_raw": 0.14442,
-   "mean_full": 0.14319,
-   "mean_direct_plus_indirect": 0.1436,
-   "mean_ratio": 1.0029,
-   "p99_full": 0.7754,
-   "p99_direct_plus_indirect": 0.7741,
-   "indirect_share": 0.9844,
-   "direct_share": 0.0185
+   "mean_full_raw": 0.08383,
+   "mean_full": 0.0839,
+   "mean_direct_plus_indirect": 0.08385,
+   "mean_ratio": 0.9994,
+   "p99_full": 0.8019,
+   "p99_direct_plus_indirect": 0.801,
+   "indirect_share": 0.8761,
+   "direct_share": 0.1233
   },
   "direct_lights": [
    "SUN_main",
    "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "pc_emit",
+   "pc_glass_edge_web",
+   "pc_glass_web",
+   "pc_led_white",
+   "pc_pbr",
+   "pc_pbr_cutout",
+   "pc_screen_text"
+  ],
+  "atlases": [
+   {
+    "lightmap": "pc.indirect.rgbm.webp",
+    "png": "pc.indirect.rgbm.png",
+    "res": 2048,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 3.03,
+    "linear_max": 9.1809,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00033,
+    "rgbm_mean_rel_err": 0.0024,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.08383,
+     "mean_full": 0.0839,
+     "mean_direct_plus_indirect": 0.08385,
+     "mean_ratio": 0.9994,
+     "p99_full": 0.8019,
+     "p99_direct_plus_indirect": 0.801,
+     "indirect_share": 0.8761,
+     "direct_share": 0.1233
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "pc_emit",
+     "pc_glass_edge_web",
+     "pc_glass_web",
+     "pc_led_white",
+     "pc_pbr",
+     "pc_pbr_cutout",
+     "pc_screen_text"
+    ]
+   },
+   {
+    "lightmap": "pc_interior.indirect.rgbm.webp",
+    "png": "pc_interior.indirect.rgbm.png",
+    "res": 2048,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 4.43,
+    "linear_max": 19.6249,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00043,
+    "rgbm_mean_rel_err": 0.0025,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.15157,
+     "mean_full": 0.15157,
+     "mean_direct_plus_indirect": 0.15158,
+     "mean_ratio": 1.0,
+     "p99_full": 2.0626,
+     "p99_direct_plus_indirect": 2.0631,
+     "indirect_share": 0.9988,
+     "direct_share": 0.0012
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "interior",
+    "materials": [
+     "pc_emit_interior",
+     "pc_led_amber_interior",
+     "pc_led_green_interior",
+     "pc_pbr_interior"
+    ]
+   },
+   {
+    "lightmap": "pc_plush.indirect.rgbm.webp",
+    "png": "pc_plush.indirect.rgbm.png",
+    "res": 1024,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 0.58,
+    "linear_max": 0.3364,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00021,
+    "rgbm_mean_rel_err": 0.0023,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.03348,
+     "mean_full": 0.03332,
+     "mean_direct_plus_indirect": 0.03332,
+     "mean_ratio": 1.0,
+     "p99_full": 0.2043,
+     "p99_direct_plus_indirect": 0.2043,
+     "indirect_share": 1.0,
+     "direct_share": 0.0
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "plush",
+    "materials": [
+     "pc_pbr_plush"
+    ]
+   }
   ]
  },
  "material_modes": {
   "pc_emit": "pbr_emissive",
+  "pc_emit_interior": "pbr_emissive",
   "pc_glass_edge_web": "glass",
   "pc_glass_web": "glass",
-  "pc_led_amber": "pbr_emissive",
-  "pc_led_green": "pbr_emissive",
+  "pc_led_amber_interior": "pbr_emissive",
+  "pc_led_green_interior": "pbr_emissive",
   "pc_led_white": "pbr_emissive",
   "pc_pbr": "pbr",
   "pc_pbr_cutout": "pbr",
+  "pc_pbr_interior": "pbr",
+  "pc_pbr_plush": "pbr",
   "pc_screen_text": "pbr_emissive"
  },
  "material_kinds": {
@@ -625,8 +749,9 @@
  },
  "emissive_materials": [
   "pc_emit",
-  "pc_led_amber",
-  "pc_led_green",
+  "pc_emit_interior",
+  "pc_led_amber_interior",
+  "pc_led_green_interior",
   "pc_led_white",
   "pc_screen_text"
  ],
@@ -712,8 +837,10 @@
     "pc_emit",
     "pc_pbr_cutout",
     "pc_led_white",
-    "pc_led_green",
-    "pc_led_amber",
+    "pc_pbr_interior",
+    "pc_emit_interior",
+    "pc_led_green_interior",
+    "pc_led_amber_interior",
     "pc_screen_text"
    ],
    "blender_bbox": [
@@ -733,7 +860,7 @@
    "parent": "NEW_plush_teto_root",
    "tris": 30712,
    "materials": [
-    "pc_pbr"
+    "pc_pbr_plush"
    ],
    "blender_bbox": [
     [
@@ -761,29 +888,53 @@
  ],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.0334,
+   "normal_bumpy_fraction": 0.0806,
    "s2a": [],
    "base_mean": [
-    0.81,
-    0.742,
-    0.747
+    0.873,
+    0.884,
+    0.864
    ],
    "ao_mean": null,
-   "texels_per_mm": 0.024,
-   "coverage_px": 0.001
+   "texels_per_mm": 0.926,
+   "coverage_px": 0.481
+  },
+  "pbr_interior": {
+   "normal_bumpy_fraction": 0.0606,
+   "s2a": [],
+   "base_mean": [
+    0.76,
+    0.764,
+    0.769
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 0.429,
+   "coverage_px": 0.159
+  },
+  "pbr_plush": {
+   "normal_bumpy_fraction": 0.0754,
+   "s2a": [],
+   "base_mean": [
+    0.859,
+    0.448,
+    0.472
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 0.938,
+   "coverage_px": 0.448
   }
  },
  "bake_seconds": {
-  "base": 115.3,
-  "rough": 113.3,
-  "metal": 109.6,
-  "alpha": 115.9,
-  "emit": 107.9,
-  "normal": 114.6,
-  "L_full": 93.4,
-  "L_direct": 83.5
+  "base": 27.0,
+  "rough": 26.5,
+  "metal": 25.4,
+  "alpha": 27.1,
+  "emit": 25.2,
+  "normal": 26.2,
+  "L_full": 48.0,
+  "L_direct": 28.8
  },
  "glb": "pc.glb",
- "glb_bytes": 10742764,
- "seconds": 1071.9
+ "glb_bytes": 11956024,
+ "seconds": 1306.0
 }

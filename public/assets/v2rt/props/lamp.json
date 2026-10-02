@@ -133,27 +133,65 @@
  "rt": {
   "lightmap": "lamp.indirect.rgbm.webp",
   "png": "lamp.indirect.rgbm.png",
-  "res": 512,
+  "res": 2048,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 4.32,
-  "linear_max": 18.6624,
+  "range_sqrt": 4.89,
+  "linear_max": 23.9121,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00043,
-  "rgbm_mean_rel_err": 0.002,
+  "clipped_fraction": 0.00037,
+  "rgbm_mean_rel_err": 0.0019,
   "samples": 256,
   "check": {
-   "mean_full_raw": 3.96274,
-   "mean_full": 3.98434,
-   "mean_direct_plus_indirect": 3.99828,
-   "mean_ratio": 1.0035,
-   "p99_full": 101.1132,
-   "p99_direct_plus_indirect": 100.1332,
-   "indirect_share": 0.3946,
-   "direct_share": 0.6089
+   "mean_full_raw": 3.95694,
+   "mean_full": 3.9681,
+   "mean_direct_plus_indirect": 3.99525,
+   "mean_ratio": 1.0068,
+   "p99_full": 107.2643,
+   "p99_direct_plus_indirect": 107.1292,
+   "indirect_share": 0.4021,
+   "direct_share": 0.6047
   },
   "direct_lights": [
    "SUN_main",
    "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "lamp_diffuser",
+   "lamp_pbr"
+  ],
+  "atlases": [
+   {
+    "lightmap": "lamp.indirect.rgbm.webp",
+    "png": "lamp.indirect.rgbm.png",
+    "res": 2048,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 4.89,
+    "linear_max": 23.9121,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00037,
+    "rgbm_mean_rel_err": 0.0019,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 3.95694,
+     "mean_full": 3.9681,
+     "mean_direct_plus_indirect": 3.99525,
+     "mean_ratio": 1.0068,
+     "p99_full": 107.2643,
+     "p99_direct_plus_indirect": 107.1292,
+     "indirect_share": 0.4021,
+     "direct_share": 0.6047
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "lamp_diffuser",
+     "lamp_pbr"
+    ]
+   }
   ]
  },
  "material_modes": {
@@ -282,14 +320,14 @@
   }
  },
  "bake_seconds": {
-  "base": 27.7,
-  "rough": 27.6,
-  "metal": 27.5,
-  "normal": 35.2,
-  "L_full": 26.0,
-  "L_direct": 20.9
+  "base": 28.0,
+  "rough": 27.9,
+  "metal": 28.0,
+  "normal": 35.7,
+  "L_full": 80.6,
+  "L_direct": 38.2
  },
  "glb": "lamp.glb",
- "glb_bytes": 2887732,
- "seconds": 218.8
+ "glb_bytes": 2887736,
+ "seconds": 299.6
 }

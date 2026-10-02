@@ -35,27 +35,63 @@
  "rt": {
   "lightmap": "teto_pear.indirect.rgbm.webp",
   "png": "teto_pear.indirect.rgbm.png",
-  "res": 256,
+  "res": 1024,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 0.67,
-  "linear_max": 0.4489,
+  "range_sqrt": 0.57,
+  "linear_max": 0.3249,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00047,
+  "clipped_fraction": 0.0003,
   "rgbm_mean_rel_err": 0.0022,
   "samples": 256,
   "check": {
-   "mean_full_raw": 0.11114,
-   "mean_full": 0.11042,
-   "mean_direct_plus_indirect": 0.11042,
+   "mean_full_raw": 0.1114,
+   "mean_full": 0.1113,
+   "mean_direct_plus_indirect": 0.1113,
    "mean_ratio": 1.0,
-   "p99_full": 0.2199,
-   "p99_direct_plus_indirect": 0.2199,
+   "p99_full": 0.2175,
+   "p99_direct_plus_indirect": 0.2175,
    "indirect_share": 1.0,
    "direct_share": 0.0
   },
   "direct_lights": [
    "SUN_main",
    "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "teto_pear_pbr"
+  ],
+  "atlases": [
+   {
+    "lightmap": "teto_pear.indirect.rgbm.webp",
+    "png": "teto_pear.indirect.rgbm.png",
+    "res": 1024,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 0.57,
+    "linear_max": 0.3249,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.0003,
+    "rgbm_mean_rel_err": 0.0022,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.1114,
+     "mean_full": 0.1113,
+     "mean_direct_plus_indirect": 0.1113,
+     "mean_ratio": 1.0,
+     "p99_full": 0.2175,
+     "p99_direct_plus_indirect": 0.2175,
+     "indirect_share": 1.0,
+     "direct_share": 0.0
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "teto_pear_pbr"
+    ]
+   }
   ]
  },
  "material_modes": {
@@ -121,14 +157,14 @@
   }
  },
  "bake_seconds": {
-  "base": 1.4,
+  "base": 1.5,
   "rough": 1.4,
-  "metal": 1.3,
-  "normal": 1.4,
-  "L_full": 2.4,
-  "L_direct": 1.5
+  "metal": 1.4,
+  "normal": 1.5,
+  "L_full": 18.6,
+  "L_direct": 4.4
  },
  "glb": "teto_pear.glb",
  "glb_bytes": 120852,
- "seconds": 13.1
+ "seconds": 33.0
 }

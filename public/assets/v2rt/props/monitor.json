@@ -107,27 +107,65 @@
  "rt": {
   "lightmap": "monitor.indirect.rgbm.webp",
   "png": "monitor.indirect.rgbm.png",
-  "res": 512,
+  "res": 2048,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 1.97,
-  "linear_max": 3.8809,
+  "range_sqrt": 1.89,
+  "linear_max": 3.5721,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00019,
+  "clipped_fraction": 0.00016,
   "rgbm_mean_rel_err": 0.0025,
   "samples": 256,
   "check": {
-   "mean_full_raw": 0.16412,
-   "mean_full": 0.16284,
-   "mean_direct_plus_indirect": 0.16251,
-   "mean_ratio": 0.998,
-   "p99_full": 1.086,
-   "p99_direct_plus_indirect": 1.0832,
-   "indirect_share": 0.623,
-   "direct_share": 0.375
+   "mean_full_raw": 0.17627,
+   "mean_full": 0.17484,
+   "mean_direct_plus_indirect": 0.17476,
+   "mean_ratio": 0.9995,
+   "p99_full": 1.1227,
+   "p99_direct_plus_indirect": 1.1189,
+   "indirect_share": 0.6282,
+   "direct_share": 0.3713
   },
   "direct_lights": [
    "SUN_main",
    "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "mon_power_led",
+   "monitor_pbr"
+  ],
+  "atlases": [
+   {
+    "lightmap": "monitor.indirect.rgbm.webp",
+    "png": "monitor.indirect.rgbm.png",
+    "res": 2048,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 1.89,
+    "linear_max": 3.5721,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00016,
+    "rgbm_mean_rel_err": 0.0025,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.17627,
+     "mean_full": 0.17484,
+     "mean_direct_plus_indirect": 0.17476,
+     "mean_ratio": 0.9995,
+     "p99_full": 1.1227,
+     "p99_direct_plus_indirect": 1.1189,
+     "indirect_share": 0.6282,
+     "direct_share": 0.3713
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "mon_power_led",
+     "monitor_pbr"
+    ]
+   }
   ]
  },
  "material_modes": {
@@ -268,14 +306,14 @@
   }
  },
  "bake_seconds": {
-  "base": 19.1,
-  "rough": 19.1,
-  "metal": 19.1,
-  "normal": 19.5,
-  "L_full": 17.5,
-  "L_direct": 14.8
+  "base": 21.7,
+  "rough": 20.8,
+  "metal": 20.0,
+  "normal": 20.2,
+  "L_full": 43.1,
+  "L_direct": 28.0
  },
  "glb": "monitor.glb",
- "glb_bytes": 424664,
- "seconds": 147.0
+ "glb_bytes": 424660,
+ "seconds": 198.5
 }

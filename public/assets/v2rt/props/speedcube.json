@@ -198,27 +198,65 @@
  "rt": {
   "lightmap": "speedcube.indirect.rgbm.webp",
   "png": "speedcube.indirect.rgbm.png",
-  "res": 256,
+  "res": 1024,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 1.38,
-  "linear_max": 1.9044,
+  "range_sqrt": 1.25,
+  "linear_max": 1.5625,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00045,
+  "clipped_fraction": 0.00041,
   "rgbm_mean_rel_err": 0.0022,
   "samples": 256,
   "check": {
-   "mean_full_raw": 0.2048,
-   "mean_full": 0.20463,
-   "mean_direct_plus_indirect": 0.21162,
-   "mean_ratio": 1.0342,
-   "p99_full": 2.6046,
-   "p99_direct_plus_indirect": 2.6263,
-   "indirect_share": 0.459,
-   "direct_share": 0.5752
+   "mean_full_raw": 0.25092,
+   "mean_full": 0.25129,
+   "mean_direct_plus_indirect": 0.26383,
+   "mean_ratio": 1.0499,
+   "p99_full": 2.6144,
+   "p99_direct_plus_indirect": 2.7306,
+   "indirect_share": 0.4151,
+   "direct_share": 0.6348
   },
   "direct_lights": [
    "SUN_main",
    "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "speedcube_pbr",
+   "speedcube_pbr_cutout"
+  ],
+  "atlases": [
+   {
+    "lightmap": "speedcube.indirect.rgbm.webp",
+    "png": "speedcube.indirect.rgbm.png",
+    "res": 1024,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 1.25,
+    "linear_max": 1.5625,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00041,
+    "rgbm_mean_rel_err": 0.0022,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.25092,
+     "mean_full": 0.25129,
+     "mean_direct_plus_indirect": 0.26383,
+     "mean_ratio": 1.0499,
+     "p99_full": 2.6144,
+     "p99_direct_plus_indirect": 2.7306,
+     "indirect_share": 0.4151,
+     "direct_share": 0.6348
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "speedcube_pbr",
+     "speedcube_pbr_cutout"
+    ]
+   }
   ]
  },
  "material_modes": {
@@ -293,15 +331,15 @@
   }
  },
  "bake_seconds": {
-  "base": 37.6,
-  "rough": 38.1,
-  "metal": 37.7,
-  "alpha": 37.9,
-  "normal": 38.1,
-  "L_full": 38.4,
-  "L_direct": 33.1
+  "base": 39.3,
+  "rough": 39.6,
+  "metal": 39.1,
+  "alpha": 39.3,
+  "normal": 39.2,
+  "L_full": 60.9,
+  "L_direct": 40.9
  },
  "glb": "speedcube.glb",
  "glb_bytes": 908844,
- "seconds": 338.2
+ "seconds": 381.5
 }
