@@ -537,7 +537,228 @@
     "dilate_px": 32,
     "mask_seconds": 6.2
    },
-   "materials": [
+   "materials": {
+    "Material_3": {
+     "blender_materials": [
+      "Material_3"
+     ],
+     "roughness": 0.456,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.35,
+     "coat_roughness": 0.2082,
+     "sheen_weight": 0.0,
+     "roughness_source": "texture-driven, mean over texels",
+     "three": {
+      "roughness": 0.456,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.35,
+      "clearcoatRoughness": 0.2082,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    },
+    "rs_ceiling_flat": {
+     "blender_materials": [
+      "rs_ceiling_flat",
+      "rs_wall_eggshell"
+     ],
+     "roughness": 0.6215,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "texture-driven, mean over texels",
+     "three": {
+      "roughness": 0.6215,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    },
+    "rs_scuff_baseboard": {
+     "blender_materials": [
+      "rs_scuff_baseboard"
+     ],
+     "roughness": 0.6,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "scalar",
+     "three": {
+      "roughness": 0.6,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    },
+    "rs_scuff_floor": {
+     "blender_materials": [
+      "rs_scuff_floor"
+     ],
+     "roughness": 0.8,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "scalar",
+     "three": {
+      "roughness": 0.8,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    },
+    "rs_scuff_rubber": {
+     "blender_materials": [
+      "rs_scuff_rubber"
+     ],
+     "roughness": 0.7,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "scalar",
+     "three": {
+      "roughness": 0.7,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    },
+    "rs_trim_semigloss": {
+     "blender_materials": [
+      "rs_trim_semigloss"
+     ],
+     "roughness": 0.2404,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "texture-driven, mean over texels",
+     "three": {
+      "roughness": 0.2404,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    },
+    "rs_wall_patch": {
+     "blender_materials": [
+      "rs_wall_patch"
+     ],
+     "roughness": 0.7225,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "texture-driven, mean over texels",
+     "three": {
+      "roughness": 0.7225,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    },
+    "rs_window_frame_black": {
+     "blender_materials": [
+      "rs_window_frame_black"
+     ],
+     "roughness": 0.4177,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "texture-driven, mean over texels",
+     "three": {
+      "roughness": 0.4177,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    }
+   },
+   "glb": "shell.glb",
+   "glb_bytes": 237004,
+   "glb_primitives": 23,
+   "glb_all_have_TEXCOORD_1": true,
+   "glb_images": 0,
+   "glb_uv_roundtrip_match": 0.9993,
+   "glb_tris": 2692,
+   "glb_note": "world-space nodes, glTF Y-up; TEXCOORD_0 = original UV (all-zero placeholder where the object had none), TEXCOORD_1 = UVMap_lightmap; curtains baked and exported as the same cage mesh (subdivision removed in prepare)",
+   "indirect": {
+    "file": "lightmap_shell.indirect.rgbm.webp",
+    "range_sqrt": 1.2,
+    "linear_max": 1.44,
+    "bytes": 3422302,
+    "png_bytes": 4827411,
+    "encoding": "RGBM of sqrt(L), 8-bit RGBA lossless WebP (bit-identical to the PNG), linear data",
+    "decode": "L = (rgb * a * range_sqrt)^2",
+    "mean_rel_err": 0.0025,
+    "clipped_fraction": 0.00036,
+    "holds": "L_full - L_direct(SUN_main + LAMP_disk): sky, emissives, street lights and every bounce",
+    "method": "raw",
+    "mean_linear": 0.0761,
+    "max_linear": 2.441,
+    "share_of_full": {
+     "direct_sun_lamp": 0.2656,
+     "indirect": 0.7359
+    },
+    "sanity_B_plus_indirect_vs_A": {
+     "mean_abs": 0.000671,
+     "mean_abs_rel_to_mean": 0.00648,
+     "p99_abs": 0.01367,
+     "p99_rel": 0.0333,
+     "bias_rel": 0.00144
+    }
+   },
+   "material_names": [
     "Material_3",
     "rs_ceiling_flat",
     "rs_scuff_baseboard",
@@ -547,15 +768,7 @@
     "rs_wall_eggshell",
     "rs_wall_patch",
     "rs_window_frame_black"
-   ],
-   "glb": "shell.glb",
-   "glb_bytes": 237004,
-   "glb_primitives": 23,
-   "glb_all_have_TEXCOORD_1": true,
-   "glb_images": 0,
-   "glb_uv_roundtrip_match": 0.9993,
-   "glb_tris": 2692,
-   "glb_note": "world-space nodes, glTF Y-up; TEXCOORD_0 = original UV (all-zero placeholder where the object had none), TEXCOORD_1 = UVMap_lightmap; curtains baked and exported as the same cage mesh (subdivision removed in prepare)"
+   ]
   },
   "desk": {
    "resolution": 1024,
@@ -678,13 +891,123 @@
     "dilate_px": 32,
     "mask_seconds": 1.8
    },
-   "materials": [
-    "desk_legs_white_powder",
-    "desk_white_edge",
-    "desk_white_laminate",
-    "rm_plastic_black_nylon",
-    "rm_steel_frame"
-   ],
+   "materials": {
+    "desk_legs_white_powder": {
+     "blender_materials": [
+      "desk_legs_white_powder"
+     ],
+     "roughness": 0.4,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "scalar",
+     "three": {
+      "roughness": 0.4,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    },
+    "desk_white_edge": {
+     "blender_materials": [
+      "desk_white_edge"
+     ],
+     "roughness": 0.5697,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "texture-driven, mean over texels",
+     "three": {
+      "roughness": 0.5697,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    },
+    "desk_white_laminate": {
+     "blender_materials": [
+      "desk_white_laminate"
+     ],
+     "roughness": 0.5676,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "texture-driven, mean over texels",
+     "three": {
+      "roughness": 0.5676,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    },
+    "rm_plastic_black_nylon": {
+     "blender_materials": [
+      "rm_plastic_black_nylon"
+     ],
+     "roughness": 0.6073,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "texture-driven, mean over texels",
+     "three": {
+      "roughness": 0.6073,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    },
+    "rm_steel_frame": {
+     "blender_materials": [
+      "rm_steel_frame"
+     ],
+     "roughness": 0.5206,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "texture-driven, mean over texels",
+     "three": {
+      "roughness": 0.5206,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    }
+   },
    "glb": "desk.glb",
    "glb_bytes": 640136,
    "glb_primitives": 5,
@@ -692,7 +1015,40 @@
    "glb_images": 0,
    "glb_uv_roundtrip_match": 1.0,
    "glb_tris": 9260,
-   "glb_note": "world-space nodes, glTF Y-up; TEXCOORD_0 = original UV (all-zero placeholder where the object had none), TEXCOORD_1 = UVMap_lightmap; curtains baked and exported as the same cage mesh (subdivision removed in prepare)"
+   "glb_note": "world-space nodes, glTF Y-up; TEXCOORD_0 = original UV (all-zero placeholder where the object had none), TEXCOORD_1 = UVMap_lightmap; curtains baked and exported as the same cage mesh (subdivision removed in prepare)",
+   "indirect": {
+    "file": "lightmap_desk.indirect.rgbm.webp",
+    "range_sqrt": 1.15,
+    "linear_max": 1.3225,
+    "bytes": 1350604,
+    "png_bytes": 1822046,
+    "encoding": "RGBM of sqrt(L), 8-bit RGBA lossless WebP (bit-identical to the PNG), linear data",
+    "decode": "L = (rgb * a * range_sqrt)^2",
+    "mean_rel_err": 0.0024,
+    "clipped_fraction": 0.00041,
+    "holds": "L_full - L_direct(SUN_main + LAMP_disk): sky, emissives, street lights and every bounce",
+    "method": "raw",
+    "mean_linear": 0.11078,
+    "max_linear": 1.825,
+    "share_of_full": {
+     "direct_sun_lamp": 0.8308,
+     "indirect": 0.1817
+    },
+    "sanity_B_plus_indirect_vs_A": {
+     "mean_abs": 0.01035,
+     "mean_abs_rel_to_mean": 0.01698,
+     "p99_abs": 0.18164,
+     "p99_rel": 0.0734,
+     "bias_rel": 0.01249
+    }
+   },
+   "material_names": [
+    "desk_legs_white_powder",
+    "desk_white_edge",
+    "desk_white_laminate",
+    "rm_plastic_black_nylon",
+    "rm_steel_frame"
+   ]
   },
   "furniture": {
    "resolution": 512,
@@ -1005,12 +1361,56 @@
     "dilate_px": 32,
     "mask_seconds": 0.5
    },
-   "materials": [
-    "bambu_mini_paint_leg.001",
-    "bambu_mini_paint_top.001",
-    "br_board_white_paint",
-    "br_powder_white"
-   ],
+   "materials": {
+    "bambu_mini_paint_top.001": {
+     "blender_materials": [
+      "bambu_mini_paint_leg.001",
+      "bambu_mini_paint_top.001",
+      "br_board_white_paint"
+     ],
+     "roughness": 0.3615,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.0,
+     "roughness_source": "texture-driven, mean over texels",
+     "three": {
+      "roughness": 0.3615,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    },
+    "br_powder_white": {
+     "blender_materials": [
+      "br_powder_white"
+     ],
+     "roughness": 0.4291,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.15,
+     "coat_roughness": 0.3,
+     "sheen_weight": 0.0,
+     "roughness_source": "texture-driven, mean over texels",
+     "three": {
+      "roughness": 0.4291,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.15,
+      "clearcoatRoughness": 0.3,
+      "sheen": 0.0,
+      "f0": 0.04
+     }
+    }
+   },
    "glb": "furniture.glb",
    "glb_bytes": 180716,
    "glb_primitives": 17,
@@ -1018,7 +1418,39 @@
    "glb_images": 0,
    "glb_uv_roundtrip_match": 1.0,
    "glb_tris": 3932,
-   "glb_note": "world-space nodes, glTF Y-up; TEXCOORD_0 = original UV (all-zero placeholder where the object had none), TEXCOORD_1 = UVMap_lightmap; curtains baked and exported as the same cage mesh (subdivision removed in prepare)"
+   "glb_note": "world-space nodes, glTF Y-up; TEXCOORD_0 = original UV (all-zero placeholder where the object had none), TEXCOORD_1 = UVMap_lightmap; curtains baked and exported as the same cage mesh (subdivision removed in prepare)",
+   "indirect": {
+    "file": "lightmap_furniture.indirect.rgbm.webp",
+    "range_sqrt": 0.99,
+    "linear_max": 0.9801,
+    "bytes": 353496,
+    "png_bytes": 489820,
+    "encoding": "RGBM of sqrt(L), 8-bit RGBA lossless WebP (bit-identical to the PNG), linear data",
+    "decode": "L = (rgb * a * range_sqrt)^2",
+    "mean_rel_err": 0.0025,
+    "clipped_fraction": 0.0003,
+    "holds": "L_full - L_direct(SUN_main + LAMP_disk): sky, emissives, street lights and every bounce",
+    "method": "raw",
+    "mean_linear": 0.01895,
+    "max_linear": 1.14,
+    "share_of_full": {
+     "direct_sun_lamp": 0.0043,
+     "indirect": 0.9958
+    },
+    "sanity_B_plus_indirect_vs_A": {
+     "mean_abs": 3.1e-05,
+     "mean_abs_rel_to_mean": 0.00164,
+     "p99_abs": 0.00037,
+     "p99_rel": 0.0043,
+     "bias_rel": 9e-05
+    }
+   },
+   "material_names": [
+    "bambu_mini_paint_leg.001",
+    "bambu_mini_paint_top.001",
+    "br_board_white_paint",
+    "br_powder_white"
+   ]
   },
   "soft": {
    "resolution": 1024,
@@ -1119,10 +1551,54 @@
     "dilate_px": 32,
     "mask_seconds": 4.2
    },
-   "materials": [
-    "Material_4",
-    "curtain_linen"
-   ],
+   "materials": {
+    "Material_4": {
+     "blender_materials": [
+      "Material_4"
+     ],
+     "roughness": 0.95,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.3,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.35,
+     "roughness_source": "scalar",
+     "three": {
+      "roughness": 0.95,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 0.6,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.35,
+      "f0": 0.024
+     }
+    },
+    "curtain_linen": {
+     "blender_materials": [
+      "curtain_linen"
+     ],
+     "roughness": 0.88,
+     "metallic": 0.0,
+     "ior": 1.5,
+     "specular_ior_level": 0.5,
+     "coat_weight": 0.0,
+     "coat_roughness": 0.03,
+     "sheen_weight": 0.35,
+     "roughness_source": "scalar",
+     "three": {
+      "roughness": 0.88,
+      "metalness": 0.0,
+      "ior": 1.5,
+      "specularIntensity": 1.0,
+      "clearcoat": 0.0,
+      "clearcoatRoughness": 0.03,
+      "sheen": 0.35,
+      "f0": 0.04
+     }
+    }
+   },
    "glb": "soft.glb",
    "glb_bytes": 2118368,
    "glb_primitives": 3,
@@ -1130,7 +1606,37 @@
    "glb_images": 0,
    "glb_uv_roundtrip_match": 1.0,
    "glb_tris": 79804,
-   "glb_note": "world-space nodes, glTF Y-up; TEXCOORD_0 = original UV (all-zero placeholder where the object had none), TEXCOORD_1 = UVMap_lightmap; curtains baked and exported as the same cage mesh (subdivision removed in prepare)"
+   "glb_note": "world-space nodes, glTF Y-up; TEXCOORD_0 = original UV (all-zero placeholder where the object had none), TEXCOORD_1 = UVMap_lightmap; curtains baked and exported as the same cage mesh (subdivision removed in prepare)",
+   "indirect": {
+    "file": "lightmap_soft.indirect.rgbm.webp",
+    "range_sqrt": 1.16,
+    "linear_max": 1.3456,
+    "bytes": 866602,
+    "png_bytes": 1361867,
+    "encoding": "RGBM of sqrt(L), 8-bit RGBA lossless WebP (bit-identical to the PNG), linear data",
+    "decode": "L = (rgb * a * range_sqrt)^2",
+    "mean_rel_err": 0.0025,
+    "clipped_fraction": 0.00037,
+    "holds": "L_full - L_direct(SUN_main + LAMP_disk): sky, emissives, street lights and every bounce",
+    "method": "raw",
+    "mean_linear": 0.03325,
+    "max_linear": 1.565,
+    "share_of_full": {
+     "direct_sun_lamp": 0.0708,
+     "indirect": 0.9318
+    },
+    "sanity_B_plus_indirect_vs_A": {
+     "mean_abs": 0.000341,
+     "mean_abs_rel_to_mean": 0.00957,
+     "p99_abs": 0.0061,
+     "p99_rel": 0.0593,
+     "bias_rel": 0.00253
+    }
+   },
+   "material_names": [
+    "Material_4",
+    "curtain_linen"
+   ]
   }
  },
  "prepare_seconds": 59.7,
@@ -1153,7 +1659,38 @@
     0.0,
     -1.0
    ],
-   "radius": 0.07999999821186066
+   "radius": 0.07999999821186066,
+   "shadow_soft_size": 0.07999999821186066,
+   "use_shadow": true,
+   "visible_diffuse": true,
+   "visible_glossy": true,
+   "visible_transmission": true,
+   "three_position": [
+    5.19999885559082,
+    -0.7950000762939453,
+    -1.640000343322754
+   ],
+   "three_direction": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "node_tree": {
+    "node_types": [
+     "EMISSION"
+    ],
+    "emission": [
+     {
+      "strength": 1.0,
+      "color": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "linked": []
+     }
+    ]
+   }
   },
   "EXT_fx_lamp_1": {
    "type": "POINT",
@@ -1173,7 +1710,38 @@
     0.0,
     -1.0
    ],
-   "radius": 0.07999999821186066
+   "radius": 0.07999999821186066,
+   "shadow_soft_size": 0.07999999821186066,
+   "use_shadow": true,
+   "visible_diffuse": true,
+   "visible_glossy": true,
+   "visible_transmission": true,
+   "three_position": [
+    -23.919998168945312,
+    -1.0349998474121094,
+    -33.58998107910156
+   ],
+   "three_direction": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "node_tree": {
+    "node_types": [
+     "EMISSION"
+    ],
+    "emission": [
+     {
+      "strength": 1.0,
+      "color": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "linked": []
+     }
+    ]
+   }
   },
   "EXT_fx_lamp_2": {
    "type": "POINT",
@@ -1193,7 +1761,38 @@
     0.0,
     -1.0
    ],
-   "radius": 0.07999999821186066
+   "radius": 0.07999999821186066,
+   "shadow_soft_size": 0.07999999821186066,
+   "use_shadow": true,
+   "visible_diffuse": true,
+   "visible_glossy": true,
+   "visible_transmission": true,
+   "three_position": [
+    -9.460000038146973,
+    -0.6750000715255737,
+    -31.919994354248047
+   ],
+   "three_direction": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "node_tree": {
+    "node_types": [
+     "EMISSION"
+    ],
+    "emission": [
+     {
+      "strength": 1.0,
+      "color": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "linked": []
+     }
+    ]
+   }
   },
   "EXT_fx_lamp_3": {
    "type": "POINT",
@@ -1213,7 +1812,38 @@
     0.0,
     -1.0
    ],
-   "radius": 0.07999999821186066
+   "radius": 0.07999999821186066,
+   "shadow_soft_size": 0.07999999821186066,
+   "use_shadow": true,
+   "visible_diffuse": true,
+   "visible_glossy": true,
+   "visible_transmission": true,
+   "three_position": [
+    9.810001373291016,
+    -0.7749998569488525,
+    -31.919994354248047
+   ],
+   "three_direction": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "node_tree": {
+    "node_types": [
+     "EMISSION"
+    ],
+    "emission": [
+     {
+      "strength": 1.0,
+      "color": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "linked": []
+     }
+    ]
+   }
   },
   "EXT_fx_lamp_4": {
    "type": "POINT",
@@ -1233,7 +1863,38 @@
     0.0,
     -1.0
    ],
-   "radius": 0.07999999821186066
+   "radius": 0.07999999821186066,
+   "shadow_soft_size": 0.07999999821186066,
+   "use_shadow": true,
+   "visible_diffuse": true,
+   "visible_glossy": true,
+   "visible_transmission": true,
+   "three_position": [
+    24.460002899169922,
+    -0.6750000715255737,
+    -31.919994354248047
+   ],
+   "three_direction": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "node_tree": {
+    "node_types": [
+     "EMISSION"
+    ],
+    "emission": [
+     {
+      "strength": 1.0,
+      "color": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "linked": []
+     }
+    ]
+   }
   },
   "EXT_fx_lamp_5": {
    "type": "POINT",
@@ -1253,7 +1914,38 @@
     0.0,
     -1.0
    ],
-   "radius": 0.07999999821186066
+   "radius": 0.07999999821186066,
+   "shadow_soft_size": 0.07999999821186066,
+   "use_shadow": true,
+   "visible_diffuse": true,
+   "visible_glossy": true,
+   "visible_transmission": true,
+   "three_position": [
+    38.920013427734375,
+    -1.0349998474121094,
+    -33.58998107910156
+   ],
+   "three_direction": [
+    0.0,
+    -1.0,
+    -0.0
+   ],
+   "node_tree": {
+    "node_types": [
+     "EMISSION"
+    ],
+    "emission": [
+     {
+      "strength": 1.0,
+      "color": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "linked": []
+     }
+    ]
+   }
   },
   "LAMP_disk": {
    "type": "AREA",
@@ -1275,7 +1967,39 @@
    ],
    "shape": "DISK",
    "size": 0.19099999964237213,
-   "spread": 2.0071287155151367
+   "spread": 2.0071287155151367,
+   "shadow_soft_size": 0.0,
+   "use_shadow": true,
+   "visible_diffuse": true,
+   "visible_glossy": true,
+   "visible_transmission": true,
+   "three_position": [
+    -0.5316481590270996,
+    1.130415916442871,
+    -0.7995597124099731
+   ],
+   "three_direction": [
+    -0.1726546287536621,
+    -0.9632585048675537,
+    -0.2057265043258667
+   ],
+   "spread_deg": 115.00000433853141,
+   "node_tree": {
+    "node_types": [
+     "EMISSION"
+    ],
+    "emission": [
+     {
+      "strength": 1.0,
+      "color": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "linked": []
+     }
+    ]
+   }
   },
   "SUN_main": {
    "type": "SUN",
@@ -1295,7 +2019,39 @@
     -0.7566131949424744,
     -0.15643425285816193
    ],
-   "angle_rad": 0.02094395086169243
+   "angle_rad": 0.02094395086169243,
+   "shadow_soft_size": 0.0,
+   "use_shadow": true,
+   "visible_diffuse": true,
+   "visible_glossy": true,
+   "visible_transmission": true,
+   "three_position": [
+    5.078990459442139,
+    1.2514756917953491,
+    -6.052905082702637
+   ],
+   "three_direction": [
+    -0.6348738670349121,
+    -0.15643425285816193,
+    0.7566131949424744
+   ],
+   "angle_deg": 1.19999999070436,
+   "node_tree": {
+    "node_types": [
+     "EMISSION"
+    ],
+    "emission": [
+     {
+      "strength": 1.0,
+      "color": [
+       1.0,
+       1.0,
+       1.0
+      ],
+      "linked": []
+     }
+    ]
+   }
   }
  },
  "sky": {
@@ -1430,5 +2186,85 @@
    }
   },
   "method": "left: full Cycles render of room_bake.blend (sunset, room volume off, robot light 3.5); right: baked objects as Emission(albedo x lightmap) with no lights, others holdout (shown at 30% of the reference). Metrics over baked pixels, display-referred (AgX) luma 0..1."
+ },
+ "materials_note": "atlases.<a>.materials: per material of the shipped GLB (public/assets/v2/room/<a>.glb), the Principled inputs as Blender has them. Texture/procedural-driven inputs are EMIT-baked in the lightmap UV and averaged over the material's texels (p5/p95 in materials_blender); several Blender materials merged into one GLB material are texel-weighted. three: MeshPhysicalMaterial equivalents (specularIntensity = 2 x Specular IOR Level, so 0.5 -> 1.0, F0 = ((ior-1)/(ior+1))^2 x 2 x level).",
+ "indirect_bake": {
+  "pass_b_settings": {
+   "type": "DIFFUSE",
+   "passes": [
+    "DIRECT"
+   ],
+   "color": false,
+   "samples": 1024,
+   "seed": 0,
+   "adaptive_sampling": false,
+   "lights_on": [
+    "SUN_main",
+    "LAMP_disk"
+   ],
+   "lights_off": [
+    "EXT_fx_lamp_0",
+    "EXT_fx_lamp_1",
+    "EXT_fx_lamp_2",
+    "EXT_fx_lamp_3",
+    "EXT_fx_lamp_4",
+    "EXT_fx_lamp_5"
+   ],
+   "emission_zeroed": 61,
+   "world": "strength 0",
+   "margin_px": 3
+  },
+  "combine": {
+   "method": "raw",
+   "methods": {
+    "raw": "indirect = OIDN(clamp0(A_raw - B_raw)), gutters/buried refilled per island before and after",
+    "sub": "indirect = clamp0(OIDN(A_raw) - OIDN(B_raw)), refilled per island"
+   },
+   "sanity_meaning": "e = B_denoised + indirect - A_denoised (the shipped full master) over valid texels; mean_abs_rel_to_mean = mean|e| / mean(A); p99_rel = 99th pct of |e| / max(A, 5% of mean A)"
+  },
+  "darkcheck": {
+   "ok": true,
+   "atlases": {
+    "shell": {
+     "res": 256,
+     "spp": 16,
+     "max": 0.0,
+     "nonzero_texels": 0
+    },
+    "desk": {
+     "res": 128,
+     "spp": 16,
+     "max": 0.0,
+     "nonzero_texels": 0
+    },
+    "furniture": {
+     "res": 64,
+     "spp": 16,
+     "max": 0.0,
+     "nonzero_texels": 0
+    },
+    "soft": {
+     "res": 128,
+     "spp": 16,
+     "max": 0.0,
+     "nonzero_texels": 0
+    }
+   },
+   "isolation": {
+    "lights_off": [
+     "EXT_fx_lamp_0",
+     "EXT_fx_lamp_1",
+     "EXT_fx_lamp_2",
+     "EXT_fx_lamp_3",
+     "EXT_fx_lamp_4",
+     "EXT_fx_lamp_5",
+     "LAMP_disk",
+     "SUN_main"
+    ],
+    "emission_zeroed": 61,
+    "world": "strength 0, output unlinked"
+   },
+   "meaning": "all lights off, world 0, emission zeroed: DIRECT+INDIRECT bake must be exactly 0, so pass B (same isolation with SUN_main and LAMP_disk on) holds those two lights only"
+  }
  }
 }
