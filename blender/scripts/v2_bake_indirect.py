@@ -524,6 +524,7 @@ def stage_materials(opt, man):
                            f0=round(min(1.0, f0 * 2 * lvl), 4)))
         shipped[name] = out
         man['atlases'][name]['materials'] = out
+        man['atlases'][name].setdefault('material_names', sorted(k for k, v in blender_mats.items() if v['atlas'] == name))
     man['materials_note'] = (
         'atlases.<a>.materials: per material of the shipped GLB (public/assets/v2/room/<a>.glb), the Principled '
         'inputs as Blender has them. Texture/procedural-driven inputs are EMIT-baked in the lightmap UV and '

@@ -1349,7 +1349,7 @@ def stage_bake(opt, man):
                           bytes=os.path.getsize(out)),
                  mean_linear=round(m_dn, 5), max_linear=round(float(a_dn.max()), 3), preview_p99_linear=round(p99, 4),
                  bake_seconds=bake_s, samples=opt['samples'], texels=cov_stats,
-                 materials=sorted(m.name for m in mats))
+                 material_names=sorted(m.name for m in mats))  # `materials` (PBR values): v2_bake_indirect.py
         man['bake_settings'] = dict(engine='CYCLES', device='CUDA GPU only', type='DIFFUSE', passes=['DIRECT', 'INDIRECT'],
                                     color=False, meaning='irradiance-like diffuse lighting L, Blender outgoing diffuse = albedo * L',
                                     samples=opt['samples'], adaptive_sampling=False, margin_px=BAKE_MARGIN_PX,
