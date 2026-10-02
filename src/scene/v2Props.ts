@@ -120,7 +120,28 @@ function restoreLitScale(root: THREE.Object3D) {
  * The indirect lightmap a `?rt` prop set carries (manifest entry, read loosely): RGBM of sqrt(L),
  * lossless WebP, decoded like the room's, on the UV the entry names (default 0: the PBR atlas).
  */
-function lightmapOf(entry: PropEntry): { file: string; rangeSqrt: number; channel: number } | null {
+interface PropLightmap {
+  file: string;
+  rangeSqrt: number;
+  channel: number;
+  /** The glTF materials this map belongs to (a set with several atlases); none = every material. */
+  materials?: string[];
+}
+
+function lightmapsOf(entry: PropEntry): PropLightmap[] {
+  const list = (entry as unknown as { lightmaps?: unknown[] }).lightmaps;
+  if (Array.isArray(list)) {
+    return list.flatMap((raw) => {
+      const one = lightmapOf({ lightmap: raw } as unknown as PropEntry);
+      const materials = (raw as { materials?: unknown }).materials;
+      return one ? [{ ...one, materials: Array.isArray(materials) ? (materials as string[]) : undefined }] : [];
+    });
+  }
+  const one = lightmapOf(entry);
+  return one ? [one] : [];
+}
+
+function lightmapOf(entry: PropEntry): PropLightmap | null {
   const r = entry as unknown as Record<string, unknown>;
   const lm = (r.lightmap ?? r.indirect) as
     | string
@@ -135,7 +156,7 @@ function lightmapOf(entry: PropEntry): { file: string; rangeSqrt: number; channe
   return file && rangeSqrt > 0 ? { file, rangeSqrt, channel: Number.isFinite(channel) ? channel : 0 } : null;
 }
 
-async function applyPropLightmap(root: THREE.Object3D, url: string, rangeSqrt: number, channel: number) {
+async function applyPropLightmap(root: THREE.Object3D, url: string, rangeSqrt: number, channel: number, only?: string[]) {
   const tex = await new THREE.TextureLoader().loadAsync(url);
   tex.flipY = false;
   tex.colorSpace = THREE.NoColorSpace;
@@ -151,6 +172,9 @@ async function applyPropLightmap(root: THREE.Object3D, url: string, rangeSqrt: n
     for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
       const std = m as THREE.MeshStandardMaterial;
       if (done.has(m) || !std.isMeshStandardMaterial || std.transparent) continue;
+      // The monitor's screen has its own 0..1 UV (the attractor), outside every atlas.
+      if (m.name.startsWith('mon_screen')) continue;
+      if (only && !only.includes(m.name)) continue;
       done.add(m);
       std.lightMap = tex;
       std.lightMapIntensity = Math.PI;
@@ -181,8 +205,11 @@ export async function loadV2Props(base: string, options: { lightmaps?: boolean }
       const gltf = await loader.loadAsync(base + entry.file);
       gltf.scene.name = `prop-file:${entry.name}`;
       restoreLitScale(gltf.scene);
-      const lm = options.lightmaps ? lightmapOf(entry) : null;
-      if (lm) await applyPropLightmap(gltf.scene, base + lm.file, lm.rangeSqrt, lm.channel);
+      if (options.lightmaps) {
+        await Promise.all(
+          lightmapsOf(entry).map((lm) => applyPropLightmap(gltf.scene, base + lm.file, lm.rangeSqrt, lm.channel, lm.materials)),
+        );
+      }
       return { entry, root: gltf.scene } satisfies LoadedProp;
     }),
   );
