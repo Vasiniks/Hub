@@ -93,3 +93,37 @@ atlases, the lightmap UVs no longer address a single texture.
   are not baked either; the full list is in `excluded` in the manifest. These keep real-time light
   tuned to match.
 - Lightmaps were deliberately kept out of `main` before. Commit or ship this set only on purpose.
+
+## Indirect-only lightmaps (hybrid: live sun + lamp)
+
+For a runtime that lights `SUN_main` and `LAMP_disk` live (shadows, PBR specular) and takes everything
+else from the bake. Made by `blender/scripts/v2_bake_indirect.py` on the same prepared `room_bake.blend`
+(same lightmap UVs, so the shipped GLBs and albedo atlases are unchanged; the script never saves the copy):
+
+```
+blender -b --python blender/scripts/v2_bake_indirect.py -- check+darkcheck+bake+combine+materials+verify
+python scripts/v2look/encode_room_webp.py --indirect-only
+```
+
+- **Pass A** is the shipped full bake (its raw EXR in `tmp/bake_sunset/raw_<atlas>.exr`, 1024 spp, seed 0).
+  **Pass B** is the same DIFFUSE bake, DIRECT only, colour off, 1024 spp, with every other light off, the
+  world at 0 and every emission zeroed (`darkcheck` proves that isolation: with the two lights off too, the
+  bake is exactly 0). `L_indirect = OIDN(max(0, A_raw - B_raw))`, refilled per island like A.
+  The other order, `OIDN(A) - OIDN(B)`, reproduces A exactly but carries the denoiser's residue and edge
+  halos into the lamp pool, so it is not used (both are kept in `tmp/bake_sunset/indirect_{raw,sub}_*`).
+- **What it holds:** the sky through the window, the screens, PC RGB, LEDs, the lamp's glowing diffuser
+  (`lamp_diffuser`, emission 6), the street lights, and every bounce of the sun and the lamp. Not the
+  direct light of `SUN_main` or `LAMP_disk`.
+- **Files:** `lightmap_<atlas>.indirect.exr` (master), `.indirect.rgbm.png` (web master, shipped as
+  `public/assets/v2/room/lightmap_<atlas>.indirect.rgbm.webp`), `.indirect_preview.png`; pass B denoised as
+  `lightmap_<atlas>.direct.exr` (+ preview) for checks only. Manifest: `atlases.<a>.indirect`
+  (`range_sqrt`, `linear_max`, sanity numbers), `atlases.<a>.materials` (per shipped GLB material:
+  roughness, metallic, IOR, specular level, coat, sheen; texture-driven ones are means over the
+  material's lightmap texels), `lights` (with `three_position`, `three_direction`, sun `angle_deg`,
+  disk `size`/`spread_deg`, shadows on).
+- **Runtime:** the decode and `lightMapIntensity = Math.PI` are unchanged (same RGBM-of-sqrt, own
+  `range_sqrt`). Baked surfaces then need the live sun and lamp in their *diffuse and specular* terms, with
+  shadows, but no ambient/hemisphere light and no environment diffuse (that is in the lightmap). Units:
+  a three `DirectionalLight` of intensity 4 matches the sun of strength 4; the disk (17.95 W, Lambertian)
+  is a `SpotLight` of intensity `P / PI` with decay 2 (see `src/scene/v2PropLight.ts`). The window glass
+  (`Mesh_11`) casts no shadow in Cycles (`visible_shadow` off); the live sun must not be blocked by it.

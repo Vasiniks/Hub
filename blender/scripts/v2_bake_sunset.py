@@ -218,6 +218,31 @@ def light_params(sc):
                 d.update(shape=l.shape, size=l.size, spread=l.spread)
             if l.type in ('POINT', 'SPOT'):
                 d['radius'] = l.shadow_soft_size
+            if l.type == 'SPOT':
+                d.update(spot_size=l.spot_size, spot_blend=l.spot_blend)
+            # What a live (runtime) copy of the light needs to match Cycles: shadow softness, shadows on/off,
+            # ray visibility, the light's own node tree (it scales the emission when used), and three.js
+            # coordinates (a Blender point (x, y, z) is three (x, z, -y)).
+            p, v = o.matrix_world.translation, (o.matrix_world.to_3x3() @ Vector((0, 0, -1))).normalized()
+            d.update(shadow_soft_size=l.shadow_soft_size, use_shadow=bool(getattr(l, 'use_shadow', True)),
+                     visible_diffuse=o.visible_diffuse, visible_glossy=o.visible_glossy,
+                     visible_transmission=o.visible_transmission,
+                     three_position=[p.x, p.z, -p.y], three_direction=[v.x, v.z, -v.y])
+            if l.type == 'SUN':
+                d['angle_deg'] = math.degrees(l.angle)
+            if l.type == 'AREA':
+                d['spread_deg'] = math.degrees(l.spread)
+            ll = getattr(o, 'light_linking', None)
+            if ll and (ll.receiver_collection or ll.blocker_collection):
+                d['light_linking'] = dict(receivers=getattr(ll.receiver_collection, 'name', None),
+                                          blockers=getattr(ll.blocker_collection, 'name', None))
+            if getattr(l, 'use_nodes', False) and l.node_tree:
+                nodes = [n for n in l.node_tree.nodes if n.type not in ('OUTPUT_LIGHT', 'FRAME', 'REROUTE')]
+                em = [n for n in nodes if n.type == 'EMISSION']
+                d['node_tree'] = dict(node_types=sorted({n.type for n in nodes}),
+                                      emission=[dict(strength=n.inputs['Strength'].default_value,
+                                                     color=list(n.inputs['Color'].default_value)[:3],
+                                                     linked=[s.name for s in n.inputs if s.is_linked]) for n in em])
             out[o.name] = d
     w = sc.world
     sky = {}
@@ -1324,7 +1349,7 @@ def stage_bake(opt, man):
                           bytes=os.path.getsize(out)),
                  mean_linear=round(m_dn, 5), max_linear=round(float(a_dn.max()), 3), preview_p99_linear=round(p99, 4),
                  bake_seconds=bake_s, samples=opt['samples'], texels=cov_stats,
-                 materials=sorted(m.name for m in mats))
+                 material_names=sorted(m.name for m in mats))  # `materials` (PBR values): v2_bake_indirect.py
         man['bake_settings'] = dict(engine='CYCLES', device='CUDA GPU only', type='DIFFUSE', passes=['DIRECT', 'INDIRECT'],
                                     color=False, meaning='irradiance-like diffuse lighting L, Blender outgoing diffuse = albedo * L',
                                     samples=opt['samples'], adaptive_sampling=False, margin_px=BAKE_MARGIN_PX,
@@ -1597,4 +1622,5 @@ def main():
     log('DONE', stages)
 
 
-main()
+if __name__ == '__main__':   # blender --python runs this as __main__; v2_bake_indirect.py imports it
+    main()
