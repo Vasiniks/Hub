@@ -1,13 +1,13 @@
 {
- "generated": "2026-10-02T06:36:38.882Z",
+ "generated": "2026-10-02T07:02:03.997Z",
  "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
  "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
  "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
  "materials": "Hybrid real-time (v2rt): every material is PBR (baseColor, ORM with R = 1, normal where it matters, emissive where it emits) on one atlas per set (TEXCOORD_0; the PC has three: case, interior, plush). The indirect-only lightmap of each set uses the same TEXCOORD_0: L_indirect = L_full - L_direct(SUN_main + LAMP_disk), Cycles DIFFUSE irradiance (colour off), clamped >= 0. Sun and lamp are rendered live with shadow maps; sky, screens, PC RGB, fixtures and every bounce are in the lightmap. Lightmap files: assets[].lightmaps[] (one per PBR atlas; .materials lists the materials that sample it), RGBM of sqrt(L) in lossless WebP; decode L = (rgb * a * rangeSqrt)^2 with lightMapIntensity = PI, colorSpace NoColorSpace, flipY false (same orientation as the glTF textures). Keepers (Robot_rsl_lens, bambu_mini_screen) and mon_screen are their own nodes and materials.",
  "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
- "totalBytes": 20289684,
+ "totalBytes": 20289636,
  "totalTris": 898068,
- "lightmapBytes": 58460230,
+ "lightmapBytes": 58460934,
  "credits": {
   "teto_plush": {
    "title": "Kasane Teto fatass plush",
@@ -305,11 +305,11 @@
   {
    "name": "bookrack",
    "file": "bookrack.glb",
-   "bytes": 1424980,
+   "bytes": 1424932,
    "tris": 13004,
    "trisSource": 13004,
    "budget": null,
-   "textureBytes": 1250708,
+   "textureBytes": 1250656,
    "textures": [
     {
      "name": "bookrack_normal",
@@ -327,7 +327,7 @@
       2048,
       2048
      ],
-     "bytes": 306616
+     "bytes": 306562
     },
     {
      "name": "bookrack_orm",
@@ -336,7 +336,7 @@
       1024,
       1024
      ],
-     "bytes": 182300
+     "bytes": 182302
     }
    ],
    "materials": [
@@ -386,15 +386,17 @@
      "materials": [
       "bookrack_pbr"
      ],
-     "bytes": 5312884,
+     "bytes": 5313496,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.02256,
       "mean_full": 0.02211,
-      "mean_direct_plus_indirect": 0.02212,
-      "mean_ratio": 1.0001,
+      "mean_direct_plus_indirect": 0.02211,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 0.9804,
       "p99_full": 0.5453,
       "p99_direct_plus_indirect": 0.5453,
+      "clamped_texels": 0.0003,
       "indirect_share": 0.9941,
       "direct_share": 0.0059
      }
@@ -968,15 +970,17 @@
      "materials": [
       "chair_pbr"
      ],
-     "bytes": 6274764,
+     "bytes": 6275162,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.01877,
       "mean_full": 0.01819,
       "mean_direct_plus_indirect": 0.01819,
       "mean_ratio": 1,
+      "raw_mean_ratio": 0.9693,
       "p99_full": 0.1237,
       "p99_direct_plus_indirect": 0.1237,
+      "clamped_texels": 0.002,
       "indirect_share": 1,
       "direct_share": 0
      }
@@ -1109,15 +1113,17 @@
      "materials": [
       "desk_misc_pbr"
      ],
-     "bytes": 1803178,
+     "bytes": 1802794,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.02005,
       "mean_full": 0.01984,
       "mean_direct_plus_indirect": 0.01984,
       "mean_ratio": 1,
+      "raw_mean_ratio": 0.9895,
       "p99_full": 0.2216,
       "p99_direct_plus_indirect": 0.2216,
+      "clamped_texels": 0,
       "indirect_share": 1,
       "direct_share": 0
      }
@@ -1801,7 +1807,7 @@
    "lightmaps": [
     {
      "file": "fixtures.indirect.rgbm.webp",
-     "rangeSqrt": 1.28,
+     "rangeSqrt": 1.3,
      "uv": "TEXCOORD_0",
      "res": 1024,
      "materials": [
@@ -1809,17 +1815,19 @@
       "rs_smoke_led",
       "rs_thermo_digits"
      ],
-     "bytes": 574238,
+     "bytes": 574316,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.03175,
       "mean_full": 0.03122,
-      "mean_direct_plus_indirect": 0.03161,
-      "mean_ratio": 1.0123,
-      "p99_full": 0.7237,
-      "p99_direct_plus_indirect": 0.7274,
-      "indirect_share": 0.6904,
-      "direct_share": 0.322
+      "mean_direct_plus_indirect": 0.03127,
+      "mean_ratio": 1.0015,
+      "raw_mean_ratio": 0.9834,
+      "p99_full": 0.7236,
+      "p99_direct_plus_indirect": 0.724,
+      "clamped_texels": 0.0058,
+      "indirect_share": 0.678,
+      "direct_share": 0.3235
      }
     }
    ],

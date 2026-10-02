@@ -59,7 +59,7 @@
   "range_sqrt": 0.5,
   "linear_max": 0.25,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00032,
+  "clipped_fraction": 0.00033,
   "rgbm_mean_rel_err": 0.0023,
   "samples": 256,
   "check": {
@@ -67,8 +67,10 @@
    "mean_full": 0.01819,
    "mean_direct_plus_indirect": 0.01819,
    "mean_ratio": 1.0,
+   "raw_mean_ratio": 0.9693,
    "p99_full": 0.1237,
    "p99_direct_plus_indirect": 0.1237,
+   "clamped_texels": 0.002,
    "indirect_share": 1.0,
    "direct_share": 0.0
   },
@@ -89,7 +91,7 @@
     "range_sqrt": 0.5,
     "linear_max": 0.25,
     "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-    "clipped_fraction": 0.00032,
+    "clipped_fraction": 0.00033,
     "rgbm_mean_rel_err": 0.0023,
     "samples": 256,
     "check": {
@@ -97,8 +99,10 @@
      "mean_full": 0.01819,
      "mean_direct_plus_indirect": 0.01819,
      "mean_ratio": 1.0,
+     "raw_mean_ratio": 0.9693,
      "p99_full": 0.1237,
      "p99_direct_plus_indirect": 0.1237,
+     "clamped_texels": 0.002,
      "indirect_share": 1.0,
      "direct_share": 0.0
     },
@@ -193,14 +197,14 @@
   }
  },
  "bake_seconds": {
-  "base": 6.7,
-  "rough": 6.7,
-  "metal": 6.7,
-  "normal": 7.0,
-  "L_full": 43.3,
-  "L_direct": 21.3
+  "base": 6.6,
+  "rough": 6.5,
+  "metal": 6.6,
+  "normal": 6.9,
+  "L_full": 39.5,
+  "L_direct": 19.9
  },
  "glb": "chair.glb",
  "glb_bytes": 1607600,
- "seconds": 108.6
+ "seconds": 102.7
 }

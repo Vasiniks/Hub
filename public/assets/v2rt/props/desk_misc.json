@@ -179,8 +179,10 @@
    "mean_full": 0.01984,
    "mean_direct_plus_indirect": 0.01984,
    "mean_ratio": 1.0,
+   "raw_mean_ratio": 0.9895,
    "p99_full": 0.2216,
    "p99_direct_plus_indirect": 0.2216,
+   "clamped_texels": 0.0,
    "indirect_share": 1.0,
    "direct_share": 0.0
   },
@@ -209,8 +211,10 @@
      "mean_full": 0.01984,
      "mean_direct_plus_indirect": 0.01984,
      "mean_ratio": 1.0,
+     "raw_mean_ratio": 0.9895,
      "p99_full": 0.2216,
      "p99_direct_plus_indirect": 0.2216,
+     "clamped_texels": 0.0,
      "indirect_share": 1.0,
      "direct_share": 0.0
     },
@@ -421,14 +425,14 @@
   }
  },
  "bake_seconds": {
-  "base": 29.3,
-  "rough": 29.3,
-  "metal": 29.3,
-  "normal": 29.6,
-  "L_full": 40.0,
-  "L_direct": 30.8
+  "base": 28.8,
+  "rough": 28.6,
+  "metal": 28.6,
+  "normal": 28.9,
+  "L_full": 38.6,
+  "L_direct": 30.2
  },
  "glb": "desk_misc.glb",
  "glb_bytes": 794532,
- "seconds": 248.8
+ "seconds": 242.9
 }
