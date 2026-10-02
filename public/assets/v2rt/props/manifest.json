@@ -1,0 +1,2058 @@
+{
+ "generated": "2026-10-01T21:02:37.564Z",
+ "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
+ "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
+ "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
+ "materials": "Hybrid real-time (v2rt): every material is PBR (baseColor, ORM with R = 1, normal where it matters, emissive where it emits) on ONE atlas per set (TEXCOORD_0). The indirect-only lightmap of each set uses the same TEXCOORD_0: L_indirect = L_full - L_direct(SUN_main + LAMP_disk), Cycles DIFFUSE irradiance (colour off), clamped >= 0. Sun and lamp are rendered live with shadow maps; sky, screens, PC RGB, fixtures and every bounce are in the lightmap. Lightmap file: assets[].lightmap.file, RGBM of sqrt(L) in lossless WebP; decode L = (rgb * a * rangeSqrt)^2 with lightMapIntensity = PI, colorSpace NoColorSpace, flipY false (same orientation as the glTF textures). Keepers (Robot_rsl_lens, bambu_mini_screen) and mon_screen are their own nodes and materials.",
+ "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
+ "totalBytes": 8798208,
+ "totalTris": 530401,
+ "lightmapBytes": 1708812,
+ "credits": {
+  "teto_plush": {
+   "title": "Kasane Teto fatass plush",
+   "author": "revsworks",
+   "licence": "CC BY 4.0",
+   "url": "https://sketchfab.com/3d-models/kasane-teto-fatass-plush-bd8157eb42a04161b2628e58dfd2a852",
+   "line": "\"Kasane Teto fatass plush\" by revsworks, licensed under CC BY 4.0 (https://sketchfab.com/3d-models/kasane-teto-fatass-plush-bd8157eb42a04161b2628e58dfd2a852)"
+  },
+  "mx_master_3s": {
+   "title": "Mouse Logitech MX Master 3S white",
+   "author": "Guibazilla",
+   "licence": "CC BY 4.0",
+   "url": "https://sketchfab.com/3d-models/mouse-logitech-mx-master-3s-white-dc82de97cbe64c6a8deae3328208c984",
+   "line": "\"Mouse Logitech MX Master 3S white\" by Guibazilla, licensed under CC BY 4.0 (https://sketchfab.com/3d-models/mouse-logitech-mx-master-3s-white-dc82de97cbe64c6a8deae3328208c984)"
+  },
+  "bambu_a1_mini": {
+   "title": "3D Printer - Bambu Lab A1 Mini",
+   "author": "neilvfx",
+   "licence": "CC BY 4.0",
+   "url": "https://sketchfab.com/3d-models/3d-printer-bambu-lab-a1-mini-407fb64c44be4e1888db246b447f811b",
+   "line": "\"3D Printer - Bambu Lab A1 Mini\" by neilvfx, licensed under CC BY 4.0 (https://sketchfab.com/3d-models/3d-printer-bambu-lab-a1-mini-407fb64c44be4e1888db246b447f811b)"
+  },
+  "motherboard": {
+   "title": "MotherBoard + Components",
+   "author": "Daniel Cardona",
+   "licence": "CC BY 4.0",
+   "url": "https://sketchfab.com/3d-models/motherboard-components-3bc94057328243d4b341a55f59160f8a",
+   "line": "\"MotherBoard + Components\" by Daniel Cardona, licensed under CC BY 4.0 (https://sketchfab.com/3d-models/motherboard-components-3bc94057328243d4b341a55f59160f8a)"
+  }
+ },
+ "assets": [
+  {
+   "name": "cables",
+   "file": "cables.glb",
+   "bytes": 644296,
+   "tris": 50514,
+   "trisSource": 53320,
+   "budget": null,
+   "textureBytes": 231520,
+   "textures": [
+    {
+     "name": "cables_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 67950
+    },
+    {
+     "name": "cables_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 103210
+    },
+    {
+     "name": "cables_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 60360
+    }
+   ],
+   "materials": [
+    {
+     "name": "cables_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "magsafe_led_amber.001",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "cables_monitor_dp_plug": "dissolve",
+    "cables_monitor_c7_plug": "dissolve",
+    "cables_monitor_dp_usbc_plug": "dissolve",
+    "cables_macbook_magsafe_plug": "dissolve",
+    "cables_bundle_wraps": "dissolve",
+    "cables_power_strip": "dissolve",
+    "cables_power_strip_details": "dissolve",
+    "cables_power_brick": "kept (custom normals)",
+    "cables_power_brick_details": "kept",
+    "cables_brick_usbc_plug": "dissolve",
+    "cables_brick_ac_head": "dissolve",
+    "cables_mains_plug_monitor": "dissolve",
+    "cables_mains_plug_brick": "dissolve",
+    "cables_coil_usbc_plug": "dissolve",
+    "cables_coil_usba_plug": "dissolve",
+    "cables_coil_velcro": "dissolve",
+    "cables_monitor_dp_cable": "dissolve",
+    "cables_monitor_power_cable": "dissolve",
+    "cables_macbook_charge_cable": "dissolve",
+    "cables_brick_ac_cord": "dissolve",
+    "cables_strip_cord": "dissolve",
+    "cables_coil_cable": "dissolve"
+   },
+   "lightmap": {
+    "file": "cables.indirect.rgbm.webp",
+    "rangeSqrt": 1.81,
+    "uv": "TEXCOORD_0",
+    "res": 256,
+    "bytes": 144882,
+    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+    "check": {
+     "mean_full_raw": 0.14951,
+     "mean_full": 0.14879,
+     "mean_direct_plus_indirect": 0.15272,
+     "mean_ratio": 1.0264,
+     "p99_full": 2.1696,
+     "p99_direct_plus_indirect": 2.2937,
+     "indirect_share": 0.5588,
+     "direct_share": 0.4676
+    }
+   },
+   "nodes": [
+    "NEW_cables_root__mesh",
+    "NEW_cables_root"
+   ],
+   "anchors": {
+    "NEW_cables_root": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "NEW_cables_root__mesh",
+     "material": "magsafe_led_amber.001",
+     "emissiveFactor": [
+      1,
+      0.42,
+      0.04
+     ],
+     "emissiveStrength": 6,
+     "textured": false
+    }
+   ],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_cables"
+   ]
+  },
+  {
+   "name": "electronics",
+   "file": "electronics.glb",
+   "bytes": 2039240,
+   "tris": 86768,
+   "trisSource": 94596,
+   "budget": null,
+   "textureBytes": 1049112,
+   "textures": [
+    {
+     "name": "electronics_normal",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 144442
+    },
+    {
+     "name": "electronics_basecolor",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 625610
+    },
+    {
+     "name": "electronics_orm",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 279060
+    }
+   ],
+   "materials": [
+    {
+     "name": "electronics_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "led_red_on.003",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "led_blue_on.003",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "led_green_on.003",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "elec_uno_pcb": "kept",
+    "elec_uno_parts": "dissolve",
+    "elec_esp32_module_pcb": "dissolve",
+    "elec_esp32_module_parts": "kept",
+    "elec_esp32_pcb": "kept",
+    "elec_esp32_parts": "dissolve",
+    "elec_pico_pcb": "dissolve",
+    "elec_pico_parts": "dissolve",
+    "elec_hub_body": "dissolve",
+    "elec_hub_parts": "dissolve",
+    "elec_hub_cable_braid": "dissolve",
+    "elec_notepad": "kept",
+    "elec_sticky_notes": "kept",
+    "elec_rotring600": "dissolve",
+    "elec_stm_stage": "dissolve",
+    "elec_stm_stage_wires": "dissolve",
+    "elec_faraday_box": "dissolve",
+    "elec_faraday_lid": "dissolve",
+    "elec_breadboard": "kept",
+    "elec_teensy_pcb": "kept",
+    "elec_teensy_parts": "dissolve",
+    "elec_preamp_pcb": "dissolve",
+    "elec_preamp_parts": "dissolve",
+    "elec_multimeter": "dissolve",
+    "elec_lab_wiring": "dissolve"
+   },
+   "lightmap": {
+    "file": "electronics.indirect.rgbm.webp",
+    "rangeSqrt": 1.89,
+    "uv": "TEXCOORD_0",
+    "res": 512,
+    "bytes": 368430,
+    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+    "check": {
+     "mean_full_raw": 0.09516,
+     "mean_full": 0.09548,
+     "mean_direct_plus_indirect": 0.10212,
+     "mean_ratio": 1.0696,
+     "p99_full": 2.7322,
+     "p99_direct_plus_indirect": 2.9548,
+     "indirect_share": 0.3439,
+     "direct_share": 0.7256
+    }
+   },
+   "nodes": [
+    "elec_breadboard_grp__mesh",
+    "elec_breadboard_grp",
+    "elec_esp32__mesh",
+    "elec_esp32",
+    "elec_faraday_grp__mesh",
+    "elec_faraday_grp",
+    "elec_hub__mesh",
+    "elec_hub",
+    "elec_hub_cable__mesh",
+    "elec_hub_cable",
+    "elec_lab_wiring_grp__mesh",
+    "elec_lab_wiring_grp",
+    "elec_multimeter_grp__mesh",
+    "elec_multimeter_grp",
+    "elec_notes__mesh",
+    "elec_notes",
+    "elec_pico__mesh",
+    "elec_pico",
+    "elec_preamp_grp__mesh",
+    "elec_preamp_grp",
+    "elec_stm_stage_grp__mesh",
+    "elec_stm_stage_grp",
+    "elec_uno__mesh",
+    "elec_uno",
+    "NEW_electronics_root"
+   ],
+   "anchors": {
+    "elec_uno": {
+     "blender_world": [
+      0.445,
+      0.69,
+      0.7368
+     ],
+     "three_world": [
+      0.445,
+      0.7368,
+      -0.69
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_esp32": {
+     "blender_world": [
+      0.935,
+      0.405,
+      0.7435
+     ],
+     "three_world": [
+      0.935,
+      0.7435,
+      -0.405
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_pico": {
+     "blender_world": [
+      0.44,
+      0.785,
+      0.735
+     ],
+     "three_world": [
+      0.44,
+      0.735,
+      -0.785
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_hub": {
+     "blender_world": [
+      0.3061,
+      0.9352,
+      0.735
+     ],
+     "three_world": [
+      0.3061,
+      0.735,
+      -0.9352
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_hub_cable": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_notes": {
+     "blender_world": [
+      -0.52,
+      0.52,
+      0.735
+     ],
+     "three_world": [
+      -0.52,
+      0.735,
+      -0.52
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_stm_stage_grp": {
+     "blender_world": [
+      0.74,
+      0.53,
+      0.735
+     ],
+     "three_world": [
+      0.74,
+      0.735,
+      -0.53
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_faraday_grp": {
+     "blender_world": [
+      0.735,
+      0.665,
+      0.735
+     ],
+     "three_world": [
+      0.735,
+      0.735,
+      -0.665
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_breadboard_grp": {
+     "blender_world": [
+      0.555,
+      0.675,
+      0.735
+     ],
+     "three_world": [
+      0.555,
+      0.735,
+      -0.675
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_preamp_grp": {
+     "blender_world": [
+      0.845,
+      0.4,
+      0.735
+     ],
+     "three_world": [
+      0.845,
+      0.735,
+      -0.4
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_multimeter_grp": {
+     "blender_world": [
+      0.445,
+      0.465,
+      0.735
+     ],
+     "three_world": [
+      0.445,
+      0.735,
+      -0.465
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "elec_lab_wiring_grp": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": "NEW_electronics_root",
+     "is_pivot": false
+    },
+    "NEW_electronics_root": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "elec_esp32__mesh",
+     "material": "led_red_on.003",
+     "emissiveFactor": [
+      1,
+      0.0072,
+      0.0023
+     ],
+     "emissiveStrength": 6,
+     "textured": false
+    },
+    {
+     "node": "elec_hub__mesh",
+     "material": "led_blue_on.003",
+     "emissiveFactor": [
+      0.0509,
+      0.214,
+      1
+     ],
+     "emissiveStrength": 8,
+     "textured": false
+    },
+    {
+     "node": "elec_pico__mesh",
+     "material": "led_green_on.003",
+     "emissiveFactor": [
+      0.0196,
+      1,
+      0.0331
+     ],
+     "emissiveStrength": 5,
+     "textured": false
+    },
+    {
+     "node": "elec_preamp_grp__mesh",
+     "material": "led_green_on.003",
+     "emissiveFactor": [
+      0.0196,
+      1,
+      0.0331
+     ],
+     "emissiveStrength": 5,
+     "textured": false
+    },
+    {
+     "node": "elec_uno__mesh",
+     "material": "led_green_on.003",
+     "emissiveFactor": [
+      0.0196,
+      1,
+      0.0331
+     ],
+     "emissiveStrength": 5,
+     "textured": false
+    }
+   ],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_electronics"
+   ]
+  },
+  {
+   "name": "keyboard",
+   "file": "keyboard.glb",
+   "bytes": 380208,
+   "tris": 32382,
+   "trisSource": 32462,
+   "budget": null,
+   "textureBytes": 108834,
+   "textures": [
+    {
+     "name": "keyboard_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 30870
+    },
+    {
+     "name": "keyboard_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 45476
+    },
+    {
+     "name": "keyboard_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 32488
+    }
+   ],
+   "materials": [
+    {
+     "name": "keyboard_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "NEW_keyboard_top_case": "dissolve",
+    "NEW_keyboard_bottom_case": "dissolve",
+    "NEW_keyboard_lightstrip": "dissolve",
+    "NEW_keyboard_plate": "kept",
+    "NEW_keyboard_keycaps": "dissolve",
+    "NEW_keyboard_switches": "dissolve",
+    "NEW_keyboard_display_panel": "kept",
+    "NEW_keyboard_display_matrix": "kept",
+    "NEW_keyboard_indicators": "kept",
+    "NEW_keyboard_mode_switch": "kept",
+    "NEW_keyboard_feet_pads": "dissolve",
+    "NEW_keyboard_flip_feet": "kept",
+    "NEW_keyboard_usb_plug": "kept",
+    "NEW_keyboard_cable": "dissolve"
+   },
+   "lightmap": {
+    "file": "keyboard.indirect.rgbm.webp",
+    "rangeSqrt": 1.97,
+    "uv": "TEXCOORD_0",
+    "res": 256,
+    "bytes": 124846,
+    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+    "check": {
+     "mean_full_raw": 0.03429,
+     "mean_full": 0.03372,
+     "mean_direct_plus_indirect": 0.03377,
+     "mean_ratio": 1.0014,
+     "p99_full": 0.5023,
+     "p99_direct_plus_indirect": 0.4989,
+     "indirect_share": 0.8036,
+     "direct_share": 0.1978
+    }
+   },
+   "nodes": [
+    "NEW_keyboard_root__mesh",
+    "NEW_keyboard_root"
+   ],
+   "anchors": {
+    "NEW_keyboard_root": {
+     "blender_world": [
+      -0.05,
+      0.435,
+      0.735
+     ],
+     "three_world": [
+      -0.05,
+      0.735,
+      -0.435
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_keyboard"
+   ]
+  },
+  {
+   "name": "lamp",
+   "file": "lamp.glb",
+   "bytes": 1669824,
+   "tris": 41238,
+   "trisSource": 98334,
+   "budget": null,
+   "textureBytes": 1192144,
+   "textures": [
+    {
+     "name": "lamp_normal",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 393224
+    },
+    {
+     "name": "lamp_basecolor",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 543954
+    },
+    {
+     "name": "lamp_orm",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 254966
+    }
+   ],
+   "materials": [
+    {
+     "name": "lamp_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "lamp_diffuser",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "lamp_body.001": "dissolve",
+    "lamp_arm": "dissolve",
+    "lamp_head.001": "dissolve",
+    "lamp_diffuser_bezel": "dissolve",
+    "lamp_diffuser_disc": "dissolve",
+    "medal_m1_ribbon": "kept",
+    "medal_m2_ribbon": "kept",
+    "medal_m3_ribbon": "kept",
+    "medal_m4_ribbon": "kept",
+    "medal_m1_clasp": "kept",
+    "medal_m1_disc": "relief -> 2999 tris + s2a normal",
+    "medal_m2_clasp": "kept",
+    "medal_m2_disc": "relief -> 2999 tris + s2a normal",
+    "medal_m3_clasp": "kept",
+    "medal_m3_disc": "relief -> 2999 tris + s2a normal",
+    "medal_m4_clasp": "kept",
+    "medal_m4_disc": "relief -> 2999 tris + s2a normal"
+   },
+   "lightmap": {
+    "file": "lamp.indirect.rgbm.webp",
+    "rangeSqrt": 4.32,
+    "uv": "TEXCOORD_0",
+    "res": 512,
+    "bytes": 309320,
+    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+    "check": {
+     "mean_full_raw": 3.96274,
+     "mean_full": 3.98434,
+     "mean_direct_plus_indirect": 3.99828,
+     "mean_ratio": 1.0035,
+     "p99_full": 101.1132,
+     "p99_direct_plus_indirect": 100.1332,
+     "indirect_share": 0.3946,
+     "direct_share": 0.6089
+    }
+   },
+   "nodes": [
+    "NEW_lamp_pivot__mesh",
+    "NEW_lamp_pivot",
+    "NEW_lamp_root__mesh",
+    "NEW_lamp_root"
+   ],
+   "anchors": {
+    "NEW_lamp_root": {
+     "blender_world": [
+      -0.6638,
+      0.9181,
+      0.735
+     ],
+     "three_world": [
+      -0.6638,
+      0.735,
+      -0.9181
+     ],
+     "parent": null,
+     "is_pivot": false
+    },
+    "NEW_lamp_pivot": {
+     "blender_world": [
+      -0.7012,
+      0.955,
+      0.885
+     ],
+     "three_world": [
+      -0.7012,
+      0.885,
+      -0.955
+     ],
+     "parent": "NEW_lamp_root",
+     "is_pivot": true
+    }
+   },
+   "emissive": [
+    {
+     "node": "NEW_lamp_pivot__mesh",
+     "material": "lamp_diffuser",
+     "emissiveFactor": [
+      1,
+      0.86,
+      0.68
+     ],
+     "emissiveStrength": 6,
+     "textured": false
+    }
+   ],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_lamp",
+    "NEW_medals"
+   ]
+  },
+  {
+   "name": "lorenz",
+   "file": "lorenz.glb",
+   "bytes": 547604,
+   "tris": 39682,
+   "trisSource": 39832,
+   "budget": null,
+   "textureBytes": 196160,
+   "textures": [
+    {
+     "name": "lorenz_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 38970
+    },
+    {
+     "name": "lorenz_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 121646
+    },
+    {
+     "name": "lorenz_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 35544
+    }
+   ],
+   "materials": [
+    {
+     "name": "lorenz_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "NEW_lorenz_paper_page4": "kept",
+    "NEW_lorenz_paper_page3": "kept",
+    "NEW_lorenz_paper_page2": "kept",
+    "NEW_lorenz_paper_page1": "kept",
+    "NEW_lorenz_staple": "kept",
+    "NEW_lorenz_felt_pad": "kept",
+    "NEW_lorenz_base": "dissolve",
+    "NEW_lorenz_wire": "dissolve",
+    "NEW_lorenz_stand": "dissolve",
+    "NEW_lorenz_solder": "kept"
+   },
+   "lightmap": {
+    "file": "lorenz.indirect.rgbm.webp",
+    "rangeSqrt": 1.98,
+    "uv": "TEXCOORD_0",
+    "res": 256,
+    "bytes": 92660,
+    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+    "check": {
+     "mean_full_raw": 0.21397,
+     "mean_full": 0.21459,
+     "mean_direct_plus_indirect": 0.23144,
+     "mean_ratio": 1.0785,
+     "p99_full": 2.9288,
+     "p99_direct_plus_indirect": 3.2022,
+     "indirect_share": 0.291,
+     "direct_share": 0.7876
+    }
+   },
+   "nodes": [
+    "lorenz_sculpture__mesh",
+    "lorenz_sculpture",
+    "paper__mesh",
+    "paper",
+    "NEW_lorenz_root"
+   ],
+   "anchors": {
+    "paper": {
+     "blender_world": [
+      -0.4525,
+      0.9291,
+      0.735
+     ],
+     "three_world": [
+      -0.4525,
+      0.735,
+      -0.9291
+     ],
+     "parent": "NEW_lorenz_root",
+     "is_pivot": false
+    },
+    "lorenz_sculpture": {
+     "blender_world": [
+      -0.4525,
+      0.9291,
+      0.735
+     ],
+     "three_world": [
+      -0.4525,
+      0.735,
+      -0.9291
+     ],
+     "parent": "NEW_lorenz_root",
+     "is_pivot": false
+    },
+    "NEW_lorenz_root": {
+     "blender_world": [
+      -0.4525,
+      0.9291,
+      0.735
+     ],
+     "three_world": [
+      -0.4525,
+      0.735,
+      -0.9291
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_lorenz"
+   ]
+  },
+  {
+   "name": "macbook",
+   "file": "macbook.glb",
+   "bytes": 204496,
+   "tris": 14742,
+   "trisSource": 14742,
+   "budget": null,
+   "textureBytes": 64340,
+   "textures": [
+    {
+     "name": "macbook_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 10850
+    },
+    {
+     "name": "macbook_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 29508
+    },
+    {
+     "name": "macbook_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 23982
+    }
+   ],
+   "materials": [
+    {
+     "name": "macbook_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "NEW_mbp_base": "kept (custom normals)",
+    "NEW_mbp_lid": "kept (custom normals)",
+    "NEW_mbp_core": "kept",
+    "NEW_mbp_port_inserts": "kept",
+    "NEW_mbp_magsafe_pins": "kept",
+    "NEW_mbp_hinge_barrel": "kept (custom normals)",
+    "NEW_mbp_vent_fins": "dissolve",
+    "NEW_mbp_feet": "kept (custom normals)",
+    "NEW_mbp_screws": "kept (custom normals)",
+    "NEW_mbp_screw_sockets": "kept",
+    "NEW_stand_sheet": "kept (custom normals)",
+    "NEW_stand_deck_pads": "kept (custom normals)",
+    "NEW_stand_base_pads": "kept (custom normals)"
+   },
+   "lightmap": {
+    "file": "macbook.indirect.rgbm.webp",
+    "rangeSqrt": 0.63,
+    "uv": "TEXCOORD_0",
+    "res": 256,
+    "bytes": 30910,
+    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+    "check": {
+     "mean_full_raw": 0.00129,
+     "mean_full": 0.00124,
+     "mean_direct_plus_indirect": 0.00124,
+     "mean_ratio": 0.9977,
+     "p99_full": 0.0277,
+     "p99_direct_plus_indirect": 0.0281,
+     "indirect_share": 0.7491,
+     "direct_share": 0.2486
+    }
+   },
+   "nodes": [
+    "NEW_macbook_laptop__mesh",
+    "NEW_macbook_laptop",
+    "NEW_macbook_root__mesh",
+    "NEW_macbook_root"
+   ],
+   "anchors": {
+    "NEW_macbook_laptop": {
+     "blender_world": [
+      -0.05,
+      0.7115,
+      0.7891
+     ],
+     "three_world": [
+      -0.05,
+      0.7891,
+      -0.7115
+     ],
+     "parent": "NEW_macbook_root",
+     "is_pivot": false
+    },
+    "NEW_macbook_root": {
+     "blender_world": [
+      -0.05,
+      0.7336,
+      0.735
+     ],
+     "three_world": [
+      -0.05,
+      0.735,
+      -0.7336
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_macbook"
+   ]
+  },
+  {
+   "name": "monitor",
+   "file": "monitor.glb",
+   "bytes": 182456,
+   "tris": 8490,
+   "trisSource": 8610,
+   "budget": null,
+   "textureBytes": 94068,
+   "textures": [
+    {
+     "name": "monitor_basecolor",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 39642
+    },
+    {
+     "name": "monitor_orm",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 54426
+    }
+   ],
+   "materials": [
+    {
+     "name": "mon_screen",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": []
+    },
+    {
+     "name": "monitor_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM"
+     ]
+    },
+    {
+     "name": "mon_power_led",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "NEW_monitor_bezel": "dissolve",
+    "NEW_monitor_glass_border": "kept",
+    "NEW_monitor_screen": "kept",
+    "NEW_monitor_rear_housing": "dissolve",
+    "NEW_monitor_io": "dissolve",
+    "NEW_monitor_io_tongues": "dissolve",
+    "NEW_monitor_led": "kept",
+    "NEW_monitor_joystick": "kept",
+    "NEW_monitor_carriage": "dissolve",
+    "NEW_monitor_slider": "kept",
+    "NEW_monitor_column": "dissolve",
+    "NEW_monitor_base": "dissolve",
+    "NEW_monitor_feet": "dissolve"
+   },
+   "lightmap": {
+    "file": "monitor.indirect.rgbm.webp",
+    "rangeSqrt": 1.97,
+    "uv": "TEXCOORD_0",
+    "res": 512,
+    "bytes": 176098,
+    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+    "check": {
+     "mean_full_raw": 0.16412,
+     "mean_full": 0.16284,
+     "mean_direct_plus_indirect": 0.16251,
+     "mean_ratio": 0.998,
+     "p99_full": 1.086,
+     "p99_direct_plus_indirect": 1.0832,
+     "indirect_share": 0.623,
+     "direct_share": 0.375
+    }
+   },
+   "nodes": [
+    "mon_screen",
+    "NEW_monitor_lift__mesh",
+    "NEW_monitor_lift",
+    "NEW_monitor_root__mesh",
+    "NEW_monitor_root"
+   ],
+   "anchors": {
+    "NEW_monitor_lift": {
+     "blender_world": [
+      -0.05,
+      1.015,
+      0.735
+     ],
+     "three_world": [
+      -0.05,
+      0.735,
+      -1.015
+     ],
+     "parent": "NEW_monitor_root",
+     "is_pivot": false
+    },
+    "NEW_monitor_root": {
+     "blender_world": [
+      -0.05,
+      1.015,
+      0.735
+     ],
+     "three_world": [
+      -0.05,
+      0.735,
+      -1.015
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "NEW_monitor_lift__mesh",
+     "material": "mon_power_led",
+     "emissiveFactor": [
+      0.855,
+      0.8879,
+      1
+     ],
+     "emissiveStrength": 3,
+     "textured": false
+    }
+   ],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_monitor"
+   ]
+  },
+  {
+   "name": "mouse_mx",
+   "file": "mouse_mx.glb",
+   "bytes": 267756,
+   "tris": 14274,
+   "trisSource": 23024,
+   "budget": null,
+   "textureBytes": 142678,
+   "textures": [
+    {
+     "name": "mouse_mx_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 38634
+    },
+    {
+     "name": "mouse_mx_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 61992
+    },
+    {
+     "name": "mouse_mx_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 42052
+    }
+   ],
+   "materials": [
+    {
+     "name": "mouse_mx_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "MouseMX_Shell": "collapse 0.60",
+    "MouseMX_ScrollWheel": "dissolve",
+    "MouseMX_ThumbWheel": "dissolve",
+    "MouseMX_BasePlate": "dissolve",
+    "MouseMX_FootL": "kept",
+    "MouseMX_FootR": "kept",
+    "MouseMX_USBC": "kept"
+   },
+   "lightmap": {
+    "file": "mouse_mx.indirect.rgbm.webp",
+    "rangeSqrt": 0.77,
+    "uv": "TEXCOORD_0",
+    "res": 256,
+    "bytes": 103894,
+    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+    "check": {
+     "mean_full_raw": 0.04212,
+     "mean_full": 0.04186,
+     "mean_direct_plus_indirect": 0.04186,
+     "mean_ratio": 1,
+     "p99_full": 0.1394,
+     "p99_direct_plus_indirect": 0.1394,
+     "indirect_share": 1,
+     "direct_share": 0
+    }
+   },
+   "nodes": [
+    "NEW_mouse_mx_root__mesh",
+    "NEW_mouse_mx_root"
+   ],
+   "anchors": {
+    "NEW_mouse_mx_root": {
+     "blender_world": [
+      0.33,
+      0.45,
+      0.735
+     ],
+     "three_world": [
+      0.33,
+      0.735,
+      -0.45
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [
+    "mx_master_3s"
+   ],
+   "sources": [
+    "NEW_mouse_mx"
+   ]
+  },
+  {
+   "name": "pc",
+   "file": "pc.glb",
+   "bytes": 2252052,
+   "tris": 212788,
+   "trisSource": 245380,
+   "budget": null,
+   "textureBytes": 159626,
+   "textures": [
+    {
+     "name": "pc_normal",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 12536
+    },
+    {
+     "name": "pc_basecolor",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 68876
+    },
+    {
+     "name": "pc_orm",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 70794
+    },
+    {
+     "name": "pc_emissive",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 7420
+    }
+   ],
+   "materials": [
+    {
+     "name": "pc_glass_web",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "BLEND",
+     "textures": []
+    },
+    {
+     "name": "pc_glass_edge_web",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "BLEND",
+     "textures": []
+    },
+    {
+     "name": "pc_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "pc_emit",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal",
+      "emissive"
+     ]
+    },
+    {
+     "name": "pc_pbr_cutout",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "MASK",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "pc_led_white",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "pc_led_green",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "pc_led_amber",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "pc_screen_text",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "pc_case_base_rail": "dissolve",
+    "pc_case_base": "dissolve",
+    "pc_case_top": "kept",
+    "pc_case_top_mesh": "kept",
+    "pc_case_io": "dissolve",
+    "pc_glass_panels": "kept",
+    "pc_case_led_strips": "kept",
+    "pc_case_frame": "dissolve",
+    "pc_case_rear": "dissolve",
+    "pc_rear_guard": "dissolve",
+    "pc_rear_slots": "dissolve",
+    "pc_mb_tray": "kept",
+    "pc_mb_grommets": "dissolve",
+    "pc_psu": "dissolve",
+    "pc_mobo_board": "kept (custom normals)",
+    "pc_power_plugs": "kept",
+    "pc_rear_io": "dissolve",
+    "pc_cooler_pump": "dissolve",
+    "pc_cooler_lcd": "kept",
+    "pc_radiator": "dissolve",
+    "pc_fans_frames": "dissolve",
+    "pc_fans_rotors": "dissolve",
+    "pc_aio_tubes": "dissolve",
+    "pc_gpukit_00_brushed_nickel": "kept (custom normals)",
+    "pc_gpukit_01_black_plastic_pl": "kept (custom normals)",
+    "pc_gpukit_02_brushed_gold": "kept (custom normals)",
+    "pc_gpukit_03_material": "kept (custom normals)",
+    "pc_gpukit_04_metal": "kept (custom normals)",
+    "pc_gpukit_05_material": "kept (custom normals)",
+    "pc_gpukit_06_material": "kept (custom normals)",
+    "pc_gpukit_07_material": "kept",
+    "pc_gpukit_08_material": "kept",
+    "pc_gpukit_09_material": "kept (custom normals)",
+    "pc_gpukit_10_material_0": "kept (custom normals)",
+    "pc_gpukit_11_procedural_silver": "kept (custom normals)",
+    "pc_gpukit_12_material": "kept (custom normals)",
+    "pc_gpukit_13_metal": "kept (custom normals)",
+    "pc_gpukit_14_material": "kept (custom normals)",
+    "pc_gpu_power_plug": "kept",
+    "pc_cables_sleeved": "dissolve",
+    "pc_rear_chamber": "dissolve",
+    "pc_power_cable": "dissolve",
+    "pc_lcd_0": "kept",
+    "pc_lcd_0_text0": "dissolve",
+    "pc_lcd_0_text1": "kept",
+    "pc_lcd_1": "kept",
+    "pc_lcd_1_text0": "dissolve",
+    "pc_lcd_1_text1": "kept",
+    "pc_lcd_2": "kept",
+    "pc_lcd_2_text0": "kept",
+    "pc_lcd_2_text1": "kept",
+    "pc_lcd_3": "kept",
+    "pc_lcd_3_text0": "dissolve",
+    "pc_lcd_3_text1": "kept",
+    "Circle": "collapse 0.60",
+    "Circle.001": "kept",
+    "Circle.002": "collapse 0.60",
+    "Circle.003": "collapse 0.60",
+    "Circle.004": "collapse 0.60",
+    "Circle.005": "collapse 0.60",
+    "Circle.006": "collapse 0.60",
+    "Circle.007": "collapse 0.60",
+    "Circle.008": "kept",
+    "Circle.009": "collapse 0.60",
+    "NurbsPath": "collapse 0.60",
+    "NurbsPath.001": "collapse 0.60",
+    "NurbsPath.002": "collapse 0.60",
+    "Plane": "collapse 0.60",
+    "Plane.001": "collapse 0.60",
+    "Plane.002": "collapse 0.60",
+    "Plane.003": "kept",
+    "Plane.004": "kept",
+    "Spiral": "collapse 0.60"
+   },
+   "lightmap": {
+    "file": "pc.indirect.rgbm.webp",
+    "rangeSqrt": 5,
+    "uv": "TEXCOORD_0",
+    "res": 512,
+    "bytes": 66344,
+    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+    "check": {
+     "mean_full_raw": 0.14442,
+     "mean_full": 0.14319,
+     "mean_direct_plus_indirect": 0.1436,
+     "mean_ratio": 1.0029,
+     "p99_full": 0.7754,
+     "p99_direct_plus_indirect": 0.7741,
+     "indirect_share": 0.9844,
+     "direct_share": 0.0185
+    }
+   },
+   "nodes": [
+    "NEW_pc_root__glass_pc_glass",
+    "NEW_pc_root__glass_pc_glass_edge",
+    "NEW_pc_root__mesh",
+    "NEW_pc_root",
+    "NEW_plush_teto_root__mesh",
+    "NEW_plush_teto_root"
+   ],
+   "anchors": {
+    "NEW_pc_root": {
+     "blender_world": [
+      0.738,
+      0.97,
+      0.735
+     ],
+     "three_world": [
+      0.738,
+      0.735,
+      -0.97
+     ],
+     "parent": null,
+     "is_pivot": false
+    },
+    "NEW_plush_teto_root": {
+     "blender_world": [
+      0.74,
+      0.97,
+      1.23
+     ],
+     "three_world": [
+      0.74,
+      1.23,
+      -0.97
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "NEW_pc_root__mesh",
+     "material": "pc_emit",
+     "emissiveFactor": [
+      1,
+      1,
+      1
+     ],
+     "emissiveStrength": 9,
+     "textured": true
+    },
+    {
+     "node": "NEW_pc_root__mesh",
+     "material": "pc_led_white",
+     "emissiveFactor": [
+      0.35,
+      0.55,
+      1
+     ],
+     "emissiveStrength": 14,
+     "textured": false
+    },
+    {
+     "node": "NEW_pc_root__mesh",
+     "material": "pc_led_green",
+     "emissiveFactor": [
+      0.1,
+      1,
+      0.2
+     ],
+     "emissiveStrength": 6,
+     "textured": false
+    },
+    {
+     "node": "NEW_pc_root__mesh",
+     "material": "pc_led_amber",
+     "emissiveFactor": [
+      1,
+      0.45,
+      0.05
+     ],
+     "emissiveStrength": 6,
+     "textured": false
+    },
+    {
+     "node": "NEW_pc_root__mesh",
+     "material": "pc_screen_text",
+     "emissiveFactor": [
+      1,
+      1,
+      1
+     ],
+     "emissiveStrength": 4,
+     "textured": false
+    }
+   ],
+   "keepers": [],
+   "glass": [
+    "NEW_pc_root__glass_pc_glass",
+    "NEW_pc_root__glass_pc_glass_edge"
+   ],
+   "credits": [
+    "motherboard",
+    "teto_plush"
+   ],
+   "sources": [
+    "NEW_pc",
+    "NEW_plush_teto"
+   ]
+  },
+  {
+   "name": "redbull",
+   "file": "redbull.glb",
+   "bytes": 170684,
+   "tris": 1069,
+   "trisSource": 15095,
+   "budget": null,
+   "textureBytes": 147668,
+   "textures": [
+    {
+     "name": "redbull_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 131080
+    },
+    {
+     "name": "redbull_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 16588
+    }
+   ],
+   "materials": [
+    {
+     "name": "redbull_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "RedBull_can": "collapse 0.60"
+   },
+   "lightmap": {
+    "file": "redbull.indirect.rgbm.webp",
+    "rangeSqrt": 2.48,
+    "uv": "TEXCOORD_0",
+    "res": 256,
+    "bytes": 51214,
+    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+    "check": {
+     "mean_full_raw": 1.50406,
+     "mean_full": 1.5115,
+     "mean_direct_plus_indirect": 1.5896,
+     "mean_ratio": 1.0517,
+     "p99_full": 7.1827,
+     "p99_direct_plus_indirect": 7.9201,
+     "indirect_share": 0.5055,
+     "direct_share": 0.5462
+    }
+   },
+   "nodes": [
+    "NEW_redbull_root__mesh",
+    "NEW_redbull_root"
+   ],
+   "anchors": {
+    "NEW_redbull_root": {
+     "blender_world": [
+      -0.47,
+      0.72,
+      0.735
+     ],
+     "three_world": [
+      -0.47,
+      0.735,
+      -0.72
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_redbull"
+   ]
+  },
+  {
+   "name": "speedcube",
+   "file": "speedcube.glb",
+   "bytes": 341576,
+   "tris": 27262,
+   "trisSource": 34184,
+   "budget": null,
+   "textureBytes": 110418,
+   "textures": [
+    {
+     "name": "speedcube_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 20676
+    },
+    {
+     "name": "speedcube_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 53758
+    },
+    {
+     "name": "speedcube_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 35984
+    }
+   ],
+   "materials": [
+    {
+     "name": "speedcube_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "speedcube_pbr_cutout",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "MASK",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "NEW_speedcube_piece_---": "dissolve",
+    "NEW_speedcube_piece_--0": "dissolve",
+    "NEW_speedcube_piece_--+": "dissolve",
+    "NEW_speedcube_piece_-0-": "dissolve",
+    "NEW_speedcube_piece_-00": "dissolve",
+    "NEW_speedcube_piece_-0+": "dissolve",
+    "NEW_speedcube_piece_-+-": "dissolve",
+    "NEW_speedcube_piece_-+0": "dissolve",
+    "NEW_speedcube_piece_-++": "dissolve",
+    "NEW_speedcube_piece_0--": "dissolve",
+    "NEW_speedcube_piece_0-0": "dissolve",
+    "NEW_speedcube_piece_0-+": "dissolve",
+    "NEW_speedcube_piece_00-": "dissolve",
+    "NEW_speedcube_piece_00+": "dissolve",
+    "NEW_speedcube_piece_0+-": "dissolve",
+    "NEW_speedcube_piece_0+0": "dissolve",
+    "NEW_speedcube_piece_0++": "dissolve",
+    "NEW_speedcube_piece_+--": "dissolve",
+    "NEW_speedcube_piece_+-0": "dissolve",
+    "NEW_speedcube_piece_+-+": "dissolve",
+    "NEW_speedcube_piece_+0-": "dissolve",
+    "NEW_speedcube_piece_+00": "dissolve",
+    "NEW_speedcube_piece_+0+": "dissolve",
+    "NEW_speedcube_piece_++-": "dissolve",
+    "NEW_speedcube_piece_++0": "dissolve",
+    "NEW_speedcube_piece_+++": "dissolve",
+    "NEW_speedcube_core": "dissolve",
+    "NEW_speedcube_emblem18": "dissolve"
+   },
+   "lightmap": {
+    "file": "speedcube.indirect.rgbm.webp",
+    "rangeSqrt": 1.38,
+    "uv": "TEXCOORD_0",
+    "res": 256,
+    "bytes": 155994,
+    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+    "check": {
+     "mean_full_raw": 0.2048,
+     "mean_full": 0.20463,
+     "mean_direct_plus_indirect": 0.21162,
+     "mean_ratio": 1.0342,
+     "p99_full": 2.6046,
+     "p99_direct_plus_indirect": 2.6263,
+     "indirect_share": 0.459,
+     "direct_share": 0.5752
+    }
+   },
+   "nodes": [
+    "NEW_speedcube_root__mesh",
+    "NEW_speedcube_root"
+   ],
+   "anchors": {
+    "NEW_speedcube_root": {
+     "blender_world": [
+      -0.33,
+      0.62,
+      0.735
+     ],
+     "three_world": [
+      -0.33,
+      0.735,
+      -0.62
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_speedcube"
+   ]
+  },
+  {
+   "name": "teto_pear",
+   "file": "teto_pear.glb",
+   "bytes": 98016,
+   "tris": 1192,
+   "trisSource": 1192,
+   "budget": null,
+   "textureBytes": 83354,
+   "textures": [
+    {
+     "name": "teto_pear_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 83354
+    }
+   ],
+   "materials": [
+    {
+     "name": "teto_pear_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "tetopear": "kept (custom normals)"
+   },
+   "lightmap": {
+    "file": "teto_pear.indirect.rgbm.webp",
+    "rangeSqrt": 0.67,
+    "uv": "TEXCOORD_0",
+    "res": 256,
+    "bytes": 84220,
+    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+    "check": {
+     "mean_full_raw": 0.11114,
+     "mean_full": 0.11042,
+     "mean_direct_plus_indirect": 0.11042,
+     "mean_ratio": 1,
+     "p99_full": 0.2199,
+     "p99_direct_plus_indirect": 0.2199,
+     "indirect_share": 1,
+     "direct_share": 0
+    }
+   },
+   "nodes": [
+    "NEW_teto_pear_root__mesh",
+    "NEW_teto_pear_root"
+   ],
+   "anchors": {
+    "NEW_teto_pear_root": {
+     "blender_world": [
+      -0.05,
+      0.945,
+      0.7452
+     ],
+     "three_world": [
+      -0.05,
+      0.7452,
+      -0.945
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_teto_pear"
+   ]
+  }
+ ]
+}

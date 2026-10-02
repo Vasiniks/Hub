@@ -1,0 +1,281 @@
+{
+ "set": "monitor",
+ "sources": [
+  "NEW_monitor"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 8610,
+ "tris_after": 8490,
+ "objects": [
+  {
+   "name": "NEW_monitor_bezel",
+   "tris_before": 672,
+   "tris_after": 672
+  },
+  {
+   "name": "NEW_monitor_glass_border",
+   "tris_before": 56,
+   "tris_after": 56
+  },
+  {
+   "name": "NEW_monitor_screen",
+   "tris_before": 2,
+   "tris_after": 2
+  },
+  {
+   "name": "NEW_monitor_rear_housing",
+   "tris_before": 3354,
+   "tris_after": 3354
+  },
+  {
+   "name": "NEW_monitor_io",
+   "tris_before": 880,
+   "tris_after": 760
+  },
+  {
+   "name": "NEW_monitor_io_tongues",
+   "tris_before": 336,
+   "tris_after": 336
+  },
+  {
+   "name": "NEW_monitor_led",
+   "tris_before": 44,
+   "tris_after": 44
+  },
+  {
+   "name": "NEW_monitor_joystick",
+   "tris_before": 158,
+   "tris_after": 158
+  },
+  {
+   "name": "NEW_monitor_carriage",
+   "tris_before": 444,
+   "tris_after": 444
+  },
+  {
+   "name": "NEW_monitor_slider",
+   "tris_before": 236,
+   "tris_after": 236
+  },
+  {
+   "name": "NEW_monitor_column",
+   "tris_before": 1004,
+   "tris_after": 1004
+  },
+  {
+   "name": "NEW_monitor_base",
+   "tris_before": 728,
+   "tris_after": 728
+  },
+  {
+   "name": "NEW_monitor_feet",
+   "tris_before": 696,
+   "tris_after": 696
+  }
+ ],
+ "skipped": {},
+ "reduction": {
+  "NEW_monitor_bezel": "dissolve",
+  "NEW_monitor_glass_border": "kept",
+  "NEW_monitor_screen": "kept",
+  "NEW_monitor_rear_housing": "dissolve",
+  "NEW_monitor_io": "dissolve",
+  "NEW_monitor_io_tongues": "dissolve",
+  "NEW_monitor_led": "kept",
+  "NEW_monitor_joystick": "kept",
+  "NEW_monitor_carriage": "dissolve",
+  "NEW_monitor_slider": "kept",
+  "NEW_monitor_column": "dissolve",
+  "NEW_monitor_base": "dissolve",
+  "NEW_monitor_feet": "dissolve"
+ },
+ "atlas": {
+  "pbr_res": 2048,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "monitor_basecolor.png",
+  "orm": "monitor_orm.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "monitor.indirect.rgbm.webp",
+  "png": "monitor.indirect.rgbm.png",
+  "res": 512,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 1.97,
+  "linear_max": 3.8809,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 0.00019,
+  "rgbm_mean_rel_err": 0.0025,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.16412,
+   "mean_full": 0.16284,
+   "mean_direct_plus_indirect": 0.16251,
+   "mean_ratio": 0.998,
+   "p99_full": 1.086,
+   "p99_direct_plus_indirect": 1.0832,
+   "indirect_share": 0.623,
+   "direct_share": 0.375
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ]
+ },
+ "material_modes": {
+  "mon_power_led": "pbr_emissive",
+  "mon_screen": "pbr_screen",
+  "monitor_pbr": "pbr"
+ },
+ "material_kinds": {
+  "mon_alu_channel_dark": "opaque",
+  "mon_alu_spacegrey": "opaque",
+  "mon_bezel_black_matte": "opaque",
+  "mon_feet_rubber": "opaque",
+  "mon_glass_border_black": "opaque",
+  "mon_port_black": "opaque",
+  "mon_port_nickel": "opaque",
+  "mon_port_tongue": "opaque",
+  "mon_power_led": "emit",
+  "mon_rear_black_textured": "opaque",
+  "mon_recess_dark": "opaque",
+  "mon_screen_antiglare": "opaque",
+  "mon_power_led__src": "emit"
+ },
+ "emissive_materials": [
+  "mon_power_led"
+ ],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [
+  {
+   "node": "mon_screen",
+   "material": "mon_screen",
+   "uv": "UV0 0..1 across the visible face; u to the right, v up, seen from CAM_seat"
+  }
+ ],
+ "anchors": {
+  "NEW_monitor_lift": {
+   "blender_world": [
+    -0.05,
+    1.015,
+    0.735
+   ],
+   "three_world": [
+    -0.05,
+    0.735,
+    -1.015
+   ],
+   "parent": "NEW_monitor_root",
+   "is_pivot": false
+  },
+  "NEW_monitor_root": {
+   "blender_world": [
+    -0.05,
+    1.015,
+    0.735
+   ],
+   "three_world": [
+    -0.05,
+    0.735,
+    -1.015
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "mon_screen": {
+   "parent": "NEW_monitor_lift",
+   "tris": 2,
+   "materials": [
+    "mon_screen"
+   ],
+   "blender_bbox": [
+    [
+     -0.363,
+     0.9597,
+     0.943
+    ],
+    [
+     0.263,
+     0.972,
+     1.2948
+    ]
+   ]
+  },
+  "NEW_monitor_lift__mesh": {
+   "parent": "NEW_monitor_lift",
+   "tris": 6060,
+   "materials": [
+    "monitor_pbr",
+    "mon_power_led"
+   ],
+   "blender_bbox": [
+    [
+     -0.37,
+     0.9589,
+     0.9268
+    ],
+    [
+     0.27,
+     1.0305,
+     1.3017
+    ]
+   ]
+  },
+  "NEW_monitor_root__mesh": {
+   "parent": "NEW_monitor_root",
+   "tris": 2428,
+   "materials": [
+    "monitor_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -0.2007,
+     0.9,
+     0.7351
+    ],
+    [
+     0.1007,
+     1.105,
+     1.18
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.0018,
+   "s2a": [],
+   "base_mean": [
+    0.149,
+    0.15,
+    0.162
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 1.173,
+   "coverage_px": 0.368
+  }
+ },
+ "bake_seconds": {
+  "base": 19.1,
+  "rough": 19.1,
+  "metal": 19.1,
+  "normal": 19.5,
+  "L_full": 17.5,
+  "L_direct": 14.8
+ },
+ "glb": "monitor.glb",
+ "glb_bytes": 424664,
+ "seconds": 147.0
+}

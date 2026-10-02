@@ -1,0 +1,295 @@
+{
+ "set": "lamp",
+ "sources": [
+  "NEW_lamp",
+  "NEW_medals"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 98334,
+ "tris_after": 41238,
+ "objects": [
+  {
+   "name": "lamp_body.001",
+   "tris_before": 2370,
+   "tris_after": 1596
+  },
+  {
+   "name": "lamp_arm",
+   "tris_before": 1776,
+   "tris_after": 1162
+  },
+  {
+   "name": "lamp_head.001",
+   "tris_before": 3584,
+   "tris_after": 3354
+  },
+  {
+   "name": "lamp_diffuser_bezel",
+   "tris_before": 1792,
+   "tris_after": 1792
+  },
+  {
+   "name": "lamp_diffuser_disc",
+   "tris_before": 1024,
+   "tris_after": 530
+  },
+  {
+   "name": "medal_m1_ribbon",
+   "tris_before": 3256,
+   "tris_after": 3256
+  },
+  {
+   "name": "medal_m2_ribbon",
+   "tris_before": 2776,
+   "tris_after": 2776
+  },
+  {
+   "name": "medal_m3_ribbon",
+   "tris_before": 3556,
+   "tris_after": 3556
+  },
+  {
+   "name": "medal_m4_ribbon",
+   "tris_before": 2916,
+   "tris_after": 2916
+  },
+  {
+   "name": "medal_m1_clasp",
+   "tris_before": 2076,
+   "tris_after": 2076
+  },
+  {
+   "name": "medal_m1_disc",
+   "tris_before": 16745,
+   "tris_after": 2999
+  },
+  {
+   "name": "medal_m2_clasp",
+   "tris_before": 2076,
+   "tris_after": 2076
+  },
+  {
+   "name": "medal_m2_disc",
+   "tris_before": 16745,
+   "tris_after": 2999
+  },
+  {
+   "name": "medal_m3_clasp",
+   "tris_before": 2076,
+   "tris_after": 2076
+  },
+  {
+   "name": "medal_m3_disc",
+   "tris_before": 16745,
+   "tris_after": 2999
+  },
+  {
+   "name": "medal_m4_clasp",
+   "tris_before": 2076,
+   "tris_after": 2076
+  },
+  {
+   "name": "medal_m4_disc",
+   "tris_before": 16745,
+   "tris_after": 2999
+  }
+ ],
+ "skipped": {},
+ "reduction": {
+  "lamp_body.001": "dissolve",
+  "lamp_arm": "dissolve",
+  "lamp_head.001": "dissolve",
+  "lamp_diffuser_bezel": "dissolve",
+  "lamp_diffuser_disc": "dissolve",
+  "medal_m1_ribbon": "kept",
+  "medal_m2_ribbon": "kept",
+  "medal_m3_ribbon": "kept",
+  "medal_m4_ribbon": "kept",
+  "medal_m1_clasp": "kept",
+  "medal_m1_disc": "relief -> 2999 tris + s2a normal",
+  "medal_m2_clasp": "kept",
+  "medal_m2_disc": "relief -> 2999 tris + s2a normal",
+  "medal_m3_clasp": "kept",
+  "medal_m3_disc": "relief -> 2999 tris + s2a normal",
+  "medal_m4_clasp": "kept",
+  "medal_m4_disc": "relief -> 2999 tris + s2a normal"
+ },
+ "atlas": {
+  "pbr_res": 2048,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "lamp_basecolor.png",
+  "orm": "lamp_orm.png",
+  "normal": "lamp_normal.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "lamp.indirect.rgbm.webp",
+  "png": "lamp.indirect.rgbm.png",
+  "res": 512,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 4.32,
+  "linear_max": 18.6624,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 0.00043,
+  "rgbm_mean_rel_err": 0.002,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 3.96274,
+   "mean_full": 3.98434,
+   "mean_direct_plus_indirect": 3.99828,
+   "mean_ratio": 1.0035,
+   "p99_full": 101.1132,
+   "p99_direct_plus_indirect": 100.1332,
+   "indirect_share": 0.3946,
+   "direct_share": 0.6089
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ]
+ },
+ "material_modes": {
+  "lamp_diffuser": "pbr_emissive",
+  "lamp_pbr": "pbr"
+ },
+ "material_kinds": {
+  "lamp_diffuser": "emit",
+  "lamp_white_plastic.001": "opaque",
+  "medals_gold_antique.001": "opaque",
+  "medals_gold_polished.001": "opaque",
+  "medals_ribbon_blue.001": "opaque",
+  "medals_ribbon_red.001": "opaque",
+  "medals_silver_antique.001": "opaque",
+  "medals_silver_polished.001": "opaque",
+  "medals_steel": "opaque",
+  "lamp_diffuser__src": "emit"
+ },
+ "emissive_materials": [
+  "lamp_diffuser"
+ ],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "NEW_lamp_root": {
+   "blender_world": [
+    -0.6638,
+    0.9181,
+    0.735
+   ],
+   "three_world": [
+    -0.6638,
+    0.735,
+    -0.9181
+   ],
+   "parent": null,
+   "is_pivot": false
+  },
+  "NEW_lamp_pivot": {
+   "blender_world": [
+    -0.7012,
+    0.955,
+    0.885
+   ],
+   "three_world": [
+    -0.7012,
+    0.885,
+    -0.955
+   ],
+   "parent": "NEW_lamp_root",
+   "is_pivot": true
+  }
+ },
+ "meshes": {
+  "NEW_lamp_root__mesh": {
+   "parent": "NEW_lamp_root",
+   "tris": 1596,
+   "materials": [
+    "lamp_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -0.7637,
+     0.8182,
+     0.735
+    ],
+    [
+     -0.5639,
+     1.018,
+     0.8853
+    ]
+   ]
+  },
+  "NEW_lamp_pivot__mesh": {
+   "parent": "NEW_lamp_pivot",
+   "tris": 39642,
+   "materials": [
+    "lamp_pbr",
+    "lamp_diffuser"
+   ],
+   "blender_bbox": [
+    [
+     -0.7213,
+     0.6896,
+     0.7747
+    ],
+    [
+     -0.4254,
+     0.9741,
+     1.1895
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.165,
+   "s2a": [
+    [
+     "medal_m1_disc",
+     28912
+    ],
+    [
+     "medal_m2_disc",
+     29031
+    ],
+    [
+     "medal_m3_disc",
+     28857
+    ],
+    [
+     "medal_m4_disc",
+     28837
+    ]
+   ],
+   "base_mean": [
+    0.875,
+    0.804,
+    0.798
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 1.637,
+   "coverage_px": 0.303
+  }
+ },
+ "bake_seconds": {
+  "base": 27.7,
+  "rough": 27.6,
+  "metal": 27.5,
+  "normal": 35.2,
+  "L_full": 26.0,
+  "L_direct": 20.9
+ },
+ "glb": "lamp.glb",
+ "glb_bytes": 2887732,
+ "seconds": 218.8
+}
