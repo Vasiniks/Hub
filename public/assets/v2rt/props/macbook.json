@@ -110,21 +110,23 @@
   "png": "macbook.indirect.rgbm.png",
   "res": 1024,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 1.24,
-  "linear_max": 1.5376,
+  "range_sqrt": 1.2,
+  "linear_max": 1.44,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 5e-05,
+  "clipped_fraction": 4e-05,
   "rgbm_mean_rel_err": 0.0023,
   "samples": 256,
   "check": {
    "mean_full_raw": 0.00147,
    "mean_full": 0.00152,
-   "mean_direct_plus_indirect": 0.0015,
-   "mean_ratio": 0.9869,
+   "mean_direct_plus_indirect": 0.00152,
+   "mean_ratio": 1.0005,
+   "raw_mean_ratio": 1.0431,
    "p99_full": 0.0171,
-   "p99_direct_plus_indirect": 0.0172,
-   "indirect_share": 0.6583,
-   "direct_share": 0.3286
+   "p99_direct_plus_indirect": 0.0171,
+   "clamped_texels": 0.0042,
+   "indirect_share": 0.6821,
+   "direct_share": 0.3184
   },
   "direct_lights": [
    "SUN_main",
@@ -140,21 +142,23 @@
     "png": "macbook.indirect.rgbm.png",
     "res": 1024,
     "uv": "TEXCOORD_0",
-    "range_sqrt": 1.24,
-    "linear_max": 1.5376,
+    "range_sqrt": 1.2,
+    "linear_max": 1.44,
     "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-    "clipped_fraction": 5e-05,
+    "clipped_fraction": 4e-05,
     "rgbm_mean_rel_err": 0.0023,
     "samples": 256,
     "check": {
      "mean_full_raw": 0.00147,
      "mean_full": 0.00152,
-     "mean_direct_plus_indirect": 0.0015,
-     "mean_ratio": 0.9869,
+     "mean_direct_plus_indirect": 0.00152,
+     "mean_ratio": 1.0005,
+     "raw_mean_ratio": 1.0431,
      "p99_full": 0.0171,
-     "p99_direct_plus_indirect": 0.0172,
-     "indirect_share": 0.6583,
-     "direct_share": 0.3286
+     "p99_direct_plus_indirect": 0.0171,
+     "clamped_texels": 0.0042,
+     "indirect_share": 0.6821,
+     "direct_share": 0.3184
     },
     "direct_lights": [
      "SUN_main",
@@ -272,14 +276,14 @@
   }
  },
  "bake_seconds": {
-  "base": 18.1,
-  "rough": 18.1,
-  "metal": 18.0,
-  "normal": 18.2,
-  "L_full": 22.3,
-  "L_direct": 18.5
+  "base": 17.7,
+  "rough": 17.8,
+  "metal": 17.7,
+  "normal": 17.8,
+  "L_full": 21.6,
+  "L_direct": 17.9
  },
  "glb": "macbook.glb",
  "glb_bytes": 613092,
- "seconds": 151.3
+ "seconds": 147.8
 }

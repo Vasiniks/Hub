@@ -77,7 +77,7 @@
   "range_sqrt": 0.52,
   "linear_max": 0.2704,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00037,
+  "clipped_fraction": 0.00036,
   "rgbm_mean_rel_err": 0.0023,
   "samples": 256,
   "check": {
@@ -85,8 +85,10 @@
    "mean_full": 0.04497,
    "mean_direct_plus_indirect": 0.04497,
    "mean_ratio": 1.0,
+   "raw_mean_ratio": 1.001,
    "p99_full": 0.1407,
    "p99_direct_plus_indirect": 0.1407,
+   "clamped_texels": 0.007,
    "indirect_share": 1.0,
    "direct_share": 0.0
   },
@@ -107,7 +109,7 @@
     "range_sqrt": 0.52,
     "linear_max": 0.2704,
     "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-    "clipped_fraction": 0.00037,
+    "clipped_fraction": 0.00036,
     "rgbm_mean_rel_err": 0.0023,
     "samples": 256,
     "check": {
@@ -115,8 +117,10 @@
      "mean_full": 0.04497,
      "mean_direct_plus_indirect": 0.04497,
      "mean_ratio": 1.0,
+     "raw_mean_ratio": 1.001,
      "p99_full": 0.1407,
      "p99_direct_plus_indirect": 0.1407,
+     "clamped_texels": 0.007,
      "indirect_share": 1.0,
      "direct_share": 0.0
     },
@@ -207,14 +211,14 @@
   }
  },
  "bake_seconds": {
-  "base": 9.8,
-  "rough": 9.7,
-  "metal": 9.8,
-  "normal": 9.8,
-  "L_full": 23.2,
-  "L_direct": 11.9
+  "base": 9.5,
+  "rough": 9.6,
+  "metal": 9.5,
+  "normal": 9.6,
+  "L_full": 21.5,
+  "L_direct": 11.5
  },
  "glb": "mouse_mx.glb",
  "glb_bytes": 573744,
- "seconds": 95.7
+ "seconds": 92.0
 }

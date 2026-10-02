@@ -1,13 +1,13 @@
 {
- "generated": "2026-10-02T05:05:26.254Z",
+ "generated": "2026-10-02T05:17:33.235Z",
  "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
  "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
  "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
  "materials": "Hybrid real-time (v2rt): every material is PBR (baseColor, ORM with R = 1, normal where it matters, emissive where it emits) on one atlas per set (TEXCOORD_0; the PC has three: case, interior, plush). The indirect-only lightmap of each set uses the same TEXCOORD_0: L_indirect = L_full - L_direct(SUN_main + LAMP_disk), Cycles DIFFUSE irradiance (colour off), clamped >= 0. Sun and lamp are rendered live with shadow maps; sky, screens, PC RGB, fixtures and every bounce are in the lightmap. Lightmap files: assets[].lightmaps[] (one per PBR atlas; .materials lists the materials that sample it), RGBM of sqrt(L) in lossless WebP; decode L = (rgb * a * rangeSqrt)^2 with lightMapIntensity = PI, colorSpace NoColorSpace, flipY false (same orientation as the glTF textures). Keepers (Robot_rsl_lens, bambu_mini_screen) and mon_screen are their own nodes and materials.",
  "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
- "totalBytes": 20289540,
+ "totalBytes": 20289548,
  "totalTris": 898068,
- "lightmapBytes": 58219442,
+ "lightmapBytes": 58281310,
  "credits": {
   "teto_plush": {
    "title": "Kasane Teto fatass plush",
@@ -1956,23 +1956,25 @@
    "lightmaps": [
     {
      "file": "keyboard.indirect.rgbm.webp",
-     "rangeSqrt": 1.04,
+     "rangeSqrt": 1.05,
      "uv": "TEXCOORD_0",
      "res": 1024,
      "materials": [
       "keyboard_pbr"
      ],
-     "bytes": 1316272,
+     "bytes": 1336754,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.02942,
       "mean_full": 0.0274,
       "mean_direct_plus_indirect": 0.02741,
       "mean_ratio": 1.0004,
+      "raw_mean_ratio": 0.9323,
       "p99_full": 0.3919,
-      "p99_direct_plus_indirect": 0.3966,
-      "indirect_share": 0.8282,
-      "direct_share": 0.1722
+      "p99_direct_plus_indirect": 0.3929,
+      "clamped_texels": 0.0023,
+      "indirect_share": 0.8288,
+      "direct_share": 0.1716
      }
     }
    ],
@@ -2384,23 +2386,25 @@
    "lightmaps": [
     {
      "file": "macbook.indirect.rgbm.webp",
-     "rangeSqrt": 1.24,
+     "rangeSqrt": 1.2,
      "uv": "TEXCOORD_0",
      "res": 1024,
      "materials": [
       "macbook_pbr"
      ],
-     "bytes": 284332,
+     "bytes": 287874,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.00147,
       "mean_full": 0.00152,
-      "mean_direct_plus_indirect": 0.0015,
-      "mean_ratio": 0.9869,
+      "mean_direct_plus_indirect": 0.00152,
+      "mean_ratio": 1.0005,
+      "raw_mean_ratio": 1.0431,
       "p99_full": 0.0171,
-      "p99_direct_plus_indirect": 0.0172,
-      "indirect_share": 0.6583,
-      "direct_share": 0.3286
+      "p99_direct_plus_indirect": 0.0171,
+      "clamped_texels": 0.0042,
+      "indirect_share": 0.6821,
+      "direct_share": 0.3184
      }
     }
    ],
@@ -2451,11 +2455,11 @@
   {
    "name": "monitor",
    "file": "monitor.glb",
-   "bytes": 182448,
+   "bytes": 182456,
    "tris": 8490,
    "trisSource": 8610,
    "budget": null,
-   "textureBytes": 94066,
+   "textureBytes": 94068,
    "textures": [
     {
      "name": "monitor_basecolor",
@@ -2473,7 +2477,7 @@
       1024,
       1024
      ],
-     "bytes": 54424
+     "bytes": 54426
     }
    ],
    "materials": [
@@ -2526,24 +2530,26 @@
    "lightmaps": [
     {
      "file": "monitor.indirect.rgbm.webp",
-     "rangeSqrt": 1.89,
+     "rangeSqrt": 1.9,
      "uv": "TEXCOORD_0",
      "res": 2048,
      "materials": [
       "mon_power_led",
       "monitor_pbr"
      ],
-     "bytes": 1888422,
+     "bytes": 1926230,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.17627,
       "mean_full": 0.17484,
-      "mean_direct_plus_indirect": 0.17476,
-      "mean_ratio": 0.9995,
-      "p99_full": 1.1227,
-      "p99_direct_plus_indirect": 1.1189,
-      "indirect_share": 0.6282,
-      "direct_share": 0.3713
+      "mean_direct_plus_indirect": 0.17485,
+      "mean_ratio": 1.0001,
+      "raw_mean_ratio": 0.9913,
+      "p99_full": 1.1228,
+      "p99_direct_plus_indirect": 1.1228,
+      "clamped_texels": 0.0025,
+      "indirect_share": 0.6281,
+      "direct_share": 0.3719
      }
     }
    ],
@@ -2674,15 +2680,17 @@
      "materials": [
       "mouse_mx_pbr"
      ],
-     "bytes": 1110904,
+     "bytes": 1110940,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.04492,
       "mean_full": 0.04497,
       "mean_direct_plus_indirect": 0.04497,
       "mean_ratio": 1,
+      "raw_mean_ratio": 1.001,
       "p99_full": 0.1407,
       "p99_direct_plus_indirect": 0.1407,
+      "clamped_texels": 0.007,
       "indirect_share": 1,
       "direct_share": 0
      }

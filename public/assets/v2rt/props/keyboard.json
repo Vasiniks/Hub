@@ -116,10 +116,10 @@
   "png": "keyboard.indirect.rgbm.png",
   "res": 1024,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 1.04,
-  "linear_max": 1.0816,
+  "range_sqrt": 1.05,
+  "linear_max": 1.1025,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00027,
+  "clipped_fraction": 0.00028,
   "rgbm_mean_rel_err": 0.0023,
   "samples": 256,
   "check": {
@@ -127,10 +127,12 @@
    "mean_full": 0.0274,
    "mean_direct_plus_indirect": 0.02741,
    "mean_ratio": 1.0004,
+   "raw_mean_ratio": 0.9323,
    "p99_full": 0.3919,
-   "p99_direct_plus_indirect": 0.3966,
-   "indirect_share": 0.8282,
-   "direct_share": 0.1722
+   "p99_direct_plus_indirect": 0.3929,
+   "clamped_texels": 0.0023,
+   "indirect_share": 0.8288,
+   "direct_share": 0.1716
   },
   "direct_lights": [
    "SUN_main",
@@ -146,10 +148,10 @@
     "png": "keyboard.indirect.rgbm.png",
     "res": 1024,
     "uv": "TEXCOORD_0",
-    "range_sqrt": 1.04,
-    "linear_max": 1.0816,
+    "range_sqrt": 1.05,
+    "linear_max": 1.1025,
     "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-    "clipped_fraction": 0.00027,
+    "clipped_fraction": 0.00028,
     "rgbm_mean_rel_err": 0.0023,
     "samples": 256,
     "check": {
@@ -157,10 +159,12 @@
      "mean_full": 0.0274,
      "mean_direct_plus_indirect": 0.02741,
      "mean_ratio": 1.0004,
+     "raw_mean_ratio": 0.9323,
      "p99_full": 0.3919,
-     "p99_direct_plus_indirect": 0.3966,
-     "indirect_share": 0.8282,
-     "direct_share": 0.1722
+     "p99_direct_plus_indirect": 0.3929,
+     "clamped_texels": 0.0023,
+     "indirect_share": 0.8288,
+     "direct_share": 0.1716
     },
     "direct_lights": [
      "SUN_main",
@@ -255,14 +259,14 @@
   }
  },
  "bake_seconds": {
-  "base": 19.5,
-  "rough": 19.5,
-  "metal": 19.4,
-  "normal": 19.7,
-  "L_full": 27.0,
-  "L_direct": 20.6
+  "base": 18.9,
+  "rough": 19.1,
+  "metal": 19.0,
+  "normal": 18.9,
+  "L_full": 25.7,
+  "L_direct": 19.6
  },
  "glb": "keyboard.glb",
  "glb_bytes": 1114716,
- "seconds": 167.2
+ "seconds": 161.0
 }
