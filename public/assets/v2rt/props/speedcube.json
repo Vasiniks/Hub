@@ -200,21 +200,23 @@
   "png": "speedcube.indirect.rgbm.png",
   "res": 1024,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 1.25,
-  "linear_max": 1.5625,
+  "range_sqrt": 1.27,
+  "linear_max": 1.6129,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00041,
+  "clipped_fraction": 0.0004,
   "rgbm_mean_rel_err": 0.0022,
   "samples": 256,
   "check": {
    "mean_full_raw": 0.25092,
    "mean_full": 0.25129,
-   "mean_direct_plus_indirect": 0.26383,
-   "mean_ratio": 1.0499,
-   "p99_full": 2.6144,
-   "p99_direct_plus_indirect": 2.7306,
-   "indirect_share": 0.4151,
-   "direct_share": 0.6348
+   "mean_direct_plus_indirect": 0.25231,
+   "mean_ratio": 1.0041,
+   "raw_mean_ratio": 1.0024,
+   "p99_full": 2.6145,
+   "p99_direct_plus_indirect": 2.6165,
+   "clamped_texels": 0.0209,
+   "indirect_share": 0.3661,
+   "direct_share": 0.6379
   },
   "direct_lights": [
    "SUN_main",
@@ -231,21 +233,23 @@
     "png": "speedcube.indirect.rgbm.png",
     "res": 1024,
     "uv": "TEXCOORD_0",
-    "range_sqrt": 1.25,
-    "linear_max": 1.5625,
+    "range_sqrt": 1.27,
+    "linear_max": 1.6129,
     "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-    "clipped_fraction": 0.00041,
+    "clipped_fraction": 0.0004,
     "rgbm_mean_rel_err": 0.0022,
     "samples": 256,
     "check": {
      "mean_full_raw": 0.25092,
      "mean_full": 0.25129,
-     "mean_direct_plus_indirect": 0.26383,
-     "mean_ratio": 1.0499,
-     "p99_full": 2.6144,
-     "p99_direct_plus_indirect": 2.7306,
-     "indirect_share": 0.4151,
-     "direct_share": 0.6348
+     "mean_direct_plus_indirect": 0.25231,
+     "mean_ratio": 1.0041,
+     "raw_mean_ratio": 1.0024,
+     "p99_full": 2.6145,
+     "p99_direct_plus_indirect": 2.6165,
+     "clamped_texels": 0.0209,
+     "indirect_share": 0.3661,
+     "direct_share": 0.6379
     },
     "direct_lights": [
      "SUN_main",
@@ -331,15 +335,15 @@
   }
  },
  "bake_seconds": {
-  "base": 39.3,
-  "rough": 39.6,
-  "metal": 39.1,
-  "alpha": 39.3,
-  "normal": 39.2,
-  "L_full": 60.9,
-  "L_direct": 40.9
+  "base": 38.1,
+  "rough": 38.0,
+  "metal": 37.8,
+  "alpha": 38.3,
+  "normal": 38.2,
+  "L_full": 58.6,
+  "L_direct": 39.7
  },
  "glb": "speedcube.glb",
  "glb_bytes": 908844,
- "seconds": 381.5
+ "seconds": 369.3
 }

@@ -164,8 +164,8 @@
   "png": "cables.indirect.rgbm.png",
   "res": 1024,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 1.72,
-  "linear_max": 2.9584,
+  "range_sqrt": 1.74,
+  "linear_max": 3.0276,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
   "clipped_fraction": 0.00043,
   "rgbm_mean_rel_err": 0.0023,
@@ -173,12 +173,14 @@
   "check": {
    "mean_full_raw": 0.11074,
    "mean_full": 0.10792,
-   "mean_direct_plus_indirect": 0.11054,
-   "mean_ratio": 1.0243,
+   "mean_direct_plus_indirect": 0.10947,
+   "mean_ratio": 1.0144,
+   "raw_mean_ratio": 0.984,
    "p99_full": 2.1171,
-   "p99_direct_plus_indirect": 2.2533,
-   "indirect_share": 0.5819,
-   "direct_share": 0.4424
+   "p99_direct_plus_indirect": 2.1986,
+   "clamped_texels": 0.0077,
+   "indirect_share": 0.5673,
+   "direct_share": 0.4471
   },
   "direct_lights": [
    "SUN_main",
@@ -195,8 +197,8 @@
     "png": "cables.indirect.rgbm.png",
     "res": 1024,
     "uv": "TEXCOORD_0",
-    "range_sqrt": 1.72,
-    "linear_max": 2.9584,
+    "range_sqrt": 1.74,
+    "linear_max": 3.0276,
     "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
     "clipped_fraction": 0.00043,
     "rgbm_mean_rel_err": 0.0023,
@@ -204,12 +206,14 @@
     "check": {
      "mean_full_raw": 0.11074,
      "mean_full": 0.10792,
-     "mean_direct_plus_indirect": 0.11054,
-     "mean_ratio": 1.0243,
+     "mean_direct_plus_indirect": 0.10947,
+     "mean_ratio": 1.0144,
+     "raw_mean_ratio": 0.984,
      "p99_full": 2.1171,
-     "p99_direct_plus_indirect": 2.2533,
-     "indirect_share": 0.5819,
-     "direct_share": 0.4424
+     "p99_direct_plus_indirect": 2.1986,
+     "clamped_texels": 0.0077,
+     "indirect_share": 0.5673,
+     "direct_share": 0.4471
     },
     "direct_lights": [
      "SUN_main",
@@ -314,14 +318,14 @@
   }
  },
  "bake_seconds": {
-  "base": 30.5,
-  "rough": 30.4,
-  "metal": 30.1,
-  "normal": 30.3,
-  "L_full": 37.0,
-  "L_direct": 30.2
+  "base": 30.3,
+  "rough": 30.1,
+  "metal": 29.8,
+  "normal": 30.1,
+  "L_full": 36.1,
+  "L_direct": 30.0
  },
  "glb": "cables.glb",
  "glb_bytes": 1715344,
- "seconds": 253.6
+ "seconds": 250.2
 }

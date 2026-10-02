@@ -1,13 +1,13 @@
 {
- "generated": "2026-10-02T05:17:33.235Z",
+ "generated": "2026-10-02T05:31:49.987Z",
  "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
  "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
  "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
  "materials": "Hybrid real-time (v2rt): every material is PBR (baseColor, ORM with R = 1, normal where it matters, emissive where it emits) on one atlas per set (TEXCOORD_0; the PC has three: case, interior, plush). The indirect-only lightmap of each set uses the same TEXCOORD_0: L_indirect = L_full - L_direct(SUN_main + LAMP_disk), Cycles DIFFUSE irradiance (colour off), clamped >= 0. Sun and lamp are rendered live with shadow maps; sky, screens, PC RGB, fixtures and every bounce are in the lightmap. Lightmap files: assets[].lightmaps[] (one per PBR atlas; .materials lists the materials that sample it), RGBM of sqrt(L) in lossless WebP; decode L = (rgb * a * rangeSqrt)^2 with lightMapIntensity = PI, colorSpace NoColorSpace, flipY false (same orientation as the glTF textures). Keepers (Robot_rsl_lens, bambu_mini_screen) and mon_screen are their own nodes and materials.",
  "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
- "totalBytes": 20289548,
+ "totalBytes": 20289588,
  "totalTris": 898068,
- "lightmapBytes": 58281310,
+ "lightmapBytes": 58337074,
  "credits": {
   "teto_plush": {
    "title": "Kasane Teto fatass plush",
@@ -836,24 +836,26 @@
    "lightmaps": [
     {
      "file": "cables.indirect.rgbm.webp",
-     "rangeSqrt": 1.72,
+     "rangeSqrt": 1.74,
      "uv": "TEXCOORD_0",
      "res": 1024,
      "materials": [
       "cables_pbr",
       "magsafe_led_amber.001"
      ],
-     "bytes": 1038682,
+     "bytes": 1038030,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.11074,
       "mean_full": 0.10792,
-      "mean_direct_plus_indirect": 0.11054,
-      "mean_ratio": 1.0243,
+      "mean_direct_plus_indirect": 0.10947,
+      "mean_ratio": 1.0144,
+      "raw_mean_ratio": 0.984,
       "p99_full": 2.1171,
-      "p99_direct_plus_indirect": 2.2533,
-      "indirect_share": 0.5819,
-      "direct_share": 0.4424
+      "p99_direct_plus_indirect": 2.1986,
+      "clamped_texels": 0.0077,
+      "indirect_share": 0.5673,
+      "direct_share": 0.4471
      }
     }
    ],
@@ -2237,23 +2239,25 @@
    "lightmaps": [
     {
      "file": "lorenz.indirect.rgbm.webp",
-     "rangeSqrt": 2.2,
+     "rangeSqrt": 2.19,
      "uv": "TEXCOORD_0",
      "res": 1024,
      "materials": [
       "lorenz_pbr"
      ],
-     "bytes": 802976,
+     "bytes": 837270,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.21587,
       "mean_full": 0.21916,
-      "mean_direct_plus_indirect": 0.23731,
-      "mean_ratio": 1.0828,
+      "mean_direct_plus_indirect": 0.21939,
+      "mean_ratio": 1.0011,
+      "raw_mean_ratio": 1.0131,
       "p99_full": 3.2147,
-      "p99_direct_plus_indirect": 3.4752,
-      "indirect_share": 0.2991,
-      "direct_share": 0.7837
+      "p99_direct_plus_indirect": 3.2187,
+      "clamped_texels": 0.0078,
+      "indirect_share": 0.2142,
+      "direct_share": 0.7869
      }
     }
    ],
@@ -3355,11 +3359,11 @@
   {
    "name": "redbull",
    "file": "redbull.glb",
-   "bytes": 170636,
+   "bytes": 170684,
    "tris": 1069,
    "trisSource": 15095,
    "budget": null,
-   "textureBytes": 147620,
+   "textureBytes": 147668,
    "textures": [
     {
      "name": "redbull_basecolor",
@@ -3368,7 +3372,7 @@
       1024,
       1024
      ],
-     "bytes": 131032
+     "bytes": 131080
     },
     {
      "name": "redbull_orm",
@@ -3400,23 +3404,25 @@
    "lightmaps": [
     {
      "file": "redbull.indirect.rgbm.webp",
-     "rangeSqrt": 2.65,
+     "rangeSqrt": 2.66,
      "uv": "TEXCOORD_0",
      "res": 1024,
      "materials": [
       "redbull_pbr"
      ],
-     "bytes": 613248,
+     "bytes": 634188,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 1.55419,
-      "mean_full": 1.56007,
-      "mean_direct_plus_indirect": 1.62888,
-      "mean_ratio": 1.0441,
-      "p99_full": 7.2557,
-      "p99_direct_plus_indirect": 7.9302,
-      "indirect_share": 0.5145,
-      "direct_share": 0.5296
+      "mean_full": 1.56006,
+      "mean_direct_plus_indirect": 1.57537,
+      "mean_ratio": 1.0098,
+      "raw_mean_ratio": 1.0128,
+      "p99_full": 7.2553,
+      "p99_direct_plus_indirect": 7.4257,
+      "clamped_texels": 0.042,
+      "indirect_share": 0.4794,
+      "direct_share": 0.5304
      }
     }
    ],
@@ -3713,24 +3719,26 @@
    "lightmaps": [
     {
      "file": "speedcube.indirect.rgbm.webp",
-     "rangeSqrt": 1.25,
+     "rangeSqrt": 1.27,
      "uv": "TEXCOORD_0",
      "res": 1024,
      "materials": [
       "speedcube_pbr",
       "speedcube_pbr_cutout"
      ],
-     "bytes": 1836788,
+     "bytes": 1837744,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.25092,
       "mean_full": 0.25129,
-      "mean_direct_plus_indirect": 0.26383,
-      "mean_ratio": 1.0499,
-      "p99_full": 2.6144,
-      "p99_direct_plus_indirect": 2.7306,
-      "indirect_share": 0.4151,
-      "direct_share": 0.6348
+      "mean_direct_plus_indirect": 0.25231,
+      "mean_ratio": 1.0041,
+      "raw_mean_ratio": 1.0024,
+      "p99_full": 2.6145,
+      "p99_direct_plus_indirect": 2.6165,
+      "clamped_texels": 0.0209,
+      "indirect_share": 0.3661,
+      "direct_share": 0.6379
      }
     }
    ],
@@ -3946,11 +3954,11 @@
   {
    "name": "teto_pear",
    "file": "teto_pear.glb",
-   "bytes": 98016,
+   "bytes": 98008,
    "tris": 1192,
    "trisSource": 1192,
    "budget": null,
-   "textureBytes": 83354,
+   "textureBytes": 83348,
    "textures": [
     {
      "name": "teto_pear_basecolor",
@@ -3959,7 +3967,7 @@
       1024,
       1024
      ],
-     "bytes": 83354
+     "bytes": 83348
     }
    ],
    "materials": [
@@ -3987,15 +3995,17 @@
      "materials": [
       "teto_pear_pbr"
      ],
-     "bytes": 829572,
+     "bytes": 829798,
      "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
      "check": {
       "mean_full_raw": 0.1114,
       "mean_full": 0.1113,
       "mean_direct_plus_indirect": 0.1113,
       "mean_ratio": 1,
-      "p99_full": 0.2175,
-      "p99_direct_plus_indirect": 0.2175,
+      "raw_mean_ratio": 0.999,
+      "p99_full": 0.2176,
+      "p99_direct_plus_indirect": 0.2176,
+      "clamped_texels": 0,
       "indirect_share": 1,
       "direct_share": 0
      }
