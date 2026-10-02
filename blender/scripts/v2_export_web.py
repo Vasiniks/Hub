@@ -67,8 +67,8 @@ RS = arg('--res-scale', 1.0, float)
 USE_CPU = '--cpu' in ARGS
 AO_SAMPLES = arg("--ao-samples", 128, int)
 LIT = '--pbr-only' not in ARGS and not RT   # default: lit bake in the full room (owner, 2026-10-01)
-RT_DIRECT_LIGHTS = ('SUN_main', 'LAMP_disk')
-LM_DIV = arg('--lm-div', 4, int)        # lightmap size = atlas size / LM_DIV (min 256)  # rendered live in the hybrid mode: kept out of its lightmap
+RT_DIRECT_LIGHTS = ('SUN_main', 'LAMP_disk')  # rendered live in the hybrid mode: kept out of its lightmap
+LM_DIV = arg("--lm-div", 1, int)        # lightmap size = atlas size / LM_DIV (coordinator: same res as the atlas)
 LIT_SAMPLES = arg('--lit-samples', 256, int)
 LIT_K_MAX = 2.0
 IMG_QUALITY = arg('--quality', 92, int)
@@ -677,6 +677,22 @@ def uv_problem(me, layer, res=256):
     return f'{over:.0%} of texels overlap' if over > 0.03 else None
 
 
+def uv_area_total(objs):
+    tot = 0.0
+    for o in objs:
+        me = o.data
+        me.calc_loop_triangles()
+        uv = me.uv_layers['atlas'].data
+        a = np.empty(len(uv) * 2, dtype=np.float32)
+        uv.foreach_get('uv', a)
+        a = a.reshape(-1, 2)
+        lt = np.empty(len(me.loop_triangles) * 3, dtype=np.int32)
+        me.loop_triangles.foreach_get('loops', lt)
+        t3 = a[lt].reshape(-1, 3, 2)
+        tot += 0.5 * float(np.abs(np.cross(t3[:, 1] - t3[:, 0], t3[:, 2] - t3[:, 0])).sum())
+    return tot
+
+
 def atlas_unwrap(objs, weights, res, uv_mode='smart'):
     """uv_mode 'smart': smart project everything. 'orig': keep each mesh's own UV islands (scans:
     no diamond-shaped islands), only meshes without UVs get a smart project; islands are then
@@ -798,6 +814,32 @@ def atlas_unwrap(objs, weights, res, uv_mode='smart'):
                                  area_weight=0.0, correct_aspect=True, scale_to_bounds=False)
         packed = 'smart_project (unweighted)'
     bpy.ops.object.mode_set(mode='OBJECT')
+    # with tens of thousands of islands (PC, robot as one atlas) pack_islands can silently give up and
+    # leave the islands at their tiny normalised scale: measure, and fall back to smart project's own
+    # multi-object packer (no weights) when that covers more
+    area = uv_area_total(objs)
+    if area < 0.1:
+        keep = {}
+        for o in objs:
+            d = o.data.uv_layers['atlas'].data
+            buf = np.empty(len(d) * 2, dtype=np.float32)
+            d.foreach_get('uv', buf)
+            keep[o] = buf
+        select_only(objs)
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        # PC/robot have ~25k islands: a 4 px margin per island leaves 3 % of the atlas for texels;
+        # 89 deg + 1 px reaches ~20 % (the bake's EXTEND margin only fills empty texels)
+        bpy.ops.uv.smart_project(angle_limit=math.radians(89), island_margin=1.0 / res, area_weight=0.0,
+                                 correct_aspect=True, scale_to_bounds=False)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        area2 = uv_area_total(objs)
+        log(f'  packed UV area {area:.4f} -> smart-project fallback {area2:.4f}')
+        if area2 <= area:
+            for o, d in keep.items():
+                o.data.uv_layers['atlas'].data.foreach_set('uv', d)
+        else:
+            packed = 'smart_project fallback (pack_islands gave up)'
     lo_uv, hi_uv = np.array([np.inf, np.inf]), np.array([-np.inf, -np.inf])
     for o in objs:
         uv = o.data.uv_layers['atlas'].data
@@ -1173,7 +1215,7 @@ def bake_indirect_lightmap(name, objs, mats, res, texdir, timings):
     (DIFFUSE, colour off), same samples for both, on the set's atlas UV (TEXCOORD_0). Written as RGBM
     of sqrt(L) (the room's encoding); the WebP is made from the PNG afterwards."""
     sc = bpy.context.scene
-    lm = max(256, res // LM_DIV)   # indirect light is low-frequency; lossless RGBM costs ~1 B/texel
+    lm = max(256, res // LM_DIV)   # lossless RGBM costs ~1 B/texel
     ov = Override(mats, 'mask')
     mk = new_image(f'{name}_lm_mask', lm, data=True)
     try:
@@ -1199,24 +1241,25 @@ def bake_indirect_lightmap(name, objs, mats, res, texdir, timings):
     timings['L_direct'] = round(time.time() - tb, 1)
     F = pixels(full)[:, :3].copy()
     Dd = pixels(direct)[:, :3].copy()
-    raw = np.maximum(F - Dd, 0.0)
-    ind_img = fimg('L_indirect_raw')
-    buf = np.ones((lm * lm, 4), dtype=np.float32)
-    buf[:, :3] = raw
-    ind_img.pixels.foreach_set(buf.ravel())
-    ind = np.maximum(denoise_pixels(ind_img, lm, os.path.join(texdir, f'{name}_L_indirect_dn.exr')), 0.0)
-    # sum check: L_direct + L_indirect vs L_full over covered texels (luminance). The indirect is
-    # denoised, so its p99 is compared with a denoised L_full (raw p99 is mostly sampling noise).
+    # denoise L_full and L_direct separately, then subtract and clamp: subtracting two noisy bakes and
+    # clamping at 0 biases the indirect upward (it overstated it by ~45 % on sets the lamp dominates)
     Fdn = np.maximum(denoise_pixels(full, lm, os.path.join(texdir, f'{name}_L_full_dn.exr')), 0.0)
+    Ddn = np.maximum(denoise_pixels(direct, lm, os.path.join(texdir, f'{name}_L_direct_dn.exr')), 0.0)
+    ind = np.maximum(Fdn - Ddn, 0.0)
+    # checks over covered texels (luminance): denoised D + I vs denoised L_full, and, independent of
+    # the denoiser, the raw bakes' means
     lum = lambda a: a @ np.array([0.2126, 0.7152, 0.0722])  # noqa: E731
     if cov.any():
-        lf, ls = lum(Fdn[cov]), lum(Dd[cov] + ind[cov])
-        check = dict(mean_full_raw=round(float(lum(F[cov]).mean()), 5), mean_full=round(float(lf.mean()), 5), mean_direct_plus_indirect=round(float(ls.mean()), 5),
+        lf, ls = lum(Fdn[cov]), lum(Ddn[cov] + ind[cov])
+        check = dict(mean_full_raw=round(float(lum(F[cov]).mean()), 5), mean_full=round(float(lf.mean()), 5),
+                     mean_direct_plus_indirect=round(float(ls.mean()), 5),
                      mean_ratio=round(float(ls.mean() / max(lf.mean(), 1e-9)), 4),
+                     raw_mean_ratio=round(float((lum(Dd[cov]).mean() + lum(ind[cov]).mean()) / max(lum(F[cov]).mean(), 1e-9)), 4),
                      p99_full=round(float(np.percentile(lf, 99)), 4),
                      p99_direct_plus_indirect=round(float(np.percentile(ls, 99)), 4),
+                     clamped_texels=round(float((lum(Fdn[cov]) < lum(Ddn[cov])).mean()), 4),
                      indirect_share=round(float(lum(ind[cov]).mean() / max(lf.mean(), 1e-9)), 4),
-                     direct_share=round(float(lum(Dd[cov]).mean() / max(lf.mean(), 1e-9)), 4))
+                     direct_share=round(float(lum(Ddn[cov]).mean() / max(lf.mean(), 1e-9)), 4))
     else:
         check = {}
     # RGBM of sqrt(L), as v2_bake_sunset.rgbm_png: R = 99.95th percentile of sqrt(max rgb)
@@ -1517,8 +1560,16 @@ def export_set(name):
     packer = {}
     for key, gg in lit_groups.items():
         packer['lit_' + key] = atlas_unwrap(gg['objs'], cfg.get('weights'), gg['res'], gg['uv'])[0]
-    if pbr_objs:
-        packer['pbr'] = atlas_unwrap(pbr_objs, cfg.get('weights'), res)[0]
+    pbr_groups = {}
+    for c in pbr_objs:
+        sn = c.name[:-1] if c.name.endswith('__loP') else c.name
+        sn = sn[:-4] if sn.endswith('__lo') else sn
+        g = next((a for a in cfg.get('own_atlas', []) if RT and match(sn, [(x, True) for x in a['globs']], False)), None)
+        key = g['name'] if g else 'main'
+        pbr_groups.setdefault(key, dict(objs=[], res=max(256, min(2048, int(g['res'] * RS))) if g else res))['objs'].append(c)
+    pbr_group_of = {c: k for k, gg in pbr_groups.items() for c in gg['objs']}
+    for key, gg in pbr_groups.items():
+        packer['pbr' + ('' if key == 'main' else '_' + key)] = atlas_unwrap(gg['objs'], cfg.get('weights'), gg['res'])[0]
     coverage = None
     log(f'{name}: atlas UVs {packer} in {time.time() - tu:.1f}s')
     objs = lit_objs + pbr_objs
@@ -1542,6 +1593,7 @@ def export_set(name):
     smax = max(emitters) if emitters else 1.0
     timings = {}
     tex, tex_lit, stats = {}, {}, {}
+    tex_by_group, rt_list = {}, []
     rt_info = None
     sc = bpy.context.scene
 
@@ -1553,35 +1605,36 @@ def export_set(name):
         finally:
             ov.restore()
         return img
-    if pbr_objs:
+    def bake_pbr_group(gobjs, res, suffix):
+        tex = {}
         has_cut = 'cutout' in PBR_KINDS and any(v['kind'] == 'cutout' for v in kinds.values())
-        imgs = {'mask': emit_bake(pbr_objs, 'mask', res, True, margin=0)}
+        imgs = {'mask': emit_bake(gobjs, 'mask', res, True, margin=0)}
         for ch, data in (('base', False), ('rough', True), ('metal', True)) + \
                 ((('alpha', True),) if has_cut else ()) + ((('emit', False),) if emitters else ()):
             tb = time.time()
-            imgs[ch] = emit_bake(pbr_objs, ch, res, data)
+            imgs[ch] = emit_bake(gobjs, ch, res, data)
             timings[ch] = round(time.time() - tb, 1)
         if not RT:
             tb = time.time()
             sc.cycles.samples = AO_SAMPLES
             old_dist = sc.world.light_settings.distance
             sc.world.light_settings.distance = 0.08
-            imgs['ao'] = new_image(f'{name}_ao', res, data=True)
-            bake(pbr_objs, 'AO', imgs['ao'], mats)
+            imgs['ao'] = new_image(f'{name}{suffix}_ao', res, data=True)
+            bake(gobjs, 'AO', imgs['ao'], mats)
             sc.world.light_settings.distance = old_dist
             timings['ao'] = round(time.time() - tb, 1)
         tb = time.time()
         sc.cycles.samples = 4
-        nrm = new_image(f'{name}_normal', res, data=True)
-        bake(pbr_objs, 'NORMAL', nrm, mats, normal_space='TANGENT')
+        nrm = new_image(f'{name}{suffix}_normal', res, data=True)
+        bake(gobjs, 'NORMAL', nrm, mats, normal_space='TANGENT')
         s2a_done = []
         if hi:   # the full-resolution relief for the s2a objects (e.g. medal faces)
             npx = pixels(nrm)
             for k, h in hi.items():
-                tgt = [p for p in lo_parts.get(k, []) if p in pbr_objs]
+                tgt = [p for p in lo_parts.get(k, []) if p in gobjs]
                 if not tgt:
                     continue
-                tmp = new_image(f'{name}_s2a_{k}', res, alpha=True, data=True)
+                tmp = new_image(f'{name}{suffix}_s2a_{k}', res, alpha=True, data=True)
                 tmp.pixels.foreach_set(np.zeros(res * res * 4, dtype=np.float32))
                 for m in mats:
                     m.node_tree.nodes['__bake_target'].image = tmp
@@ -1603,13 +1656,13 @@ def export_set(name):
         timings['normal'] = round(time.time() - tb, 1)
         P = {k: pixels(v) for k, v in imgs.items()}
         covered = P['mask'][:, 0] > 0.5
-        base = new_image(f'{name}_basecolor', res, alpha=has_cut, data=False)
+        base = new_image(f'{name}{suffix}_basecolor', res, alpha=has_cut, data=False)
         bp = P['base'].copy()
         bp[:, 3] = P['alpha'][:, 0] if has_cut else 1.0
         base.pixels.foreach_set(bp.ravel())
-        tex['base'] = save_png(base, os.path.join(texdir, f'{name}_basecolor.png'))
+        tex['base'] = save_png(base, os.path.join(texdir, f'{name}{suffix}_basecolor.png'))
         orm_res = max(256, res // 2)
-        orm = new_image(f'{name}_orm', res, data=True)
+        orm = new_image(f'{name}{suffix}_orm', res, data=True)
         op = np.ones((res * res, 4), dtype=np.float32)
         op[:, 0] = 1.0 if RT else masked_blur(P['ao'][:, 0], covered, res, passes=2)
         op[:, 1] = P['rough'][:, 0]
@@ -1617,25 +1670,35 @@ def export_set(name):
         orm.pixels.foreach_set(op.ravel())
         if orm_res != res:
             orm.scale(orm_res, orm_res)
-        tex['orm'] = save_png(orm, os.path.join(texdir, f'{name}_orm.png'))
+        tex['orm'] = save_png(orm, os.path.join(texdir, f'{name}{suffix}_orm.png'))
         tex['ao'] = not RT
         n = P['normal']
         dev = np.abs(n[:, :3] - np.array([0.5, 0.5, 1.0]))[covered].max(axis=1) if covered.any() else np.zeros(1)
         bumpy = float((dev > 0.03).mean())
         if bumpy > 0.002:
-            tex['normal'] = save_png(nrm, os.path.join(texdir, f'{name}_normal.png'))
+            tex['normal'] = save_png(nrm, os.path.join(texdir, f'{name}{suffix}_normal.png'))
         if emitters:
             em = imgs['emit']
             er = max(256, res // 2)
             em.scale(er, er)
-            tex['emit'] = save_png(em, os.path.join(texdir, f'{name}_emissive.png'))
-        if RT:
-            rt_info = bake_indirect_lightmap(name, pbr_objs, mats, res, texdir, timings)
-        stats['pbr'] = dict(normal_bumpy_fraction=round(bumpy, 4), s2a=s2a_done,
+            tex['emit'] = save_png(em, os.path.join(texdir, f'{name}{suffix}_emissive.png'))
+        rt_ = bake_indirect_lightmap(name + suffix, gobjs, mats, res, texdir, timings) if RT else None
+        stats_pbr = dict(normal_bumpy_fraction=round(bumpy, 4), s2a=s2a_done,
                             base_mean=[round(float(x), 3) for x in P['base'][covered][:, :3].mean(0)] if covered.any() else None,
                             ao_mean=round(float(P['ao'][covered][:, 0].mean()), 3) if covered.any() and 'ao' in P else None,
-                            texels_per_mm=round(atlas_density(pbr_objs, covered), 3),
+                            texels_per_mm=round(atlas_density(gobjs, covered), 3),
                             coverage_px=round(float(covered.mean()), 3))
+        return tex, stats_pbr, rt_
+    tex_by_group, rt_list = {}, []
+    for gkey, gg in pbr_groups.items():
+        suffix = '' if gkey == 'main' else '_' + gkey
+        t_, st_, rt_ = bake_pbr_group(gg['objs'], gg['res'], suffix)
+        tex_by_group[gkey] = t_
+        stats['pbr' + suffix] = st_
+        if rt_:
+            rt_list.append(dict(rt_, group=gkey))
+    if tex_by_group:
+        tex = tex_by_group.get('main') or next(iter(tex_by_group.values()))
     for key, gg in lit_groups.items():
         g_objs, r = gg['objs'], gg['res']
         suffix = '' if key == 'main' else '_' + key
@@ -1767,6 +1830,21 @@ def export_set(name):
         else:
             web[m.name] = family(k)
     lit_fam = {}
+    grp_mats = {}
+
+    def group_material(g, m, kd):
+        """RT: materials of a separate PBR atlas (own textures, own lightmap)."""
+        t = tex_by_group[g]
+        if kd == 'emit' and not kinds[m.name].get('emit_textured'):
+            orig = m.name[:-5] if m.name.endswith('__src') else m.name
+            key, nm, kind, si = (g, orig), f'{orig}_{g}', 'emit_scalar', scalar_info(m)
+        else:
+            kind = {'metal': 'opaque'}.get(kd, kd)
+            key, nm, si = (g, kind), f'{name}_' + {'opaque': 'pbr', 'cutout': 'pbr_cutout', 'emit': 'emit'}[kind] + f'_{g}', None
+        if key not in grp_mats:
+            grp_mats[key] = build_material(nm, t, kind, emit_strength=smax, scalar_info=si)
+            mode_of[grp_mats[key].name] = 'pbr_emissive' if kind in ('emit', 'emit_scalar') else 'pbr'
+        return grp_mats[key]
 
     def pbr_family(kind):      # lit-kind materials on parts forced to PBR
         if kind != 'cutout' and 'metal' in fam:
@@ -1796,6 +1874,8 @@ def export_set(name):
                 kd = kinds[s_.material.name]['kind']
                 if LIT and kd in ('opaque', 'cutout') and c in lit_group_of:
                     s_.material = lit_family(lit_group_of[c], kd, c in two_sided_objs)
+                elif RT and pbr_group_of.get(c, 'main') != 'main' and kd in ('opaque', 'cutout', 'metal', 'emit'):
+                    s_.material = group_material(pbr_group_of[c], s_.material, kd)
                 else:
                     s_.material = web[s_.material.name] or pbr_family(kd)
     screen_nodes = []
@@ -1808,7 +1888,16 @@ def export_set(name):
         c.data.materials.append(sm)
         screen_nodes.append(dict(node=cfg_s['node'], material=sm.name,
                                  uv='UV0 0..1 across the visible face; u to the right, v up, seen from CAM_seat'))
+    if rt_list:
+        for r_ in rt_list:
+            gobjs_ = pbr_groups[r_['group']]['objs']
+            r_['materials'] = sorted({s_.material.name for c in gobjs_ if alive(c) for s_ in c.material_slots
+                                      if s_.material})
+        rt_info = dict(rt_list[0], atlases=rt_list)
     tex_all = dict(tex)
+    for g_, t_ in tex_by_group.items():
+        if g_ != 'main':
+            tex_all.update({f'{k}_{g_}': v for k, v in t_.items()})
     for key, t in tex_lit.items():
         tex_all['lit' + ('' if key == 'main' else '_' + key)] = t['path']
     # free the source objects' names for the output nodes

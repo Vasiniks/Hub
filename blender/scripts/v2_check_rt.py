@@ -33,7 +33,7 @@ DIR = os.path.join(REPO, arg('--dir', os.path.join('public', 'assets', 'v2rt', '
 OUT = os.path.join(REPO, arg('--out', os.path.join('tmp', 'rt_renders')))
 os.makedirs(OUT, exist_ok=True)
 man = json.load(open(os.path.join(DIR, 'manifest.json')))
-lm_of = {a['name']: a.get('lightmap') for a in man['assets']}
+lm_of = {a['name']: a.get('lightmaps') or [] for a in man['assets']}
 
 
 def lightmap_nodes(nt, lm_img, rng):
@@ -78,11 +78,16 @@ def render(name, albedo):
     sc.render.resolution_x, sc.render.resolution_y = 720, 600
     sc.render.film_transparent = True
     bpy.ops.import_scene.gltf(filepath=os.path.join(DIR, name + '.glb'))
-    lm = lm_of[name]
-    img = bpy.data.images.load(os.path.join(DIR, lm['file']))
-    img.colorspace_settings.name = 'Non-Color'
-    img.alpha_mode = 'CHANNEL_PACKED'
+    lms = lm_of[name]
+    imgs = {}
+    for lm_ in lms:
+        im_ = bpy.data.images.load(os.path.join(DIR, lm_['file']))
+        im_.colorspace_settings.name = 'Non-Color'
+        im_.alpha_mode = 'CHANNEL_PACKED'
+        imgs[lm_['file']] = im_
     for m in bpy.data.materials:
+        lm = next((x for x in lms if x.get('materials') and m.name in x['materials']), lms[0])
+        img = imgs[lm['file']]
         if not m.node_tree:
             continue
         nt = m.node_tree

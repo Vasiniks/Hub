@@ -1,0 +1,438 @@
+{
+ "set": "desk_misc",
+ "sources": [
+  "obj:driver_*",
+  "obj:tote*",
+  "obj:Mesh_14[2-6]"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 8308,
+ "tris_after": 8308,
+ "objects": [
+  {
+   "name": "driver_handle",
+   "tris_before": 880,
+   "tris_after": 880
+  },
+  {
+   "name": "driver_grip",
+   "tris_before": 240,
+   "tris_after": 240
+  },
+  {
+   "name": "driver_grip2",
+   "tris_before": 240,
+   "tris_after": 240
+  },
+  {
+   "name": "driver_bolster",
+   "tris_before": 20,
+   "tris_after": 20
+  },
+  {
+   "name": "driver_shaft",
+   "tris_before": 20,
+   "tris_after": 20
+  },
+  {
+   "name": "driver_tip",
+   "tris_before": 48,
+   "tris_after": 48
+  },
+  {
+   "name": "tote",
+   "tris_before": 372,
+   "tris_after": 372
+  },
+  {
+   "name": "tote_ribs",
+   "tris_before": 1296,
+   "tris_after": 1296
+  },
+  {
+   "name": "tote_ledge",
+   "tris_before": 432,
+   "tris_after": 432
+  },
+  {
+   "name": "tote_divider",
+   "tris_before": 148,
+   "tris_after": 148
+  },
+  {
+   "name": "tote_feet",
+   "tris_before": 432,
+   "tris_after": 432
+  },
+  {
+   "name": "tote.001",
+   "tris_before": 372,
+   "tris_after": 372
+  },
+  {
+   "name": "tote_ribs.001",
+   "tris_before": 1296,
+   "tris_after": 1296
+  },
+  {
+   "name": "tote_ledge.001",
+   "tris_before": 432,
+   "tris_after": 432
+  },
+  {
+   "name": "tote_divider.001",
+   "tris_before": 148,
+   "tris_after": 148
+  },
+  {
+   "name": "tote_feet.001",
+   "tris_before": 432,
+   "tris_after": 432
+  },
+  {
+   "name": "Mesh_142",
+   "tris_before": 300,
+   "tris_after": 300
+  },
+  {
+   "name": "Mesh_143",
+   "tris_before": 300,
+   "tris_after": 300
+  },
+  {
+   "name": "Mesh_144",
+   "tris_before": 300,
+   "tris_after": 300
+  },
+  {
+   "name": "Mesh_145",
+   "tris_before": 300,
+   "tris_after": 300
+  },
+  {
+   "name": "Mesh_146",
+   "tris_before": 300,
+   "tris_after": 300
+  }
+ ],
+ "skipped": {
+  "OLD_replaced": [
+   "tote.002",
+   "tote_ribs.002",
+   "tote_ledge.002",
+   "tote_divider.002",
+   "tote_feet.002"
+  ]
+ },
+ "reduction": {
+  "driver_handle": "kept (custom normals)",
+  "driver_grip": "kept",
+  "driver_grip2": "kept",
+  "driver_bolster": "kept",
+  "driver_shaft": "kept",
+  "driver_tip": "kept",
+  "tote": "kept (custom normals)",
+  "tote_ribs": "kept (custom normals)",
+  "tote_ledge": "kept (custom normals)",
+  "tote_divider": "kept",
+  "tote_feet": "kept (custom normals)",
+  "tote.001": "kept (custom normals)",
+  "tote_ribs.001": "kept (custom normals)",
+  "tote_ledge.001": "kept (custom normals)",
+  "tote_divider.001": "kept",
+  "tote_feet.001": "kept (custom normals)",
+  "Mesh_142": "kept (custom normals)",
+  "Mesh_143": "kept (custom normals)",
+  "Mesh_144": "kept (custom normals)",
+  "Mesh_145": "kept (custom normals)",
+  "Mesh_146": "kept (custom normals)"
+ },
+ "atlas": {
+  "pbr_res": 1024,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "desk_misc_basecolor.png",
+  "orm": "desk_misc_orm.png",
+  "normal": "desk_misc_normal.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "desk_misc.indirect.rgbm.webp",
+  "png": "desk_misc.indirect.rgbm.png",
+  "res": 1024,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 0.64,
+  "linear_max": 0.4096,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 1e-05,
+  "rgbm_mean_rel_err": 0.0025,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.02005,
+   "mean_full": 0.01984,
+   "mean_direct_plus_indirect": 0.01984,
+   "mean_ratio": 1.0,
+   "raw_mean_ratio": 0.9895,
+   "p99_full": 0.2216,
+   "p99_direct_plus_indirect": 0.2216,
+   "clamped_texels": 0.0,
+   "indirect_share": 1.0,
+   "direct_share": 0.0
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "desk_misc_pbr"
+  ],
+  "atlases": [
+   {
+    "lightmap": "desk_misc.indirect.rgbm.webp",
+    "png": "desk_misc.indirect.rgbm.png",
+    "res": 1024,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 0.64,
+    "linear_max": 0.4096,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 1e-05,
+    "rgbm_mean_rel_err": 0.0025,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.02005,
+     "mean_full": 0.01984,
+     "mean_direct_plus_indirect": 0.01984,
+     "mean_ratio": 1.0,
+     "raw_mean_ratio": 0.9895,
+     "p99_full": 0.2216,
+     "p99_direct_plus_indirect": 0.2216,
+     "clamped_texels": 0.0,
+     "indirect_share": 1.0,
+     "direct_share": 0.0
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "desk_misc_pbr"
+    ]
+   }
+  ]
+ },
+ "material_modes": {
+  "desk_misc_pbr": "pbr"
+ },
+ "material_kinds": {
+  "Material_39": "opaque",
+  "Material_41": "opaque",
+  "Material_47": "opaque",
+  "rm_alu_bead": "opaque",
+  "rm_plastic_black": "opaque",
+  "rm_rubber_black": "opaque",
+  "rm_steel_chrome": "opaque"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "screwdriver": {
+   "blender_world": [
+    0.58,
+    0.56,
+    0.735
+   ],
+   "three_world": [
+    0.58,
+    0.735,
+    -0.56
+   ],
+   "parent": "Scene.017",
+   "is_pivot": false
+  },
+  "tote_1": {
+   "blender_world": [
+    0.64,
+    0.8,
+    0.0
+   ],
+   "three_world": [
+    0.64,
+    0.0,
+    -0.8
+   ],
+   "parent": "Node_205",
+   "is_pivot": false
+  },
+  "tote_2": {
+   "blender_world": [
+    0.64,
+    0.8,
+    0.0
+   ],
+   "three_world": [
+    0.64,
+    0.0,
+    -0.8
+   ],
+   "parent": "Node_205",
+   "is_pivot": false
+  },
+  "room": {
+   "blender_world": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "three_world": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "parent": null,
+   "is_pivot": false
+  },
+  "Scene.017": {
+   "blender_world": [
+    0.58,
+    0.56,
+    0.735
+   ],
+   "three_world": [
+    0.58,
+    0.735,
+    -0.56
+   ],
+   "parent": null,
+   "is_pivot": false
+  },
+  "Node_205": {
+   "blender_world": [
+    0.64,
+    0.8,
+    0.0
+   ],
+   "three_world": [
+    0.64,
+    0.0,
+    -0.8
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "screwdriver__mesh": {
+   "parent": "screwdriver",
+   "tris": 1448,
+   "materials": [
+    "desk_misc_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.5127,
+     0.4792,
+     0.735
+    ],
+    [
+     0.6473,
+     0.6408,
+     0.7568
+    ]
+   ]
+  },
+  "tote_1__mesh": {
+   "parent": "tote_1",
+   "tris": 2680,
+   "materials": [
+    "desk_misc_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.4479,
+     0.6428,
+     -0.0
+    ],
+    [
+     0.8321,
+     0.9572,
+     0.17
+    ]
+   ]
+  },
+  "tote_2__mesh": {
+   "parent": "tote_2",
+   "tris": 2680,
+   "materials": [
+    "desk_misc_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.4538,
+     0.6434,
+     0.172
+    ],
+    [
+     0.8297,
+     0.9627,
+     0.3301
+    ]
+   ]
+  },
+  "room__mesh": {
+   "parent": "room",
+   "tris": 1500,
+   "materials": [
+    "desk_misc_pbr"
+   ],
+   "blender_bbox": [
+    [
+     0.4252,
+     0.5264,
+     0.735
+    ],
+    [
+     0.8379,
+     0.6183,
+     0.738
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.0384,
+   "s2a": [],
+   "base_mean": [
+    0.635,
+    0.651,
+    0.644
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 0.459,
+   "coverage_px": 0.254
+  }
+ },
+ "bake_seconds": {
+  "base": 28.8,
+  "rough": 28.6,
+  "metal": 28.6,
+  "normal": 28.9,
+  "L_full": 38.6,
+  "L_direct": 30.2
+ },
+ "glb": "desk_misc.glb",
+ "glb_bytes": 794532,
+ "seconds": 242.9
+}

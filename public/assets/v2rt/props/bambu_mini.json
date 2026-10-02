@@ -1,0 +1,565 @@
+{
+ "set": "bambu_mini",
+ "sources": [
+  "NEW_bambu_mini"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 116961,
+ "tris_after": 75380,
+ "objects": [
+  {
+   "name": "bambu_mini_base",
+   "tris_before": 9849,
+   "tris_after": 5648
+  },
+  {
+   "name": "bambu_mini_toolhead",
+   "tris_before": 45157,
+   "tris_after": 26868
+  },
+  {
+   "name": "bambu_mini_heatbed",
+   "tris_before": 15034,
+   "tris_after": 9006
+  },
+  {
+   "name": "bambu_mini_carriage",
+   "tris_before": 26167,
+   "tris_after": 14958
+  },
+  {
+   "name": "bambu_mini_spoolstand_base",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "bambu_mini_spoolstand_roller_0",
+   "tris_before": 892,
+   "tris_after": 764
+  },
+  {
+   "name": "bambu_mini_spoolstand_cheek_00",
+   "tris_before": 108,
+   "tris_after": 108
+  },
+  {
+   "name": "bambu_mini_spoolstand_axle_00",
+   "tris_before": 60,
+   "tris_after": 60
+  },
+  {
+   "name": "bambu_mini_spoolstand_cheek_01",
+   "tris_before": 108,
+   "tris_after": 108
+  },
+  {
+   "name": "bambu_mini_spoolstand_axle_01",
+   "tris_before": 60,
+   "tris_after": 60
+  },
+  {
+   "name": "bambu_mini_spoolstand_roller_1",
+   "tris_before": 892,
+   "tris_after": 764
+  },
+  {
+   "name": "bambu_mini_spoolstand_cheek_10",
+   "tris_before": 108,
+   "tris_after": 108
+  },
+  {
+   "name": "bambu_mini_spoolstand_axle_10",
+   "tris_before": 60,
+   "tris_after": 60
+  },
+  {
+   "name": "bambu_mini_spoolstand_cheek_11",
+   "tris_before": 108,
+   "tris_after": 108
+  },
+  {
+   "name": "bambu_mini_spoolstand_axle_11",
+   "tris_before": 60,
+   "tris_after": 60
+  },
+  {
+   "name": "bambu_mini_spool_flange_L",
+   "tris_before": 720,
+   "tris_after": 720
+  },
+  {
+   "name": "bambu_mini_spool_flange_R",
+   "tris_before": 720,
+   "tris_after": 720
+  },
+  {
+   "name": "bambu_mini_spool_core",
+   "tris_before": 384,
+   "tris_after": 384
+  },
+  {
+   "name": "bambu_mini_spool_filament",
+   "tris_before": 1152,
+   "tris_after": 1152
+  },
+  {
+   "name": "bambu_mini_box_inlet_collet",
+   "tris_before": 668,
+   "tris_after": 572
+  },
+  {
+   "name": "bambu_mini_filament_free",
+   "tris_before": 972,
+   "tris_after": 588
+  },
+  {
+   "name": "bambu_mini_ptfe_tube",
+   "tris_before": 4032,
+   "tris_after": 3484
+  },
+  {
+   "name": "bambu_mini_ptfe_tube_bore",
+   "tris_before": 2688,
+   "tris_after": 2404
+  },
+  {
+   "name": "bambu_mini_filament_in_tube",
+   "tris_before": 2688,
+   "tris_after": 2404
+  },
+  {
+   "name": "bambu_mini_benchy_hull",
+   "tris_before": 350,
+   "tris_after": 350
+  },
+  {
+   "name": "bambu_mini_benchy_cabin",
+   "tris_before": 132,
+   "tris_after": 132
+  },
+  {
+   "name": "bambu_mini_benchy_bollards",
+   "tris_before": 240,
+   "tris_after": 240
+  },
+  {
+   "name": "bambu_mini_benchy_hawse_0",
+   "tris_before": 60,
+   "tris_after": 60
+  },
+  {
+   "name": "bambu_mini_benchy_hawse_1",
+   "tris_before": 60,
+   "tris_after": 60
+  },
+  {
+   "name": "bambu_mini_table_glide_11",
+   "tris_before": 668,
+   "tris_after": 668
+  },
+  {
+   "name": "bambu_mini_table_glide_10",
+   "tris_before": 668,
+   "tris_after": 668
+  },
+  {
+   "name": "bambu_mini_table_glide_01",
+   "tris_before": 668,
+   "tris_after": 668
+  },
+  {
+   "name": "bambu_mini_table_glide_00",
+   "tris_before": 668,
+   "tris_after": 668
+  },
+  {
+   "name": "bambu_mini_table_drawer_knob",
+   "tris_before": 560,
+   "tris_after": 558
+  },
+  {
+   "name": "bambu_mini_table_drawer_cavity",
+   "tris_before": 12,
+   "tris_after": 12
+  }
+ ],
+ "skipped": {
+  "in sunset bake": [
+   "bambu_mini_table_top",
+   "bambu_mini_table_shelf",
+   "bambu_mini_table_rail_top",
+   "bambu_mini_table_rail_bot",
+   "bambu_mini_table_leg_11",
+   "bambu_mini_table_leg_10",
+   "bambu_mini_table_leg_01",
+   "bambu_mini_table_leg_00",
+   "bambu_mini_table_drawer_front",
+   "bambu_mini_table_apron_right",
+   "bambu_mini_table_apron_left",
+   "bambu_mini_table_apron_back"
+  ]
+ },
+ "reduction": {
+  "bambu_mini_base": "collapse 0.60",
+  "bambu_mini_toolhead": "collapse 0.60",
+  "bambu_mini_heatbed": "collapse 0.60",
+  "bambu_mini_carriage": "collapse 0.60",
+  "bambu_mini_spoolstand_base": "kept",
+  "bambu_mini_spoolstand_roller_0": "dissolve",
+  "bambu_mini_spoolstand_cheek_00": "kept",
+  "bambu_mini_spoolstand_axle_00": "kept",
+  "bambu_mini_spoolstand_cheek_01": "kept",
+  "bambu_mini_spoolstand_axle_01": "kept",
+  "bambu_mini_spoolstand_roller_1": "dissolve",
+  "bambu_mini_spoolstand_cheek_10": "kept",
+  "bambu_mini_spoolstand_axle_10": "kept",
+  "bambu_mini_spoolstand_cheek_11": "kept",
+  "bambu_mini_spoolstand_axle_11": "kept",
+  "bambu_mini_spool_flange_L": "dissolve",
+  "bambu_mini_spool_flange_R": "dissolve",
+  "bambu_mini_spool_core": "dissolve",
+  "bambu_mini_spool_filament": "dissolve",
+  "bambu_mini_box_inlet_collet": "dissolve",
+  "bambu_mini_filament_free": "dissolve",
+  "bambu_mini_ptfe_tube": "dissolve",
+  "bambu_mini_ptfe_tube_bore": "dissolve",
+  "bambu_mini_filament_in_tube": "dissolve",
+  "bambu_mini_benchy_hull": "dissolve",
+  "bambu_mini_benchy_cabin": "kept",
+  "bambu_mini_benchy_bollards": "kept",
+  "bambu_mini_benchy_hawse_0": "kept",
+  "bambu_mini_benchy_hawse_1": "kept",
+  "bambu_mini_table_glide_11": "dissolve",
+  "bambu_mini_table_glide_10": "dissolve",
+  "bambu_mini_table_glide_01": "dissolve",
+  "bambu_mini_table_glide_00": "dissolve",
+  "bambu_mini_table_drawer_knob": "dissolve",
+  "bambu_mini_table_drawer_cavity": "kept"
+ },
+ "atlas": {
+  "pbr_res": 2048,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "bambu_mini_basecolor.png",
+  "orm": "bambu_mini_orm.png",
+  "normal": "bambu_mini_normal.png",
+  "emit": "bambu_mini_emissive.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "bambu_mini.indirect.rgbm.webp",
+  "png": "bambu_mini.indirect.rgbm.png",
+  "res": 2048,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 0.77,
+  "linear_max": 0.5929,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 1e-05,
+  "rgbm_mean_rel_err": 0.0023,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.00945,
+   "mean_full": 0.00905,
+   "mean_direct_plus_indirect": 0.00905,
+   "mean_ratio": 1.0,
+   "raw_mean_ratio": 0.9574,
+   "p99_full": 0.0492,
+   "p99_direct_plus_indirect": 0.0492,
+   "clamped_texels": 0.0065,
+   "indirect_share": 1.0,
+   "direct_share": 0.0
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "bambu_mini_pbr",
+   "bambu_mini_pbr_cutout",
+   "bambu_mini_ptfe_web",
+   "bambu_mini_screen_lit"
+  ],
+  "atlases": [
+   {
+    "lightmap": "bambu_mini.indirect.rgbm.webp",
+    "png": "bambu_mini.indirect.rgbm.png",
+    "res": 2048,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 0.77,
+    "linear_max": 0.5929,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 1e-05,
+    "rgbm_mean_rel_err": 0.0023,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.00945,
+     "mean_full": 0.00905,
+     "mean_direct_plus_indirect": 0.00905,
+     "mean_ratio": 1.0,
+     "raw_mean_ratio": 0.9574,
+     "p99_full": 0.0492,
+     "p99_direct_plus_indirect": 0.0492,
+     "clamped_texels": 0.0065,
+     "indirect_share": 1.0,
+     "direct_share": 0.0
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "bambu_mini_pbr",
+     "bambu_mini_pbr_cutout",
+     "bambu_mini_ptfe_web",
+     "bambu_mini_screen_lit"
+    ]
+   }
+  ]
+ },
+ "material_modes": {
+  "bambu_mini_pbr": "pbr",
+  "bambu_mini_pbr_cutout": "pbr",
+  "bambu_mini_ptfe_web": "glass",
+  "bambu_mini_screen_lit": "pbr_emissive_keeper"
+ },
+ "material_kinds": {
+  "bambu_mini_black_collet": "opaque",
+  "bambu_mini_body.001": "opaque",
+  "bambu_mini_filament_spool.001": "opaque",
+  "bambu_mini_filament_strand.001": "opaque",
+  "bambu_mini_glide.001": "opaque",
+  "bambu_mini_head.001": "cutout",
+  "bambu_mini_heatbed.001": "opaque",
+  "bambu_mini_motor.001": "cutout",
+  "bambu_mini_nickel.001": "opaque",
+  "bambu_mini_print.001": "opaque",
+  "bambu_mini_print_top.001": "opaque",
+  "bambu_mini_ptfe": "glass",
+  "bambu_mini_roller": "opaque",
+  "bambu_mini_screen_lit": "keeper",
+  "bambu_mini_shadow.002": "opaque",
+  "bambu_mini_shadow.003": "opaque",
+  "bambu_mini_spool_white.001": "opaque",
+  "bambu_mini_stand_grey": "opaque",
+  "bambu_mini_screen_lit__src": "keeper"
+ },
+ "emissive_materials": [
+  "bambu_mini_screen_lit"
+ ],
+ "emissive_strength_max": 0.9,
+ "emissive_nodes": [
+  {
+   "node": "bambu_mini_screen",
+   "material": "bambu_mini_screen_lit",
+   "keeper": true,
+   "textured_emission": true,
+   "emission_strength": 0.9,
+   "emission_color": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "screen_nodes": [],
+ "anchors": {
+  "bambu_mini_printer": {
+   "blender_world": [
+    1.5,
+    0.845,
+    0.0
+   ],
+   "three_world": [
+    1.5,
+    0.0,
+    -0.845
+   ],
+   "parent": "NEW_bambu_mini_root",
+   "is_pivot": false
+  },
+  "bambu_mini_spool_stand": {
+   "blender_world": [
+    1.5,
+    0.845,
+    0.0
+   ],
+   "three_world": [
+    1.5,
+    0.0,
+    -0.845
+   ],
+   "parent": "NEW_bambu_mini_root",
+   "is_pivot": false
+  },
+  "bambu_mini_table_parts": {
+   "blender_world": [
+    1.5,
+    0.845,
+    0.0
+   ],
+   "three_world": [
+    1.5,
+    0.0,
+    -0.845
+   ],
+   "parent": "NEW_bambu_mini_root",
+   "is_pivot": false
+  },
+  "NEW_bambu_mini_root": {
+   "blender_world": [
+    1.5,
+    0.845,
+    0.0
+   ],
+   "three_world": [
+    1.5,
+    0.0,
+    -0.845
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "bambu_mini_screen": {
+   "parent": "bambu_mini_printer",
+   "tris": 4,
+   "materials": [
+    "bambu_mini_pbr",
+    "bambu_mini_screen_lit"
+   ],
+   "blender_bbox": [
+    [
+     1.3854,
+     0.7553,
+     0.6597
+    ],
+    [
+     1.456,
+     0.8277,
+     0.6974
+    ]
+   ]
+  },
+  "bambu_mini_printer__glass_bambu_mini_ptfe": {
+   "parent": "bambu_mini_printer",
+   "tris": 5888,
+   "materials": [
+    "bambu_mini_ptfe_web"
+   ],
+   "blender_bbox": [
+    [
+     1.4915,
+     0.8202,
+     0.8099
+    ],
+    [
+     1.6436,
+     0.9055,
+     0.9723
+    ]
+   ]
+  },
+  "bambu_mini_printer__mesh": {
+   "parent": "bambu_mini_printer",
+   "tris": 60882,
+   "materials": [
+    "bambu_mini_pbr",
+    "bambu_mini_screen_lit",
+    "bambu_mini_pbr_cutout"
+   ],
+   "blender_bbox": [
+    [
+     1.3168,
+     0.7376,
+     0.648
+    ],
+    [
+     1.6764,
+     1.1112,
+     0.9712
+    ]
+   ]
+  },
+  "bambu_mini_spool_stand__mesh": {
+   "parent": "bambu_mini_spool_stand",
+   "tris": 5364,
+   "materials": [
+    "bambu_mini_pbr"
+   ],
+   "blender_bbox": [
+    [
+     1.4848,
+     0.6166,
+     0.648
+    ],
+    [
+     1.6869,
+     0.7878,
+     0.8664
+    ]
+   ]
+  },
+  "bambu_mini_table_parts__mesh": {
+   "parent": "bambu_mini_table_parts",
+   "tris": 3242,
+   "materials": [
+    "bambu_mini_pbr"
+   ],
+   "blender_bbox": [
+    [
+     1.2456,
+     0.61,
+     0.0
+    ],
+    [
+     1.7544,
+     1.0544,
+     0.609
+    ]
+   ]
+  }
+ },
+ "credits": [
+  {
+   "key": "bambu_a1_mini",
+   "text": "\"3D Printer - Bambu Lab A1 Mini\" by neilvfx, CC BY 4.0 (https://sketchfab.com/3d-models/3d-printer-bambu-lab-a1-mini-407fb64c44be4e1888db246b447f811b)"
+  }
+ ],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.1262,
+   "s2a": [],
+   "base_mean": [
+    0.515,
+    0.542,
+    0.526
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 1.182,
+   "coverage_px": 0.279
+  }
+ },
+ "bake_seconds": {
+  "base": 53.9,
+  "rough": 54.1,
+  "metal": 53.4,
+  "alpha": 54.7,
+  "emit": 52.5,
+  "normal": 56.0,
+  "L_full": 100.3,
+  "L_direct": 65.0
+ },
+ "glb": "bambu_mini.glb",
+ "glb_bytes": 3381632,
+ "seconds": 601.9
+}

@@ -1,0 +1,685 @@
+{
+ "set": "fixtures",
+ "sources": [
+  "NEW_roomshell",
+  "NEW_curtains"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 35471,
+ "tris_after": 34763,
+ "objects": [
+  {
+   "name": "rs_window_operator",
+   "tris_before": 300,
+   "tris_after": 300
+  },
+  {
+   "name": "rs_window_crank",
+   "tris_before": 820,
+   "tris_after": 820
+  },
+  {
+   "name": "rs_window_locks",
+   "tris_before": 752,
+   "tris_after": 752
+  },
+  {
+   "name": "rs_door_hinges",
+   "tris_before": 2124,
+   "tris_after": 2124
+  },
+  {
+   "name": "rs_door_lever",
+   "tris_before": 1210,
+   "tris_after": 1146
+  },
+  {
+   "name": "rs_door_stop",
+   "tris_before": 120,
+   "tris_after": 120
+  },
+  {
+   "name": "rs_door_stop_tip",
+   "tris_before": 316,
+   "tris_after": 316
+  },
+  {
+   "name": "rs_outlet_window_plate",
+   "tris_before": 692,
+   "tris_after": 628
+  },
+  {
+   "name": "rs_outlet_window_device",
+   "tris_before": 1564,
+   "tris_after": 1434
+  },
+  {
+   "name": "rs_outlet_window_plug",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "rs_plug_cord",
+   "tris_before": 536,
+   "tris_after": 536
+  },
+  {
+   "name": "rs_outlet_left_plate",
+   "tris_before": 692,
+   "tris_after": 628
+  },
+  {
+   "name": "rs_outlet_left_device",
+   "tris_before": 1564,
+   "tris_after": 1540
+  },
+  {
+   "name": "rs_outlet_right_plate",
+   "tris_before": 692,
+   "tris_after": 628
+  },
+  {
+   "name": "rs_outlet_right_device",
+   "tris_before": 1564,
+   "tris_after": 1418
+  },
+  {
+   "name": "rs_switch_door_plate",
+   "tris_before": 692,
+   "tris_after": 628
+  },
+  {
+   "name": "rs_switch_door_device",
+   "tris_before": 540,
+   "tris_after": 452
+  },
+  {
+   "name": "rs_thermostat_body",
+   "tris_before": 428,
+   "tris_after": 428
+  },
+  {
+   "name": "rs_thermostat_screen",
+   "tris_before": 108,
+   "tris_after": 108
+  },
+  {
+   "name": "rs_thermostat_digits",
+   "tris_before": 175,
+   "tris_after": 175
+  },
+  {
+   "name": "rs_thermostat_buttons",
+   "tris_before": 152,
+   "tris_after": 152
+  },
+  {
+   "name": "rs_ceiling_light_base",
+   "tris_before": 494,
+   "tris_after": 494
+  },
+  {
+   "name": "rs_ceiling_light_diffuser",
+   "tris_before": 900,
+   "tris_after": 900
+  },
+  {
+   "name": "rs_smoke_alarm",
+   "tris_before": 868,
+   "tris_after": 868
+  },
+  {
+   "name": "rs_smoke_alarm_ribs",
+   "tris_before": 412,
+   "tris_after": 412
+  },
+  {
+   "name": "rs_smoke_alarm_led",
+   "tris_before": 44,
+   "tris_after": 44
+  },
+  {
+   "name": "rs_register_frame",
+   "tris_before": 72,
+   "tris_after": 72
+  },
+  {
+   "name": "rs_register_louvers",
+   "tris_before": 504,
+   "tris_after": 504
+  },
+  {
+   "name": "rs_register_boot",
+   "tris_before": 10,
+   "tris_after": 10
+  },
+  {
+   "name": "rs_nail_holes",
+   "tris_before": 30,
+   "tris_after": 30
+  },
+  {
+   "name": "curtain_ring_00",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_00",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_01",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_01",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_02",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_02",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_03",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_03",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_04",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_04",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_05",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_05",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_06",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_06",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_07",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_07",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_08",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_08",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_09",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_09",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_10",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_10",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_11",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_11",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_12",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_12",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_13",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_13",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_14",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_14",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_ring_15",
+   "tris_before": 560,
+   "tris_after": 560
+  },
+  {
+   "name": "curtain_clip_15",
+   "tris_before": 276,
+   "tris_after": 276
+  },
+  {
+   "name": "curtain_rod",
+   "tris_before": 380,
+   "tris_after": 380
+  },
+  {
+   "name": "curtain_finial_L",
+   "tris_before": 624,
+   "tris_after": 624
+  },
+  {
+   "name": "curtain_finial_R",
+   "tris_before": 624,
+   "tris_after": 624
+  },
+  {
+   "name": "curtain_bracket_arm_L",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "curtain_bracket_plate_L",
+   "tris_before": 380,
+   "tris_after": 380
+  },
+  {
+   "name": "curtain_bracket_cup_L",
+   "tris_before": 384,
+   "tris_after": 384
+  },
+  {
+   "name": "curtain_bracket_arm_R",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "curtain_bracket_plate_R",
+   "tris_before": 380,
+   "tris_after": 380
+  },
+  {
+   "name": "curtain_bracket_cup_R",
+   "tris_before": 384,
+   "tris_after": 384
+  }
+ ],
+ "skipped": {
+  "in sunset bake": [
+   "rs_floor",
+   "rs_wall_window",
+   "rs_wall_left",
+   "rs_wall_right",
+   "rs_ceiling",
+   "rs_hallway_stub",
+   "rs_baseboard",
+   "rs_crown",
+   "rs_door_jamb",
+   "rs_door_casing",
+   "rs_window_jamb",
+   "rs_window_casing",
+   "rs_window_stool",
+   "rs_window_apron",
+   "rs_window_frame",
+   "rs_window_sash",
+   "rs_door_slab",
+   "rs_wall_patches",
+   "rs_scuff_backwall",
+   "rs_scuff_floor",
+   "rs_scuff_baseboard",
+   "curtain_left",
+   "curtain_right"
+  ],
+  "hidden": [
+   "rs_wall_back"
+  ]
+ },
+ "reduction": {
+  "rs_window_operator": "dissolve",
+  "rs_window_crank": "dissolve",
+  "rs_window_locks": "dissolve",
+  "rs_door_hinges": "dissolve",
+  "rs_door_lever": "dissolve",
+  "rs_door_stop": "kept",
+  "rs_door_stop_tip": "dissolve",
+  "rs_outlet_window_plate": "dissolve",
+  "rs_outlet_window_device": "dissolve",
+  "rs_outlet_window_plug": "kept",
+  "rs_plug_cord": "dissolve",
+  "rs_outlet_left_plate": "dissolve",
+  "rs_outlet_left_device": "dissolve",
+  "rs_outlet_right_plate": "dissolve",
+  "rs_outlet_right_device": "dissolve",
+  "rs_switch_door_plate": "dissolve",
+  "rs_switch_door_device": "dissolve",
+  "rs_thermostat_body": "dissolve",
+  "rs_thermostat_screen": "kept",
+  "rs_thermostat_digits": "kept",
+  "rs_thermostat_buttons": "kept",
+  "rs_ceiling_light_base": "dissolve",
+  "rs_ceiling_light_diffuser": "dissolve",
+  "rs_smoke_alarm": "dissolve",
+  "rs_smoke_alarm_ribs": "dissolve",
+  "rs_smoke_alarm_led": "kept",
+  "rs_register_frame": "kept",
+  "rs_register_louvers": "dissolve",
+  "rs_register_boot": "kept",
+  "rs_nail_holes": "kept",
+  "curtain_ring_00": "dissolve",
+  "curtain_clip_00": "kept",
+  "curtain_ring_01": "dissolve",
+  "curtain_clip_01": "kept",
+  "curtain_ring_02": "dissolve",
+  "curtain_clip_02": "kept",
+  "curtain_ring_03": "dissolve",
+  "curtain_clip_03": "kept",
+  "curtain_ring_04": "dissolve",
+  "curtain_clip_04": "kept",
+  "curtain_ring_05": "dissolve",
+  "curtain_clip_05": "kept",
+  "curtain_ring_06": "dissolve",
+  "curtain_clip_06": "kept",
+  "curtain_ring_07": "dissolve",
+  "curtain_clip_07": "kept",
+  "curtain_ring_08": "dissolve",
+  "curtain_clip_08": "kept",
+  "curtain_ring_09": "dissolve",
+  "curtain_clip_09": "kept",
+  "curtain_ring_10": "dissolve",
+  "curtain_clip_10": "kept",
+  "curtain_ring_11": "dissolve",
+  "curtain_clip_11": "kept",
+  "curtain_ring_12": "dissolve",
+  "curtain_clip_12": "kept",
+  "curtain_ring_13": "dissolve",
+  "curtain_clip_13": "kept",
+  "curtain_ring_14": "dissolve",
+  "curtain_clip_14": "kept",
+  "curtain_ring_15": "dissolve",
+  "curtain_clip_15": "kept",
+  "curtain_rod": "dissolve",
+  "curtain_finial_L": "dissolve",
+  "curtain_finial_R": "dissolve",
+  "curtain_bracket_arm_L": "kept",
+  "curtain_bracket_plate_L": "dissolve",
+  "curtain_bracket_cup_L": "dissolve",
+  "curtain_bracket_arm_R": "kept",
+  "curtain_bracket_plate_R": "dissolve",
+  "curtain_bracket_cup_R": "dissolve"
+ },
+ "atlas": {
+  "pbr_res": 1024,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "fixtures_basecolor.png",
+  "orm": "fixtures_orm.png",
+  "normal": "fixtures_normal.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "fixtures.indirect.rgbm.webp",
+  "png": "fixtures.indirect.rgbm.png",
+  "res": 1024,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 1.3,
+  "linear_max": 1.69,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 0.0003,
+  "rgbm_mean_rel_err": 0.0024,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.03175,
+   "mean_full": 0.03122,
+   "mean_direct_plus_indirect": 0.03127,
+   "mean_ratio": 1.0015,
+   "raw_mean_ratio": 0.9834,
+   "p99_full": 0.7236,
+   "p99_direct_plus_indirect": 0.724,
+   "clamped_texels": 0.0058,
+   "indirect_share": 0.678,
+   "direct_share": 0.3235
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "fixtures_pbr",
+   "rs_smoke_led",
+   "rs_thermo_digits"
+  ],
+  "atlases": [
+   {
+    "lightmap": "fixtures.indirect.rgbm.webp",
+    "png": "fixtures.indirect.rgbm.png",
+    "res": 1024,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 1.3,
+    "linear_max": 1.69,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.0003,
+    "rgbm_mean_rel_err": 0.0024,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.03175,
+     "mean_full": 0.03122,
+     "mean_direct_plus_indirect": 0.03127,
+     "mean_ratio": 1.0015,
+     "raw_mean_ratio": 0.9834,
+     "p99_full": 0.7236,
+     "p99_direct_plus_indirect": 0.724,
+     "clamped_texels": 0.0058,
+     "indirect_share": 0.678,
+     "direct_share": 0.3235
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "fixtures_pbr",
+     "rs_smoke_led",
+     "rs_thermo_digits"
+    ]
+   }
+  ]
+ },
+ "material_modes": {
+  "fixtures_pbr": "pbr",
+  "rs_smoke_led": "pbr_emissive",
+  "rs_thermo_digits": "pbr_emissive"
+ },
+ "material_kinds": {
+  "curtain_rod_black": "opaque",
+  "rs_ceiling_diffuser": "opaque",
+  "rs_cord_black": "opaque",
+  "rs_decora_white": "opaque",
+  "rs_duct_galv": "opaque",
+  "rs_fixture_white": "opaque",
+  "rs_nail_hole": "opaque",
+  "rs_register_enamel": "opaque",
+  "rs_satin_nickel": "opaque",
+  "rs_slot_black": "opaque",
+  "rs_smoke_led": "emit",
+  "rs_smoke_plastic": "opaque",
+  "rs_thermo_digits": "emit",
+  "rs_thermo_glass": "opaque",
+  "rs_window_frame_black": "opaque",
+  "rs_smoke_led__src": "emit",
+  "rs_thermo_digits__src": "emit"
+ },
+ "emissive_materials": [
+  "rs_smoke_led",
+  "rs_thermo_digits"
+ ],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "NEW_roomshell_root": {
+   "blender_world": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "three_world": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "parent": null,
+   "is_pivot": false
+  },
+  "fixtures_root": {
+   "blender_world": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "three_world": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "NEW_roomshell_root__mesh": {
+   "parent": "NEW_roomshell_root",
+   "tris": 17855,
+   "materials": [
+    "fixtures_pbr",
+    "rs_thermo_digits",
+    "rs_smoke_led"
+   ],
+   "blender_bbox": [
+    [
+     -2.0868,
+     -1.4,
+     -0.12
+    ],
+    [
+     1.91,
+     1.3845,
+     2.72
+    ]
+   ]
+  },
+  "fixtures__mesh": {
+   "parent": "fixtures_root",
+   "tris": 16908,
+   "materials": [
+    "fixtures_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -1.725,
+     1.1932,
+     2.593
+    ],
+    [
+     1.425,
+     1.3,
+     2.662
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.0335,
+   "s2a": [],
+   "base_mean": [
+    0.629,
+    0.627,
+    0.624
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 0.313,
+   "coverage_px": 0.107
+  }
+ },
+ "bake_seconds": {
+  "base": 97.1,
+  "rough": 97.2,
+  "metal": 97.3,
+  "normal": 96.8,
+  "L_full": 105.0,
+  "L_direct": 91.9
+ },
+ "glb": "fixtures.glb",
+ "glb_bytes": 1585668,
+ "seconds": 784.6
+}

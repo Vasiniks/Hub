@@ -72,27 +72,67 @@
  "rt": {
   "lightmap": "mouse_mx.indirect.rgbm.webp",
   "png": "mouse_mx.indirect.rgbm.png",
-  "res": 256,
+  "res": 1024,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 0.77,
-  "linear_max": 0.5929,
+  "range_sqrt": 0.52,
+  "linear_max": 0.2704,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00038,
+  "clipped_fraction": 0.00036,
   "rgbm_mean_rel_err": 0.0023,
   "samples": 256,
   "check": {
-   "mean_full_raw": 0.04212,
-   "mean_full": 0.04186,
-   "mean_direct_plus_indirect": 0.04186,
+   "mean_full_raw": 0.04492,
+   "mean_full": 0.04497,
+   "mean_direct_plus_indirect": 0.04497,
    "mean_ratio": 1.0,
-   "p99_full": 0.1394,
-   "p99_direct_plus_indirect": 0.1394,
+   "raw_mean_ratio": 1.001,
+   "p99_full": 0.1407,
+   "p99_direct_plus_indirect": 0.1407,
+   "clamped_texels": 0.007,
    "indirect_share": 1.0,
    "direct_share": 0.0
   },
   "direct_lights": [
    "SUN_main",
    "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "mouse_mx_pbr"
+  ],
+  "atlases": [
+   {
+    "lightmap": "mouse_mx.indirect.rgbm.webp",
+    "png": "mouse_mx.indirect.rgbm.png",
+    "res": 1024,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 0.52,
+    "linear_max": 0.2704,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00036,
+    "rgbm_mean_rel_err": 0.0023,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.04492,
+     "mean_full": 0.04497,
+     "mean_direct_plus_indirect": 0.04497,
+     "mean_ratio": 1.0,
+     "raw_mean_ratio": 1.001,
+     "p99_full": 0.1407,
+     "p99_direct_plus_indirect": 0.1407,
+     "clamped_texels": 0.007,
+     "indirect_share": 1.0,
+     "direct_share": 0.0
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "mouse_mx_pbr"
+    ]
+   }
   ]
  },
  "material_modes": {
@@ -171,14 +211,14 @@
   }
  },
  "bake_seconds": {
-  "base": 9.4,
+  "base": 9.5,
   "rough": 9.6,
   "metal": 9.5,
   "normal": 9.6,
-  "L_full": 9.9,
-  "L_direct": 8.5
+  "L_full": 21.5,
+  "L_direct": 11.5
  },
  "glb": "mouse_mx.glb",
  "glb_bytes": 573744,
- "seconds": 76.3
+ "seconds": 92.0
 }

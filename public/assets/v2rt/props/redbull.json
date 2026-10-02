@@ -35,27 +35,67 @@
  "rt": {
   "lightmap": "redbull.indirect.rgbm.webp",
   "png": "redbull.indirect.rgbm.png",
-  "res": 256,
+  "res": 1024,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 2.48,
-  "linear_max": 6.1504,
+  "range_sqrt": 2.66,
+  "linear_max": 7.0756,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00037,
+  "clipped_fraction": 0.00036,
   "rgbm_mean_rel_err": 0.0022,
   "samples": 256,
   "check": {
-   "mean_full_raw": 1.50406,
-   "mean_full": 1.5115,
-   "mean_direct_plus_indirect": 1.5896,
-   "mean_ratio": 1.0517,
-   "p99_full": 7.1827,
-   "p99_direct_plus_indirect": 7.9201,
-   "indirect_share": 0.5055,
-   "direct_share": 0.5462
+   "mean_full_raw": 1.55419,
+   "mean_full": 1.56006,
+   "mean_direct_plus_indirect": 1.57537,
+   "mean_ratio": 1.0098,
+   "raw_mean_ratio": 1.0128,
+   "p99_full": 7.2553,
+   "p99_direct_plus_indirect": 7.4257,
+   "clamped_texels": 0.042,
+   "indirect_share": 0.4794,
+   "direct_share": 0.5304
   },
   "direct_lights": [
    "SUN_main",
    "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "redbull_pbr"
+  ],
+  "atlases": [
+   {
+    "lightmap": "redbull.indirect.rgbm.webp",
+    "png": "redbull.indirect.rgbm.png",
+    "res": 1024,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 2.66,
+    "linear_max": 7.0756,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00036,
+    "rgbm_mean_rel_err": 0.0022,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 1.55419,
+     "mean_full": 1.56006,
+     "mean_direct_plus_indirect": 1.57537,
+     "mean_ratio": 1.0098,
+     "raw_mean_ratio": 1.0128,
+     "p99_full": 7.2553,
+     "p99_direct_plus_indirect": 7.4257,
+     "clamped_texels": 0.042,
+     "indirect_share": 0.4794,
+     "direct_share": 0.5304
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "redbull_pbr"
+    ]
+   }
   ]
  },
  "material_modes": {
@@ -134,11 +174,11 @@
   "base": 1.4,
   "rough": 1.4,
   "metal": 1.4,
-  "normal": 1.4,
-  "L_full": 2.1,
-  "L_direct": 1.5
+  "normal": 1.5,
+  "L_full": 12.5,
+  "L_direct": 3.9
  },
  "glb": "redbull.glb",
  "glb_bytes": 195380,
- "seconds": 12.7
+ "seconds": 26.1
 }

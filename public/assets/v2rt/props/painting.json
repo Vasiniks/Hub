@@ -1,0 +1,213 @@
+{
+ "set": "painting",
+ "sources": [
+  "NEW_painting"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 954,
+ "tris_after": 954,
+ "objects": [
+  {
+   "name": "painting_stretcher",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "painting_canvas",
+   "tris_before": 2,
+   "tris_after": 2
+  },
+  {
+   "name": "painting_frame_top",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "painting_frame_bottom",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "painting_frame_left",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "painting_frame_right",
+   "tris_before": 188,
+   "tris_after": 188
+  },
+  {
+   "name": "painting_frame_tray",
+   "tris_before": 12,
+   "tris_after": 12
+  }
+ ],
+ "skipped": {},
+ "reduction": {
+  "painting_stretcher": "kept",
+  "painting_canvas": "kept",
+  "painting_frame_top": "kept",
+  "painting_frame_bottom": "kept",
+  "painting_frame_left": "kept",
+  "painting_frame_right": "kept",
+  "painting_frame_tray": "kept"
+ },
+ "atlas": {
+  "pbr_res": 1024,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "painting_basecolor.png",
+  "orm": "painting_orm.png",
+  "normal": "painting_normal.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "painting.indirect.rgbm.webp",
+  "png": "painting.indirect.rgbm.png",
+  "res": 1024,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 0.43,
+  "linear_max": 0.1849,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 0.00027,
+  "rgbm_mean_rel_err": 0.0024,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.01521,
+   "mean_full": 0.01531,
+   "mean_direct_plus_indirect": 0.01531,
+   "mean_ratio": 1.0,
+   "raw_mean_ratio": 1.0065,
+   "p99_full": 0.086,
+   "p99_direct_plus_indirect": 0.086,
+   "clamped_texels": 0.0,
+   "indirect_share": 1.0,
+   "direct_share": 0.0
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "painting_pbr"
+  ],
+  "atlases": [
+   {
+    "lightmap": "painting.indirect.rgbm.webp",
+    "png": "painting.indirect.rgbm.png",
+    "res": 1024,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 0.43,
+    "linear_max": 0.1849,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00027,
+    "rgbm_mean_rel_err": 0.0024,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.01521,
+     "mean_full": 0.01531,
+     "mean_direct_plus_indirect": 0.01531,
+     "mean_ratio": 1.0,
+     "raw_mean_ratio": 1.0065,
+     "p99_full": 0.086,
+     "p99_direct_plus_indirect": 0.086,
+     "clamped_texels": 0.0,
+     "indirect_share": 1.0,
+     "direct_share": 0.0
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "painting_pbr"
+    ]
+   }
+  ]
+ },
+ "material_modes": {
+  "painting_pbr": "pbr"
+ },
+ "material_kinds": {
+  "painting_canvas": "opaque",
+  "painting_canvas_edge": "opaque",
+  "painting_frame_oak_black": "opaque"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "painting_root": {
+   "blender_world": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "three_world": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "painting__mesh": {
+   "parent": "painting_root",
+   "tris": 954,
+   "materials": [
+    "painting_pbr"
+   ],
+   "blender_bbox": [
+    [
+     1.876,
+     0.3389,
+     1.376
+    ],
+    [
+     1.91,
+     0.7611,
+     1.784
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.2099,
+   "s2a": [],
+   "base_mean": [
+    0.379,
+    0.382,
+    0.366
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 0.921,
+   "coverage_px": 0.687
+  }
+ },
+ "bake_seconds": {
+  "base": 9.6,
+  "rough": 9.5,
+  "metal": 9.5,
+  "normal": 9.7,
+  "L_full": 21.6,
+  "L_direct": 12.9
+ },
+ "glb": "painting.glb",
+ "glb_bytes": 194700,
+ "seconds": 93.2
+}

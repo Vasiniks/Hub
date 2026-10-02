@@ -114,27 +114,67 @@
  "rt": {
   "lightmap": "keyboard.indirect.rgbm.webp",
   "png": "keyboard.indirect.rgbm.png",
-  "res": 256,
+  "res": 1024,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 1.97,
-  "linear_max": 3.8809,
+  "range_sqrt": 1.05,
+  "linear_max": 1.1025,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00035,
+  "clipped_fraction": 0.00028,
   "rgbm_mean_rel_err": 0.0023,
   "samples": 256,
   "check": {
-   "mean_full_raw": 0.03429,
-   "mean_full": 0.03372,
-   "mean_direct_plus_indirect": 0.03377,
-   "mean_ratio": 1.0014,
-   "p99_full": 0.5023,
-   "p99_direct_plus_indirect": 0.4989,
-   "indirect_share": 0.8036,
-   "direct_share": 0.1978
+   "mean_full_raw": 0.02942,
+   "mean_full": 0.0274,
+   "mean_direct_plus_indirect": 0.02741,
+   "mean_ratio": 1.0004,
+   "raw_mean_ratio": 0.9323,
+   "p99_full": 0.3919,
+   "p99_direct_plus_indirect": 0.3929,
+   "clamped_texels": 0.0023,
+   "indirect_share": 0.8288,
+   "direct_share": 0.1716
   },
   "direct_lights": [
    "SUN_main",
    "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "keyboard_pbr"
+  ],
+  "atlases": [
+   {
+    "lightmap": "keyboard.indirect.rgbm.webp",
+    "png": "keyboard.indirect.rgbm.png",
+    "res": 1024,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 1.05,
+    "linear_max": 1.1025,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00028,
+    "rgbm_mean_rel_err": 0.0023,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.02942,
+     "mean_full": 0.0274,
+     "mean_direct_plus_indirect": 0.02741,
+     "mean_ratio": 1.0004,
+     "raw_mean_ratio": 0.9323,
+     "p99_full": 0.3919,
+     "p99_direct_plus_indirect": 0.3929,
+     "clamped_texels": 0.0023,
+     "indirect_share": 0.8288,
+     "direct_share": 0.1716
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "keyboard_pbr"
+    ]
+   }
   ]
  },
  "material_modes": {
@@ -220,13 +260,13 @@
  },
  "bake_seconds": {
   "base": 18.9,
-  "rough": 19.0,
+  "rough": 19.1,
   "metal": 19.0,
-  "normal": 19.2,
-  "L_full": 18.8,
-  "L_direct": 16.5
+  "normal": 18.9,
+  "L_full": 25.7,
+  "L_direct": 19.6
  },
  "glb": "keyboard.glb",
  "glb_bytes": 1114716,
- "seconds": 150.8
+ "seconds": 161.0
 }

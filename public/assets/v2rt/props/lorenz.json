@@ -90,27 +90,67 @@
  "rt": {
   "lightmap": "lorenz.indirect.rgbm.webp",
   "png": "lorenz.indirect.rgbm.png",
-  "res": 256,
+  "res": 1024,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 1.98,
-  "linear_max": 3.9204,
+  "range_sqrt": 2.19,
+  "linear_max": 4.7961,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00044,
-  "rgbm_mean_rel_err": 0.0022,
+  "clipped_fraction": 0.00048,
+  "rgbm_mean_rel_err": 0.0023,
   "samples": 256,
   "check": {
-   "mean_full_raw": 0.21397,
-   "mean_full": 0.21459,
-   "mean_direct_plus_indirect": 0.23144,
-   "mean_ratio": 1.0785,
-   "p99_full": 2.9288,
-   "p99_direct_plus_indirect": 3.2022,
-   "indirect_share": 0.291,
-   "direct_share": 0.7876
+   "mean_full_raw": 0.21587,
+   "mean_full": 0.21916,
+   "mean_direct_plus_indirect": 0.21939,
+   "mean_ratio": 1.0011,
+   "raw_mean_ratio": 1.0131,
+   "p99_full": 3.2147,
+   "p99_direct_plus_indirect": 3.2187,
+   "clamped_texels": 0.0078,
+   "indirect_share": 0.2142,
+   "direct_share": 0.7869
   },
   "direct_lights": [
    "SUN_main",
    "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "lorenz_pbr"
+  ],
+  "atlases": [
+   {
+    "lightmap": "lorenz.indirect.rgbm.webp",
+    "png": "lorenz.indirect.rgbm.png",
+    "res": 1024,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 2.19,
+    "linear_max": 4.7961,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00048,
+    "rgbm_mean_rel_err": 0.0023,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.21587,
+     "mean_full": 0.21916,
+     "mean_direct_plus_indirect": 0.21939,
+     "mean_ratio": 1.0011,
+     "raw_mean_ratio": 1.0131,
+     "p99_full": 3.2147,
+     "p99_direct_plus_indirect": 3.2187,
+     "clamped_texels": 0.0078,
+     "indirect_share": 0.2142,
+     "direct_share": 0.7869
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "lorenz_pbr"
+    ]
+   }
   ]
  },
  "material_modes": {
@@ -231,14 +271,14 @@
   }
  },
  "bake_seconds": {
-  "base": 13.6,
-  "rough": 13.7,
-  "metal": 13.4,
-  "normal": 13.7,
-  "L_full": 14.8,
-  "L_direct": 12.0
+  "base": 13.8,
+  "rough": 13.8,
+  "metal": 13.6,
+  "normal": 13.9,
+  "L_full": 36.5,
+  "L_direct": 17.9
  },
  "glb": "lorenz.glb",
  "glb_bytes": 1420404,
- "seconds": 109.1
+ "seconds": 138.7
 }

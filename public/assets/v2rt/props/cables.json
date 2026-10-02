@@ -149,7 +149,7 @@
   "pbr_res": 1024,
   "lit_res": null,
   "packer": {
-   "pbr": "pack_islands"
+   "pbr": "smart_project fallback (pack_islands gave up)"
   }
  },
  "textures": {
@@ -162,27 +162,69 @@
  "rt": {
   "lightmap": "cables.indirect.rgbm.webp",
   "png": "cables.indirect.rgbm.png",
-  "res": 256,
+  "res": 1024,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 1.81,
-  "linear_max": 3.2761,
+  "range_sqrt": 1.74,
+  "linear_max": 3.0276,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00059,
-  "rgbm_mean_rel_err": 0.0024,
+  "clipped_fraction": 0.00043,
+  "rgbm_mean_rel_err": 0.0023,
   "samples": 256,
   "check": {
-   "mean_full_raw": 0.14951,
-   "mean_full": 0.14879,
-   "mean_direct_plus_indirect": 0.15272,
-   "mean_ratio": 1.0264,
-   "p99_full": 2.1696,
-   "p99_direct_plus_indirect": 2.2937,
-   "indirect_share": 0.5588,
-   "direct_share": 0.4676
+   "mean_full_raw": 0.11074,
+   "mean_full": 0.10792,
+   "mean_direct_plus_indirect": 0.10947,
+   "mean_ratio": 1.0144,
+   "raw_mean_ratio": 0.984,
+   "p99_full": 2.1171,
+   "p99_direct_plus_indirect": 2.1986,
+   "clamped_texels": 0.0077,
+   "indirect_share": 0.5673,
+   "direct_share": 0.4471
   },
   "direct_lights": [
    "SUN_main",
    "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "cables_pbr",
+   "magsafe_led_amber.001"
+  ],
+  "atlases": [
+   {
+    "lightmap": "cables.indirect.rgbm.webp",
+    "png": "cables.indirect.rgbm.png",
+    "res": 1024,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 1.74,
+    "linear_max": 3.0276,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00043,
+    "rgbm_mean_rel_err": 0.0023,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.11074,
+     "mean_full": 0.10792,
+     "mean_direct_plus_indirect": 0.10947,
+     "mean_ratio": 1.0144,
+     "raw_mean_ratio": 0.984,
+     "p99_full": 2.1171,
+     "p99_direct_plus_indirect": 2.1986,
+     "clamped_texels": 0.0077,
+     "indirect_share": 0.5673,
+     "direct_share": 0.4471
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "cables_pbr",
+     "magsafe_led_amber.001"
+    ]
+   }
   ]
  },
  "material_modes": {
@@ -263,27 +305,27 @@
  "credits": [],
  "bake_stats": {
   "pbr": {
-   "normal_bumpy_fraction": 0.2467,
+   "normal_bumpy_fraction": 0.2327,
    "s2a": [],
    "base_mean": [
-    0.552,
-    0.551,
-    0.548
+    0.549,
+    0.548,
+    0.547
    ],
    "ao_mean": null,
-   "texels_per_mm": 0.585,
-   "coverage_px": 0.078
+   "texels_per_mm": 0.649,
+   "coverage_px": 0.096
   }
  },
  "bake_seconds": {
-  "base": 29.8,
-  "rough": 29.6,
-  "metal": 29.6,
-  "normal": 29.8,
-  "L_full": 29.0,
-  "L_direct": 25.6
+  "base": 30.3,
+  "rough": 30.1,
+  "metal": 29.8,
+  "normal": 30.1,
+  "L_full": 36.1,
+  "L_direct": 30.0
  },
  "glb": "cables.glb",
- "glb_bytes": 1828664,
- "seconds": 234.4
+ "glb_bytes": 1715344,
+ "seconds": 250.2
 }

@@ -1,0 +1,963 @@
+{
+ "set": "bookrack",
+ "sources": [
+  "NEW_bookrack"
+ ],
+ "source_blend": "blender/scene/room.blend",
+ "budget": null,
+ "within_budget": true,
+ "tris_before": 13004,
+ "tris_after": 13004,
+ "objects": [
+  {
+   "name": "bookrack_screws",
+   "tris_before": 1512,
+   "tris_after": 1512
+  },
+  {
+   "name": "bookrack_screw_recess",
+   "tris_before": 288,
+   "tris_after": 288
+  },
+  {
+   "name": "Mesh_165.001",
+   "tris_before": 804,
+   "tris_after": 804
+  },
+  {
+   "name": "Mesh_166.001",
+   "tris_before": 804,
+   "tris_after": 804
+  },
+  {
+   "name": "Mesh_167.001",
+   "tris_before": 804,
+   "tris_after": 804
+  },
+  {
+   "name": "Mesh_168.001",
+   "tris_before": 804,
+   "tris_after": 804
+  },
+  {
+   "name": "Mesh_169.001",
+   "tris_before": 804,
+   "tris_after": 804
+  },
+  {
+   "name": "Mesh_170.001",
+   "tris_before": 804,
+   "tris_after": 804
+  },
+  {
+   "name": "Mesh_171.001",
+   "tris_before": 804,
+   "tris_after": 804
+  },
+  {
+   "name": "Mesh_172.001",
+   "tris_before": 804,
+   "tris_after": 804
+  },
+  {
+   "name": "Mesh_173.001",
+   "tris_before": 804,
+   "tris_after": 804
+  },
+  {
+   "name": "Mesh_174.001",
+   "tris_before": 804,
+   "tris_after": 804
+  },
+  {
+   "name": "Mesh_175.001",
+   "tris_before": 804,
+   "tris_after": 804
+  },
+  {
+   "name": "Mesh_176.001",
+   "tris_before": 804,
+   "tris_after": 804
+  },
+  {
+   "name": "Mesh_177.001",
+   "tris_before": 300,
+   "tris_after": 300
+  },
+  {
+   "name": "Mesh_178.001",
+   "tris_before": 300,
+   "tris_after": 300
+  },
+  {
+   "name": "Mesh_160.001",
+   "tris_before": 300,
+   "tris_after": 300
+  },
+  {
+   "name": "Mesh_161.001",
+   "tris_before": 300,
+   "tris_after": 300
+  },
+  {
+   "name": "Mesh_162.001",
+   "tris_before": 64,
+   "tris_after": 64
+  },
+  {
+   "name": "Mesh_163.001",
+   "tris_before": 40,
+   "tris_after": 40
+  },
+  {
+   "name": "Mesh_164.001",
+   "tris_before": 252,
+   "tris_after": 252
+  }
+ ],
+ "skipped": {
+  "in sunset bake": [
+   "bookrack_board",
+   "bookrack_bracket_L",
+   "bookrack_bracket_R",
+   "bookrack_bookend_L",
+   "bookrack_bookend_R"
+  ]
+ },
+ "reduction": {
+  "bookrack_screws": "dissolve",
+  "bookrack_screw_recess": "kept",
+  "Mesh_165.001": "kept (custom normals)",
+  "Mesh_166.001": "kept (custom normals)",
+  "Mesh_167.001": "kept (custom normals)",
+  "Mesh_168.001": "kept (custom normals)",
+  "Mesh_169.001": "kept (custom normals)",
+  "Mesh_170.001": "kept (custom normals)",
+  "Mesh_171.001": "kept (custom normals)",
+  "Mesh_172.001": "kept (custom normals)",
+  "Mesh_173.001": "kept (custom normals)",
+  "Mesh_174.001": "kept (custom normals)",
+  "Mesh_175.001": "kept (custom normals)",
+  "Mesh_176.001": "kept (custom normals)",
+  "Mesh_177.001": "kept (custom normals)",
+  "Mesh_178.001": "kept (custom normals)",
+  "Mesh_160.001": "kept (custom normals)",
+  "Mesh_161.001": "kept (custom normals)",
+  "Mesh_162.001": "kept",
+  "Mesh_163.001": "kept",
+  "Mesh_164.001": "kept"
+ },
+ "atlas": {
+  "pbr_res": 2048,
+  "lit_res": null,
+  "packer": {
+   "pbr": "pack_islands"
+  }
+ },
+ "textures": {
+  "base": "bookrack_basecolor.png",
+  "orm": "bookrack_orm.png",
+  "normal": "bookrack_normal.png"
+ },
+ "lit_scale": null,
+ "lit_atlases": {},
+ "rt": {
+  "lightmap": "bookrack.indirect.rgbm.webp",
+  "png": "bookrack.indirect.rgbm.png",
+  "res": 2048,
+  "uv": "TEXCOORD_0",
+  "range_sqrt": 1.19,
+  "linear_max": 1.4161,
+  "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+  "clipped_fraction": 0.00034,
+  "rgbm_mean_rel_err": 0.0025,
+  "samples": 256,
+  "check": {
+   "mean_full_raw": 0.02256,
+   "mean_full": 0.02211,
+   "mean_direct_plus_indirect": 0.02211,
+   "mean_ratio": 1.0,
+   "raw_mean_ratio": 0.9804,
+   "p99_full": 0.5453,
+   "p99_direct_plus_indirect": 0.5453,
+   "clamped_texels": 0.0003,
+   "indirect_share": 0.9941,
+   "direct_share": 0.0059
+  },
+  "direct_lights": [
+   "SUN_main",
+   "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "bookrack_pbr"
+  ],
+  "atlases": [
+   {
+    "lightmap": "bookrack.indirect.rgbm.webp",
+    "png": "bookrack.indirect.rgbm.png",
+    "res": 2048,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 1.19,
+    "linear_max": 1.4161,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00034,
+    "rgbm_mean_rel_err": 0.0025,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.02256,
+     "mean_full": 0.02211,
+     "mean_direct_plus_indirect": 0.02211,
+     "mean_ratio": 1.0,
+     "raw_mean_ratio": 0.9804,
+     "p99_full": 0.5453,
+     "p99_direct_plus_indirect": 0.5453,
+     "clamped_texels": 0.0003,
+     "indirect_share": 0.9941,
+     "direct_share": 0.0059
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "bookrack_pbr"
+    ]
+   }
+  ]
+ },
+ "material_modes": {
+  "bookrack_pbr": "pbr"
+ },
+ "material_kinds": {
+  "Material_24.001": "opaque",
+  "Material_41.001": "opaque",
+  "Material_49.001": "opaque",
+  "Material_50.001": "opaque",
+  "Material_51.001": "opaque",
+  "Material_52.001": "opaque",
+  "Material_53.001": "opaque",
+  "Material_54.001": "opaque",
+  "Material_55.001": "opaque",
+  "Material_56.001": "opaque",
+  "Material_57.001": "opaque",
+  "Material_58.001": "opaque",
+  "Material_59.001": "opaque",
+  "Material_60.001": "opaque",
+  "Material_61.001": "opaque",
+  "Material_8.001": "opaque",
+  "br_screw_recess": "opaque",
+  "br_screw_zinc": "opaque",
+  "rm_alu_dark.001": "opaque",
+  "rm_plastic_black.001": "opaque"
+ },
+ "emissive_materials": [],
+ "emissive_strength_max": 1.0,
+ "emissive_nodes": [],
+ "screen_nodes": [],
+ "anchors": {
+  "bookrack_hardware": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_165.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_166.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_167.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_168.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_169.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_170.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_171.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_172.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_173.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_174.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_175.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_176.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_177.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_178.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_160.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_161.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_162.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_163.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "Mesh_164.001": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": "NEW_bookrack_root",
+   "is_pivot": false
+  },
+  "NEW_bookrack_root": {
+   "blender_world": [
+    -2.08,
+    0.8,
+    1.1
+   ],
+   "three_world": [
+    -2.08,
+    1.1,
+    -0.8
+   ],
+   "parent": null,
+   "is_pivot": false
+  }
+ },
+ "meshes": {
+  "bookrack_hardware__mesh": {
+   "parent": "bookrack_hardware",
+   "tris": 1800,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.077,
+     0.4878,
+     0.9113
+    ],
+    [
+     -1.9118,
+     1.1122,
+     1.1033
+    ]
+   ]
+  },
+  "Mesh_165.001__mesh": {
+   "parent": "Mesh_165.001",
+   "tris": 804,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0408,
+     0.4236,
+     1.1018
+    ],
+    [
+     -1.8922,
+     0.4556,
+     1.3368
+    ]
+   ]
+  },
+  "Mesh_166.001__mesh": {
+   "parent": "Mesh_166.001",
+   "tris": 804,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0361,
+     0.456,
+     1.1018
+    ],
+    [
+     -1.8875,
+     0.4832,
+     1.3103
+    ]
+   ]
+  },
+  "Mesh_167.001__mesh": {
+   "parent": "Mesh_167.001",
+   "tris": 804,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0394,
+     0.4836,
+     1.1018
+    ],
+    [
+     -1.8908,
+     0.5276,
+     1.3498
+    ]
+   ]
+  },
+  "Mesh_168.001__mesh": {
+   "parent": "Mesh_168.001",
+   "tris": 804,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0442,
+     0.5306,
+     1.1
+    ],
+    [
+     -1.8956,
+     0.5486,
+     1.296
+    ]
+   ]
+  },
+  "Mesh_169.001__mesh": {
+   "parent": "Mesh_169.001",
+   "tris": 804,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0442,
+     0.5494,
+     1.1
+    ],
+    [
+     -1.8956,
+     0.5874,
+     1.326
+    ]
+   ]
+  },
+  "Mesh_170.001__mesh": {
+   "parent": "Mesh_170.001",
+   "tris": 804,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.042,
+     0.5882,
+     1.1
+    ],
+    [
+     -1.8934,
+     0.6239,
+     1.3428
+    ]
+   ]
+  },
+  "Mesh_171.001__mesh": {
+   "parent": "Mesh_171.001",
+   "tris": 804,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0397,
+     0.6247,
+     1.1
+    ],
+    [
+     -1.8911,
+     0.6547,
+     1.302
+    ]
+   ]
+  },
+  "Mesh_172.001__mesh": {
+   "parent": "Mesh_172.001",
+   "tris": 804,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0396,
+     0.6562,
+     1.1
+    ],
+    [
+     -1.891,
+     0.6792,
+     1.33
+    ]
+   ]
+  },
+  "Mesh_173.001__mesh": {
+   "parent": "Mesh_173.001",
+   "tris": 804,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0437,
+     0.68,
+     1.1
+    ],
+    [
+     -1.8951,
+     0.721,
+     1.314
+    ]
+   ]
+  },
+  "Mesh_174.001__mesh": {
+   "parent": "Mesh_174.001",
+   "tris": 804,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0413,
+     0.7218,
+     1.1
+    ],
+    [
+     -1.8926,
+     0.7529,
+     1.3446
+    ]
+   ]
+  },
+  "Mesh_175.001__mesh": {
+   "parent": "Mesh_175.001",
+   "tris": 804,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0395,
+     0.7533,
+     1.1
+    ],
+    [
+     -1.8909,
+     0.7883,
+     1.319
+    ]
+   ]
+  },
+  "Mesh_176.001__mesh": {
+   "parent": "Mesh_176.001",
+   "tris": 804,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0426,
+     0.7886,
+     1.1
+    ],
+    [
+     -1.894,
+     0.8533,
+     1.3015
+    ]
+   ]
+  },
+  "Mesh_177.001__mesh": {
+   "parent": "Mesh_177.001",
+   "tris": 300,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.01,
+     0.8624,
+     1.1
+    ],
+    [
+     -1.91,
+     0.8724,
+     1.2
+    ]
+   ]
+  },
+  "Mesh_178.001__mesh": {
+   "parent": "Mesh_178.001",
+   "tris": 300,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0632,
+     1.1624,
+     1.1018
+    ],
+    [
+     -1.894,
+     1.1764,
+     1.324
+    ]
+   ]
+  },
+  "Mesh_160.001__mesh": {
+   "parent": "Mesh_160.001",
+   "tris": 300,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0221,
+     0.8831,
+     1.1
+    ],
+    [
+     -1.9259,
+     0.9792,
+     1.152
+    ]
+   ]
+  },
+  "Mesh_161.001__mesh": {
+   "parent": "Mesh_161.001",
+   "tris": 300,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -2.0315,
+     0.9959,
+     1.1
+    ],
+    [
+     -1.9645,
+     1.0629,
+     1.175
+    ]
+   ]
+  },
+  "Mesh_162.001__mesh": {
+   "parent": "Mesh_162.001",
+   "tris": 64,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -1.998,
+     1.0796,
+     1.1018
+    ],
+    [
+     -1.938,
+     1.1396,
+     1.1138
+    ]
+   ]
+  },
+  "Mesh_163.001__mesh": {
+   "parent": "Mesh_163.001",
+   "tris": 40,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -1.974,
+     1.1039,
+     1.1138
+    ],
+    [
+     -1.962,
+     1.1153,
+     1.1638
+    ]
+   ]
+  },
+  "Mesh_164.001__mesh": {
+   "parent": "Mesh_164.001",
+   "tris": 252,
+   "materials": [
+    "bookrack_pbr"
+   ],
+   "blender_bbox": [
+    [
+     -1.9865,
+     1.0906,
+     1.1548
+    ],
+    [
+     -1.9495,
+     1.1286,
+     1.1928
+    ]
+   ]
+  }
+ },
+ "credits": [],
+ "bake_stats": {
+  "pbr": {
+   "normal_bumpy_fraction": 0.4081,
+   "s2a": [],
+   "base_mean": [
+    0.279,
+    0.276,
+    0.28
+   ],
+   "ao_mean": null,
+   "texels_per_mm": 0.842,
+   "coverage_px": 0.478
+  }
+ },
+ "bake_seconds": {
+  "base": 33.8,
+  "rough": 33.6,
+  "metal": 33.5,
+  "normal": 34.6,
+  "L_full": 82.8,
+  "L_direct": 51.4
+ },
+ "glb": "bookrack.glb",
+ "glb_bytes": 1821600,
+ "seconds": 340.5
+}

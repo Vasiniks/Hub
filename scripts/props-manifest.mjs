@@ -88,7 +88,9 @@ for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.glb')).sort()) {
     ? JSON.parse(fs.readFileSync(path.join(dir, `${name}.json`), 'utf8')) : {};
   const bytes = fs.statSync(file).size;
   totalBytes += bytes;
-  if (sidecar.rt && fs.existsSync(path.join(dir, sidecar.rt.lightmap))) lightmapBytes += fs.statSync(path.join(dir, sidecar.rt.lightmap)).size;
+  for (const r of sidecar.rt ? (sidecar.rt.atlases ?? [sidecar.rt]) : []) {
+    if (fs.existsSync(path.join(dir, r.lightmap))) lightmapBytes += fs.statSync(path.join(dir, r.lightmap)).size;
+  }
   totalTris += tris;
   assets.push({
     name, file: f, bytes, tris,
@@ -101,9 +103,11 @@ for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.glb')).sort()) {
     litAtlases: Object.fromEntries(Object.entries(sidecar.bake_stats ?? {}).filter(([k]) => k.startsWith('lit'))
       .map(([k, v]) => [k, { res: v.res, litScale: v.lit_scale, texelsPerMm: v.texels_per_mm, clipped: v.clipped_fraction }])),
     reduction: sidecar.reduction ?? null,
-    ...(sidecar.rt ? { lightmap: { file: sidecar.rt.lightmap, rangeSqrt: sidecar.rt.range_sqrt, uv: sidecar.rt.uv,
-      res: sidecar.rt.res, bytes: fs.existsSync(path.join(dir, sidecar.rt.lightmap)) ? fs.statSync(path.join(dir, sidecar.rt.lightmap)).size : null,
-      decode: 'L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI', check: sidecar.rt.check } } : {}),
+    // hybrid mode: one lightmap per PBR atlas; 'materials' says which materials sample it (UV0)
+    ...(sidecar.rt ? { lightmaps: (sidecar.rt.atlases ?? [sidecar.rt]).map((r) => ({
+      file: r.lightmap, rangeSqrt: r.range_sqrt, uv: r.uv, res: r.res, materials: r.materials ?? null,
+      bytes: fs.existsSync(path.join(dir, r.lightmap)) ? fs.statSync(path.join(dir, r.lightmap)).size : null,
+      decode: 'L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI', check: r.check })) } : {}),
     nodes: root.listNodes().map((n) => n.getName()),
     anchors: sidecar.anchors ?? {},
     emissive,
@@ -119,7 +123,7 @@ const manifest = {
   generator: 'blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs',
   source: 'blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)',
   coordinates: 'world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).',
-  materials: lightmapBytes ? 'Hybrid real-time (v2rt): every material is PBR (baseColor, ORM with R = 1, normal where it matters, emissive where it emits) on ONE atlas per set (TEXCOORD_0). The indirect-only lightmap of each set uses the same TEXCOORD_0: L_indirect = L_full - L_direct(SUN_main + LAMP_disk), Cycles DIFFUSE irradiance (colour off), clamped >= 0. Sun and lamp are rendered live with shadow maps; sky, screens, PC RGB, fixtures and every bounce are in the lightmap. Lightmap file: assets[].lightmap.file, RGBM of sqrt(L) in lossless WebP; decode L = (rgb * a * rangeSqrt)^2 with lightMapIntensity = PI, colorSpace NoColorSpace, flipY false (same orientation as the glTF textures). Keepers (Robot_rsl_lens, bambu_mini_screen) and mon_screen are their own nodes and materials.' : 'Two baked atlases per asset. mode "lit": non-metal surfaces, KHR_materials_unlit, baseColor = the Cycles DIFFUSE bake (direct + indirect + colour) of the sunset room, stored as linear/litScale in sRGB: multiply the colour by material.userData.litScale (glTF extras) to restore it; no lights touch them. mode "pbr": metals (metallic >= 0.5), emissive parts, glass and keepers: baseColor + ORM (R=AO, G=roughness, B=metallic) (+ normal), lit at runtime by an environment capture of the baked room. Keepers (Robot_rsl_lens, bambu_mini_screen) are their own nodes and materials.',
+  materials: lightmapBytes ? 'Hybrid real-time (v2rt): every material is PBR (baseColor, ORM with R = 1, normal where it matters, emissive where it emits) on one atlas per set (TEXCOORD_0; the PC has three: case, interior, plush). The indirect-only lightmap of each set uses the same TEXCOORD_0: L_indirect = L_full - L_direct(SUN_main + LAMP_disk), Cycles DIFFUSE irradiance (colour off), clamped >= 0. Sun and lamp are rendered live with shadow maps; sky, screens, PC RGB, fixtures and every bounce are in the lightmap. Lightmap files: assets[].lightmaps[] (one per PBR atlas; .materials lists the materials that sample it), RGBM of sqrt(L) in lossless WebP; decode L = (rgb * a * rangeSqrt)^2 with lightMapIntensity = PI, colorSpace NoColorSpace, flipY false (same orientation as the glTF textures). Keepers (Robot_rsl_lens, bambu_mini_screen) and mon_screen are their own nodes and materials.' : 'Two baked atlases per asset. mode "lit": non-metal surfaces, KHR_materials_unlit, baseColor = the Cycles DIFFUSE bake (direct + indirect + colour) of the sunset room, stored as linear/litScale in sRGB: multiply the colour by material.userData.litScale (glTF extras) to restore it; no lights touch them. mode "pbr": metals (metallic >= 0.5), emissive parts, glass and keepers: baseColor + ORM (R=AO, G=roughness, B=metallic) (+ normal), lit at runtime by an environment capture of the baked room. Keepers (Robot_rsl_lens, bambu_mini_screen) are their own nodes and materials.',
   grade: 'Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).',
   totalBytes, totalTris, ...(lightmapBytes ? { lightmapBytes } : {}),
   credits: CREDITS,

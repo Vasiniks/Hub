@@ -1,13 +1,13 @@
 {
- "generated": "2026-10-01T21:02:37.564Z",
+ "generated": "2026-10-02T07:02:03.997Z",
  "generator": "blender/scripts/v2_export_web.py -> scripts/optimize-glb.mjs -> scripts/props-manifest.mjs",
  "source": "blender/scene/room.blend (full scene; licensing gate lifted by the owner on 2026-10-01)",
  "coordinates": "world space: load each GLB at identity. glTF Y-up: three (x, y, z) = Blender (x, z, -y).",
- "materials": "Hybrid real-time (v2rt): every material is PBR (baseColor, ORM with R = 1, normal where it matters, emissive where it emits) on ONE atlas per set (TEXCOORD_0). The indirect-only lightmap of each set uses the same TEXCOORD_0: L_indirect = L_full - L_direct(SUN_main + LAMP_disk), Cycles DIFFUSE irradiance (colour off), clamped >= 0. Sun and lamp are rendered live with shadow maps; sky, screens, PC RGB, fixtures and every bounce are in the lightmap. Lightmap file: assets[].lightmap.file, RGBM of sqrt(L) in lossless WebP; decode L = (rgb * a * rangeSqrt)^2 with lightMapIntensity = PI, colorSpace NoColorSpace, flipY false (same orientation as the glTF textures). Keepers (Robot_rsl_lens, bambu_mini_screen) and mon_screen are their own nodes and materials.",
+ "materials": "Hybrid real-time (v2rt): every material is PBR (baseColor, ORM with R = 1, normal where it matters, emissive where it emits) on one atlas per set (TEXCOORD_0; the PC has three: case, interior, plush). The indirect-only lightmap of each set uses the same TEXCOORD_0: L_indirect = L_full - L_direct(SUN_main + LAMP_disk), Cycles DIFFUSE irradiance (colour off), clamped >= 0. Sun and lamp are rendered live with shadow maps; sky, screens, PC RGB, fixtures and every bounce are in the lightmap. Lightmap files: assets[].lightmaps[] (one per PBR atlas; .materials lists the materials that sample it), RGBM of sqrt(L) in lossless WebP; decode L = (rgb * a * rangeSqrt)^2 with lightMapIntensity = PI, colorSpace NoColorSpace, flipY false (same orientation as the glTF textures). Keepers (Robot_rsl_lens, bambu_mini_screen) and mon_screen are their own nodes and materials.",
  "grade": "Bakes are scene-linear like the room lightmaps: render with AgX, toneMappingExposure = 2 ** 0.45 (blender/bake/sunset/README.md).",
- "totalBytes": 8798208,
- "totalTris": 530401,
- "lightmapBytes": 1708812,
+ "totalBytes": 20289636,
+ "totalTris": 898068,
+ "lightmapBytes": 58460934,
  "credits": {
   "teto_plush": {
    "title": "Kasane Teto fatass plush",
@@ -40,13 +40,723 @@
  },
  "assets": [
   {
+   "name": "bambu_mini",
+   "file": "bambu_mini.glb",
+   "bytes": 1433392,
+   "tris": 75380,
+   "trisSource": 116961,
+   "budget": null,
+   "textureBytes": 646844,
+   "textures": [
+    {
+     "name": "bambu_mini_normal",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 197252
+    },
+    {
+     "name": "bambu_mini_basecolor",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 245836
+    },
+    {
+     "name": "bambu_mini_orm",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 201454
+    },
+    {
+     "name": "bambu_mini_emissive",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 2302
+    }
+   ],
+   "materials": [
+    {
+     "name": "bambu_mini_ptfe_web",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "BLEND",
+     "textures": []
+    },
+    {
+     "name": "bambu_mini_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "bambu_mini_pbr_cutout",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "MASK",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "bambu_mini_screen_lit",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal",
+      "emissive"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "bambu_mini_base": "collapse 0.60",
+    "bambu_mini_toolhead": "collapse 0.60",
+    "bambu_mini_heatbed": "collapse 0.60",
+    "bambu_mini_carriage": "collapse 0.60",
+    "bambu_mini_spoolstand_base": "kept",
+    "bambu_mini_spoolstand_roller_0": "dissolve",
+    "bambu_mini_spoolstand_cheek_00": "kept",
+    "bambu_mini_spoolstand_axle_00": "kept",
+    "bambu_mini_spoolstand_cheek_01": "kept",
+    "bambu_mini_spoolstand_axle_01": "kept",
+    "bambu_mini_spoolstand_roller_1": "dissolve",
+    "bambu_mini_spoolstand_cheek_10": "kept",
+    "bambu_mini_spoolstand_axle_10": "kept",
+    "bambu_mini_spoolstand_cheek_11": "kept",
+    "bambu_mini_spoolstand_axle_11": "kept",
+    "bambu_mini_spool_flange_L": "dissolve",
+    "bambu_mini_spool_flange_R": "dissolve",
+    "bambu_mini_spool_core": "dissolve",
+    "bambu_mini_spool_filament": "dissolve",
+    "bambu_mini_box_inlet_collet": "dissolve",
+    "bambu_mini_filament_free": "dissolve",
+    "bambu_mini_ptfe_tube": "dissolve",
+    "bambu_mini_ptfe_tube_bore": "dissolve",
+    "bambu_mini_filament_in_tube": "dissolve",
+    "bambu_mini_benchy_hull": "dissolve",
+    "bambu_mini_benchy_cabin": "kept",
+    "bambu_mini_benchy_bollards": "kept",
+    "bambu_mini_benchy_hawse_0": "kept",
+    "bambu_mini_benchy_hawse_1": "kept",
+    "bambu_mini_table_glide_11": "dissolve",
+    "bambu_mini_table_glide_10": "dissolve",
+    "bambu_mini_table_glide_01": "dissolve",
+    "bambu_mini_table_glide_00": "dissolve",
+    "bambu_mini_table_drawer_knob": "dissolve",
+    "bambu_mini_table_drawer_cavity": "kept"
+   },
+   "lightmaps": [
+    {
+     "file": "bambu_mini.indirect.rgbm.webp",
+     "rangeSqrt": 0.77,
+     "uv": "TEXCOORD_0",
+     "res": 2048,
+     "materials": [
+      "bambu_mini_pbr",
+      "bambu_mini_pbr_cutout",
+      "bambu_mini_ptfe_web",
+      "bambu_mini_screen_lit"
+     ],
+     "bytes": 5639368,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.00945,
+      "mean_full": 0.00905,
+      "mean_direct_plus_indirect": 0.00905,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 0.9574,
+      "p99_full": 0.0492,
+      "p99_direct_plus_indirect": 0.0492,
+      "clamped_texels": 0.0065,
+      "indirect_share": 1,
+      "direct_share": 0
+     }
+    }
+   ],
+   "nodes": [
+    "bambu_mini_printer__glass_bambu_mini_ptfe",
+    "bambu_mini_printer__mesh",
+    "bambu_mini_screen",
+    "bambu_mini_printer",
+    "bambu_mini_spool_stand__mesh",
+    "bambu_mini_spool_stand",
+    "bambu_mini_table_parts__mesh",
+    "bambu_mini_table_parts",
+    "NEW_bambu_mini_root"
+   ],
+   "anchors": {
+    "bambu_mini_printer": {
+     "blender_world": [
+      1.5,
+      0.845,
+      0
+     ],
+     "three_world": [
+      1.5,
+      0,
+      -0.845
+     ],
+     "parent": "NEW_bambu_mini_root",
+     "is_pivot": false
+    },
+    "bambu_mini_spool_stand": {
+     "blender_world": [
+      1.5,
+      0.845,
+      0
+     ],
+     "three_world": [
+      1.5,
+      0,
+      -0.845
+     ],
+     "parent": "NEW_bambu_mini_root",
+     "is_pivot": false
+    },
+    "bambu_mini_table_parts": {
+     "blender_world": [
+      1.5,
+      0.845,
+      0
+     ],
+     "three_world": [
+      1.5,
+      0,
+      -0.845
+     ],
+     "parent": "NEW_bambu_mini_root",
+     "is_pivot": false
+    },
+    "NEW_bambu_mini_root": {
+     "blender_world": [
+      1.5,
+      0.845,
+      0
+     ],
+     "three_world": [
+      1.5,
+      0,
+      -0.845
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "bambu_mini_screen",
+     "material": "bambu_mini_screen_lit",
+     "emissiveFactor": [
+      0.9,
+      0.9,
+      0.9
+     ],
+     "emissiveStrength": 1,
+     "textured": true
+    }
+   ],
+   "keepers": [
+    {
+     "node": "bambu_mini_screen",
+     "material": "bambu_mini_screen_lit",
+     "keeper": true,
+     "textured_emission": true,
+     "emission_strength": 0.9,
+     "emission_color": [
+      0,
+      0,
+      0
+     ]
+    }
+   ],
+   "glass": [
+    "bambu_mini_printer__glass_bambu_mini_ptfe"
+   ],
+   "credits": [
+    "bambu_a1_mini"
+   ],
+   "sources": [
+    "NEW_bambu_mini"
+   ]
+  },
+  {
+   "name": "bookrack",
+   "file": "bookrack.glb",
+   "bytes": 1424932,
+   "tris": 13004,
+   "trisSource": 13004,
+   "budget": null,
+   "textureBytes": 1250656,
+   "textures": [
+    {
+     "name": "bookrack_normal",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 761792
+    },
+    {
+     "name": "bookrack_basecolor",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 306562
+    },
+    {
+     "name": "bookrack_orm",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 182302
+    }
+   ],
+   "materials": [
+    {
+     "name": "bookrack_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "bookrack_screws": "dissolve",
+    "bookrack_screw_recess": "kept",
+    "Mesh_165.001": "kept (custom normals)",
+    "Mesh_166.001": "kept (custom normals)",
+    "Mesh_167.001": "kept (custom normals)",
+    "Mesh_168.001": "kept (custom normals)",
+    "Mesh_169.001": "kept (custom normals)",
+    "Mesh_170.001": "kept (custom normals)",
+    "Mesh_171.001": "kept (custom normals)",
+    "Mesh_172.001": "kept (custom normals)",
+    "Mesh_173.001": "kept (custom normals)",
+    "Mesh_174.001": "kept (custom normals)",
+    "Mesh_175.001": "kept (custom normals)",
+    "Mesh_176.001": "kept (custom normals)",
+    "Mesh_177.001": "kept (custom normals)",
+    "Mesh_178.001": "kept (custom normals)",
+    "Mesh_160.001": "kept (custom normals)",
+    "Mesh_161.001": "kept (custom normals)",
+    "Mesh_162.001": "kept",
+    "Mesh_163.001": "kept",
+    "Mesh_164.001": "kept"
+   },
+   "lightmaps": [
+    {
+     "file": "bookrack.indirect.rgbm.webp",
+     "rangeSqrt": 1.19,
+     "uv": "TEXCOORD_0",
+     "res": 2048,
+     "materials": [
+      "bookrack_pbr"
+     ],
+     "bytes": 5313496,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.02256,
+      "mean_full": 0.02211,
+      "mean_direct_plus_indirect": 0.02211,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 0.9804,
+      "p99_full": 0.5453,
+      "p99_direct_plus_indirect": 0.5453,
+      "clamped_texels": 0.0003,
+      "indirect_share": 0.9941,
+      "direct_share": 0.0059
+     }
+    }
+   ],
+   "nodes": [
+    "bookrack_hardware__mesh",
+    "bookrack_hardware",
+    "Mesh_160.001__mesh",
+    "Mesh_160.001",
+    "Mesh_161.001__mesh",
+    "Mesh_161.001",
+    "Mesh_162.001__mesh",
+    "Mesh_162.001",
+    "Mesh_163.001__mesh",
+    "Mesh_163.001",
+    "Mesh_164.001__mesh",
+    "Mesh_164.001",
+    "Mesh_165.001__mesh",
+    "Mesh_165.001",
+    "Mesh_166.001__mesh",
+    "Mesh_166.001",
+    "Mesh_167.001__mesh",
+    "Mesh_167.001",
+    "Mesh_168.001__mesh",
+    "Mesh_168.001",
+    "Mesh_169.001__mesh",
+    "Mesh_169.001",
+    "Mesh_170.001__mesh",
+    "Mesh_170.001",
+    "Mesh_171.001__mesh",
+    "Mesh_171.001",
+    "Mesh_172.001__mesh",
+    "Mesh_172.001",
+    "Mesh_173.001__mesh",
+    "Mesh_173.001",
+    "Mesh_174.001__mesh",
+    "Mesh_174.001",
+    "Mesh_175.001__mesh",
+    "Mesh_175.001",
+    "Mesh_176.001__mesh",
+    "Mesh_176.001",
+    "Mesh_177.001__mesh",
+    "Mesh_177.001",
+    "Mesh_178.001__mesh",
+    "Mesh_178.001",
+    "NEW_bookrack_root"
+   ],
+   "anchors": {
+    "bookrack_hardware": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_165.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_166.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_167.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_168.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_169.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_170.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_171.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_172.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_173.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_174.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_175.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_176.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_177.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_178.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_160.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_161.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_162.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_163.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "Mesh_164.001": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": "NEW_bookrack_root",
+     "is_pivot": false
+    },
+    "NEW_bookrack_root": {
+     "blender_world": [
+      -2.08,
+      0.8,
+      1.1
+     ],
+     "three_world": [
+      -2.08,
+      1.1,
+      -0.8
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_bookrack"
+   ]
+  },
+  {
    "name": "cables",
    "file": "cables.glb",
-   "bytes": 644296,
+   "bytes": 557976,
    "tris": 50514,
    "trisSource": 53320,
    "budget": null,
-   "textureBytes": 231520,
+   "textureBytes": 155738,
    "textures": [
     {
      "name": "cables_normal",
@@ -55,7 +765,7 @@
       1024,
       1024
      ],
-     "bytes": 67950
+     "bytes": 56182
     },
     {
      "name": "cables_basecolor",
@@ -64,7 +774,7 @@
       1024,
       1024
      ],
-     "bytes": 103210
+     "bytes": 63100
     },
     {
      "name": "cables_orm",
@@ -73,7 +783,7 @@
       512,
       512
      ],
-     "bytes": 60360
+     "bytes": 36456
     }
    ],
    "materials": [
@@ -127,24 +837,32 @@
     "cables_strip_cord": "dissolve",
     "cables_coil_cable": "dissolve"
    },
-   "lightmap": {
-    "file": "cables.indirect.rgbm.webp",
-    "rangeSqrt": 1.81,
-    "uv": "TEXCOORD_0",
-    "res": 256,
-    "bytes": 144882,
-    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
-    "check": {
-     "mean_full_raw": 0.14951,
-     "mean_full": 0.14879,
-     "mean_direct_plus_indirect": 0.15272,
-     "mean_ratio": 1.0264,
-     "p99_full": 2.1696,
-     "p99_direct_plus_indirect": 2.2937,
-     "indirect_share": 0.5588,
-     "direct_share": 0.4676
+   "lightmaps": [
+    {
+     "file": "cables.indirect.rgbm.webp",
+     "rangeSqrt": 1.74,
+     "uv": "TEXCOORD_0",
+     "res": 1024,
+     "materials": [
+      "cables_pbr",
+      "magsafe_led_amber.001"
+     ],
+     "bytes": 1038030,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.11074,
+      "mean_full": 0.10792,
+      "mean_direct_plus_indirect": 0.10947,
+      "mean_ratio": 1.0144,
+      "raw_mean_ratio": 0.984,
+      "p99_full": 2.1171,
+      "p99_direct_plus_indirect": 2.1986,
+      "clamped_texels": 0.0077,
+      "indirect_share": 0.5673,
+      "direct_share": 0.4471
+     }
     }
-   },
+   ],
    "nodes": [
     "NEW_cables_root__mesh",
     "NEW_cables_root"
@@ -183,6 +901,340 @@
    "credits": [],
    "sources": [
     "NEW_cables"
+   ]
+  },
+  {
+   "name": "chair",
+   "file": "chair.glb",
+   "bytes": 1126740,
+   "tris": 13846,
+   "trisSource": 13846,
+   "budget": null,
+   "textureBytes": 961674,
+   "textures": [
+    {
+     "name": "chair_normal",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 579352
+    },
+    {
+     "name": "chair_basecolor",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 193700
+    },
+    {
+     "name": "chair_orm",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 188622
+    }
+   ],
+   "materials": [
+    {
+     "name": "chair_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "chair_base": "kept (custom normals)",
+    "chair_base_1": "kept",
+    "chair_base_2": "kept (custom normals)",
+    "chair_base_3": "kept (custom normals)"
+   },
+   "lightmaps": [
+    {
+     "file": "chair.indirect.rgbm.webp",
+     "rangeSqrt": 0.5,
+     "uv": "TEXCOORD_0",
+     "res": 2048,
+     "materials": [
+      "chair_pbr"
+     ],
+     "bytes": 6275162,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.01877,
+      "mean_full": 0.01819,
+      "mean_direct_plus_indirect": 0.01819,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 0.9693,
+      "p99_full": 0.1237,
+      "p99_direct_plus_indirect": 0.1237,
+      "clamped_texels": 0.002,
+      "indirect_share": 1,
+      "direct_share": 0
+     }
+    }
+   ],
+   "nodes": [
+    "chair__mesh",
+    "chair",
+    "Node_259"
+   ],
+   "anchors": {
+    "chair": {
+     "blender_world": [
+      0.42,
+      -0.3,
+      0
+     ],
+     "three_world": [
+      0.42,
+      0,
+      0.3
+     ],
+     "parent": "Node_259",
+     "is_pivot": false
+    },
+    "Node_259": {
+     "blender_world": [
+      0.42,
+      -0.3,
+      0
+     ],
+     "three_world": [
+      0.42,
+      0,
+      0.3
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "obj:chair_base*"
+   ]
+  },
+  {
+   "name": "desk_misc",
+   "file": "desk_misc.glb",
+   "bytes": 386868,
+   "tris": 8308,
+   "trisSource": 8308,
+   "budget": null,
+   "textureBytes": 227590,
+   "textures": [
+    {
+     "name": "desk_misc_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 52070
+    },
+    {
+     "name": "desk_misc_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 122732
+    },
+    {
+     "name": "desk_misc_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 52788
+    }
+   ],
+   "materials": [
+    {
+     "name": "desk_misc_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "driver_handle": "kept (custom normals)",
+    "driver_grip": "kept",
+    "driver_grip2": "kept",
+    "driver_bolster": "kept",
+    "driver_shaft": "kept",
+    "driver_tip": "kept",
+    "tote": "kept (custom normals)",
+    "tote_ribs": "kept (custom normals)",
+    "tote_ledge": "kept (custom normals)",
+    "tote_divider": "kept",
+    "tote_feet": "kept (custom normals)",
+    "tote.001": "kept (custom normals)",
+    "tote_ribs.001": "kept (custom normals)",
+    "tote_ledge.001": "kept (custom normals)",
+    "tote_divider.001": "kept",
+    "tote_feet.001": "kept (custom normals)",
+    "Mesh_142": "kept (custom normals)",
+    "Mesh_143": "kept (custom normals)",
+    "Mesh_144": "kept (custom normals)",
+    "Mesh_145": "kept (custom normals)",
+    "Mesh_146": "kept (custom normals)"
+   },
+   "lightmaps": [
+    {
+     "file": "desk_misc.indirect.rgbm.webp",
+     "rangeSqrt": 0.64,
+     "uv": "TEXCOORD_0",
+     "res": 1024,
+     "materials": [
+      "desk_misc_pbr"
+     ],
+     "bytes": 1802794,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.02005,
+      "mean_full": 0.01984,
+      "mean_direct_plus_indirect": 0.01984,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 0.9895,
+      "p99_full": 0.2216,
+      "p99_direct_plus_indirect": 0.2216,
+      "clamped_texels": 0,
+      "indirect_share": 1,
+      "direct_share": 0
+     }
+    }
+   ],
+   "nodes": [
+    "tote_1__mesh",
+    "tote_1",
+    "tote_2__mesh",
+    "tote_2",
+    "Node_205",
+    "room__mesh",
+    "room",
+    "screwdriver__mesh",
+    "screwdriver",
+    "Scene.017"
+   ],
+   "anchors": {
+    "screwdriver": {
+     "blender_world": [
+      0.58,
+      0.56,
+      0.735
+     ],
+     "three_world": [
+      0.58,
+      0.735,
+      -0.56
+     ],
+     "parent": "Scene.017",
+     "is_pivot": false
+    },
+    "tote_1": {
+     "blender_world": [
+      0.64,
+      0.8,
+      0
+     ],
+     "three_world": [
+      0.64,
+      0,
+      -0.8
+     ],
+     "parent": "Node_205",
+     "is_pivot": false
+    },
+    "tote_2": {
+     "blender_world": [
+      0.64,
+      0.8,
+      0
+     ],
+     "three_world": [
+      0.64,
+      0,
+      -0.8
+     ],
+     "parent": "Node_205",
+     "is_pivot": false
+    },
+    "room": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": null,
+     "is_pivot": false
+    },
+    "Scene.017": {
+     "blender_world": [
+      0.58,
+      0.56,
+      0.735
+     ],
+     "three_world": [
+      0.58,
+      0.735,
+      -0.56
+     ],
+     "parent": null,
+     "is_pivot": false
+    },
+    "Node_205": {
+     "blender_world": [
+      0.64,
+      0.8,
+      0
+     ],
+     "three_world": [
+      0.64,
+      0,
+      -0.8
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "obj:driver_*",
+    "obj:tote*",
+    "obj:Mesh_14[2-6]"
    ]
   },
   {
@@ -300,24 +1352,34 @@
     "elec_multimeter": "dissolve",
     "elec_lab_wiring": "dissolve"
    },
-   "lightmap": {
-    "file": "electronics.indirect.rgbm.webp",
-    "rangeSqrt": 1.89,
-    "uv": "TEXCOORD_0",
-    "res": 512,
-    "bytes": 368430,
-    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
-    "check": {
-     "mean_full_raw": 0.09516,
-     "mean_full": 0.09548,
-     "mean_direct_plus_indirect": 0.10212,
-     "mean_ratio": 1.0696,
-     "p99_full": 2.7322,
-     "p99_direct_plus_indirect": 2.9548,
-     "indirect_share": 0.3439,
-     "direct_share": 0.7256
+   "lightmaps": [
+    {
+     "file": "electronics.indirect.rgbm.webp",
+     "rangeSqrt": 1.4,
+     "uv": "TEXCOORD_0",
+     "res": 2048,
+     "materials": [
+      "electronics_pbr",
+      "led_blue_on.003",
+      "led_green_on.003",
+      "led_red_on.003"
+     ],
+     "bytes": 3544070,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.11054,
+      "mean_full": 0.10963,
+      "mean_direct_plus_indirect": 0.11011,
+      "mean_ratio": 1.0044,
+      "raw_mean_ratio": 0.995,
+      "p99_full": 3.2949,
+      "p99_direct_plus_indirect": 3.3069,
+      "clamped_texels": 0.0065,
+      "indirect_share": 0.2054,
+      "direct_share": 0.799
+     }
     }
-   },
+   ],
    "nodes": [
     "elec_breadboard_grp__mesh",
     "elec_breadboard_grp",
@@ -594,6 +1656,250 @@
    ]
   },
   {
+   "name": "fixtures",
+   "file": "fixtures.glb",
+   "bytes": 431756,
+   "tris": 34763,
+   "trisSource": 35471,
+   "budget": null,
+   "textureBytes": 84490,
+   "textures": [
+    {
+     "name": "fixtures_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 16016
+    },
+    {
+     "name": "fixtures_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 42144
+    },
+    {
+     "name": "fixtures_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 26330
+    }
+   ],
+   "materials": [
+    {
+     "name": "fixtures_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "rs_thermo_digits",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "rs_smoke_led",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "rs_window_operator": "dissolve",
+    "rs_window_crank": "dissolve",
+    "rs_window_locks": "dissolve",
+    "rs_door_hinges": "dissolve",
+    "rs_door_lever": "dissolve",
+    "rs_door_stop": "kept",
+    "rs_door_stop_tip": "dissolve",
+    "rs_outlet_window_plate": "dissolve",
+    "rs_outlet_window_device": "dissolve",
+    "rs_outlet_window_plug": "kept",
+    "rs_plug_cord": "dissolve",
+    "rs_outlet_left_plate": "dissolve",
+    "rs_outlet_left_device": "dissolve",
+    "rs_outlet_right_plate": "dissolve",
+    "rs_outlet_right_device": "dissolve",
+    "rs_switch_door_plate": "dissolve",
+    "rs_switch_door_device": "dissolve",
+    "rs_thermostat_body": "dissolve",
+    "rs_thermostat_screen": "kept",
+    "rs_thermostat_digits": "kept",
+    "rs_thermostat_buttons": "kept",
+    "rs_ceiling_light_base": "dissolve",
+    "rs_ceiling_light_diffuser": "dissolve",
+    "rs_smoke_alarm": "dissolve",
+    "rs_smoke_alarm_ribs": "dissolve",
+    "rs_smoke_alarm_led": "kept",
+    "rs_register_frame": "kept",
+    "rs_register_louvers": "dissolve",
+    "rs_register_boot": "kept",
+    "rs_nail_holes": "kept",
+    "curtain_ring_00": "dissolve",
+    "curtain_clip_00": "kept",
+    "curtain_ring_01": "dissolve",
+    "curtain_clip_01": "kept",
+    "curtain_ring_02": "dissolve",
+    "curtain_clip_02": "kept",
+    "curtain_ring_03": "dissolve",
+    "curtain_clip_03": "kept",
+    "curtain_ring_04": "dissolve",
+    "curtain_clip_04": "kept",
+    "curtain_ring_05": "dissolve",
+    "curtain_clip_05": "kept",
+    "curtain_ring_06": "dissolve",
+    "curtain_clip_06": "kept",
+    "curtain_ring_07": "dissolve",
+    "curtain_clip_07": "kept",
+    "curtain_ring_08": "dissolve",
+    "curtain_clip_08": "kept",
+    "curtain_ring_09": "dissolve",
+    "curtain_clip_09": "kept",
+    "curtain_ring_10": "dissolve",
+    "curtain_clip_10": "kept",
+    "curtain_ring_11": "dissolve",
+    "curtain_clip_11": "kept",
+    "curtain_ring_12": "dissolve",
+    "curtain_clip_12": "kept",
+    "curtain_ring_13": "dissolve",
+    "curtain_clip_13": "kept",
+    "curtain_ring_14": "dissolve",
+    "curtain_clip_14": "kept",
+    "curtain_ring_15": "dissolve",
+    "curtain_clip_15": "kept",
+    "curtain_rod": "dissolve",
+    "curtain_finial_L": "dissolve",
+    "curtain_finial_R": "dissolve",
+    "curtain_bracket_arm_L": "kept",
+    "curtain_bracket_plate_L": "dissolve",
+    "curtain_bracket_cup_L": "dissolve",
+    "curtain_bracket_arm_R": "kept",
+    "curtain_bracket_plate_R": "dissolve",
+    "curtain_bracket_cup_R": "dissolve"
+   },
+   "lightmaps": [
+    {
+     "file": "fixtures.indirect.rgbm.webp",
+     "rangeSqrt": 1.3,
+     "uv": "TEXCOORD_0",
+     "res": 1024,
+     "materials": [
+      "fixtures_pbr",
+      "rs_smoke_led",
+      "rs_thermo_digits"
+     ],
+     "bytes": 574316,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.03175,
+      "mean_full": 0.03122,
+      "mean_direct_plus_indirect": 0.03127,
+      "mean_ratio": 1.0015,
+      "raw_mean_ratio": 0.9834,
+      "p99_full": 0.7236,
+      "p99_direct_plus_indirect": 0.724,
+      "clamped_texels": 0.0058,
+      "indirect_share": 0.678,
+      "direct_share": 0.3235
+     }
+    }
+   ],
+   "nodes": [
+    "fixtures__mesh",
+    "fixtures_root",
+    "NEW_roomshell_root__mesh",
+    "NEW_roomshell_root"
+   ],
+   "anchors": {
+    "NEW_roomshell_root": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": null,
+     "is_pivot": false
+    },
+    "fixtures_root": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "NEW_roomshell_root__mesh",
+     "material": "rs_thermo_digits",
+     "emissiveFactor": [
+      0.85,
+      0.93,
+      1
+     ],
+     "emissiveStrength": 4,
+     "textured": false
+    },
+    {
+     "node": "NEW_roomshell_root__mesh",
+     "material": "rs_smoke_led",
+     "emissiveFactor": [
+      0.1,
+      1,
+      0.15
+     ],
+     "emissiveStrength": 6,
+     "textured": false
+    }
+   ],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_roomshell",
+    "NEW_curtains"
+   ]
+  },
+  {
    "name": "keyboard",
    "file": "keyboard.glb",
    "bytes": 380208,
@@ -661,24 +1967,31 @@
     "NEW_keyboard_usb_plug": "kept",
     "NEW_keyboard_cable": "dissolve"
    },
-   "lightmap": {
-    "file": "keyboard.indirect.rgbm.webp",
-    "rangeSqrt": 1.97,
-    "uv": "TEXCOORD_0",
-    "res": 256,
-    "bytes": 124846,
-    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
-    "check": {
-     "mean_full_raw": 0.03429,
-     "mean_full": 0.03372,
-     "mean_direct_plus_indirect": 0.03377,
-     "mean_ratio": 1.0014,
-     "p99_full": 0.5023,
-     "p99_direct_plus_indirect": 0.4989,
-     "indirect_share": 0.8036,
-     "direct_share": 0.1978
+   "lightmaps": [
+    {
+     "file": "keyboard.indirect.rgbm.webp",
+     "rangeSqrt": 1.05,
+     "uv": "TEXCOORD_0",
+     "res": 1024,
+     "materials": [
+      "keyboard_pbr"
+     ],
+     "bytes": 1336754,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.02942,
+      "mean_full": 0.0274,
+      "mean_direct_plus_indirect": 0.02741,
+      "mean_ratio": 1.0004,
+      "raw_mean_ratio": 0.9323,
+      "p99_full": 0.3919,
+      "p99_direct_plus_indirect": 0.3929,
+      "clamped_texels": 0.0023,
+      "indirect_share": 0.8288,
+      "direct_share": 0.1716
+     }
     }
-   },
+   ],
    "nodes": [
     "NEW_keyboard_root__mesh",
     "NEW_keyboard_root"
@@ -710,11 +2023,11 @@
   {
    "name": "lamp",
    "file": "lamp.glb",
-   "bytes": 1669824,
+   "bytes": 1669832,
    "tris": 41238,
    "trisSource": 98334,
    "budget": null,
-   "textureBytes": 1192144,
+   "textureBytes": 1192146,
    "textures": [
     {
      "name": "lamp_normal",
@@ -723,7 +2036,7 @@
       2048,
       2048
      ],
-     "bytes": 393224
+     "bytes": 393226
     },
     {
      "name": "lamp_basecolor",
@@ -790,24 +2103,32 @@
     "medal_m4_clasp": "kept",
     "medal_m4_disc": "relief -> 2999 tris + s2a normal"
    },
-   "lightmap": {
-    "file": "lamp.indirect.rgbm.webp",
-    "rangeSqrt": 4.32,
-    "uv": "TEXCOORD_0",
-    "res": 512,
-    "bytes": 309320,
-    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
-    "check": {
-     "mean_full_raw": 3.96274,
-     "mean_full": 3.98434,
-     "mean_direct_plus_indirect": 3.99828,
-     "mean_ratio": 1.0035,
-     "p99_full": 101.1132,
-     "p99_direct_plus_indirect": 100.1332,
-     "indirect_share": 0.3946,
-     "direct_share": 0.6089
+   "lightmaps": [
+    {
+     "file": "lamp.indirect.rgbm.webp",
+     "rangeSqrt": 4.98,
+     "uv": "TEXCOORD_0",
+     "res": 2048,
+     "materials": [
+      "lamp_diffuser",
+      "lamp_pbr"
+     ],
+     "bytes": 2998532,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 3.95694,
+      "mean_full": 3.96807,
+      "mean_direct_plus_indirect": 3.9779,
+      "mean_ratio": 1.0025,
+      "raw_mean_ratio": 1.0036,
+      "p99_full": 107.2237,
+      "p99_direct_plus_indirect": 107.859,
+      "clamped_texels": 0.0091,
+      "indirect_share": 0.3961,
+      "direct_share": 0.6064
+     }
     }
-   },
+   ],
    "nodes": [
     "NEW_lamp_pivot__mesh",
     "NEW_lamp_pivot",
@@ -929,24 +2250,31 @@
     "NEW_lorenz_stand": "dissolve",
     "NEW_lorenz_solder": "kept"
    },
-   "lightmap": {
-    "file": "lorenz.indirect.rgbm.webp",
-    "rangeSqrt": 1.98,
-    "uv": "TEXCOORD_0",
-    "res": 256,
-    "bytes": 92660,
-    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
-    "check": {
-     "mean_full_raw": 0.21397,
-     "mean_full": 0.21459,
-     "mean_direct_plus_indirect": 0.23144,
-     "mean_ratio": 1.0785,
-     "p99_full": 2.9288,
-     "p99_direct_plus_indirect": 3.2022,
-     "indirect_share": 0.291,
-     "direct_share": 0.7876
+   "lightmaps": [
+    {
+     "file": "lorenz.indirect.rgbm.webp",
+     "rangeSqrt": 2.19,
+     "uv": "TEXCOORD_0",
+     "res": 1024,
+     "materials": [
+      "lorenz_pbr"
+     ],
+     "bytes": 837270,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.21587,
+      "mean_full": 0.21916,
+      "mean_direct_plus_indirect": 0.21939,
+      "mean_ratio": 1.0011,
+      "raw_mean_ratio": 1.0131,
+      "p99_full": 3.2147,
+      "p99_direct_plus_indirect": 3.2187,
+      "clamped_texels": 0.0078,
+      "indirect_share": 0.2142,
+      "direct_share": 0.7869
+     }
     }
-   },
+   ],
    "nodes": [
     "lorenz_sculpture__mesh",
     "lorenz_sculpture",
@@ -1073,24 +2401,31 @@
     "NEW_stand_deck_pads": "kept (custom normals)",
     "NEW_stand_base_pads": "kept (custom normals)"
    },
-   "lightmap": {
-    "file": "macbook.indirect.rgbm.webp",
-    "rangeSqrt": 0.63,
-    "uv": "TEXCOORD_0",
-    "res": 256,
-    "bytes": 30910,
-    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
-    "check": {
-     "mean_full_raw": 0.00129,
-     "mean_full": 0.00124,
-     "mean_direct_plus_indirect": 0.00124,
-     "mean_ratio": 0.9977,
-     "p99_full": 0.0277,
-     "p99_direct_plus_indirect": 0.0281,
-     "indirect_share": 0.7491,
-     "direct_share": 0.2486
+   "lightmaps": [
+    {
+     "file": "macbook.indirect.rgbm.webp",
+     "rangeSqrt": 1.2,
+     "uv": "TEXCOORD_0",
+     "res": 1024,
+     "materials": [
+      "macbook_pbr"
+     ],
+     "bytes": 287874,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.00147,
+      "mean_full": 0.00152,
+      "mean_direct_plus_indirect": 0.00152,
+      "mean_ratio": 1.0005,
+      "raw_mean_ratio": 1.0431,
+      "p99_full": 0.0171,
+      "p99_direct_plus_indirect": 0.0171,
+      "clamped_texels": 0.0042,
+      "indirect_share": 0.6821,
+      "direct_share": 0.3184
+     }
     }
-   },
+   ],
    "nodes": [
     "NEW_macbook_laptop__mesh",
     "NEW_macbook_laptop",
@@ -1210,24 +2545,32 @@
     "NEW_monitor_base": "dissolve",
     "NEW_monitor_feet": "dissolve"
    },
-   "lightmap": {
-    "file": "monitor.indirect.rgbm.webp",
-    "rangeSqrt": 1.97,
-    "uv": "TEXCOORD_0",
-    "res": 512,
-    "bytes": 176098,
-    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
-    "check": {
-     "mean_full_raw": 0.16412,
-     "mean_full": 0.16284,
-     "mean_direct_plus_indirect": 0.16251,
-     "mean_ratio": 0.998,
-     "p99_full": 1.086,
-     "p99_direct_plus_indirect": 1.0832,
-     "indirect_share": 0.623,
-     "direct_share": 0.375
+   "lightmaps": [
+    {
+     "file": "monitor.indirect.rgbm.webp",
+     "rangeSqrt": 1.9,
+     "uv": "TEXCOORD_0",
+     "res": 2048,
+     "materials": [
+      "mon_power_led",
+      "monitor_pbr"
+     ],
+     "bytes": 1926230,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.17627,
+      "mean_full": 0.17484,
+      "mean_direct_plus_indirect": 0.17485,
+      "mean_ratio": 1.0001,
+      "raw_mean_ratio": 0.9913,
+      "p99_full": 1.1228,
+      "p99_direct_plus_indirect": 1.1228,
+      "clamped_texels": 0.0025,
+      "indirect_share": 0.6281,
+      "direct_share": 0.3719
+     }
     }
-   },
+   ],
    "nodes": [
     "mon_screen",
     "NEW_monitor_lift__mesh",
@@ -1346,24 +2689,31 @@
     "MouseMX_FootR": "kept",
     "MouseMX_USBC": "kept"
    },
-   "lightmap": {
-    "file": "mouse_mx.indirect.rgbm.webp",
-    "rangeSqrt": 0.77,
-    "uv": "TEXCOORD_0",
-    "res": 256,
-    "bytes": 103894,
-    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
-    "check": {
-     "mean_full_raw": 0.04212,
-     "mean_full": 0.04186,
-     "mean_direct_plus_indirect": 0.04186,
-     "mean_ratio": 1,
-     "p99_full": 0.1394,
-     "p99_direct_plus_indirect": 0.1394,
-     "indirect_share": 1,
-     "direct_share": 0
+   "lightmaps": [
+    {
+     "file": "mouse_mx.indirect.rgbm.webp",
+     "rangeSqrt": 0.52,
+     "uv": "TEXCOORD_0",
+     "res": 1024,
+     "materials": [
+      "mouse_mx_pbr"
+     ],
+     "bytes": 1110940,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.04492,
+      "mean_full": 0.04497,
+      "mean_direct_plus_indirect": 0.04497,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 1.001,
+      "p99_full": 0.1407,
+      "p99_direct_plus_indirect": 0.1407,
+      "clamped_texels": 0.007,
+      "indirect_share": 1,
+      "direct_share": 0
+     }
     }
-   },
+   ],
    "nodes": [
     "NEW_mouse_mx_root__mesh",
     "NEW_mouse_mx_root"
@@ -1395,13 +2745,127 @@
    ]
   },
   {
+   "name": "painting",
+   "file": "painting.glb",
+   "bytes": 173788,
+   "tris": 954,
+   "trisSource": 954,
+   "budget": null,
+   "textureBytes": 162026,
+   "textures": [
+    {
+     "name": "painting_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 117504
+    },
+    {
+     "name": "painting_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 41290
+    },
+    {
+     "name": "painting_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 3232
+    }
+   ],
+   "materials": [
+    {
+     "name": "painting_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "painting_stretcher": "kept",
+    "painting_canvas": "kept",
+    "painting_frame_top": "kept",
+    "painting_frame_bottom": "kept",
+    "painting_frame_left": "kept",
+    "painting_frame_right": "kept",
+    "painting_frame_tray": "kept"
+   },
+   "lightmaps": [
+    {
+     "file": "painting.indirect.rgbm.webp",
+     "rangeSqrt": 0.43,
+     "uv": "TEXCOORD_0",
+     "res": 1024,
+     "materials": [
+      "painting_pbr"
+     ],
+     "bytes": 986332,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.01521,
+      "mean_full": 0.01531,
+      "mean_direct_plus_indirect": 0.01531,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 1.0065,
+      "p99_full": 0.086,
+      "p99_direct_plus_indirect": 0.086,
+      "clamped_texels": 0,
+      "indirect_share": 1,
+      "direct_share": 0
+     }
+    }
+   ],
+   "nodes": [
+    "painting__mesh",
+    "painting_root"
+   ],
+   "anchors": {
+    "painting_root": {
+     "blender_world": [
+      0,
+      0,
+      0
+     ],
+     "three_world": [
+      0,
+      0,
+      0
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_painting"
+   ]
+  },
+  {
    "name": "pc",
    "file": "pc.glb",
-   "bytes": 2252052,
+   "bytes": 3805180,
    "tris": 212788,
    "trisSource": 245380,
    "budget": null,
-   "textureBytes": 159626,
+   "textureBytes": 1505120,
    "textures": [
     {
      "name": "pc_normal",
@@ -1410,7 +2874,7 @@
       2048,
       2048
      ],
-     "bytes": 12536
+     "bytes": 170266
     },
     {
      "name": "pc_basecolor",
@@ -1419,7 +2883,7 @@
       2048,
       2048
      ],
-     "bytes": 68876
+     "bytes": 123588
     },
     {
      "name": "pc_orm",
@@ -1428,7 +2892,7 @@
       1024,
       1024
      ],
-     "bytes": 70794
+     "bytes": 83688
     },
     {
      "name": "pc_emissive",
@@ -1437,7 +2901,70 @@
       1024,
       1024
      ],
-     "bytes": 7420
+     "bytes": 10498
+    },
+    {
+     "name": "pc_interior_normal",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 131222
+    },
+    {
+     "name": "pc_interior_basecolor",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 385266
+    },
+    {
+     "name": "pc_interior_orm",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 283712
+    },
+    {
+     "name": "pc_interior_emissive",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 47142
+    },
+    {
+     "name": "pc_plush_normal",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 91054
+    },
+    {
+     "name": "pc_plush_basecolor",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 112832
+    },
+    {
+     "name": "pc_plush_orm",
+     "mime": "image/webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 65852
     }
    ],
    "materials": [
@@ -1503,7 +3030,31 @@
      ]
     },
     {
-     "name": "pc_led_green",
+     "name": "pc_pbr_interior",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "pc_emit_interior",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal",
+      "emissive"
+     ]
+    },
+    {
+     "name": "pc_led_green_interior",
      "mode": "pbr",
      "doubleSided": true,
      "emissive": true,
@@ -1515,7 +3066,7 @@
      ]
     },
     {
-     "name": "pc_led_amber",
+     "name": "pc_led_amber_interior",
      "mode": "pbr",
      "doubleSided": true,
      "emissive": true,
@@ -1531,6 +3082,17 @@
      "mode": "pbr",
      "doubleSided": true,
      "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "pc_pbr_plush",
+     "mode": "pbr",
+     "doubleSided": true,
      "alphaMode": "OPAQUE",
      "textures": [
       "baseColor",
@@ -1616,24 +3178,86 @@
     "Plane.004": "kept",
     "Spiral": "collapse 0.60"
    },
-   "lightmap": {
-    "file": "pc.indirect.rgbm.webp",
-    "rangeSqrt": 5,
-    "uv": "TEXCOORD_0",
-    "res": 512,
-    "bytes": 66344,
-    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
-    "check": {
-     "mean_full_raw": 0.14442,
-     "mean_full": 0.14319,
-     "mean_direct_plus_indirect": 0.1436,
-     "mean_ratio": 1.0029,
-     "p99_full": 0.7754,
-     "p99_direct_plus_indirect": 0.7741,
-     "indirect_share": 0.9844,
-     "direct_share": 0.0185
+   "lightmaps": [
+    {
+     "file": "pc.indirect.rgbm.webp",
+     "rangeSqrt": 3.04,
+     "uv": "TEXCOORD_0",
+     "res": 2048,
+     "materials": [
+      "pc_emit",
+      "pc_glass_edge_web",
+      "pc_glass_web",
+      "pc_led_white",
+      "pc_pbr",
+      "pc_pbr_cutout",
+      "pc_screen_text"
+     ],
+     "bytes": 4073650,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.08383,
+      "mean_full": 0.0839,
+      "mean_direct_plus_indirect": 0.0839,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 1.0005,
+      "p99_full": 0.8019,
+      "p99_direct_plus_indirect": 0.8019,
+      "clamped_texels": 0.0003,
+      "indirect_share": 0.8764,
+      "direct_share": 0.1236
+     }
+    },
+    {
+     "file": "pc_interior.indirect.rgbm.webp",
+     "rangeSqrt": 4.42,
+     "uv": "TEXCOORD_0",
+     "res": 2048,
+     "materials": [
+      "pc_emit_interior",
+      "pc_led_amber_interior",
+      "pc_led_green_interior",
+      "pc_pbr_interior"
+     ],
+     "bytes": 6707736,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.15157,
+      "mean_full": 0.15158,
+      "mean_direct_plus_indirect": 0.15158,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 1,
+      "p99_full": 2.0629,
+      "p99_direct_plus_indirect": 2.0629,
+      "clamped_texels": 0.0001,
+      "indirect_share": 0.9988,
+      "direct_share": 0.0012
+     }
+    },
+    {
+     "file": "pc_plush.indirect.rgbm.webp",
+     "rangeSqrt": 0.58,
+     "uv": "TEXCOORD_0",
+     "res": 1024,
+     "materials": [
+      "pc_pbr_plush"
+     ],
+     "bytes": 1578774,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.03348,
+      "mean_full": 0.03332,
+      "mean_direct_plus_indirect": 0.03332,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 0.9953,
+      "p99_full": 0.2043,
+      "p99_direct_plus_indirect": 0.2043,
+      "clamped_texels": 0,
+      "indirect_share": 1,
+      "direct_share": 0
+     }
     }
-   },
+   ],
    "nodes": [
     "NEW_pc_root__glass_pc_glass",
     "NEW_pc_root__glass_pc_glass_edge",
@@ -1697,7 +3321,18 @@
     },
     {
      "node": "NEW_pc_root__mesh",
-     "material": "pc_led_green",
+     "material": "pc_emit_interior",
+     "emissiveFactor": [
+      1,
+      1,
+      1
+     ],
+     "emissiveStrength": 9,
+     "textured": true
+    },
+    {
+     "node": "NEW_pc_root__mesh",
+     "material": "pc_led_green_interior",
      "emissiveFactor": [
       0.1,
       1,
@@ -1708,7 +3343,7 @@
     },
     {
      "node": "NEW_pc_root__mesh",
-     "material": "pc_led_amber",
+     "material": "pc_led_amber_interior",
      "emissiveFactor": [
       1,
       0.45,
@@ -1788,24 +3423,31 @@
    "reduction": {
     "RedBull_can": "collapse 0.60"
    },
-   "lightmap": {
-    "file": "redbull.indirect.rgbm.webp",
-    "rangeSqrt": 2.48,
-    "uv": "TEXCOORD_0",
-    "res": 256,
-    "bytes": 51214,
-    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
-    "check": {
-     "mean_full_raw": 1.50406,
-     "mean_full": 1.5115,
-     "mean_direct_plus_indirect": 1.5896,
-     "mean_ratio": 1.0517,
-     "p99_full": 7.1827,
-     "p99_direct_plus_indirect": 7.9201,
-     "indirect_share": 0.5055,
-     "direct_share": 0.5462
+   "lightmaps": [
+    {
+     "file": "redbull.indirect.rgbm.webp",
+     "rangeSqrt": 2.66,
+     "uv": "TEXCOORD_0",
+     "res": 1024,
+     "materials": [
+      "redbull_pbr"
+     ],
+     "bytes": 634188,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 1.55419,
+      "mean_full": 1.56006,
+      "mean_direct_plus_indirect": 1.57537,
+      "mean_ratio": 1.0098,
+      "raw_mean_ratio": 1.0128,
+      "p99_full": 7.2553,
+      "p99_direct_plus_indirect": 7.4257,
+      "clamped_texels": 0.042,
+      "indirect_share": 0.4794,
+      "direct_share": 0.5304
+     }
     }
-   },
+   ],
    "nodes": [
     "NEW_redbull_root__mesh",
     "NEW_redbull_root"
@@ -1832,6 +3474,177 @@
    "credits": [],
    "sources": [
     "NEW_redbull"
+   ]
+  },
+  {
+   "name": "robot",
+   "file": "robot.glb",
+   "bytes": 3368988,
+   "tris": 129694,
+   "trisSource": 131522,
+   "budget": null,
+   "textureBytes": 1469982,
+   "textures": [
+    {
+     "name": "robot_normal",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 62152
+    },
+    {
+     "name": "robot_basecolor",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 971740
+    },
+    {
+     "name": "robot_orm",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 436090
+    }
+   ],
+   "materials": [
+    {
+     "name": "robot_polycarbonate.001_web",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "BLEND",
+     "textures": []
+    },
+    {
+     "name": "robot_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    },
+    {
+     "name": "robot_rsl_amber",
+     "mode": "pbr",
+     "doubleSided": true,
+     "emissive": true,
+     "alphaMode": "OPAQUE",
+     "textures": []
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "Robot_white_plastic": "kept",
+    "Robot_foam_ball": "dissolve",
+    "Robot_aluminium": "dissolve",
+    "Robot_black_anodised": "dissolve",
+    "Robot_rubber": "dissolve",
+    "Robot_grey_plastic": "dissolve",
+    "Robot_purple_anodised": "dissolve",
+    "Robot_polycarbonate": "dissolve",
+    "Robot_orange": "dissolve",
+    "Robot_blue_anodised": "dissolve",
+    "Robot_green_pcb": "dissolve",
+    "Robot_nylon_tan": "kept",
+    "Robot_red_anodised": "kept",
+    "Robot_black_plastic": "kept",
+    "Robot_bumper_fabric": "dissolve",
+    "Robot_number_1360_posX": "dissolve",
+    "Robot_number_1360_negX": "dissolve",
+    "Robot_rsl_lens": "kept"
+   },
+   "lightmaps": [
+    {
+     "file": "robot.indirect.rgbm.webp",
+     "rangeSqrt": 1.6,
+     "uv": "TEXCOORD_0",
+     "res": 2048,
+     "materials": [
+      "robot_pbr",
+      "robot_polycarbonate.001_web",
+      "robot_rsl_amber"
+     ],
+     "bytes": 4468718,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.01429,
+      "mean_full": 0.01383,
+      "mean_direct_plus_indirect": 0.01385,
+      "mean_ratio": 1.0013,
+      "raw_mean_ratio": 0.967,
+      "p99_full": 0.1211,
+      "p99_direct_plus_indirect": 0.1211,
+      "clamped_texels": 0.0006,
+      "indirect_share": 0.9768,
+      "direct_share": 0.0245
+     }
+    }
+   ],
+   "nodes": [
+    "NEW_robot_root__glass_robot_polycarbonate.001",
+    "NEW_robot_root__mesh",
+    "Robot_rsl_lens",
+    "NEW_robot_root"
+   ],
+   "anchors": {
+    "NEW_robot_root": {
+     "blender_world": [
+      -1.2069,
+      -0.3633,
+      0
+     ],
+     "three_world": [
+      -1.2069,
+      0,
+      0.3633
+     ],
+     "parent": null,
+     "is_pivot": false
+    }
+   },
+   "emissive": [
+    {
+     "node": "Robot_rsl_lens",
+     "material": "robot_rsl_amber",
+     "emissiveFactor": [
+      1,
+      0.45,
+      0.05
+     ],
+     "emissiveStrength": 3.5,
+     "textured": false
+    }
+   ],
+   "keepers": [
+    {
+     "node": "Robot_rsl_lens",
+     "material": "robot_rsl_amber",
+     "keeper": true,
+     "textured_emission": false,
+     "emission_strength": 3.5,
+     "emission_color": [
+      1,
+      0.45,
+      0.05
+     ]
+    }
+   ],
+   "glass": [
+    "NEW_robot_root__glass_robot_polycarbonate.001"
+   ],
+   "credits": [],
+   "sources": [
+    "NEW_robot"
    ]
   },
   {
@@ -1927,24 +3740,32 @@
     "NEW_speedcube_core": "dissolve",
     "NEW_speedcube_emblem18": "dissolve"
    },
-   "lightmap": {
-    "file": "speedcube.indirect.rgbm.webp",
-    "rangeSqrt": 1.38,
-    "uv": "TEXCOORD_0",
-    "res": 256,
-    "bytes": 155994,
-    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
-    "check": {
-     "mean_full_raw": 0.2048,
-     "mean_full": 0.20463,
-     "mean_direct_plus_indirect": 0.21162,
-     "mean_ratio": 1.0342,
-     "p99_full": 2.6046,
-     "p99_direct_plus_indirect": 2.6263,
-     "indirect_share": 0.459,
-     "direct_share": 0.5752
+   "lightmaps": [
+    {
+     "file": "speedcube.indirect.rgbm.webp",
+     "rangeSqrt": 1.27,
+     "uv": "TEXCOORD_0",
+     "res": 1024,
+     "materials": [
+      "speedcube_pbr",
+      "speedcube_pbr_cutout"
+     ],
+     "bytes": 1837744,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.25092,
+      "mean_full": 0.25129,
+      "mean_direct_plus_indirect": 0.25231,
+      "mean_ratio": 1.0041,
+      "raw_mean_ratio": 1.0024,
+      "p99_full": 2.6145,
+      "p99_direct_plus_indirect": 2.6165,
+      "clamped_texels": 0.0209,
+      "indirect_share": 0.3661,
+      "direct_share": 0.6379
+     }
     }
-   },
+   ],
    "nodes": [
     "NEW_speedcube_root__mesh",
     "NEW_speedcube_root"
@@ -1974,13 +3795,196 @@
    ]
   },
   {
+   "name": "telecaster",
+   "file": "telecaster.glb",
+   "bytes": 1678156,
+   "tris": 91718,
+   "trisSource": 108089,
+   "budget": null,
+   "textureBytes": 623378,
+   "textures": [
+    {
+     "name": "telecaster_normal",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 159394
+    },
+    {
+     "name": "telecaster_basecolor",
+     "mime": "image/webp",
+     "size": [
+      2048,
+      2048
+     ],
+     "bytes": 272178
+    },
+    {
+     "name": "telecaster_orm",
+     "mime": "image/webp",
+     "size": [
+      1024,
+      1024
+     ],
+     "bytes": 191806
+    }
+   ],
+   "materials": [
+    {
+     "name": "telecaster_pbr",
+     "mode": "pbr",
+     "doubleSided": true,
+     "alphaMode": "OPAQUE",
+     "textures": [
+      "baseColor",
+      "ORM",
+      "normal"
+     ]
+    }
+   ],
+   "litScale": null,
+   "litAtlases": {},
+   "reduction": {
+    "TeleStand": "dissolve",
+    "TeleGB_nut": "kept (custom normals)",
+    "TeleGB_tuning pegs": "collapse 0.60",
+    "TeleGB_fingerboard": "kept (custom normals)",
+    "TeleGB_fingerboard.001": "kept (custom normals)",
+    "TeleGB_Anker": "kept",
+    "TeleGB_Back_cil": "kept (custom normals)",
+    "TeleGB_Bridg": "kept",
+    "TeleGB_Deka": "kept (custom normals)",
+    "TeleGB_Griph": "kept (custom normals)",
+    "TeleGB_Holder_down_1": "kept",
+    "TeleGB_Holder_down_2": "kept",
+    "TeleGB_Holder_top_1": "kept",
+    "TeleGB_Holder_top_2": "kept",
+    "TeleGB_Humbucker": "kept",
+    "TeleGB_Jack": "kept",
+    "TeleGB_Lads": "kept (custom normals)",
+    "TeleGB_Magnet_1": "kept (custom normals)",
+    "TeleGB_Nakladka_1": "kept",
+    "TeleGB_Nakladka_back_1": "kept",
+    "TeleGB_Nakladka_back_2": "kept",
+    "TeleGB_Nakladka": "kept (custom normals)",
+    "TeleGB_Pod_string_1_1": "kept",
+    "TeleGB_Pod_string_1_2": "kept",
+    "TeleGB_Pod_string_1_3": "kept",
+    "TeleGB_Pod_string_1_4": "kept",
+    "TeleGB_Pod_string_2_1": "kept",
+    "TeleGB_Pod_string_2_2": "kept",
+    "TeleGB_Pod_string_2_3": "kept",
+    "TeleGB_Pod_string_2_4": "kept",
+    "TeleGB_Pod_string_3_1": "kept",
+    "TeleGB_Pod_string_3_2": "kept",
+    "TeleGB_Pod_string_3_3": "kept",
+    "TeleGB_Pod_string_3_4": "kept",
+    "TeleGB_Pod_string_4_1": "kept",
+    "TeleGB_Pod_string_4_2": "kept",
+    "TeleGB_Pod_string_4_3": "kept",
+    "TeleGB_Pod_string_4_4": "kept",
+    "TeleGB_Pod_string_5_1": "kept",
+    "TeleGB_Pod_string_5_2": "kept",
+    "TeleGB_Pod_string_5_3": "kept",
+    "TeleGB_Pod_string_5_4": "kept",
+    "TeleGB_Pod_string_6_1": "kept",
+    "TeleGB_Pod_string_6_2": "kept",
+    "TeleGB_Pod_string_6_3": "kept",
+    "TeleGB_Pod_string_6_4": "kept",
+    "TeleGB_Ruchka_1": "kept (custom normals)",
+    "TeleGB_Ruchka_2": "kept (custom normals)",
+    "TeleGB_Ruchka_3_0": "kept",
+    "TeleGB_Ruchka_3": "kept",
+    "TeleGB_Singl": "kept",
+    "TeleGB_Spring_1": "kept (custom normals)",
+    "TeleGB_Spring_2": "kept (custom normals)",
+    "TeleGB_Spring_3": "kept (custom normals)",
+    "TeleGB_Spring_4": "kept (custom normals)",
+    "TeleGB_Spring_5": "kept (custom normals)",
+    "TeleGB_Spring_6": "kept (custom normals)",
+    "TeleGB_Strings": "kept (custom normals)",
+    "TeleGB_Плоскость": "kept"
+   },
+   "lightmaps": [
+    {
+     "file": "telecaster.indirect.rgbm.webp",
+     "rangeSqrt": 0.43,
+     "uv": "TEXCOORD_0",
+     "res": 2048,
+     "materials": [
+      "telecaster_pbr"
+     ],
+     "bytes": 4659158,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.01399,
+      "mean_full": 0.0134,
+      "mean_direct_plus_indirect": 0.0134,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 0.9582,
+      "p99_full": 0.0625,
+      "p99_direct_plus_indirect": 0.0625,
+      "clamped_texels": 0.0013,
+      "indirect_share": 1,
+      "direct_share": 0
+     }
+    }
+   ],
+   "nodes": [
+    "NEW_telecaster_guitar__mesh",
+    "NEW_telecaster_guitar",
+    "NEW_telecaster_root__mesh",
+    "NEW_telecaster_root"
+   ],
+   "anchors": {
+    "NEW_telecaster_root": {
+     "blender_world": [
+      1.52,
+      0.05,
+      0
+     ],
+     "three_world": [
+      1.52,
+      0,
+      -0.05
+     ],
+     "parent": null,
+     "is_pivot": false
+    },
+    "NEW_telecaster_guitar": {
+     "blender_world": [
+      1.5208,
+      0.0501,
+      0.1751
+     ],
+     "three_world": [
+      1.5208,
+      0.1751,
+      -0.0501
+     ],
+     "parent": "NEW_telecaster_root",
+     "is_pivot": false
+    }
+   },
+   "emissive": [],
+   "keepers": [],
+   "glass": [],
+   "credits": [],
+   "sources": [
+    "NEW_telecaster",
+    "NEW_tele_gb"
+   ]
+  },
+  {
    "name": "teto_pear",
    "file": "teto_pear.glb",
-   "bytes": 98016,
+   "bytes": 98008,
    "tris": 1192,
    "trisSource": 1192,
    "budget": null,
-   "textureBytes": 83354,
+   "textureBytes": 83348,
    "textures": [
     {
      "name": "teto_pear_basecolor",
@@ -1989,7 +3993,7 @@
       1024,
       1024
      ],
-     "bytes": 83354
+     "bytes": 83348
     }
    ],
    "materials": [
@@ -2008,24 +4012,31 @@
    "reduction": {
     "tetopear": "kept (custom normals)"
    },
-   "lightmap": {
-    "file": "teto_pear.indirect.rgbm.webp",
-    "rangeSqrt": 0.67,
-    "uv": "TEXCOORD_0",
-    "res": 256,
-    "bytes": 84220,
-    "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
-    "check": {
-     "mean_full_raw": 0.11114,
-     "mean_full": 0.11042,
-     "mean_direct_plus_indirect": 0.11042,
-     "mean_ratio": 1,
-     "p99_full": 0.2199,
-     "p99_direct_plus_indirect": 0.2199,
-     "indirect_share": 1,
-     "direct_share": 0
+   "lightmaps": [
+    {
+     "file": "teto_pear.indirect.rgbm.webp",
+     "rangeSqrt": 0.57,
+     "uv": "TEXCOORD_0",
+     "res": 1024,
+     "materials": [
+      "teto_pear_pbr"
+     ],
+     "bytes": 829798,
+     "decode": "L = (rgb * a * rangeSqrt)^2, lightMapIntensity = PI",
+     "check": {
+      "mean_full_raw": 0.1114,
+      "mean_full": 0.1113,
+      "mean_direct_plus_indirect": 0.1113,
+      "mean_ratio": 1,
+      "raw_mean_ratio": 0.999,
+      "p99_full": 0.2176,
+      "p99_direct_plus_indirect": 0.2176,
+      "clamped_texels": 0,
+      "indirect_share": 1,
+      "direct_share": 0
+     }
     }
-   },
+   ],
    "nodes": [
     "NEW_teto_pear_root__mesh",
     "NEW_teto_pear_root"

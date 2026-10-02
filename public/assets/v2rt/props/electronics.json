@@ -185,27 +185,73 @@
  "rt": {
   "lightmap": "electronics.indirect.rgbm.webp",
   "png": "electronics.indirect.rgbm.png",
-  "res": 512,
+  "res": 2048,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 1.89,
-  "linear_max": 3.5721,
+  "range_sqrt": 1.4,
+  "linear_max": 1.96,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00026,
-  "rgbm_mean_rel_err": 0.002,
+  "clipped_fraction": 0.00021,
+  "rgbm_mean_rel_err": 0.0022,
   "samples": 256,
   "check": {
-   "mean_full_raw": 0.09516,
-   "mean_full": 0.09548,
-   "mean_direct_plus_indirect": 0.10212,
-   "mean_ratio": 1.0696,
-   "p99_full": 2.7322,
-   "p99_direct_plus_indirect": 2.9548,
-   "indirect_share": 0.3439,
-   "direct_share": 0.7256
+   "mean_full_raw": 0.11054,
+   "mean_full": 0.10963,
+   "mean_direct_plus_indirect": 0.11011,
+   "mean_ratio": 1.0044,
+   "raw_mean_ratio": 0.995,
+   "p99_full": 3.2949,
+   "p99_direct_plus_indirect": 3.3069,
+   "clamped_texels": 0.0065,
+   "indirect_share": 0.2054,
+   "direct_share": 0.799
   },
   "direct_lights": [
    "SUN_main",
    "LAMP_disk"
+  ],
+  "group": "main",
+  "materials": [
+   "electronics_pbr",
+   "led_blue_on.003",
+   "led_green_on.003",
+   "led_red_on.003"
+  ],
+  "atlases": [
+   {
+    "lightmap": "electronics.indirect.rgbm.webp",
+    "png": "electronics.indirect.rgbm.png",
+    "res": 2048,
+    "uv": "TEXCOORD_0",
+    "range_sqrt": 1.4,
+    "linear_max": 1.96,
+    "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
+    "clipped_fraction": 0.00021,
+    "rgbm_mean_rel_err": 0.0022,
+    "samples": 256,
+    "check": {
+     "mean_full_raw": 0.11054,
+     "mean_full": 0.10963,
+     "mean_direct_plus_indirect": 0.11011,
+     "mean_ratio": 1.0044,
+     "raw_mean_ratio": 0.995,
+     "p99_full": 3.2949,
+     "p99_direct_plus_indirect": 3.3069,
+     "clamped_texels": 0.0065,
+     "indirect_share": 0.2054,
+     "direct_share": 0.799
+    },
+    "direct_lights": [
+     "SUN_main",
+     "LAMP_disk"
+    ],
+    "group": "main",
+    "materials": [
+     "electronics_pbr",
+     "led_blue_on.003",
+     "led_green_on.003",
+     "led_red_on.003"
+    ]
+   }
   ]
  },
  "material_modes": {
@@ -761,14 +807,14 @@
   }
  },
  "bake_seconds": {
-  "base": 40.0,
-  "rough": 40.8,
-  "metal": 40.2,
-  "normal": 41.3,
-  "L_full": 35.8,
-  "L_direct": 30.1
+  "base": 40.1,
+  "rough": 40.5,
+  "metal": 39.6,
+  "normal": 40.5,
+  "L_full": 69.7,
+  "L_direct": 46.1
  },
  "glb": "electronics.glb",
  "glb_bytes": 4843380,
- "seconds": 307.5
+ "seconds": 363.1
 }
