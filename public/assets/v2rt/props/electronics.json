@@ -187,8 +187,8 @@
   "png": "electronics.indirect.rgbm.png",
   "res": 2048,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 1.3,
-  "linear_max": 1.69,
+  "range_sqrt": 1.4,
+  "linear_max": 1.96,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
   "clipped_fraction": 0.00021,
   "rgbm_mean_rel_err": 0.0022,
@@ -196,12 +196,14 @@
   "check": {
    "mean_full_raw": 0.11054,
    "mean_full": 0.10963,
-   "mean_direct_plus_indirect": 0.12003,
-   "mean_ratio": 1.0948,
+   "mean_direct_plus_indirect": 0.11011,
+   "mean_ratio": 1.0044,
+   "raw_mean_ratio": 0.995,
    "p99_full": 3.2949,
-   "p99_direct_plus_indirect": 3.6194,
-   "indirect_share": 0.2969,
-   "direct_share": 0.7979
+   "p99_direct_plus_indirect": 3.3069,
+   "clamped_texels": 0.0065,
+   "indirect_share": 0.2054,
+   "direct_share": 0.799
   },
   "direct_lights": [
    "SUN_main",
@@ -220,8 +222,8 @@
     "png": "electronics.indirect.rgbm.png",
     "res": 2048,
     "uv": "TEXCOORD_0",
-    "range_sqrt": 1.3,
-    "linear_max": 1.69,
+    "range_sqrt": 1.4,
+    "linear_max": 1.96,
     "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
     "clipped_fraction": 0.00021,
     "rgbm_mean_rel_err": 0.0022,
@@ -229,12 +231,14 @@
     "check": {
      "mean_full_raw": 0.11054,
      "mean_full": 0.10963,
-     "mean_direct_plus_indirect": 0.12003,
-     "mean_ratio": 1.0948,
+     "mean_direct_plus_indirect": 0.11011,
+     "mean_ratio": 1.0044,
+     "raw_mean_ratio": 0.995,
      "p99_full": 3.2949,
-     "p99_direct_plus_indirect": 3.6194,
-     "indirect_share": 0.2969,
-     "direct_share": 0.7979
+     "p99_direct_plus_indirect": 3.3069,
+     "clamped_texels": 0.0065,
+     "indirect_share": 0.2054,
+     "direct_share": 0.799
     },
     "direct_lights": [
      "SUN_main",
@@ -803,14 +807,14 @@
   }
  },
  "bake_seconds": {
-  "base": 40.6,
-  "rough": 41.4,
-  "metal": 40.8,
-  "normal": 41.5,
-  "L_full": 72.2,
-  "L_direct": 47.0
+  "base": 40.1,
+  "rough": 40.5,
+  "metal": 39.6,
+  "normal": 40.5,
+  "L_full": 69.7,
+  "L_direct": 46.1
  },
  "glb": "electronics.glb",
  "glb_bytes": 4843380,
- "seconds": 371.4
+ "seconds": 363.1
 }

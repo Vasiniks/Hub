@@ -135,21 +135,23 @@
   "png": "lamp.indirect.rgbm.png",
   "res": 2048,
   "uv": "TEXCOORD_0",
-  "range_sqrt": 4.89,
-  "linear_max": 23.9121,
+  "range_sqrt": 4.98,
+  "linear_max": 24.8004,
   "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-  "clipped_fraction": 0.00037,
-  "rgbm_mean_rel_err": 0.0019,
+  "clipped_fraction": 0.00041,
+  "rgbm_mean_rel_err": 0.0021,
   "samples": 256,
   "check": {
    "mean_full_raw": 3.95694,
-   "mean_full": 3.9681,
-   "mean_direct_plus_indirect": 3.99525,
-   "mean_ratio": 1.0068,
-   "p99_full": 107.2643,
-   "p99_direct_plus_indirect": 107.1292,
-   "indirect_share": 0.4021,
-   "direct_share": 0.6047
+   "mean_full": 3.96807,
+   "mean_direct_plus_indirect": 3.9779,
+   "mean_ratio": 1.0025,
+   "raw_mean_ratio": 1.0036,
+   "p99_full": 107.2237,
+   "p99_direct_plus_indirect": 107.859,
+   "clamped_texels": 0.0091,
+   "indirect_share": 0.3961,
+   "direct_share": 0.6064
   },
   "direct_lights": [
    "SUN_main",
@@ -166,21 +168,23 @@
     "png": "lamp.indirect.rgbm.png",
     "res": 2048,
     "uv": "TEXCOORD_0",
-    "range_sqrt": 4.89,
-    "linear_max": 23.9121,
+    "range_sqrt": 4.98,
+    "linear_max": 24.8004,
     "encoding": "RGBM of sqrt(L), lossless WebP; L = (rgb * a * range_sqrt)^2, lightMapIntensity = PI, NoColorSpace, flipY false (glTF)",
-    "clipped_fraction": 0.00037,
-    "rgbm_mean_rel_err": 0.0019,
+    "clipped_fraction": 0.00041,
+    "rgbm_mean_rel_err": 0.0021,
     "samples": 256,
     "check": {
      "mean_full_raw": 3.95694,
-     "mean_full": 3.9681,
-     "mean_direct_plus_indirect": 3.99525,
-     "mean_ratio": 1.0068,
-     "p99_full": 107.2643,
-     "p99_direct_plus_indirect": 107.1292,
-     "indirect_share": 0.4021,
-     "direct_share": 0.6047
+     "mean_full": 3.96807,
+     "mean_direct_plus_indirect": 3.9779,
+     "mean_ratio": 1.0025,
+     "raw_mean_ratio": 1.0036,
+     "p99_full": 107.2237,
+     "p99_direct_plus_indirect": 107.859,
+     "clamped_texels": 0.0091,
+     "indirect_share": 0.3961,
+     "direct_share": 0.6064
     },
     "direct_lights": [
      "SUN_main",
@@ -320,14 +324,14 @@
   }
  },
  "bake_seconds": {
-  "base": 28.0,
-  "rough": 27.9,
-  "metal": 28.0,
-  "normal": 35.7,
-  "L_full": 80.6,
-  "L_direct": 38.2
+  "base": 27.5,
+  "rough": 27.6,
+  "metal": 27.3,
+  "normal": 35.2,
+  "L_full": 75.6,
+  "L_direct": 37.1
  },
  "glb": "lamp.glb",
  "glb_bytes": 2887736,
- "seconds": 299.6
+ "seconds": 290.5
 }
